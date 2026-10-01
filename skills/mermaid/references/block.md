@@ -364,13 +364,13 @@ block-beta
 
 ## Comparison: Block vs Flowchart
 
-| Feature | Block Diagram | Flowchart |
-| --- | --- | --- |
-| Layout | Manual (columns) | Automatic |
-| Positioning | Precise control | Algorithm-driven |
-| Complex layouts | Better | Limited |
-| Quick diagrams | More verbose | Simpler |
-| Responsiveness | Fixed | Adapts |
+| Feature         | Block Diagram    | Flowchart        |
+| --------------- | ---------------- | ---------------- |
+| Layout          | Manual (columns) | Automatic        |
+| Positioning     | Precise control  | Algorithm-driven |
+| Complex layouts | Better           | Limited          |
+| Quick diagrams  | More verbose     | Simpler          |
+| Responsiveness  | Fixed            | Adapts           |
 
 ## When to Use Block Diagrams
 

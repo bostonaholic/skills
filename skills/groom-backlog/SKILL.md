@@ -65,14 +65,14 @@ Ranking heuristic, in order:
 2. **Reliability of the project's own verification harness** (flaky tests/evals,
    broken CI) — everything else is judged through it.
 3. **Well-specified, high-leverage improvements** — prefer issues whose open
-   questions can be resolved *during grooming* over ones needing real design work.
+   questions can be resolved _during grooming_ over ones needing real design work.
 4. **Strategic/research items** only when they unblock several others.
 
 Tiebreaker: smaller verified scope beats bigger promised impact.
 
 ### 4. Propose the slate — approval gate
 
-Present a table: issue, one-line why-now, and the *verified* facts supporting it.
+Present a table: issue, one-line why-now, and the _verified_ facts supporting it.
 List separately any premise-evaporated issues recommended for closure, with
 evidence. **AskUserQuestion before mutating anything** — offer the slate, the
 strongest runner-up swaps, and the closures as separate decisions.

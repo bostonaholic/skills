@@ -30,18 +30,21 @@ set -euo pipefail
 # Diagnostics go to stderr; only the data lines go to stdout.
 
 manifest="${1:?usage: reconcile.sh <manifest>}"
-[ -f "$manifest" ] || { echo "manifest not found: $manifest" >&2; exit 2; }
+[ -f "$manifest" ] || {
+  echo "manifest not found: $manifest" >&2
+  exit 2
+}
 
 echo "Fetching latest remote state…" >&2
-git fetch --prune origin >/dev/null 2>&1 \
-  || echo "warning: git fetch failed; reporting from local remote-tracking refs" >&2
+git fetch --prune origin >/dev/null 2>&1 ||
+  echo "warning: git fetch failed; reporting from local remote-tracking refs" >&2
 
 total=0
 rebased_count=0
 
 while IFS=$'\t' read -r pr branch base pre_oid || [ -n "${pr:-}" ]; do
-  if [ -z "${pr// /}" ]; then continue; fi      # skip blank lines
-  case "$pr" in \#*) continue ;; esac           # skip comments
+  if [ -z "${pr// /}" ]; then continue; fi # skip blank lines
+  case "$pr" in \#*) continue ;; esac      # skip comments
   total=$((total + 1))
 
   ref="refs/remotes/origin/$branch"
@@ -67,6 +70,6 @@ while IFS=$'\t' read -r pr branch base pre_oid || [ -n "${pr:-}" ]; do
   last_push=$(git log -1 --format=%cr "$ref" 2>/dev/null || echo unknown)
 
   echo "PR=$pr BRANCH=$branch CURRENT_OID=$current_oid REBASED=$rebased OID_CHANGED=$oid_changed LAST_PUSH=$last_push"
-done < "$manifest"
+done <"$manifest"
 
 echo "Reconciled $total branch(es); $rebased_count now contain their base." >&2

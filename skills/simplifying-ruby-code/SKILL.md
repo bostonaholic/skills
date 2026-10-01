@@ -89,11 +89,11 @@ end
 
 ## Data Structure Selection
 
-| Use | When |
-|-----|------|
-| Hash | Temporary data, varying keys, JSON interface |
-| Struct | Fixed attributes, need methods, mutable OK |
-| Data | Fixed attributes, immutable (Ruby 3.2+) |
+| Use          | When                                               |
+| ------------ | -------------------------------------------------- |
+| Hash         | Temporary data, varying keys, JSON interface       |
+| Struct       | Fixed attributes, need methods, mutable OK         |
+| Data         | Fixed attributes, immutable (Ruby 3.2+)            |
 | Custom Class | Complex validation, rich behavior, domain concepts |
 
 ## Ruby Protocols

@@ -48,8 +48,8 @@ code from the repo. Do this BEFORE running any install or build commands.
    - Python: `pip-audit` or `safety check`
    - Rust: `cargo audit`
    - Go: `govulncheck ./...`
-   If the audit tool is not installed, note it and review lockfile entries
-   manually for known-bad packages.
+     If the audit tool is not installed, note it and review lockfile entries
+     manually for known-bad packages.
 3. **Dependency count and freshness** — flag projects with very large
    dependency trees, unmaintained packages (no updates in 2+ years), or
    packages with very few downloads/stars.
@@ -61,22 +61,26 @@ code from the repo. Do this BEFORE running any install or build commands.
 **Goal:** Identify code that runs automatically during install or build.
 
 #### Node.js / npm
+
 - `preinstall`, `postinstall`, `prepare`, `prepublish` scripts in
   `package.json` — flag any that invoke `curl`, `wget`, `bash`, `sh`,
   `node -e`, or download remote content.
 - Check `.npmrc` for `ignore-scripts=false` or custom registry URLs.
 
 #### Python
+
 - `setup.py` — look for `cmdclass` overrides, subprocess calls,
   or imports of `setuptools.command.install`.
 - `pyproject.toml` — check `[tool.setuptools]` and build system hooks.
 
 #### Ruby
+
 - `Gemfile` — look for gems installed from git URLs (not rubygems.org).
 - Gem extensions (`extconf.rb`, `Rakefile` in gem directories) that
   compile native code.
 
 #### Rust / Go / C
+
 - `build.rs` (Rust) — check for network calls or shell execution.
 - `Makefile` / `CMakeLists.txt` — review default targets, `install`
   targets, and any `$(shell ...)` invocations.
@@ -168,15 +172,16 @@ Patterns exposing sensitive data:
 
 Generate a letter grade from A to F:
 
-| Grade | Score | Meaning |
-|-------|-------|---------|
-| A | 90-100 | No significant concerns. Safe to run locally. |
-| B | 80-89 | Minor concerns, low risk. Review flagged items. |
-| C | 70-79 | Moderate concerns. Investigate before use. |
-| D | 60-69 | Significant concerns. Multiple suspicious patterns. |
-| F | <60 | Critical risks. Evidence of malicious intent. |
+| Grade | Score  | Meaning                                             |
+| ----- | ------ | --------------------------------------------------- |
+| A     | 90-100 | No significant concerns. Safe to run locally.       |
+| B     | 80-89  | Minor concerns, low risk. Review flagged items.     |
+| C     | 70-79  | Moderate concerns. Investigate before use.          |
+| D     | 60-69  | Significant concerns. Multiple suspicious patterns. |
+| F     | <60    | Critical risks. Evidence of malicious intent.       |
 
 Scoring deductions:
+
 - Critical finding: -25 points each
 - High-risk finding: -10 points each
 - Medium-risk finding: -5 points each

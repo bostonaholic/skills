@@ -223,14 +223,14 @@ gitGraph
 
 ### Configuration Options
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `showBranches` | true | Show branch labels |
-| `showCommitLabel` | true | Show commit IDs |
-| `mainBranchName` | "main" | Name of main branch |
-| `mainBranchOrder` | 0 | Position of main branch |
-| `parallelCommits` | false | Align commits on same row |
-| `rotateCommitLabel` | true | Rotate commit labels |
+| Option              | Default | Description               |
+| ------------------- | ------- | ------------------------- |
+| `showBranches`      | true    | Show branch labels        |
+| `showCommitLabel`   | true    | Show commit IDs           |
+| `mainBranchName`    | "main"  | Name of main branch       |
+| `mainBranchOrder`   | 0       | Position of main branch   |
+| `parallelCommits`   | false   | Align commits on same row |
+| `rotateCommitLabel` | true    | Rotate commit labels      |
 
 ## Complete Examples
 

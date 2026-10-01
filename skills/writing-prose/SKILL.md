@@ -58,14 +58,14 @@ parentheses instead. Rewrite any sentence that seems to need an emdash.
 
 ## Word Choice
 
-| Prefer                | Avoid                      |
-| --------------------- | -------------------------- |
-| Short, common words   | Jargon, fancy vocabulary   |
-| Active voice          | Passive constructions      |
-| Concrete nouns        | Abstract nominalizations   |
-| "Use"                 | "Utilize"                  |
-| "Help"                | "Facilitate"               |
-| "About"               | "Regarding"                |
+| Prefer              | Avoid                    |
+| ------------------- | ------------------------ |
+| Short, common words | Jargon, fancy vocabulary |
+| Active voice        | Passive constructions    |
+| Concrete nouns      | Abstract nominalizations |
+| "Use"               | "Utilize"                |
+| "Help"              | "Facilitate"             |
+| "About"             | "Regarding"              |
 
 **Germanic words beat Latinate ones.** "Begin" not "commence."
 "End" not "terminate."
@@ -154,11 +154,11 @@ Simple language lets readers focus on ideas, not parsing prose.
 
 ## Quick Reference
 
-| Principle      | Action                              |
-| -------------- | ----------------------------------- |
-| Conversational | Would I say this to a friend?       |
-| Simple         | Ordinary words, short sentences     |
-| Bold           | Strong claims, qualified precisely  |
-| Honest         | Simple prose exposes weak ideas     |
-| Rhythmic       | Sound matches logic                 |
-| Cut            | Delete everything unnecessary       |
+| Principle      | Action                             |
+| -------------- | ---------------------------------- |
+| Conversational | Would I say this to a friend?      |
+| Simple         | Ordinary words, short sentences    |
+| Bold           | Strong claims, qualified precisely |
+| Honest         | Simple prose exposes weak ideas    |
+| Rhythmic       | Sound matches logic                |
+| Cut            | Delete everything unnecessary      |

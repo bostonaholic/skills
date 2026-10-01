@@ -78,20 +78,20 @@ flowchart LR
 
 ### Common Theme Variables
 
-| Variable | Description |
-| --- | --- |
-| `primaryColor` | Main node color |
-| `primaryTextColor` | Text on primary |
-| `primaryBorderColor` | Primary borders |
-| `secondaryColor` | Secondary elements |
-| `tertiaryColor` | Tertiary elements |
-| `lineColor` | Connection lines |
-| `textColor` | General text |
-| `mainBkg` | Background color |
-| `nodeBorder` | Node borders |
-| `clusterBkg` | Subgraph background |
-| `clusterBorder` | Subgraph borders |
-| `titleColor` | Title text |
+| Variable              | Description           |
+| --------------------- | --------------------- |
+| `primaryColor`        | Main node color       |
+| `primaryTextColor`    | Text on primary       |
+| `primaryBorderColor`  | Primary borders       |
+| `secondaryColor`      | Secondary elements    |
+| `tertiaryColor`       | Tertiary elements     |
+| `lineColor`           | Connection lines      |
+| `textColor`           | General text          |
+| `mainBkg`             | Background color      |
+| `nodeBorder`          | Node borders          |
+| `clusterBkg`          | Subgraph background   |
+| `clusterBorder`       | Subgraph borders      |
+| `titleColor`          | Title text            |
 | `edgeLabelBackground` | Edge label background |
 
 ## Flowchart-Specific Styling

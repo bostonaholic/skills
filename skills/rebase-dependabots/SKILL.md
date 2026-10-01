@@ -1,6 +1,5 @@
 ---
 name: rebase-dependabots
-user-invokable: true
 argument-hint: "[PR numbers] [--dry-run]"
 description: This skill should be used when the user asks to "rebase dependabot PRs", "rebase dependabots", "refresh stale dependabot branches", or wants to comment "@dependabot rebase" on open Dependabot PRs to trigger a rebase.
 ---

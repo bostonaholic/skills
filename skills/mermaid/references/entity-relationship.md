@@ -102,24 +102,24 @@ erDiagram
 
 ### All Cardinality Combinations
 
-| Left | Right | Meaning |
-| --- | --- | --- |
-| `\|o` | `o\|` | Zero or one to zero or one |
-| `\|o` | `\|\|` | Zero or one to exactly one |
-| `\|o` | `o{` | Zero or one to zero or more |
-| `\|o` | `\|{` | Zero or one to one or more |
-| `\|\|` | `o\|` | Exactly one to zero or one |
-| `\|\|` | `\|\|` | Exactly one to exactly one |
-| `\|\|` | `o{` | Exactly one to zero or more |
-| `\|\|` | `\|{` | Exactly one to one or more |
-| `}o` | `o\|` | Zero or more to zero or one |
-| `}o` | `\|\|` | Zero or more to exactly one |
-| `}o` | `o{` | Zero or more to zero or more |
-| `}o` | `\|{` | Zero or more to one or more |
-| `}\|` | `o\|` | One or more to zero or one |
-| `}\|` | `\|\|` | One or more to exactly one |
-| `}\|` | `o{` | One or more to zero or more |
-| `}\|` | `\|{` | One or more to one or more |
+| Left   | Right  | Meaning                      |
+| ------ | ------ | ---------------------------- |
+| `\|o`  | `o\|`  | Zero or one to zero or one   |
+| `\|o`  | `\|\|` | Zero or one to exactly one   |
+| `\|o`  | `o{`   | Zero or one to zero or more  |
+| `\|o`  | `\|{`  | Zero or one to one or more   |
+| `\|\|` | `o\|`  | Exactly one to zero or one   |
+| `\|\|` | `\|\|` | Exactly one to exactly one   |
+| `\|\|` | `o{`   | Exactly one to zero or more  |
+| `\|\|` | `\|{`  | Exactly one to one or more   |
+| `}o`   | `o\|`  | Zero or more to zero or one  |
+| `}o`   | `\|\|` | Zero or more to exactly one  |
+| `}o`   | `o{`   | Zero or more to zero or more |
+| `}o`   | `\|{`  | Zero or more to one or more  |
+| `}\|`  | `o\|`  | One or more to zero or one   |
+| `}\|`  | `\|\|` | One or more to exactly one   |
+| `}\|`  | `o{`   | One or more to zero or more  |
+| `}\|`  | `\|{`  | One or more to one or more   |
 
 ### Identifying vs Non-Identifying
 

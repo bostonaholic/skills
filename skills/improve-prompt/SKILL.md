@@ -1,6 +1,5 @@
 ---
 name: improve-prompt
-user-invokable: true
 argument-hint: "<prompt text or file path containing the prompt to improve>"
 description: This skill should be used when the user asks to "improve a prompt", "make this prompt better", "optimize this prompt", "refine this system prompt", or wants to apply concept elevation to compress and clarify LLM instructions.
 ---
@@ -32,6 +31,7 @@ Perform each step inside `<well-named-xml-style>` tags to make the reasoning aud
 ## Quality Criteria
 
 The improved prompt should be:
+
 - More concise than the original (fewer tokens for the same intent)
 - Clearer (less ambiguity, fewer edge cases left unaddressed)
 - More adaptable (principles over rigid examples)

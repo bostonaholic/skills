@@ -1,6 +1,5 @@
 ---
 name: review-ruby
-user-invokable: true
 argument-hint: "[file paths, directory paths, branch name, or focus area]"
 description: This skill should be used when the user asks to "review ruby code", "audit ruby codebase", "find over-engineering in ruby", "simplify ruby classes", "review lib/", or wants to analyze Ruby code (libraries, gems, CLI tools) for unnecessary abstractions with actionable refactoring steps.
 ---
@@ -26,24 +25,28 @@ Determine scope from the user's request:
 ## Anti-Patterns to Scan
 
 ### Unnecessary Class Hierarchies
+
 - Deep inheritance trees (>2 levels) for simple behavior
 - Abstract base classes with single implementations
 - Classes that could be modules or simple functions
 - Template method pattern where blocks would suffice
 
 ### Over-Engineered Data Objects
+
 - Custom classes for simple data pairs (coordinates, ranges, tuples)
 - Value objects without behavior, validation, or transformation
 - Missing Ruby protocol implementations (`each`, `to_h`, `to_a`, `to_json`, `to_s`)
 - Data objects that should be Struct, Data, or Hash
 
 ### Stateful Objects Where Functions Would Work
+
 - Classes with only class methods (should be modules)
 - Single-method classes (`call`, `run`, `execute`, `perform`)
 - Builder patterns for simple object construction
 - Stateful service objects that could be pure functions
 
 ### Complexity That Could Be Simplified
+
 - Custom DSLs that reinvent Ruby syntax
 - Wrapper classes around standard library
 - Complex metaprogramming where simple code would work

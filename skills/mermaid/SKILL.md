@@ -22,25 +22,25 @@ architectures, and more.
 
 ## Supported Diagram Types
 
-| Type | Keyword | Use Case |
-| --- | --- | --- |
-| Flowchart | `flowchart` | Process flows, decision trees |
-| Sequence | `sequenceDiagram` | API interactions, message flows |
-| Class | `classDiagram` | OOP structures, relationships |
-| State | `stateDiagram-v2` | State machines, lifecycles |
-| ER | `erDiagram` | Database schemas |
-| Gantt | `gantt` | Project timelines, schedules |
-| Pie | `pie` | Proportional data |
-| Mindmap | `mindmap` | Hierarchical concepts |
-| Timeline | `timeline` | Chronological events |
-| Quadrant | `quadrantChart` | Priority matrices |
-| Git | `gitGraph` | Branch/merge visualization |
-| XY Chart | `xychart-beta` | Bar and line charts |
-| Sankey | `sankey-beta` | Flow quantities |
-| Architecture | `architecture-beta` | System components |
-| User Journey | `journey` | User experience mapping |
-| Kanban | `kanban` | Task boards |
-| Block | `block-beta` | Precise layout diagrams |
+| Type         | Keyword             | Use Case                        |
+| ------------ | ------------------- | ------------------------------- |
+| Flowchart    | `flowchart`         | Process flows, decision trees   |
+| Sequence     | `sequenceDiagram`   | API interactions, message flows |
+| Class        | `classDiagram`      | OOP structures, relationships   |
+| State        | `stateDiagram-v2`   | State machines, lifecycles      |
+| ER           | `erDiagram`         | Database schemas                |
+| Gantt        | `gantt`             | Project timelines, schedules    |
+| Pie          | `pie`               | Proportional data               |
+| Mindmap      | `mindmap`           | Hierarchical concepts           |
+| Timeline     | `timeline`          | Chronological events            |
+| Quadrant     | `quadrantChart`     | Priority matrices               |
+| Git          | `gitGraph`          | Branch/merge visualization      |
+| XY Chart     | `xychart-beta`      | Bar and line charts             |
+| Sankey       | `sankey-beta`       | Flow quantities                 |
+| Architecture | `architecture-beta` | System components               |
+| User Journey | `journey`           | User experience mapping         |
+| Kanban       | `kanban`            | Task boards                     |
+| Block        | `block-beta`        | Precise layout diagrams         |
 
 ## Quick Reference
 
@@ -100,23 +100,23 @@ Common issues to check:
 
 ### Choosing the Right Diagram Type
 
-| User Intent | Recommended Diagram |
-| --- | --- |
-| "Show process steps" | Flowchart |
-| "Show API calls" | Sequence diagram |
-| "Show database tables" | ER diagram |
-| "Show class hierarchy" | Class diagram |
-| "Show project timeline" | Gantt chart |
-| "Show state transitions" | State diagram |
-| "Show proportions" | Pie chart |
-| "Brainstorm/organize ideas" | Mindmap |
-| "Show system architecture" | Architecture diagram |
-| "Show user experience" | User journey |
-| "Show task status" | Kanban |
-| "Show data flow" | Sankey diagram |
-| "Prioritize items" | Quadrant chart |
-| "Show trends over time" | XY chart |
-| "Show git history" | Git graph |
+| User Intent                 | Recommended Diagram  |
+| --------------------------- | -------------------- |
+| "Show process steps"        | Flowchart            |
+| "Show API calls"            | Sequence diagram     |
+| "Show database tables"      | ER diagram           |
+| "Show class hierarchy"      | Class diagram        |
+| "Show project timeline"     | Gantt chart          |
+| "Show state transitions"    | State diagram        |
+| "Show proportions"          | Pie chart            |
+| "Brainstorm/organize ideas" | Mindmap              |
+| "Show system architecture"  | Architecture diagram |
+| "Show user experience"      | User journey         |
+| "Show task status"          | Kanban               |
+| "Show data flow"            | Sankey diagram       |
+| "Prioritize items"          | Quadrant chart       |
+| "Show trends over time"     | XY chart             |
+| "Show git history"          | Git graph            |
 
 ## Reference Documentation
 

@@ -1,6 +1,5 @@
 ---
 name: redo
-user-invokable: true
 description: This skill should be used when the user says "redo this", "start over", "scrap this approach", "rewrite from scratch", "try a simpler approach", or wants to discard the current implementation and reimplement with an elegant solution using everything learned so far.
 ---
 

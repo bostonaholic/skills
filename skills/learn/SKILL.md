@@ -1,6 +1,5 @@
 ---
 name: learn
-user-invokable: true
 description: This skill should be used when the user says "learn from that mistake", "remember this for next time", "add that to CLAUDE.md", "don't do that again", or wants to codify a correction or lesson into CLAUDE.md so it persists across sessions.
 ---
 

@@ -71,18 +71,21 @@ Open with "You are..." — every production prompt does this. It frames
 everything that follows.
 
 **Rules:**
+
 - Name the specific role, not "AI assistant"
 - Set the competence level ("expert", "senior engineer", "specialist in X")
 - Anchor the relationship ("pair programming with the user", "helping a team of...")
 - Keep it to 1-5 lines
 
 **Good:**
+
 ```text
 You are a senior backend engineer specializing in distributed systems.
 You pair-program with the user to design and implement reliable services.
 ```
 
 **Bad:**
+
 ```text
 I am an AI assistant designed to help users with a wide range of tasks
 including but not limited to programming, writing, and analysis...
@@ -94,11 +97,13 @@ Define when the AI's job is done. Without this, models stop early and ask
 for permission.
 
 **Rules:**
+
 - State explicit completion criteria
 - Bias toward action over confirmation
 - Ban over-confirming ("let me know if that's okay")
 
 **Good:**
+
 ```text
 Keep going until the user's request is fully resolved. Do not stop to ask
 for permission unless you are genuinely blocked. State assumptions and proceed.
@@ -109,6 +114,7 @@ for permission unless you are genuinely blocked. State assumptions and proceed.
 Every top prompt enforces brevity. Models default to verbose.
 
 **Rules:**
+
 - Cap response length explicitly ("fewer than 4 lines" is more enforceable than "be concise")
 - Ban filler, preamble, and postamble
 - Ban emojis unless requested
@@ -116,6 +122,7 @@ Every top prompt enforces brevity. Models default to verbose.
 - Separate code verbosity from prose verbosity (code should be readable; explanations should be brief)
 
 **Do NOT include:**
+
 - "Be helpful and friendly" — default behavior, wastes tokens
 - Generic formatting rules — only include specific, testable requirements
 
@@ -125,12 +132,14 @@ Define the process, not just the goal. The universal pattern across
 production prompts is: **Read, Plan, Execute, Verify.**
 
 **Rules:**
+
 - Define phase gates ("before starting edits, reconcile the plan")
 - Define mode transitions ("default to discussion; only implement when action words are used")
 - Include a verification step ("run tests before submitting")
 - Include status update rules if multi-step
 
 **Example structure:**
+
 ```text
 1. Discovery — Read relevant files, understand current state
 2. Plan — Create a structured plan, get alignment
@@ -143,6 +152,7 @@ production prompts is: **Read, Plan, Execute, Verify.**
 Models default to sequential tool calls. You must actively override this.
 
 **Rules to always include:**
+
 - "Default to parallel tool calls when independent"
 - "Prefer specialized tools over shell commands" (with specifics)
 - "Read before edit — never edit a file without reading it first"
@@ -150,6 +160,7 @@ Models default to sequential tool calls. You must actively override this.
 - "Don't mention tool names to the user" — describe actions naturally
 
 **Example:**
+
 ```text
 CRITICAL: Call all independent tools concurrently. Do not serialize.
 
@@ -168,6 +179,7 @@ Separate domain rules (code style, naming conventions, architectural patterns)
 into their own section. Use concrete bad-to-good pairs.
 
 **Example:**
+
 ```text
 ## Code Style
 
@@ -184,6 +196,7 @@ Comments: explain WHY, not WHAT. No commented-out code.
 Use severity-layered keywords. Models learn to weight all-caps heavily.
 
 **Severity levels:**
+
 ```text
 CRITICAL: ...  — Absolute, no exceptions
 IMPORTANT: ... — Strong default, rare exceptions
@@ -192,12 +205,14 @@ ALWAYS: ...    — Absolute requirement
 ```
 
 **What to constrain:**
+
 - Security (secrets, credentials, injection)
 - Destructive operations (deletion, force-push, production changes)
 - Scope creep (don't add unrequested features)
 - Assumptions (don't guess; ask or verify)
 
 **Rules:**
+
 - Repeat truly critical constraints (models respond to repetition)
 - Don't over-constrain — too many rules dilute the important ones
 - Don't constrain default behavior (wastes tokens)
@@ -208,6 +223,7 @@ Define what to do when things go wrong. Use concrete scenarios, not
 nested conditionals.
 
 **Example:**
+
 ```text
 If a test fails after your edit:
 1. Read the error output carefully
@@ -225,6 +241,7 @@ If the user's request is ambiguous:
 Few-shot examples are the highest-ROI technique. Use XML tags for structure.
 
 **Show these:**
+
 - Response length and tone
 - Tool call decisions
 - Multi-step workflows
@@ -232,6 +249,7 @@ Few-shot examples are the highest-ROI technique. Use XML tags for structure.
 - Counter-examples (what NOT to do)
 
 **Format:**
+
 ```xml
 <example>
 User: How do I add a new API endpoint?
@@ -311,17 +329,17 @@ or summarize what you're about to do before doing it.
 
 When reviewing an existing prompt, flag these:
 
-| Anti-Pattern | Problem | Fix |
-|-------------|---------|-----|
-| Capability laundry list | Wastes tokens, model knows what it can do | Cut entirely |
-| "Be helpful and friendly" | Default behavior | Cut entirely |
-| Marketing language | Model doesn't care | Cut entirely |
-| Defensive disclaimers | Undermines confidence | Cut entirely |
-| Nested conditionals for rare cases | Confuses the model | Use examples instead |
-| Vague personality directives | Not testable | Use concrete caps and rules |
-| No examples | Lowest-ROI omission | Add 3-10 examples |
-| Sequential tool instructions | Models default to sequential anyway | Explicitly mandate parallel |
-| Rules about default behavior | Wastes tokens reinforcing what's already true | Cut entirely |
+| Anti-Pattern                       | Problem                                       | Fix                         |
+| ---------------------------------- | --------------------------------------------- | --------------------------- |
+| Capability laundry list            | Wastes tokens, model knows what it can do     | Cut entirely                |
+| "Be helpful and friendly"          | Default behavior                              | Cut entirely                |
+| Marketing language                 | Model doesn't care                            | Cut entirely                |
+| Defensive disclaimers              | Undermines confidence                         | Cut entirely                |
+| Nested conditionals for rare cases | Confuses the model                            | Use examples instead        |
+| Vague personality directives       | Not testable                                  | Use concrete caps and rules |
+| No examples                        | Lowest-ROI omission                           | Add 3-10 examples           |
+| Sequential tool instructions       | Models default to sequential anyway           | Explicitly mandate parallel |
+| Rules about default behavior       | Wastes tokens reinforcing what's already true | Cut entirely                |
 
 ---
 
@@ -345,6 +363,7 @@ Before delivering, verify the prompt has:
 - [ ] Dynamic runtime context section (if applicable)
 
 **Cut if present:**
+
 - [ ] No capability lists
 - [ ] No generic personality directives
 - [ ] No marketing copy

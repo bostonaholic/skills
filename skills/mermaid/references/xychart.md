@@ -203,19 +203,19 @@ xychart-beta
 
 ### Configuration Options
 
-| Parameter | Default | Description |
-| --- | --- | --- |
-| `width` | 700 | Chart width in pixels |
-| `height` | 500 | Chart height in pixels |
-| `titleFontSize` | 20 | Title font size |
-| `titlePadding` | 10 | Padding around title |
-| `showTitle` | true | Display title |
-| `chartOrientation` | vertical | vertical or horizontal |
-| `xAxisLabelFontSize` | 14 | X-axis label size |
-| `yAxisLabelFontSize` | 14 | Y-axis label size |
-| `xAxisTitleFontSize` | 16 | X-axis title size |
-| `yAxisTitleFontSize` | 16 | Y-axis title size |
-| `plotReservedSpacePercent` | 50 | Space for plot area |
+| Parameter                  | Default  | Description            |
+| -------------------------- | -------- | ---------------------- |
+| `width`                    | 700      | Chart width in pixels  |
+| `height`                   | 500      | Chart height in pixels |
+| `titleFontSize`            | 20       | Title font size        |
+| `titlePadding`             | 10       | Padding around title   |
+| `showTitle`                | true     | Display title          |
+| `chartOrientation`         | vertical | vertical or horizontal |
+| `xAxisLabelFontSize`       | 14       | X-axis label size      |
+| `yAxisLabelFontSize`       | 14       | Y-axis label size      |
+| `xAxisTitleFontSize`       | 16       | X-axis title size      |
+| `yAxisTitleFontSize`       | 16       | Y-axis title size      |
+| `plotReservedSpacePercent` | 50       | Space for plot area    |
 
 ## Styling
 

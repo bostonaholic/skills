@@ -215,12 +215,12 @@ B,D,20
 
 ### Configuration Options
 
-| Parameter | Default | Description |
-| --- | --- | --- |
-| `width` | 600 | Diagram width in pixels |
-| `height` | 400 | Diagram height in pixels |
-| `linkColor` | 'source' | Link coloring method |
-| `nodeAlignment` | 'justify' | Node positioning |
+| Parameter       | Default   | Description              |
+| --------------- | --------- | ------------------------ |
+| `width`         | 600       | Diagram width in pixels  |
+| `height`        | 400       | Diagram height in pixels |
+| `linkColor`     | 'source'  | Link coloring method     |
+| `nodeAlignment` | 'justify' | Node positioning         |
 
 ### Link Color Options
 

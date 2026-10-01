@@ -24,12 +24,12 @@ This project's zsh files live in `zsh/` and are symlinked to `$HOME` via
 
 ## File Map
 
-| Repo file | Symlinked to | Sourced when |
-|-----------|-------------|-------------|
-| `zsh/zprofile` | `~/.zprofile` | Login shells (once, at login) |
-| `zsh/zshrc` | `~/.zshrc` | Interactive shells (every new terminal) |
+| Repo file                     | Symlinked to                                                       | Sourced when                                                       |
+| ----------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `zsh/zprofile`                | `~/.zprofile`                                                      | Login shells (once, at login)                                      |
+| `zsh/zshrc`                   | `~/.zshrc`                                                         | Interactive shells (every new terminal)                            |
 | `zsh/bostonaholic.plugin.zsh` | `~/.oh-my-zsh/custom/plugins/bostonaholic/bostonaholic.plugin.zsh` | Interactive shells (loaded by oh-my-zsh via `plugins=()` in zshrc) |
-| `zsh/zshenv` | `~/.zshenv` | Every shell, including scripts and agent shells |
+| `zsh/zshenv`                  | `~/.zshenv`                                                        | Every shell, including scripts and agent shells                    |
 
 Note: This project does not currently have `.zlogin` or `.zlogout` files.
 Create them only if a change genuinely requires that execution context.
@@ -49,6 +49,7 @@ Zsh sources files in this order:
 ### `zsh/zprofile` (login shells)
 
 Put here:
+
 - **Exported environment variables** needed by non-interactive programs (`$PATH`, `$EDITOR`, `$PAGER`, `$XDG_*`, `$RUBY_CONFIGURE_OPTS`)
 - **PATH modifications** (Homebrew, language version managers, toolchain bins)
 - **Tool initialization that sets environment** (`brew shellenv`, `pyenv init --path`)
@@ -59,6 +60,7 @@ Current contents: XDG dirs, Homebrew shellenv, PATH entries (PostgreSQL, pyenv, 
 ### `zsh/zshrc` (interactive shells)
 
 Put here:
+
 - **Oh-my-zsh configuration** (theme, plugins list, sourcing)
 - **Shell options** (`setopt`, `unsetopt`, `zstyle`)
 - **Completion setup** (`compinit`, `FPATH` additions)
@@ -71,6 +73,7 @@ Current contents: oh-my-zsh setup, plugin list, editor config, zsh-completions F
 ### `zsh/bostonaholic.plugin.zsh` (custom oh-my-zsh plugin)
 
 Put here:
+
 - **Aliases** (CLI shortcuts, modern tool replacements, git aliases)
 - **Shell functions** (wt wrapper, bundle_close, cljs)
 - **Completion definitions** for custom functions (`compdef`)
@@ -81,6 +84,7 @@ Current contents: aliases (cat/bat, ls/eza, grep/rg, etc.), wt() git worktree wr
 ### `zsh/zshenv` (every shell)
 
 Put here:
+
 - Variables that **must** be available in non-interactive, non-login script contexts
 - `$ZDOTDIR` to relocate zsh config files
 - Rarely needed -- most exported variables belong in `.zprofile`
@@ -95,7 +99,7 @@ Current contents: `_ZO_DOCTOR` (silences zoxide's banner) and
 
 ## Decision Flowchart
 
-```
+```text
 Is it an exported variable or PATH entry?
 ├── Yes → Is it needed by non-interactive processes or GUI apps?
 │   ├── Yes → zsh/zprofile
@@ -131,10 +135,10 @@ config from an interactive shell and replay it into non-interactive ones.
 
 Already behind the guard:
 
-| Where | What |
-|-------|------|
+| Where                         | What                                                                                    |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
 | `zsh/bostonaholic.plugin.zsh` | `cat`, `df`, `du`, `find`, `grep`, `ls`, `man`, `ping`, `top`, `ip`, `claude`/`cc`/`cw` |
-| `zsh/zshrc` | the `common-aliases` oh-my-zsh plugin, zoxide's `cd` |
+| `zsh/zshrc`                   | the `common-aliases` oh-my-zsh plugin, zoxide's `cd`                                    |
 
 Aliases that invent a new name (`lg`, `gti`, `rgrep`) shadow nothing and need
 no guard.

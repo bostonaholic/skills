@@ -1,6 +1,5 @@
 ---
 name: safely-merge-dependabots
-user-invokable: true
 argument-hint: "[PR numbers] [--dry-run] [--timeout <duration>]"
 description: This skill should be used when the user asks to "merge dependabot PRs", "safely merge dependabots", "auto-merge safe dependency updates", "process dependabot PRs", or wants to autonomously analyze and merge Dependabot PRs with comprehensive safety checks.
 ---
@@ -33,6 +32,7 @@ Invoke the `dependabot-orchestrator` agent to coordinate specialized worker agen
 ## Safety Policy
 
 **Auto-merge when ALL conditions met:**
+
 - PATCH or MINOR version update
 - All tests pass
 - No breaking changes detected
@@ -40,6 +40,7 @@ Invoke the `dependabot-orchestrator` agent to coordinate specialized worker agen
 - Security fixes verified (if applicable)
 
 **Investigate before skipping (MAJOR / breaking changes):**
+
 - Fetch changelog and identify specific breaking changes
 - Search codebase for actual usage of affected APIs
 - If codebase is NOT impacted: proceed to test and merge
@@ -47,6 +48,7 @@ Invoke the `dependabot-orchestrator` agent to coordinate specialized worker agen
 - If impacted and non-trivial: skip with detailed impact report
 
 **Dependabot retry instructions:**
+
 - Detect Dependabot comments suggesting `@dependabot rebase`, `@dependabot recreate`, etc.
 - Follow the suggested command by commenting on the PR
 - `rebase`: poll until complete, then run full analysis pipeline
@@ -54,11 +56,13 @@ Invoke the `dependabot-orchestrator` agent to coordinate specialized worker agen
 - Also comment `@dependabot rebase` on PRs with merge conflicts (even without explicit instructions)
 
 **Pending rebase:**
+
 - Poll until rebase completes (up to 5 minutes per PR)
 - Re-run full analysis pipeline after rebase
 - If rebase times out: skip with note to retry later
 
 **Always skip (require manual review):**
+
 - Non-trivial breaking changes that affect the codebase
 - Test failures
 - Dependency conflicts

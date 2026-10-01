@@ -56,21 +56,21 @@ echo '{"key":"color","val":"blue"}' | jq '{(.key): .val}'
 
 ## Essential Command-Line Flags
 
-| Flag | Purpose |
-|------|---------|
-| `-r` | Raw string output (no quotes) |
-| `-R` | Raw input (treat each line as string) |
-| `-s` | Slurp all inputs into one array |
-| `-n` | Null input (use with `input`/`inputs`) |
-| `-c` | Compact output (one line) |
-| `-S` | Sort object keys |
-| `-e` | Set exit status based on output (false/null = 1) |
-| `--arg k v` | Bind string variable `$k` |
-| `--argjson k v` | Bind JSON variable `$k` |
-| `--slurpfile k f` | Load file into `$k` as array |
-| `--rawfile k f` | Load file into `$k` as string |
-| `--tab` | Indent with tabs |
-| `--indent n` | Set indentation level |
+| Flag              | Purpose                                          |
+| ----------------- | ------------------------------------------------ |
+| `-r`              | Raw string output (no quotes)                    |
+| `-R`              | Raw input (treat each line as string)            |
+| `-s`              | Slurp all inputs into one array                  |
+| `-n`              | Null input (use with `input`/`inputs`)           |
+| `-c`              | Compact output (one line)                        |
+| `-S`              | Sort object keys                                 |
+| `-e`              | Set exit status based on output (false/null = 1) |
+| `--arg k v`       | Bind string variable `$k`                        |
+| `--argjson k v`   | Bind JSON variable `$k`                          |
+| `--slurpfile k f` | Load file into `$k` as array                     |
+| `--rawfile k f`   | Load file into `$k` as string                    |
+| `--tab`           | Indent with tabs                                 |
+| `--indent n`      | Set indentation level                            |
 
 ## Common Patterns
 
@@ -188,31 +188,31 @@ jq '.value | trim' data.json
 
 ## Quick Reference — Key Built-in Functions
 
-| Category | Functions |
-|----------|-----------|
-| **Array** | `map`, `select`, `empty`, `add`, `sort_by`, `group_by`, `unique_by`, `flatten`, `reverse`, `first`, `last`, `range`, `limit`, `nth`, `transpose`, `combinations` |
-| **Object** | `keys`, `values`, `has`, `in`, `to_entries`, `from_entries`, `with_entries`, `del`, `pick` |
-| **String** | `test`, `match`, `capture`, `scan`, `split`, `join`, `sub`, `gsub`, `ltrimstr`, `rtrimstr`, `trim`, `ascii_downcase`, `ascii_upcase`, `startswith`, `endswith`, `explode`, `implode` |
-| **Type** | `type`, `length`, `utf8bytelength`, `tostring`, `tonumber`, `arrays`, `objects`, `strings`, `numbers`, `booleans`, `nulls`, `scalars`, `iterables`, `values` |
-| **Math** | `floor`, `ceil`, `round`, `sqrt`, `pow`, `log`, `exp`, `fabs`, `abs`, `sin`, `cos`, `atan`, `nan`, `infinite`, `isinfinite`, `isnan` |
-| **Date** | `now`, `todate`, `fromdate`, `todateiso8601`, `fromdateiso8601`, `strftime`, `strptime`, `gmtime`, `mktime` |
-| **Path** | `path`, `paths`, `leaf_paths`, `getpath`, `setpath`, `delpaths` |
-| **Format** | `@csv`, `@tsv`, `@json`, `@html`, `@uri`, `@urid`, `@sh`, `@base64`, `@base64d`, `@text` |
-| **I/O** | `input`, `inputs`, `debug`, `stderr`, `halt`, `halt_error`, `error`, `env`, `$ENV` |
-| **SQL-style** | `INDEX`, `IN`, `GROUP_BY`, `UNIQUE_BY`, `JOIN` |
+| Category      | Functions                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Array**     | `map`, `select`, `empty`, `add`, `sort_by`, `group_by`, `unique_by`, `flatten`, `reverse`, `first`, `last`, `range`, `limit`, `nth`, `transpose`, `combinations`                     |
+| **Object**    | `keys`, `values`, `has`, `in`, `to_entries`, `from_entries`, `with_entries`, `del`, `pick`                                                                                           |
+| **String**    | `test`, `match`, `capture`, `scan`, `split`, `join`, `sub`, `gsub`, `ltrimstr`, `rtrimstr`, `trim`, `ascii_downcase`, `ascii_upcase`, `startswith`, `endswith`, `explode`, `implode` |
+| **Type**      | `type`, `length`, `utf8bytelength`, `tostring`, `tonumber`, `arrays`, `objects`, `strings`, `numbers`, `booleans`, `nulls`, `scalars`, `iterables`, `values`                         |
+| **Math**      | `floor`, `ceil`, `round`, `sqrt`, `pow`, `log`, `exp`, `fabs`, `abs`, `sin`, `cos`, `atan`, `nan`, `infinite`, `isinfinite`, `isnan`                                                 |
+| **Date**      | `now`, `todate`, `fromdate`, `todateiso8601`, `fromdateiso8601`, `strftime`, `strptime`, `gmtime`, `mktime`                                                                          |
+| **Path**      | `path`, `paths`, `leaf_paths`, `getpath`, `setpath`, `delpaths`                                                                                                                      |
+| **Format**    | `@csv`, `@tsv`, `@json`, `@html`, `@uri`, `@urid`, `@sh`, `@base64`, `@base64d`, `@text`                                                                                             |
+| **I/O**       | `input`, `inputs`, `debug`, `stderr`, `halt`, `halt_error`, `error`, `env`, `$ENV`                                                                                                   |
+| **SQL-style** | `INDEX`, `IN`, `GROUP_BY`, `UNIQUE_BY`, `JOIN`                                                                                                                                       |
 
 ## Operator Reference
 
-| Operator | Purpose |
-|----------|---------|
-| `\|` | Pipe (chain filters) |
-| `,` | Multiple outputs |
-| `?` | Suppress errors (try) |
-| `//` | Alternative (default for null/false) |
-| `\|=` | Update in place |
-| `+=` `-=` `*=` `/=` `%=` `//=` | Arithmetic update |
-| `as $var` | Variable binding |
-| `..` | Recursive descent |
+| Operator                       | Purpose                              |
+| ------------------------------ | ------------------------------------ |
+| `\|`                           | Pipe (chain filters)                 |
+| `,`                            | Multiple outputs                     |
+| `?`                            | Suppress errors (try)                |
+| `//`                           | Alternative (default for null/false) |
+| `\|=`                          | Update in place                      |
+| `+=` `-=` `*=` `/=` `%=` `//=` | Arithmetic update                    |
+| `as $var`                      | Variable binding                     |
+| `..`                           | Recursive descent                    |
 
 ## Error Handling
 

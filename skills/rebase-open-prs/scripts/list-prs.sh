@@ -21,11 +21,26 @@ limit=200
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --include-forks) include_forks=true; shift ;;
-    --skip-drafts)   skip_drafts=true;   shift ;;
-    --author)        author="$2";        shift 2 ;;
-    --limit)         limit="$2";         shift 2 ;;
-    *) echo "Unknown arg: $1" >&2; exit 2 ;;
+    --include-forks)
+      include_forks=true
+      shift
+      ;;
+    --skip-drafts)
+      skip_drafts=true
+      shift
+      ;;
+    --author)
+      author="$2"
+      shift 2
+      ;;
+    --limit)
+      limit="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown arg: $1" >&2
+      exit 2
+      ;;
   esac
 done
 

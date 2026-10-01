@@ -24,16 +24,16 @@ an otherwise capable agent would get wrong without it.
 
 Classify material before cutting:
 
-| Class | Default treatment |
-| --- | --- |
-| Non-obvious domain constraint or fragile required sequence | Keep |
-| Useful optional expert recommendation | Condense and label as optional |
-| Generic knowledge or ordinary engineering advice | Delete |
-| Policy already enforced by system or repository instructions | Delete |
-| Duplicate instruction or example | Keep the clearest instance |
-| Project- or incident-specific policy in a generic skill | Move or delete |
-| Stale, unverifiable, or overclaimed fact | Verify, qualify, or delete |
-| Detail needed only for one variant | Move to a selectively loaded reference |
+| Class                                                        | Default treatment                      |
+| ------------------------------------------------------------ | -------------------------------------- |
+| Non-obvious domain constraint or fragile required sequence   | Keep                                   |
+| Useful optional expert recommendation                        | Condense and label as optional         |
+| Generic knowledge or ordinary engineering advice             | Delete                                 |
+| Policy already enforced by system or repository instructions | Delete                                 |
+| Duplicate instruction or example                             | Keep the clearest instance             |
+| Project- or incident-specific policy in a generic skill      | Move or delete                         |
+| Stale, unverifiable, or overclaimed fact                     | Verify, qualify, or delete             |
+| Detail needed only for one variant                           | Move to a selectively loaded reference |
 
 Report which class justified every material keep, move, or deletion. Do not hide
 subjective policy behind claims that a provider or tool requires it.

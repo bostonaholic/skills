@@ -29,7 +29,7 @@ fighting over a shared index.
 - **Ground truth over notifications.** A PR's outcome is authoritatively
   observable on the git remote and in its on-disk result file — never inferred
   from whether an agent's completion notification arrived. Notifications are an
-  optimization; their absence means *reconcile*, not *stall*.
+  optimization; their absence means _reconcile_, not _stall_.
 - **Never tail agent `.output` files.** They are full JSONL transcripts and will
   overflow the orchestrator's context. Verify outcomes ONLY via git remote state
   (`reconcile.sh`) or the per-PR result JSON — never by reading agent transcripts.
@@ -87,7 +87,7 @@ pointer to `references/conflict-resolution.md`.
 #### Before dispatching: durable run dir + pre-rebase OID manifest
 
 Agents work in isolated worktrees, so the run directory MUST be a shared,
-absolute path that lives *outside* every worktree — anchor it at the git common
+absolute path that lives _outside_ every worktree — anchor it at the git common
 dir (the single `.git` shared by all worktrees). A relative path like
 `.rebase-run/` is a trap: it resolves inside each agent's own worktree and gets
 deleted by cleanup. Derive `$RUN_DIR` once and hand the absolute value to every
@@ -189,21 +189,21 @@ resolve every case and keep failures loud:
 
 Result file present:
 
-| result file `status` | expected reconcile | derived status |
-| -------------------- | ------------------ | -------------- |
-| `pushed` | `REBASED=yes OID_CHANGED=yes` | **pushed** (confirmed by git, notification or not) |
-| `pushed` | anything else | **needs-review** (claimed push not on remote) |
-| `already-up-to-date` | `REBASED=yes OID_CHANGED=no` | **already-up-to-date** |
-| `conflicts-flagged`/`push-rejected`/`error`/`skipped` | any | **take the file's status** (append `needs-review` only if `OID_CHANGED=yes` — remote moved unexpectedly) |
+| result file `status`                                  | expected reconcile            | derived status                                                                                           |
+| ----------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `pushed`                                              | `REBASED=yes OID_CHANGED=yes` | **pushed** (confirmed by git, notification or not)                                                       |
+| `pushed`                                              | anything else                 | **needs-review** (claimed push not on remote)                                                            |
+| `already-up-to-date`                                  | `REBASED=yes OID_CHANGED=no`  | **already-up-to-date**                                                                                   |
+| `conflicts-flagged`/`push-rejected`/`error`/`skipped` | any                           | **take the file's status** (append `needs-review` only if `OID_CHANGED=yes` — remote moved unexpectedly) |
 
 Result file missing (agent died before persisting — fall back to git alone):
 
-| reconcile signal | derived status |
-| ---------------- | -------------- |
-| `REBASED=yes OID_CHANGED=yes` | **pushed** (push is real; agent died after) |
-| `REBASED=yes OID_CHANGED=no` | **already-up-to-date** |
-| `REBASED=no OID_CHANGED=yes` | **needs-review** (pushed but base not contained — wrong/stale base, or origin/base advanced after the agent fetched) |
-| `REBASED=no OID_CHANGED=no` | **in-progress / died** — probe liveness (below) |
+| reconcile signal              | derived status                                                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `REBASED=yes OID_CHANGED=yes` | **pushed** (push is real; agent died after)                                                                          |
+| `REBASED=yes OID_CHANGED=no`  | **already-up-to-date**                                                                                               |
+| `REBASED=no OID_CHANGED=yes`  | **needs-review** (pushed but base not contained — wrong/stale base, or origin/base advanced after the agent fetched) |
+| `REBASED=no OID_CHANGED=no`   | **in-progress / died** — probe liveness (below)                                                                      |
 
 Independent of the result file: `CURRENT_OID=missing` ⇒ **branch-gone**
 (merged/closed during the run); `REBASED=base-missing` ⇒ **needs-review** (the
@@ -223,8 +223,8 @@ stall this whole design exists to prevent.
 Then produce the summary table (every PR — including skipped, flagged, failed,
 needs-review, and branch-gone):
 
-| PR | Branch | Status | Conflicts | Verify | Worktree | Note |
-| -- | ------ | ------ | --------- | ------ | -------- | ---- |
+| PR  | Branch | Status | Conflicts | Verify | Worktree | Note |
+| --- | ------ | ------ | --------- | ------ | -------- | ---- |
 
 Statuses: `pushed`, `already-up-to-date`, `conflicts-flagged`, `push-rejected`,
 `skipped`, `needs-review`, `branch-gone`, `error`. Call out any PR needing human
@@ -247,7 +247,7 @@ pollutes the working tree even if left.
   local branch only when this run created them; reused worktrees are left alone.
 - **`reconcile.sh <manifest>`** — the orchestrator's source of truth. Fetches
   `--prune`, then per dispatched branch emits `PR=… BRANCH=… CURRENT_OID=…
-  REBASED=… OID_CHANGED=… LAST_PUSH=…` so final status is derived from git, not
+REBASED=… OID_CHANGED=… LAST_PUSH=…` so final status is derived from git, not
   from completion notifications. Consumes the `pr⇥branch⇥base⇥pre_oid` manifest
   written at dispatch.
 
