@@ -3,6 +3,7 @@
 // those canonical files link, so a skill installed alone resolves its shared rules.
 //   node scripts/sync-shared.mjs          write the copies, delete stale ones
 //   node scripts/sync-shared.mjs --check  write nothing; exit 1 listing missing, stale, or extra copies
+// Any other argument exits 1 with a usage line, writing nothing.
 // Acts on the git repository at the working directory. Skills and their files come from
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
 import { execFileSync } from "node:child_process";
@@ -116,12 +117,17 @@ function write(copies) {
   }
 }
 
+const args = process.argv.slice(2);
+if (args.length > 1 || (args.length === 1 && args[0] !== "--check")) {
+  console.error("usage: node scripts/sync-shared.mjs [--check]");
+  process.exit(1);
+}
 const { errors, copies } = plan();
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);
 }
-if (process.argv.includes("--check")) {
+if (args[0] === "--check") {
   const problems = check(copies);
   if (problems.length) {
     console.error(`${problems.join("\n")}\nRun npm run sync-shared.`);
