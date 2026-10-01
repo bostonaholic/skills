@@ -125,9 +125,10 @@ class, and the current diff — never pick it blindly.
 Standard option menu (pick the options that apply):
 
 - **A. Apply the change** — edit `<file>` to do `<specific change>`. When the
-  ask is an image rather than code, capture it first, then run
-  `/pr-screenshots` against this PR to put it in the description, when that
-  skill is installed.
+  ask is an image rather than code, capture it first, then call the Skill
+  tool with `pr-screenshots` against this PR to put it in the description;
+  when that skill is not installed, say so and leave the description
+  unchanged.
 - **B. Apply a variation** — `<a variant that addresses the concern differently>`.
 - **C. Reply with the answer** — `<one-line reply sketch>`.
 - **D. Decline (will not fix)** — reply with `<one-line rationale>`.
