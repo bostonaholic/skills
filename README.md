@@ -70,7 +70,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[pr-cleanup](./skills/pr-cleanup/SKILL.md)**: Tear down branch state after a PR.
 - **[pr-open-comments](./skills/pr-open-comments/SKILL.md)**: Triage unresolved PR review comments. Calls: `pr-screenshots`.
 - **[pr-screenshots](./skills/pr-screenshots/SKILL.md)**: Attach local images to a PR body.
-- **[pr-watch-as-author](./skills/pr-watch-as-author/SKILL.md)**: Watch your own PR for review feedback. Calls: `pr-open-comments`.
+- **[pr-watch-as-author](./skills/pr-watch-as-author/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `pr-open-comments`.
 - **[prove](./skills/prove/SKILL.md)**: Prove claims or a PR test plan with evidence. Calls: `how`, `paparazzi`, `why`.
 - **[shipit](./skills/shipit/SKILL.md)**: Land a reviewed pull request. Calls: `pr-cleanup`.
 - **[why](./skills/why/SKILL.md)**: Investigate the design rationale behind code.
