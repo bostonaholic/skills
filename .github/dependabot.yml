@@ -1,0 +1,33 @@
+# Dependabot keeps the dependency graph current.
+#
+# Behavior per ecosystem:
+#   - Minor + patch updates are grouped into one PR per ecosystem per week.
+#   - Major version bumps still get an individual PR for human review.
+version: 2
+updates:
+  # .github/workflows/ — actions pinned to commit SHAs (checkout, setup-node,
+  # setup-uv). Dependabot bumps the SHA and the version comment together.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+
+  # package.json — lint tooling (prettier, markdownlint-cli2).
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
