@@ -82,8 +82,9 @@ finalizing your own prose.
    violations. Lower for stylistic concerns.
 
 8. **Check scope discipline.** Does the design stay within the repos and
-   subsystems implied by the predecessor artifacts? Flag scope creep
-   (especially silent multi-repo expansion) as a blocking issue.
+   subsystems implied by the files the document links as its task,
+   requirements, or research inputs? Flag scope creep (especially silent
+   multi-repo expansion) as a blocking issue.
 
 ### Calibrate to the class of change
 

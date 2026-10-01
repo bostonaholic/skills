@@ -78,6 +78,6 @@ not read. If a lens cannot finish reading, report its unread record range. Say
 so in the summary, and **never substitute your own memory of the session for
 the part the transcript did not carry**.
 
-### Step 3 — send the lenses over the normalized file
+### Step 3 — run the lenses over the normalized file
 
 Run the three lens passes below in this session, one after another, then synthesize their findings.

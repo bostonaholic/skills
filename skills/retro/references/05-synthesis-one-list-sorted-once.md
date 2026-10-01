@@ -1,7 +1,7 @@
 ## Synthesis — one list, sorted once
 
-Merge the three replies into one list, collapsing findings that name the same
-cause. Every item lands in exactly one bucket:
+Merge the three passes' findings into one list, collapsing findings that name
+the same cause. Every item lands in exactly one bucket:
 
 - **Accepted** — a durable learning that belongs in a skill. It names the
   target (an existing skill to edit, or a new skill), states the learning in
