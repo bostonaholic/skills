@@ -1,0 +1,9 @@
+{
+  "config": {
+    // Prettier owns formatting; disable the markdownlint rules that overlap it.
+    "extends": "markdownlint/style/prettier",
+    // A skill body is agent instructions, not a document; no H1 required.
+    "MD041": false,
+  },
+  "gitignore": true,
+}

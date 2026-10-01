@@ -15,7 +15,14 @@
     "site": "node scripts/build-site.mjs _site",
     "release:prepare": "node scripts/release.mjs prepare",
     "release:check": "node scripts/release.mjs check",
-    "release:publish": "node scripts/release.mjs publish"
+    "release:publish": "node scripts/release.mjs publish",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:md": "markdownlint-cli2 '**/*.md'"
   },
-  "packageManager": "npm@10.9.4"
+  "packageManager": "npm@10.9.4",
+  "devDependencies": {
+    "markdownlint-cli2": "0.23.3",
+    "prettier": "3.9.9"
+  }
 }
