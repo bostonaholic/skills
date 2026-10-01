@@ -99,6 +99,13 @@ for (const args of [[], ["--check"]]) {
     assert.deepEqual(skillCopies(repo).filter((text) => text === SENTINEL), []);
   });
 
+  test(`${mode} refuses a tracked skill file that is a symlink before reading it`, (t) => {
+    const { repo } = fixture(t, { "skills/widget/references/notes.md": "sentinel.md" });
+    const run = runSync(repo, ...args);
+    assert.equal(run.status, 1, run.output);
+    assert.ok(refuses(run.output, "skills/widget/references/notes.md"), run.output);
+  });
+
   test(`${mode} refuses a symlinked file in the root shared/ and copies none of its bytes`, (t) => {
     const { repo } = fixture(t, { "shared/rule-one.md": "sentinel.md" });
     const run = runSync(repo, ...args);

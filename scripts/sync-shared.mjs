@@ -5,8 +5,8 @@
 //   node scripts/sync-shared.mjs --check  write nothing; exit 1 listing missing, stale, or extra copies
 // Any other argument exits 1 with a usage line, writing nothing. Before reading any file in the
 // root shared/ or a skill, both modes exit 1 when that path would leave the repository: the root
-// shared/, a skill directory, or a skill's shared/ is a symlink or resolves elsewhere, or an
-// entry in either shared/ is a symlink.
+// shared/, a skill directory, a skill's shared/, or a tracked file in a skill is a symlink or
+// resolves elsewhere, or an entry in either shared/ is a symlink.
 // Acts on the git repository at the working directory. Skills and their files come from
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
 import { execFileSync } from "node:child_process";
@@ -105,16 +105,21 @@ function plan() {
     .map((path) => path.split("/")[1])
     .sort();
   const root = realpathSync(".");
+  const tracked = new Map(skills.map((name) => [name, lsFiles(`skills/${name}`)]));
   const errors = [
     containmentError(root, "shared", { entries: true }),
     ...skills.map(
       (name) =>
         containmentError(root, join("skills", name), { entries: false }) ??
-        containmentError(root, join("skills", name, "shared"), { entries: true }),
+        containmentError(root, join("skills", name, "shared"), { entries: true }) ??
+        tracked
+          .get(name)
+          .map((path) => containmentError(root, path, { entries: false }))
+          .find(Boolean),
     ),
   ].filter(Boolean);
   if (errors.length) return { errors, copies: [] };
-  const copies = skills.map((name) => ({ dir: `skills/${name}/shared`, files: derive(name, lsFiles(`skills/${name}`), errors) }));
+  const copies = skills.map((name) => ({ dir: `skills/${name}/shared`, files: derive(name, tracked.get(name), errors) }));
   return { errors, copies };
 }
 

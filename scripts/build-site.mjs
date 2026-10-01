@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Builds the static docs site from the skill catalog: <out>/index.html, <out>/404.html, and
 // copies of docs/style.css and docs/CNAME. The pages carry no JavaScript and no external assets.
-// A missing or symlinked static file exits 1 before anything is written.
+// A static file that is missing, a symlink, or resolves outside the repository (for example
+// through a symlinked docs/) exits 1 before anything is written.
 //   node scripts/build-site.mjs <out>
 // Acts on the git repository at the working directory.
 import { copyFileSync, existsSync, lstatSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
@@ -123,6 +124,9 @@ function build(out) {
   if (missing.length) throw new CatalogError(`missing ${missing.join(", ")}`);
   const linked = STATIC_FILES.map((file) => join("docs", file)).filter((path) => lstatSync(path).isSymbolicLink());
   if (linked.length) throw new CatalogError(`${linked.join(", ")}: is a symlink; refusing to copy it`);
+  const root = realpathSync(".");
+  const outside = STATIC_FILES.map((file) => join("docs", file)).filter((path) => realpathSync(path) !== join(root, path));
+  if (outside.length) throw new CatalogError(`${outside.join(", ")}: resolves outside ${root}; refusing to copy it`);
   const catalog = loadCatalog();
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "index.html"), renderIndex(catalog));
