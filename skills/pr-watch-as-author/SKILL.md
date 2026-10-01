@@ -19,7 +19,7 @@ never joins a gate waiting to be resolved.
 
 This skill calls the Skill tool with `pr-open-comments`. When that skill is
 not installed, stop before arming the watch and tell the user to run
-`npx skills@latest add bostonaholic/skills --skill=pr-open-comments`.
+`npx skills@latest add bostonaholic/skills --skill pr-open-comments`.
 
 ## Procedure references
 

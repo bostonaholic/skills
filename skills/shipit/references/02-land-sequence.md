@@ -141,7 +141,7 @@ timeout, or branch protection. If the project publishes a release on merge, it
 runs asynchronously: point the operator at `gh run watch` or `gh run list`
 rather than assume it is already done.
 
-**On a merge that landed, call the Skill tool with `pr-cleanup` for Mode A. Do not stop to recommend it.** When `pr-cleanup` is not installed, report that cleanup did not run and give `npx skills@latest add bostonaholic/skills --skill=pr-cleanup`.
+**On a merge that landed, call the Skill tool with `pr-cleanup` for Mode A. Do not stop to recommend it.** When `pr-cleanup` is not installed, report that cleanup did not run and give `npx skills@latest add bostonaholic/skills --skill pr-cleanup`.
 Two limits hold:
 
 - **Only a landed merge reaches cleanup.** A run that stopped at a failing

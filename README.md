@@ -35,7 +35,7 @@ Pick the skills you want, and which agents to install them on.
 ### One skill
 
 ```sh
-npx skills@latest add bostonaholic/skills --skill=<name>
+npx skills@latest add bostonaholic/skills --skill <name>
 ```
 
 To update it:
