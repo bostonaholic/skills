@@ -81,7 +81,7 @@ Every skill, with its usage and install command: https://skills.bostonaholic.dev
 
 ## Contributing
 
-Read [CLAUDE.md](CLAUDE.md) before changing a skill.
+Read [AGENTS.md](AGENTS.md) before changing a skill.
 
 ## License
 
