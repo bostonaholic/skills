@@ -1,7 +1,8 @@
-// Fails when a skill's shared/ copies drift from the canonical files under the root shared/, or
-// when scripts/sync-shared.mjs stops deriving, checking, or writing those copies. The repository
-// cases read tracked files; the fixture cases run the real CLI in a temporary repository built
-// with `git init` plus `git add`, never a commit.
+// Fails when a skill's shared/ copies drift from the canonical files under the root shared/, when
+// a canonical file has fewer than two consuming skills (a single-owner rule belongs in that skill's
+// references/), or when scripts/sync-shared.mjs stops deriving, checking, or writing those
+// copies. The repository cases read tracked files; the fixture cases run the real CLI in a
+// temporary repository built with `git init` plus `git add`, never a commit.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
@@ -17,6 +18,13 @@ function trackedCanonicalFiles() {
   return execFileSync("git", ["-C", REPO, "ls-files", "-z", "--", "shared/*.md"], { encoding: "utf8" })
     .split("\0")
     .filter((path) => /^shared\/[^/]+\.md$/.test(path))
+    .sort();
+}
+
+function trackedCopies() {
+  return execFileSync("git", ["-C", REPO, "ls-files", "-z", "--", "skills/*/shared/*.md"], { encoding: "utf8" })
+    .split("\0")
+    .filter((path) => /^skills\/[^/]+\/shared\/[^/]+\.md$/.test(path))
     .sort();
 }
 
@@ -63,6 +71,17 @@ test("sync-shared --check passes: every copy equals its canonical bytes and the 
   const run = runSync(REPO, "--check");
   assert.equal(run.status, 0, run.output);
   assert.equal(run.output, "");
+});
+
+test("every canonical shared file has two or more consumers among the tracked skills", () => {
+  const canonical = trackedCanonicalFiles();
+  assert.ok(canonical.length > 0, "found no tracked shared/*.md");
+  const copies = trackedCopies();
+  const lonely = canonical
+    .map((path) => ({ path, consumers: copies.filter((copy) => copy.endsWith(`/${path}`)).length }))
+    .filter(({ consumers }) => consumers < 2)
+    .map(({ path, consumers }) => `${path}: ${consumers} consumer(s)`);
+  assert.deepEqual(lonely, []);
 });
 
 // ---------------------------------------------------------------------------------------------
