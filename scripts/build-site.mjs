@@ -12,6 +12,7 @@ import {
   INSTALL_INTRO,
   INSTALL_OUTRO,
   INSTALL_ROUTES,
+  LEDE,
   NPX_ADD_SKILL,
   loadCatalog,
   skillGroups,
@@ -90,6 +91,7 @@ export function renderIndex(catalog) {
   return page(TITLE, "style.css", [
     "<header>",
     `<h1>${escapeHtml(TITLE)}</h1>`,
+    `<p>${escapeHtml(LEDE)}</p>`,
     `<p>${escapeHtml(EXTRACTION_NOTE)}</p>`,
     "</header>",
     "<main>",
@@ -103,6 +105,10 @@ export function renderIndex(catalog) {
 // The 404 page is served at any missing path, so its stylesheet link is absolute.
 export function render404() {
   return page(`Page not found - ${TITLE}`, "/style.css", [
+    "<header>",
+    `<p><a href="/">${escapeHtml(TITLE)}</a></p>`,
+    `<p>${escapeHtml(LEDE)}</p>`,
+    "</header>",
     "<main>",
     "<h1>Page not found</h1>",
     '<p><a href="/">See every skill</a></p>',

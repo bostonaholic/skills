@@ -4,6 +4,8 @@ skills that pay the bills
 
 <!-- generated:start -->
 
+Agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.
+
 These skills were extracted from the Team plugin. They do not need Team, and Team does not need them.
 
 ## Install
