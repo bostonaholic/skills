@@ -38,6 +38,7 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - run: git ls-files -z '*.sh' | xargs -0 uvx --from shellcheck-py==0.11.0.1 shellcheck -S warning
       - run: git ls-files -z '*.sh' | xargs -0 uvx --from shfmt-py==4.2.0 shfmt -d
+      - run: bash tests/prepare-worktree.test.sh
 
   skills:
     name: Skills (agentskills.io spec)

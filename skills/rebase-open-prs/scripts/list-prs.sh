@@ -1,19 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# list-prs.sh — list open PRs that are candidates for rebasing onto their base.
-#
-# Usage:
-#   list-prs.sh [--author <user|@me>] [--include-forks] [--skip-drafts] [--limit N]
-#
-# Defaults: drafts are INCLUDED (they are open PRs), forks are EXCLUDED
-# (contributor fork branches usually cannot be pushed to).
-#
-# Output (stdout): JSON array. Each element:
-#   { number, title, headRefName, baseRefName, isDraft, isCrossRepository,
-#     mergeStateStatus, author, url, rebaseable, skipReason }
-# Run filtered downstream on `.rebaseable == true`. Diagnostics go to stderr.
-
 include_forks=false
 skip_drafts=false
 author=""
@@ -61,7 +48,6 @@ result=$(echo "$raw" | jq \
     | . + { rebaseable: ($skip == null), skipReason: $skip }
   )')
 
-# Human-readable summary to stderr.
 total=$(echo "$result" | jq 'length')
 ok=$(echo "$result" | jq '[.[] | select(.rebaseable)] | length')
 echo "Found $total open PR(s); $ok rebaseable, $((total - ok)) skipped." >&2

@@ -1,8 +1,3 @@
-"""Validate every skill in skills/ against the Agent Skills spec (agentskills.io).
-
-Usage: uv run scripts/validate-skills.py
-"""
-
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
@@ -15,8 +10,8 @@ from pathlib import Path
 
 from skills_ref import validator
 
-# Claude Code frontmatter extensions used by skills in this repo.
-validator.ALLOWED_FIELDS |= {"argument-hint"}
+CLAUDE_CODE_FRONTMATTER_FIELDS = {"argument-hint"}
+validator.ALLOWED_FIELDS |= CLAUDE_CODE_FRONTMATTER_FIELDS
 
 skills_dir = Path(__file__).resolve().parent.parent / "skills"
 failed = False

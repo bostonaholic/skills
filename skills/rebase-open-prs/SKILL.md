@@ -247,7 +247,7 @@ pollutes the working tree even if left.
   local branch only when this run created them; reused worktrees are left alone.
 - **`reconcile.sh <manifest>`** — the orchestrator's source of truth. Fetches
   `--prune`, then per dispatched branch emits `PR=… BRANCH=… CURRENT_OID=…
-REBASED=… OID_CHANGED=… LAST_PUSH=…` so final status is derived from git, not
+REBASED=… OID_CHANGED=… TIP_COMMITTED=…` so final status is derived from git, not
   from completion notifications. Consumes the `pr⇥branch⇥base⇥pre_oid` manifest
   written at dispatch.
 
