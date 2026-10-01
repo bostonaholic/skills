@@ -3,8 +3,10 @@
 // those canonical files link, so a skill installed alone resolves its shared rules.
 //   node scripts/sync-shared.mjs          write the copies, delete stale ones
 //   node scripts/sync-shared.mjs --check  write nothing; exit 1 listing missing, stale, or extra copies
-// Any other argument exits 1 with a usage line, writing nothing. Both modes exit 1 before reading
-// or writing a skill whose directory, shared/, or shared/ entry is a symlink.
+// Any other argument exits 1 with a usage line, writing nothing. Before reading any file in the
+// root shared/ or a skill, both modes exit 1 when that path would leave the repository: the root
+// shared/, a skill directory, or a skill's shared/ is a symlink or resolves elsewhere, or an
+// entry in either shared/ is a symlink.
 // Acts on the git repository at the working directory. Skills and their files come from
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
 import { execFileSync } from "node:child_process";
@@ -82,23 +84,19 @@ function derive(name, files, errors) {
   return [...needed.keys()].sort();
 }
 
-// Returns why syncing skill `name` would act outside the repository, or null when it is contained:
-// the skill directory, its shared/, and every entry in shared/ are real paths, and shared/
-// resolves to skills/<name>/shared under the repository's real path.
-function containmentError(name) {
-  const dir = join("skills", name);
-  const shared = join(dir, "shared");
-  for (const path of [dir, shared]) {
-    if (lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) return `${path}: is a symlink; refusing to sync through it`;
-  }
-  if (!existsSync(shared)) return null;
-  const expected = join(realpathSync("."), shared);
-  if (realpathSync(shared) !== expected) return `${shared}: resolves outside ${expected}; refusing to sync through it`;
-  for (const file of onDisk(shared)) {
-    const path = join(shared, file);
-    if (lstatSync(path).isSymbolicLink()) return `${path}: is a symlink; refusing to sync through it`;
-  }
-  return null;
+// Returns why syncing through `path` would leave the repository at `root`, or null when it is
+// contained: `path` is absent, or it is not a symlink, resolves to `root`/`path`, and, with
+// `entries`, holds no symlink.
+function containmentError(root, path, { entries }) {
+  const refuse = (target, reason) => `${target}: ${reason}; refusing to sync through it`;
+  const stat = lstatSync(path, { throwIfNoEntry: false });
+  if (!stat) return null;
+  if (stat.isSymbolicLink()) return refuse(path, "is a symlink");
+  const expected = join(root, path);
+  if (realpathSync(path) !== expected) return refuse(path, `resolves outside ${expected}`);
+  if (!entries) return null;
+  const link = readdirSync(path).find((file) => lstatSync(join(path, file)).isSymbolicLink());
+  return link ? refuse(join(path, link), "is a symlink") : null;
 }
 
 function plan() {
@@ -106,7 +104,15 @@ function plan() {
     .filter((path) => /^skills\/[^/]+\/SKILL\.md$/.test(path))
     .map((path) => path.split("/")[1])
     .sort();
-  const errors = skills.map(containmentError).filter(Boolean);
+  const root = realpathSync(".");
+  const errors = [
+    containmentError(root, "shared", { entries: true }),
+    ...skills.map(
+      (name) =>
+        containmentError(root, join("skills", name), { entries: false }) ??
+        containmentError(root, join("skills", name, "shared"), { entries: true }),
+    ),
+  ].filter(Boolean);
   if (errors.length) return { errors, copies: [] };
   const copies = skills.map((name) => ({ dir: `skills/${name}/shared`, files: derive(name, lsFiles(`skills/${name}`), errors) }));
   return { errors, copies };
