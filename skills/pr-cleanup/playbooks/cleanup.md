@@ -125,18 +125,22 @@ outside `${TMPDIR:-/tmp}`, containing `..`, or reached through a symlink.
 
 Each recorded path passes three checks before `rm -rf` sees it. Strip trailing
 slashes from the temp root first: on macOS `TMPDIR` ends in `/`, and the
-unstripped prefix pattern would refuse every path.
+unstripped prefix pattern would refuse every path. Feed the loop one recorded
+path per line; a refused path is skipped and the loop moves to the next.
 
 ```sh
 TMPROOT="${TMPDIR:-/tmp}"
 while [ "${TMPROOT%/}" != "$TMPROOT" ]; do TMPROOT="${TMPROOT%/}"; done
-case "$P" in
-  "$TMPROOT"/?*) ;;
-  *) echo "refusing: '$P' is not under $TMPROOT" >&2; continue ;;
-esac
-case "$P" in *..*) echo "refusing: '$P' contains '..'" >&2; continue ;; esac
-[ -L "$P" ] && { echo "refusing: '$P' is a symlink" >&2; continue; }
-rm -rf "${P:?}"
+printf '%s\n' "<recorded-path-1>" "<recorded-path-2>" |
+while IFS= read -r P; do
+  case "$P" in
+    "$TMPROOT"/?*) ;;
+    *) echo "refusing: '$P' is not under $TMPROOT" >&2; continue ;;
+  esac
+  case "$P" in *..*) echo "refusing: '$P' contains '..'" >&2; continue ;; esac
+  [ -L "$P" ] && { echo "refusing: '$P' is a symlink" >&2; continue; }
+  rm -rf "${P:?}"
+done
 ```
 
 **Never wildcard-sweep the temp directory** (for example
