@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add personal agent skills. [#1](https://github.com/bostonaholic/skills/pull/1)
+
 ### Fixed
 
 - Avoid version bumps for description-only plugin and marketplace edits. [#4](https://github.com/bostonaholic/skills/pull/4)
