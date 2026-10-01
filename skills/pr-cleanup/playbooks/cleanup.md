@@ -125,22 +125,30 @@ outside `${TMPDIR:-/tmp}`, containing `..`, or reached through a symlink.
 
 Each recorded path passes three checks before `rm -rf` sees it. Strip trailing
 slashes from the temp root first: on macOS `TMPDIR` ends in `/`, and the
-unstripped prefix pattern would refuse every path. Feed the loop one recorded
-path per line; a refused path is skipped and the loop moves to the next.
+unstripped prefix pattern would refuse every path. An empty temp root (for
+example `TMPDIR=/`) would match every absolute path, so it stops the sweep
+before the loop. Paste each recorded path on its own line, and only inside the
+quoted here-doc, so the shell expands nothing in it; a value that contains a
+newline, equals the end line `RECORDED_TEMP_PATHS`, or is not an absolute path
+is refused, not pasted. A refused path is skipped and the loop moves on.
 
 ```sh
 TMPROOT="${TMPDIR:-/tmp}"
 while [ "${TMPROOT%/}" != "$TMPROOT" ]; do TMPROOT="${TMPROOT%/}"; done
-printf '%s\n' "<recorded-path-1>" "<recorded-path-2>" |
+[ -n "$TMPROOT" ] || { echo "refusing: the temp root is empty" >&2; exit 1; }
 while IFS= read -r P; do
+  [ -n "$P" ] || continue
   case "$P" in
     "$TMPROOT"/?*) ;;
     *) echo "refusing: '$P' is not under $TMPROOT" >&2; continue ;;
   esac
   case "$P" in *..*) echo "refusing: '$P' contains '..'" >&2; continue ;; esac
   [ -L "$P" ] && { echo "refusing: '$P' is a symlink" >&2; continue; }
-  rm -rf "${P:?}"
-done
+  rm -rf "${P:?}" && echo "removed: $P"
+done <<'RECORDED_TEMP_PATHS'
+<recorded-path-1>
+<recorded-path-2>
+RECORDED_TEMP_PATHS
 ```
 
 **Never wildcard-sweep the temp directory** (for example
