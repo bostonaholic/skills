@@ -1,7 +1,5 @@
 # Skills
 
-skills that pay the bills
-
 <!-- generated:start -->
 
 The skills I use to build software with coding agents.
