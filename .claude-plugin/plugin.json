@@ -1,0 +1,38 @@
+{
+  "name": "bostonaholic-skills",
+  "version": "0.1.0",
+  "description": "Matthew Boston's agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.",
+  "author": {
+    "name": "Matthew Boston",
+    "url": "https://matthewboston.com"
+  },
+  "homepage": "https://skills.bostonaholic.dev",
+  "repository": "https://github.com/bostonaholic/skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "pull-requests",
+    "code-review",
+    "audits"
+  ],
+  "skills": [
+    "./skills/engineering/audit-complexity",
+    "./skills/engineering/audit-tests",
+    "./skills/engineering/code-review",
+    "./skills/engineering/eng-design-doc-review",
+    "./skills/engineering/groom-backlog",
+    "./skills/engineering/how",
+    "./skills/engineering/no-comments",
+    "./skills/engineering/paparazzi",
+    "./skills/engineering/pr-open-comments",
+    "./skills/engineering/pr-rebase",
+    "./skills/engineering/pr-screenshots",
+    "./skills/engineering/pr-watch-as-author",
+    "./skills/engineering/pr-watch-as-reviewer",
+    "./skills/engineering/prove",
+    "./skills/engineering/shipit",
+    "./skills/engineering/why",
+    "./skills/productivity/agent-prompt",
+    "./skills/productivity/retro"
+  ]
+}
