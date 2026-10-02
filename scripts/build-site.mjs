@@ -10,7 +10,6 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   CatalogError,
-  EXTRACTION_NOTE,
   INSTALL_INTRO,
   INSTALL_OUTRO,
   INSTALL_ROUTES,
@@ -95,7 +94,6 @@ export function renderIndex(catalog) {
     "<header>",
     `<h1>${escapeHtml(TITLE)}</h1>`,
     `<p>${escapeHtml(LEDE)}</p>`,
-    `<p>${escapeHtml(EXTRACTION_NOTE)}</p>`,
     "</header>",
     "<main>",
     ...installHtml(),
