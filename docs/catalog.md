@@ -33,5 +33,5 @@ Review `_site/index.html` and `_site/404.html`. Commit the source and regenerate
 README; `_site/` is ignored. Script tests check rendering, not skill behavior.
 
 GitHub Actions builds and deploys the site when changes reach `main`. Follow
-[versioning and releases](versioning.md) before merging: site-only changes need
-no version bump, while plugin manifest description changes require a release.
+[versioning and releases](versioning.md) before merging: site-only and manifest
+description-only changes need no version bump.

@@ -88,14 +88,19 @@ function versionAt(ref) {
   return version;
 }
 
-function withoutVersion(text) {
+function runtimeManifest(path, text) {
   if (text === null) return null;
-  return JSON.stringify(JSON.parse(text), (key, value) => key === "version" ? undefined : value);
+  const manifest = JSON.parse(text);
+  delete manifest.description;
+  if (path === ".claude-plugin/marketplace.json") {
+    for (const plugin of manifest.plugins ?? []) delete plugin.description;
+  }
+  return JSON.stringify(manifest, (key, value) => key === "version" ? undefined : value);
 }
 
 export function runtimeChanged(files, before, after) {
   return files.some((path) => /^skills\/(engineering|productivity)\//.test(path)
-    || (MANIFESTS.includes(path) && withoutVersion(before(path)) !== withoutVersion(after(path))));
+    || (MANIFESTS.includes(path) && runtimeManifest(path, before(path)) !== runtimeManifest(path, after(path))));
 }
 
 function runtimeBetween(base, head = null) {

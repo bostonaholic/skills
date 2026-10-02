@@ -7,13 +7,20 @@ files, separate version PRs, or npm package publications.
 
 ## What releases
 
-Changes under `skills/engineering/` and `skills/productivity/`, plus non-version
-content changes in the plugin and marketplace manifests, require a release.
+Changes under `skills/engineering/` and `skills/productivity/`, plus functional
+changes in the plugin and marketplace manifests, require a release.
 Renames and removals count. Shared source edits reach users through regenerated
 copies in active skills. Archives, tests, workflows, site code, and maintainer
-documentation alone do not bump the version.
+documentation alone do not bump the version. Manifest comparisons ignore
+`version`, each manifest's top-level `description`, and marketplace
+`plugins[].description`. Description-only edits do not require a release.
+All other manifest fields still count, including plugin names, sources,
+registered skills, and runtime configuration. Adding or removing a manifest
+also requires a release.
 
-Before 1.0, observable changes use **minor**, including breaking changes.
+For changes that require a release, before 1.0, observable changes use **minor**,
+including breaking changes. Visible documentation or description edits alone
+do not qualify.
 Internal, backward-compatible corrections use **patch**. Declaring 1.0 requires
 an explicit stability decision. After 1.0, breaking changes use **major**, new
 functionality **minor**, and compatible fixes **patch**. Commit type does not
