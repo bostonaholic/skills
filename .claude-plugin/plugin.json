@@ -25,7 +25,6 @@
     "./skills/how",
     "./skills/no-comments",
     "./skills/paparazzi",
-    "./skills/pr-cleanup",
     "./skills/pr-open-comments",
     "./skills/pr-rebase",
     "./skills/pr-screenshots",
