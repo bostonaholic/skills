@@ -19,6 +19,24 @@ an explicit stability decision. After 1.0, breaking changes use **major**, new
 functionality **minor**, and compatible fixes **patch**. Commit type does not
 choose the level.
 
+## Changelog entries
+
+- Write one bullet per change, using a short sentence describing what changed
+  for the user. Split unrelated changes into separate bullets.
+- End every bullet with `[#NNN](https://github.com/bostonaholic/skills/pull/NNN)`.
+  Use the actual PR number in both the label and URL, with nothing after the link.
+- Multiple changes from one PR each get their own bullet and repeat that PR link.
+- Omit implementation narratives, commit lists, and review history. The linked
+  PR contains those details.
+- Add entries under `[Unreleased]` during review. Check this format before
+  cutting the release section; preserve the bullets and links in release notes.
+
+Example:
+
+```markdown
+- Add standalone code reviews. [#2](https://github.com/bostonaholic/skills/pull/2)
+```
+
 ## Before merge
 
 The declared pre-merge procedure is

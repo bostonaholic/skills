@@ -22,7 +22,10 @@ failure during review do not authorize versioning. Read `docs/versioning.md`.
    corrections use `patch`. After 1.0, breaking changes use `major`, new behavior
    uses `minor`, compatible fixes use `patch`. Declaring 1.0 is a separate owner
    decision. Bootstrap uses `minor` and prepares `0.1.0`.
-3. Run `npm run release:prepare -- <level> origin/<base>`. The script decides
+3. Check `[Unreleased]` against `docs/versioning.md#changelog-entries`: one
+   short bullet per change, each ending with its actual `[#NNN](https://github.com/bostonaholic/skills/pull/NNN)` link.
+   Correct the entries and commit those edits before preparation, which requires
+   a clean checkout. Run `npm run release:prepare -- <level> origin/<base>`. The script decides
    whether runtime changed, synchronizes shared files, updates manifest/package/
    lockfile versions, and cuts `[Unreleased]` into a dated release section. It
    refuses empty notes. Add accurate bullets and retry if necessary. Its
