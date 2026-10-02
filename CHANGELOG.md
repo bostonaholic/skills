@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid version bumps for description-only plugin and marketplace edits. [#4](https://github.com/bostonaholic/skills/pull/4)
+
 ## [0.2.0] - 2026-10-02
 
 ### Changed
