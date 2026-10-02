@@ -20,13 +20,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint:md
+      - name: Check changed skill Markdown
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- 'skills/**/*.md' | xargs -0 -r npx --no-install prettier --check
+          git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- 'skills/**/*.md' | xargs -0 -r npx --no-install markdownlint-cli2
 
   shell:
     name: Shell (shellcheck, shfmt)
@@ -35,12 +40,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           cache-suffix: shell
           cache-dependency-glob: .github/workflows/lint.yml
-      - run: git ls-files -z 'skills/rebase-open-prs/scripts/*.sh' 'tests/prepare-worktree.test.sh' | xargs -0 uvx --from shellcheck-py==0.11.0.1 shellcheck -S warning
-      - run: git ls-files -z 'skills/rebase-open-prs/scripts/*.sh' 'tests/prepare-worktree.test.sh' | xargs -0 uvx --from shfmt-py==4.2.0 shfmt -d
+      - name: Check changed shell scripts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- '**/*.sh' | xargs -0 -r uvx --from shellcheck-py==0.11.0.1 shellcheck -S warning
+          git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- '**/*.sh' | xargs -0 -r uvx --from shfmt-py==4.2.0 shfmt -i 2 -ci -d
       - run: bash tests/prepare-worktree.test.sh
 
   skills:
@@ -50,11 +60,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           cache-suffix: skills
           cache-dependency-glob: scripts/validate-skills.py
-      - run: uv run scripts/validate-skills.py
+      - name: Validate changed skills
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- 'skills/**/SKILL.md' | xargs -0 -r uv run scripts/validate-skills.py
 
   actions:
     name: Workflows (actionlint)

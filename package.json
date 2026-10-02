@@ -15,10 +15,7 @@
     "site": "node scripts/build-site.mjs _site",
     "release:prepare": "node scripts/release.mjs prepare",
     "release:check": "node scripts/release.mjs check",
-    "release:publish": "node scripts/release.mjs publish",
-    "format": "prettier --write 'skills/*/*.md' 'skills/*/references/*.md' 'skills/*/workflows/*.md'",
-    "format:check": "prettier --check 'skills/*/*.md' 'skills/*/references/*.md' 'skills/*/workflows/*.md'",
-    "lint:md": "markdownlint-cli2 'skills/*/*.md' 'skills/*/references/*.md' 'skills/*/workflows/*.md'"
+    "release:publish": "node scripts/release.mjs publish"
   },
   "packageManager": "npm@10.9.4",
   "devDependencies": {

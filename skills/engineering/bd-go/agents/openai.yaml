@@ -1,0 +1,6 @@
+interface:
+  display_name: "Beads Work"
+  short_description: "Find and complete ready Beads tasks"
+  default_prompt: "Use $bd-go to find and complete ready Beads tasks."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve Prompt"
+  short_description: "Improve an existing prompt"
+  default_prompt: "Use $improve-prompt to improve the supplied prompt."

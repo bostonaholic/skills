@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mermaid"
+  short_description: "Create and review Mermaid diagrams"
+  default_prompt: "Use $mermaid to create or revise a Mermaid diagram."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Prose"
+  short_description: "Write concise prose for people"
+  default_prompt: "Use $writing-prose to write the requested prose for people."

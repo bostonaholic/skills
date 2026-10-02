@@ -1,0 +1,6 @@
+interface:
+  display_name: "Beads Scan"
+  short_description: "Find branch deficiencies and create Beads issues"
+  default_prompt: "Use $bd-scan to scan the current branch and record verified deficiencies in Beads."
+policy:
+  allow_implicit_invocation: false

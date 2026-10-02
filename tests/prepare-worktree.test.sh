@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-script="$(cd "$(dirname "$0")/.." && pwd)/skills/rebase-open-prs/scripts/prepare-worktree.sh"
+script="$(cd "$(dirname "$0")/.." && pwd)/skills/engineering/rebase-open-prs/scripts/prepare-worktree.sh"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 

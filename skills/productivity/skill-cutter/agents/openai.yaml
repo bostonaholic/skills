@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Cutter"
+  short_description: "Trim an agent skill to its necessary instructions"
+  default_prompt: "Use $skill-cutter to trim the requested skill without changing its intended behavior."

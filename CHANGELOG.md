@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add personal agent skills. [#1](https://github.com/bostonaholic/skills/pull/1)
+- Add 22 personal skills to the plugin and catalog. [#1](https://github.com/bostonaholic/skills/pull/1)
 
 ### Fixed
 

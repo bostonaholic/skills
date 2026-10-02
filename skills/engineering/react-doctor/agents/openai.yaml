@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Doctor"
+  short_description: "Diagnose React codebase issues"
+  default_prompt: "Use $react-doctor to run React Doctor and assess its findings."
