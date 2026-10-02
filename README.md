@@ -87,3 +87,7 @@ Read [AGENTS.md](AGENTS.md) before changing a skill.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Deprecated
+
+Retired skills are preserved in [skills/deprecated](skills/deprecated/README.md) and excluded from installation.
