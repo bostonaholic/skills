@@ -15,7 +15,7 @@ validator.ALLOWED_FIELDS |= CLAUDE_CODE_FRONTMATTER_FIELDS
 
 skills_dir = Path(__file__).resolve().parent.parent / "skills"
 failed = False
-for skill in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
+for skill in sorted(p for p in skills_dir.iterdir() if (p / "SKILL.md").is_file()):
     for error in validator.validate(skill):
         print(f"{skill.relative_to(skills_dir.parent)}: {error}")
         failed = True

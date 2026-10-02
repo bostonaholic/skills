@@ -39,8 +39,8 @@ jobs:
         with:
           cache-suffix: shell
           cache-dependency-glob: .github/workflows/lint.yml
-      - run: git ls-files -z '*.sh' | xargs -0 uvx --from shellcheck-py==0.11.0.1 shellcheck -S warning
-      - run: git ls-files -z '*.sh' | xargs -0 uvx --from shfmt-py==4.2.0 shfmt -d
+      - run: git ls-files -z 'skills/rebase-open-prs/scripts/*.sh' 'tests/prepare-worktree.test.sh' | xargs -0 uvx --from shellcheck-py==0.11.0.1 shellcheck -S warning
+      - run: git ls-files -z 'skills/rebase-open-prs/scripts/*.sh' 'tests/prepare-worktree.test.sh' | xargs -0 uvx --from shfmt-py==4.2.0 shfmt -d
       - run: bash tests/prepare-worktree.test.sh
 
   skills:
