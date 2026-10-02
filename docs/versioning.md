@@ -1,9 +1,10 @@
 # Versioning and releases
 
 Assign versions immediately before merging, on explicit land intent. One PR
-lands at a time. During review, keep a plain conventional PR title and put
-user-facing changelog bullets under `## [Unreleased]`. There are no Changesets
-files, separate version PRs, or npm package publications.
+lands at a time. During review, keep a plain conventional PR title. For changes
+requiring a release, put user-facing changelog bullets under `## [Unreleased]`.
+Development-only PRs need no changelog entry. There are no Changesets files,
+separate version PRs, or npm package publications.
 
 ## What releases
 
@@ -35,8 +36,10 @@ choose the level.
 - Multiple changes from one PR each get their own bullet and repeat that PR link.
 - Omit implementation narratives, commit lists, and review history. The linked
   PR contains those details.
-- Add entries under `[Unreleased]` during review. Check this format before
-  cutting the release section; preserve the bullets and links in release notes.
+- Add entries under `[Unreleased]` during review only for changes requiring a
+  release. Site-only and other development-only changes need no entry. Check
+  this format before cutting the release section; preserve the bullets and
+  links in release notes.
 
 Example:
 
