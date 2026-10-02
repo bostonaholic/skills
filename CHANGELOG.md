@@ -4,4 +4,31 @@
 
 ### Added
 
-- First release. 18 skills extracted from the Team plugin, each installable on its own: `agent-prompt`, `audit-complexity`, `audit-tests`, `code-review`, `eng-design-doc-review`, `groom-backlog`, `how`, `no-comments`, `paparazzi`, `pr-open-comments`, `pr-rebase`, `pr-screenshots`, `pr-watch-as-author`, `pr-watch-as-reviewer`, `prove`, `retro`, `shipit`, and `why`. Changes from their Team versions: `eng-design-doc-review` reviews any design document file you name, instead of a `docs/plans/<id>/` directory; `eng-design-doc-review` runs no cross-model vendor pass; `code-review` and `eng-design-doc-review` dispatch a read-only reviewer subagent themselves (`Explore` on Claude Code, a restricted general-purpose subagent with a stated prompt-level guarantee on other hosts), `eng-design-doc-review` no longer stops on hosts without `Explore`, and a `code-review` reviewer that could not run the test suite says so and does not approve; `code-review` reports have three sections (Summary, Findings, Checks), and the skeptic and cross-model sections are gone; `prove` traces code inline instead of dispatching a file-finder agent; `retro` runs its three lenses in the session, always in reduced-assurance mode; `paparazzi` caches Playwright under `${XDG_CACHE_HOME:-$HOME/.cache}/paparazzi`; `pr-watch-as-author` needs `pr-open-comments` installed; `shipit` ends after reporting the merge result, with no automatic cleanup; the retired standalone cleanup skill is preserved under `skills/deprecated/pr-cleanup/` with a disabled entrypoint and excluded from installation; the two watch skills end a capped watch by printing the command that re-arms the watch, instead of pointing at a scheduled job on the author's machine; `paparazzi` manifests no longer carry `phase` and `round` fields; `audit-complexity` carries the `--coverage` input, CRAP scores, and complexity bands from Team 0.144.0 unchanged; `pr-watch-as-author` carries the CI monitoring and repair from Team 0.146.0 unchanged; `pr-open-comments` carries the own-author review-record exclusion from Team 0.145.0, accepting any producer identifier in the comment marker.
+- Add 18 standalone skills extracted from the Team plugin. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Install the full collection as a managed Claude Code plugin. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Install individual skills for supported agents with `npx skills`. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Include each skill’s shared rules in its installation. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Organize active skills into engineering and productivity categories. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Publish a generated skill catalog with usage and installation instructions. [#2](https://github.com/bostonaholic/skills/pull/2)
+
+### Changed
+
+- Allow `eng-design-doc-review` to review any design document. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Remove cross-model vendor passes from standalone design reviews. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Use independent reviewers for code and design reviews across supported hosts. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Organize code reviews into Summary, Findings, and Checks sections. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Report incomplete code-review checks without approving the changes. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Trace claims directly in the session with `prove`. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Run retrospective analysis in the session with reduced-assurance reporting. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Cache `paparazzi` browser tooling outside the project. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Omit pipeline phase and round fields from screenshot manifests. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Include coverage-based CRAP scores and risk bands in complexity audits. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Monitor CI alongside review feedback in `pr-watch-as-author`. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Require `pr-open-comments` for author-side PR monitoring. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Print a re-arm command when either PR watcher reaches its limit. [#2](https://github.com/bostonaholic/skills/pull/2)
+- Exclude the PR author’s own review records from feedback triage. [#2](https://github.com/bostonaholic/skills/pull/2)
+- End `shipit` after reporting the merge result, without automatic cleanup. [#2](https://github.com/bostonaholic/skills/pull/2)
+
+### Deprecated
+
+- Archive `pr-cleanup` and exclude it from active installations. [#2](https://github.com/bostonaholic/skills/pull/2)
