@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Rails"
+  short_description: "Review Rails code for unnecessary complexity"
+  default_prompt: "Use $review-rails to review the Rails code for unnecessary complexity."

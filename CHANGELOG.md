@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-02
+
+### Added
+
+- Add 20 personal skills to the plugin and catalog. [#1](https://github.com/bostonaholic/skills/pull/1)
+
+### Deprecated
+
+- Archive `bd-go` and `bd-scan`. [#1](https://github.com/bostonaholic/skills/pull/1)
+
 ### Fixed
 
 - Avoid version bumps for description-only plugin and marketplace edits. [#4](https://github.com/bostonaholic/skills/pull/4)
@@ -51,5 +61,7 @@
 
 [0.1.0]: https://github.com/bostonaholic/skills/releases/tag/v0.1.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/bostonaholic/skills/compare/v0.1.0...v0.2.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bostonaholic/skills/compare/v0.2.0...v0.3.0

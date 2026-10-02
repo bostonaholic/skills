@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learn"
+  short_description: "Record a correction for future sessions"
+  default_prompt: "Use $learn to record the requested lesson for future sessions."

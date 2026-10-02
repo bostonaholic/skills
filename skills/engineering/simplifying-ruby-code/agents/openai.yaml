@@ -1,0 +1,4 @@
+interface:
+  display_name: "Simplifying Ruby Code"
+  short_description: "Simplify overengineered Ruby code"
+  default_prompt: "Use $simplifying-ruby-code to identify simpler Ruby implementations."

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Rebase Open PRs"
+  short_description: "Rebase all open pull requests"
+  default_prompt: "Use $rebase-open-prs to rebase the requested open pull requests."
+policy:
+  allow_implicit_invocation: false

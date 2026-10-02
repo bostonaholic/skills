@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic-skills",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "repository": {
@@ -17,5 +17,9 @@
     "release:check": "node scripts/release.mjs check",
     "release:publish": "node scripts/release.mjs publish"
   },
-  "packageManager": "npm@10.9.4"
+  "packageManager": "npm@10.9.4",
+  "devDependencies": {
+    "markdownlint-cli2": "0.23.3",
+    "prettier": "3.9.9"
+  }
 }
