@@ -1,12 +1,8 @@
 # Skills
 
-skills that pay the bills
-
 <!-- generated:start -->
 
-Agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.
-
-These skills were extracted from the Team plugin. They do not need Team, and Team does not need them.
+The skills I use to build software with coding agents.
 
 ## Install
 
@@ -78,11 +74,11 @@ A skill that calls another skill names it, and stops or falls back when that ski
 
 ## Docs
 
-Every skill, with its usage and install command: https://skills.bostonaholic.dev
+Browse the [skill catalog](https://skills.bostonaholic.dev) for usage and installation instructions.
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) before changing a skill. Maintainers: [versioning and releases](docs/versioning.md).
+Read [AGENTS.md](AGENTS.md) before making changes. See [README and site maintenance](docs/catalog.md) for documentation changes and [versioning and releases](docs/versioning.md) for publishing.
 
 ## License
 

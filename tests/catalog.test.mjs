@@ -154,11 +154,11 @@ test("the site shows every install and update command exported by the catalog", 
   assert.deepEqual(COMMAND_EXPORTS.filter((name) => !html.includes(escaped(catalog[name]))), []);
 });
 
-test("the site shows the extraction note exported by the catalog", async (t) => {
-  const { EXTRACTION_NOTE } = await catalogModule();
-  assert.ok(typeof EXTRACTION_NOTE === "string" && EXTRACTION_NOTE, "catalog exports no EXTRACTION_NOTE");
+test("the site shows the subtitle exported by the catalog", async (t) => {
+  const { LEDE } = await catalogModule();
+  assert.ok(typeof LEDE === "string" && LEDE, "catalog exports no LEDE");
   const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
-  assert.ok(html.includes(escaped(EXTRACTION_NOTE)), "index.html lacks the extraction note");
+  assert.ok(html.includes(escaped(LEDE)), "index.html lacks the subtitle");
 });
 
 test("the site carries the custom domain in CNAME", (t) => {

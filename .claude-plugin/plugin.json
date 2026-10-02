@@ -1,7 +1,7 @@
 {
   "name": "bostonaholic-skills",
-  "version": "0.1.0",
-  "description": "Matthew Boston's agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.",
+  "version": "0.2.0",
+  "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston",
     "url": "https://matthewboston.com"

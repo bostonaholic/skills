@@ -10,9 +10,7 @@ import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const LEDE = "Agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.";
-
-export const EXTRACTION_NOTE = "These skills were extracted from the Team plugin. They do not need Team, and Team does not need them.";
+export const LEDE = "The skills I use to build software with coding agents.";
 
 export const CLAUDE_MARKETPLACE_ADD = "claude plugin marketplace add bostonaholic/skills";
 export const CLAUDE_PLUGIN_INSTALL = "claude plugin install bostonaholic-skills@bostonaholic";
@@ -144,7 +142,7 @@ function readmeEntry(skill) {
 
 // Returns the text strictly between README_START and README_END.
 export function renderReadme(catalog) {
-  const lines = [LEDE, "", EXTRACTION_NOTE, "", "## Install", "", INSTALL_INTRO, ""];
+  const lines = [LEDE, "", "## Install", "", INSTALL_INTRO, ""];
   for (const route of INSTALL_ROUTES) {
     lines.push(`### ${route.heading}`, "");
     for (const block of route.blocks) {

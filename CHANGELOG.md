@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-02
+
+### Changed
+
+- Remove the “skills that pay the bills” README tagline. [#3](https://github.com/bostonaholic/skills/pull/3)
+- Align plugin and package descriptions with the personal software engineering collection. [#3](https://github.com/bostonaholic/skills/pull/3)
+- Document how to update the README and site together. [#3](https://github.com/bostonaholic/skills/pull/3)
+- Describe the collection as personal software engineering skills in the site and README. [#3](https://github.com/bostonaholic/skills/pull/3)
+- Remove the Team extraction note from the site and README. [#3](https://github.com/bostonaholic/skills/pull/3)
+
 ## [0.1.0] - 2026-10-02
 
 ### Added
@@ -35,5 +45,7 @@
 
 - Archive `pr-cleanup` and exclude it from active installations. [#2](https://github.com/bostonaholic/skills/pull/2)
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/bostonaholic/skills/releases/tag/v0.1.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/bostonaholic/skills/compare/v0.1.0...v0.2.0
