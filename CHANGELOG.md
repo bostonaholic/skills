@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Describe the collection as personal software engineering skills in the site and README. [#3](https://github.com/bostonaholic/skills/pull/3)
+- Remove the Team extraction note from the site and README. [#3](https://github.com/bostonaholic/skills/pull/3)
+
 ## [0.1.0] - 2026-10-02
 
 ### Added
