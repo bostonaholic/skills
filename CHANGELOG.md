@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-02
+
 ### Changed
 
 - Remove the “skills that pay the bills” README tagline. [#3](https://github.com/bostonaholic/skills/pull/3)
@@ -43,5 +45,7 @@
 
 - Archive `pr-cleanup` and exclude it from active installations. [#2](https://github.com/bostonaholic/skills/pull/2)
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/bostonaholic/skills/releases/tag/v0.1.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/bostonaholic/skills/compare/v0.1.0...v0.2.0
