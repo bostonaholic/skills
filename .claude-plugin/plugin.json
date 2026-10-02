@@ -18,8 +18,6 @@
   "skills": [
     "./skills/engineering/audit-complexity",
     "./skills/engineering/audit-tests",
-    "./skills/engineering/bd-go",
-    "./skills/engineering/bd-scan",
     "./skills/engineering/code-review",
     "./skills/engineering/dev-cli",
     "./skills/engineering/eng-design-doc-review",

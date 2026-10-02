@@ -50,8 +50,6 @@ A skill that calls another skill names it, and stops or falls back when that ski
 
 - **[audit-complexity](./skills/engineering/audit-complexity/SKILL.md)**: Rank where code complexity concentrates in a codebase.
 - **[audit-tests](./skills/engineering/audit-tests/SKILL.md)**: Audit a test suite for low-value tests.
-- **[bd-go](./skills/engineering/bd-go/SKILL.md)**: Find and complete ready Beads tasks. Explicit invocation only.
-- **[bd-scan](./skills/engineering/bd-scan/SKILL.md)**: Find branch deficiencies and create Beads issues. Explicit invocation only.
 - **[code-review](./skills/engineering/code-review/SKILL.md)**: Review a diff with fresh-context discipline.
 - **[dev-cli](./skills/engineering/dev-cli/SKILL.md)**: Set up and use the dev CLI.
 - **[eng-design-doc-review](./skills/engineering/eng-design-doc-review/SKILL.md)**: Adversarially review a design document.

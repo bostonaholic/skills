@@ -4,7 +4,11 @@
 
 ### Added
 
-- Add 22 personal skills to the plugin and catalog. [#1](https://github.com/bostonaholic/skills/pull/1)
+- Add 20 personal skills to the plugin and catalog. [#1](https://github.com/bostonaholic/skills/pull/1)
+
+### Deprecated
+
+- Archive `bd-go` and `bd-scan`. [#1](https://github.com/bostonaholic/skills/pull/1)
 
 ### Fixed
 
