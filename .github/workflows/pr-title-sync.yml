@@ -1,0 +1,42 @@
+name: PR title sync
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, edited, reopened]
+
+concurrency:
+  group: pr-title-sync-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sync-title:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      CURRENT_TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Match title to prepared version
+        run: |
+          set -euo pipefail
+          TITLE=$(node scripts/release.mjs title)
+          if [ -n "$TITLE" ] && [ "$TITLE" != "$CURRENT_TITLE" ]; then
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --title "$TITLE"
+          fi

@@ -1,0 +1,51 @@
+name: Release on merge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-on-merge
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Configure release signing
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$RELEASE_SIGNING_KEY" || { echo "Missing RELEASE_SIGNING_KEY secret" >&2; exit 1; }
+          umask 077
+          KEY_PATH="$RUNNER_TEMP/skills-release-key"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$KEY_PATH"
+          ssh-keygen -y -f "$KEY_PATH" > "$KEY_PATH.pub"
+          diff -u .github/release-signing-key.pub "$KEY_PATH.pub"
+          printf 'skills-release %s\n' "$(cat "$KEY_PATH.pub")" > "$RUNNER_TEMP/skills-allowed-signers"
+          git config user.name "Skills Release"
+          git config user.email "362146+bostonaholic@users.noreply.github.com"
+          git config gpg.format ssh
+          git config user.signingkey "$KEY_PATH"
+          git config gpg.ssh.allowedSignersFile "$RUNNER_TEMP/skills-allowed-signers"
+          git config commit.gpgsign true
+          git config tag.gpgSign true
+      - name: Check, sign, tag, and publish
+        run: npm run release:publish
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/skills-release-key" "$RUNNER_TEMP/skills-release-key.pub" "$RUNNER_TEMP/skills-allowed-signers"
