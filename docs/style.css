@@ -41,6 +41,14 @@ footer {
   padding: 1.5rem 1rem;
 }
 
+header {
+  padding-bottom: 0;
+}
+
+main {
+  padding-top: 0;
+}
+
 h1,
 h2,
 h3 {
