@@ -5,6 +5,7 @@
 ### Fixed
 
 - Avoid version bumps for description-only plugin and marketplace edits. [#4](https://github.com/bostonaholic/skills/pull/4)
+- Reduce the gap between the docs introduction and installation instructions. [#5](https://github.com/bostonaholic/skills/pull/5)
 
 ## [0.2.0] - 2026-10-02
 
