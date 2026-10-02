@@ -45,14 +45,6 @@ function trackedSkills() {
     .sort();
 }
 
-function argumentHint(name) {
-  const frontmatter = readFileSync(join(REPO, "skills", name, "SKILL.md"), "utf8").match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)?.[1] ?? "";
-  const value = frontmatter.match(/^argument-hint:[ \t]*(.*)$/m)?.[1].trim();
-  if (value?.startsWith('"') && value.endsWith('"')) return JSON.parse(value);
-  if (value?.startsWith("'") && value.endsWith("'")) return value.slice(1, -1).replaceAll("''", "'");
-  return value;
-}
-
 function generatedBlock(readme) {
   assert.ok(readme.includes(START), `README.md has no ${START}`);
   assert.ok(readme.includes(END), `README.md has no ${END}`);
@@ -136,12 +128,16 @@ test("the site carries the custom domain in CNAME", (t) => {
   assert.equal(readFileSync(join(out, "CNAME"), "utf8"), "skills.bostonaholic.dev\n");
 });
 
-test("the site HTML-escapes every argument hint", (t) => {
-  const hints = trackedSkills().map(argumentHint).filter((hint) => hint && /[<>&]/.test(hint));
-  assert.ok(hints.length > 0, "found no tracked argument-hint holding < > or &");
-  const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
-  assert.deepEqual(hints.filter((hint) => !html.includes(escaped(hint))), [], "hints missing in escaped form");
-  assert.deepEqual(hints.filter((hint) => html.includes(hint)), [], "hints printed raw");
+test("the site HTML-escapes argument hints from its input", (t) => {
+  const hint = '<value> & "quoted"';
+  const root = fixtureRepo(t, {
+    "docs/CNAME": "example.test\n",
+    "docs/style.css": "body { margin: 0; }\n",
+    "skills/widget/SKILL.md": `---\nname: widget\ndescription: Use for fixture checks.\nargument-hint: '${hint}'\n---\n\n# widget\n`,
+  });
+  const html = readFileSync(join(buildSite(t, root), "index.html"), "utf8");
+  assert.ok(html.includes(escaped(hint)), "hint missing in escaped form");
+  assert.ok(!html.includes(hint), "hint printed raw");
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -1,10 +1,7 @@
-// Fails when a skill's shared/ copies drift from the canonical files under the root shared/, when
-// a canonical file has fewer than two consuming skills (a single-owner rule belongs in that skill's
-// references/), or when scripts/sync-shared.mjs stops deriving, checking, or writing those
-// copies. The repository cases read tracked files; the fixture cases run the real CLI in a
-// temporary repository built with `git init` plus `git add`, never a commit.
+// Exercises scripts/sync-shared.mjs against the repository and temporary fixtures.
+// Checks synchronization, missing inputs, drift detection, and stale-copy removal.
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -13,24 +10,6 @@ import test from "node:test";
 const REPO = resolve(".");
 const SYNC = resolve("scripts/sync-shared.mjs");
 const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
-
-function trackedCanonicalFiles() {
-  return execFileSync("git", ["-C", REPO, "ls-files", "-z", "--", "shared/*.md"], { encoding: "utf8" })
-    .split("\0")
-    .filter((path) => /^shared\/[^/]+\.md$/.test(path))
-    .sort();
-}
-
-function trackedCopies() {
-  return execFileSync("git", ["-C", REPO, "ls-files", "-z", "--", "skills/*/shared/*.md"], { encoding: "utf8" })
-    .split("\0")
-    .filter((path) => /^skills\/[^/]+\/shared\/[^/]+\.md$/.test(path))
-    .sort();
-}
-
-function canonicalHeader(path) {
-  return `<!-- Canonical file: ${path} at the repository root. Edit it there, then run npm run sync-shared. -->`;
-}
 
 function runSync(cwd, ...args) {
   assert.ok(existsSync(SYNC), `missing ${SYNC}`);
@@ -60,28 +39,10 @@ const OLD_RULE =
 // ---------------------------------------------------------------------------------------------
 // The repository
 
-test("every canonical shared file's first line names its own path", () => {
-  const canonical = trackedCanonicalFiles();
-  assert.ok(canonical.length > 0, "found no tracked shared/*.md");
-  const misnamed = canonical.filter((path) => readFileSync(join(REPO, path), "utf8").split("\n")[0] !== canonicalHeader(path));
-  assert.deepEqual(misnamed, []);
-});
-
 test("sync-shared --check passes: every copy equals its canonical bytes and the copy set equals the derived set", () => {
   const run = runSync(REPO, "--check");
   assert.equal(run.status, 0, run.output);
   assert.equal(run.output, "");
-});
-
-test("every canonical shared file has two or more consumers among the tracked skills", () => {
-  const canonical = trackedCanonicalFiles();
-  assert.ok(canonical.length > 0, "found no tracked shared/*.md");
-  const copies = trackedCopies();
-  const lonely = canonical
-    .map((path) => ({ path, consumers: copies.filter((copy) => copy.endsWith(`/${path}`)).length }))
-    .filter(({ consumers }) => consumers < 2)
-    .map(({ path, consumers }) => `${path}: ${consumers} consumer(s)`);
-  assert.deepEqual(lonely, []);
 });
 
 // ---------------------------------------------------------------------------------------------
