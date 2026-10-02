@@ -128,6 +128,76 @@ test("runtime classification excludes archives and tooling and ignores manifest 
   assert.equal(runtimeChanged(["skills/productivity/widget/file"], before, after), true);
 });
 
+test("manifest descriptions can be added, edited, or removed without a release", () => {
+  for (const path of [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"]) {
+    const manifest = { name: "fixture" };
+    if (path.endsWith("marketplace.json")) manifest.plugins = [{ name: "fixture", source: "./" }];
+    const bare = JSON.stringify(manifest);
+    manifest.description = "Original description";
+    if (manifest.plugins) manifest.plugins[0].description = "Original plugin description";
+    const original = JSON.stringify(manifest);
+    manifest.description = "New description";
+    if (manifest.plugins) manifest.plugins[0].description = "New plugin description";
+    const updated = JSON.stringify(manifest);
+    for (const [before, after] of [[bare, original], [original, updated], [updated, bare]]) {
+      assert.equal(runtimeChanged([path], () => before, () => after), false, path);
+    }
+  }
+});
+
+test("description edits do not hide functional manifest changes", () => {
+  const cases = [
+    [".claude-plugin/plugin.json", { skills: ["./skills/engineering/widget"] }],
+    [".claude-plugin/plugin.json", { mcpServers: { fixture: { command: "fixture", env: { description: "functional value" } } } }],
+    [".claude-plugin/marketplace.json", { plugins: [{ name: "fixture", source: "./new" }] }],
+  ];
+  for (const [path, change] of cases) {
+    const before = {
+      name: "fixture", description: "Old", skills: ["./skills/engineering/old"],
+      plugins: [{ name: "fixture", source: "./" }],
+      mcpServers: { fixture: { command: "fixture", env: { description: "old functional value" } } },
+    };
+    const after = { ...before, ...change, description: "New" };
+    assert.equal(runtimeChanged([path], () => JSON.stringify(before), () => JSON.stringify(after)), true, path);
+  }
+  for (const after of [null, '{"description":"New"}']) {
+    const before = after === null ? '{"description":"Old"}' : null;
+    assert.equal(runtimeChanged([".claude-plugin/plugin.json"], () => before, () => after), true);
+  }
+});
+
+test("description-only changes preserve versions, notes, and the published signed tag", (t) => {
+  const f = fixture(t);
+  const marketplace = { name: "fixture", plugins: [{ name: "fixture", source: "./" }] };
+  write(f.root, ".claude-plugin/marketplace.json", JSON.stringify(marketplace));
+  commit(f.root);
+  git(f.root, "branch", "-f", "base", "HEAD");
+  assert.equal(run(f, "release:publish").status, 0);
+  const tag = git(f.root, "rev-parse", "v0.1.0");
+  const plugin = readJson(f.root, ".claude-plugin/plugin.json");
+  plugin.description = "Personal engineering skills.";
+  marketplace.description = plugin.description;
+  marketplace.plugins[0].description = plugin.description;
+  write(f.root, ".claude-plugin/plugin.json", JSON.stringify(plugin));
+  write(f.root, ".claude-plugin/marketplace.json", JSON.stringify(marketplace));
+  const notes = RELEASED.replace("## [Unreleased]", "## [Unreleased]\n\n- Update descriptions.");
+  write(f.root, "CHANGELOG.md", notes);
+  commit(f.root);
+  const prepared = run(f, "release:prepare", ["minor", "base"]);
+  assert.equal(prepared.status, 0, prepared.output);
+  assert.match(prepared.output, /"runtime":false/);
+  assert.equal(git(f.root, "status", "--porcelain"), "");
+  assert.equal(readFileSync(join(f.root, "CHANGELOG.md"), "utf8"), notes);
+  const checked = run(f, "release:check", ["base"]);
+  assert.equal(checked.status, 0, checked.output);
+  assert.match(checked.output, /"runtime":false/);
+  const published = run(f, "release:publish", [], { FAKE_RELEASE_EXISTS: "v0.1.0" });
+  assert.equal(published.status, 0, published.output);
+  assert.match(published.output, /"released":false/);
+  assert.equal(git(f.root, "tag", "--list"), "v0.1.0");
+  assert.equal(git(f.root, "rev-parse", "v0.1.0"), tag);
+});
+
 test("preparation repairs copies, versions all manifests, and can be re-entered without a second bump", (t) => {
   const f = fixture(t);
   runtimeEdit(f);
