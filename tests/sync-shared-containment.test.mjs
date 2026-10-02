@@ -26,7 +26,7 @@ function fixture(t, links, { rule = "rule-one.md", moveSkills = false } = {}) {
   const outside = join(base, "outside");
   mkdirSync(outside, { recursive: true });
   writeFileSync(join(outside, "sentinel.md"), SENTINEL);
-  for (const [path, text] of Object.entries({ "shared/rule-one.md": RULE, "skills/widget/SKILL.md": skill(rule) })) {
+  for (const [path, text] of Object.entries({ "shared/rule-one.md": RULE, "skills/engineering/widget/SKILL.md": skill(rule) })) {
     if (Object.keys(links).some((link) => path === link || path.startsWith(`${link}/`))) continue;
     mkdirSync(dirname(join(repo, path)), { recursive: true });
     writeFileSync(join(repo, path), text);
@@ -53,7 +53,7 @@ function refuses(output, path) {
 
 // The contents of every file in the skill's copy directory, read without following a link.
 function skillCopies(repo) {
-  const dir = join(repo, "skills", "widget", "shared");
+  const dir = join(repo, "skills", "engineering", "widget", "shared");
   if (!lstatSync(dir, { throwIfNoEntry: false })?.isDirectory()) return [];
   return readdirSync(dir).map((file) => readFileSync(join(dir, file), "utf8"));
 }
@@ -68,18 +68,18 @@ for (const args of [[], ["--check"]]) {
   const mode = args.length ? "--check" : "write mode";
 
   test(`${mode} refuses a skill whose shared/ is a symlink and leaves the outside directory intact`, (t) => {
-    const { repo, sentinel } = fixture(t, { "skills/widget/shared": "." });
+    const { repo, sentinel } = fixture(t, { "skills/engineering/widget/shared": "." });
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
-    assert.match(run.output, /skills\/widget\/shared\b.*symlink/, run.output);
+    assert.match(run.output, /skills\/engineering\/widget\/shared\b.*symlink/, run.output);
     assert.equal(readFileSync(sentinel, "utf8"), SENTINEL);
   });
 
   test(`${mode} refuses a symlinked file inside shared/ and leaves its outside target intact`, (t) => {
-    const { repo, sentinel } = fixture(t, { "skills/widget/shared/rule-one.md": "sentinel.md" });
+    const { repo, sentinel } = fixture(t, { "skills/engineering/widget/shared/rule-one.md": "sentinel.md" });
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
-    assert.match(run.output, /skills\/widget\/shared\/rule-one\.md\b.*symlink/, run.output);
+    assert.match(run.output, /skills\/engineering\/widget\/shared\/rule-one\.md\b.*symlink/, run.output);
     assert.equal(readFileSync(sentinel, "utf8"), SENTINEL);
   });
 
@@ -87,8 +87,8 @@ for (const args of [[], ["--check"]]) {
     const { repo, outside } = fixture(t, {}, { moveSkills: true });
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
-    assert.ok(refuses(run.output, "skills/widget"), run.output);
-    assert.equal(existsSync(join(outside, "skills", "widget", "shared")), false, "created a shared/ outside the repository");
+    assert.ok(refuses(run.output, "skills/engineering/widget"), run.output);
+    assert.equal(existsSync(join(outside, "skills", "engineering", "widget", "shared")), false, "created a shared/ outside the repository");
   });
 
   test(`${mode} refuses a root shared/ that is a symlink and copies none of its bytes`, (t) => {
@@ -99,11 +99,21 @@ for (const args of [[], ["--check"]]) {
     assert.deepEqual(skillCopies(repo).filter((text) => text === SENTINEL), []);
   });
 
-  test(`${mode} refuses a tracked skill file that is a symlink before reading it`, (t) => {
-    const { repo } = fixture(t, { "skills/widget/references/notes.md": "sentinel.md" });
+  test(`${mode} refuses a symlinked category before creating shared copies`, (t) => {
+    const { repo, outside } = fixture(t, {});
+    renameSync(join(repo, "skills/engineering"), join(outside, "engineering"));
+    symlinkSync(join(outside, "engineering"), join(repo, "skills/engineering"));
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
-    assert.ok(refuses(run.output, "skills/widget/references/notes.md"), run.output);
+    assert.ok(refuses(run.output, "skills/engineering/widget"), run.output);
+    assert.equal(existsSync(join(outside, "engineering/widget/shared")), false);
+  });
+
+  test(`${mode} refuses a tracked skill file that is a symlink before reading it`, (t) => {
+    const { repo } = fixture(t, { "skills/engineering/widget/references/notes.md": "sentinel.md" });
+    const run = runSync(repo, ...args);
+    assert.equal(run.status, 1, run.output);
+    assert.ok(refuses(run.output, "skills/engineering/widget/references/notes.md"), run.output);
   });
 
   test(`${mode} refuses a symlinked file in the root shared/ and copies none of its bytes`, (t) => {

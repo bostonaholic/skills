@@ -20,7 +20,7 @@ function buildFixture(t, { files, outsideFiles, links }) {
   t.after(() => rmSync(base, { recursive: true, force: true }));
   const repo = join(base, "repo");
   const outside = join(base, "outside");
-  for (const [root, entries] of [[repo, { "skills/widget/SKILL.md": SKILL, ...files }], [outside, outsideFiles]]) {
+  for (const [root, entries] of [[repo, { "skills/engineering/widget/SKILL.md": SKILL, ...files }], [outside, outsideFiles]]) {
     for (const [path, text] of Object.entries(entries)) {
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), text);

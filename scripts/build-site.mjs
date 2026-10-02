@@ -72,9 +72,10 @@ function sectionHtml(skill) {
     `  <p>${escapeHtml(skill.summary)}.</p>`,
     `  <p class="muted">${escapeHtml(skill.description)}</p>`,
     `  <p>Usage: <code>${escapeHtml(usage)}</code></p>`,
+    ...(skill.userInvoked ? ["  <p>Explicit invocation only.</p>"] : []),
     ...(calls.length ? [`  <p>Calls: ${calls.join(", ")}.</p>`] : []),
     `  <pre><code>${escapeHtml(NPX_ADD_SKILL.replace("<name>", skill.name))}</code></pre>`,
-    `  <p><a href="${REPO_URL}/tree/main/skills/${id}">Source</a></p>`,
+    `  <p><a href="${REPO_URL}/tree/main/${escapeHtml(skill.directory)}">Source</a></p>`,
     "</section>",
   ];
 }

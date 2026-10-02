@@ -4,9 +4,9 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { renderReport, validateReport } from "../skills/audit-tests/scripts/render-report.mjs";
+import { renderReport, validateReport } from "../skills/engineering/audit-tests/scripts/render-report.mjs";
 
-const RENDER = resolve("skills/audit-tests/scripts/render-report.mjs");
+const RENDER = resolve("skills/engineering/audit-tests/scripts/render-report.mjs");
 
 const EVIDENCE = {
   location: "tests/cache.test.js:40 clears on write",

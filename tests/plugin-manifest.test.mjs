@@ -15,16 +15,16 @@ function readJson(path) {
 }
 
 function trackedSkillPaths() {
-  return execFileSync("git", ["ls-files", "-z", "--", "skills/*/SKILL.md"], { encoding: "utf8" })
+  return execFileSync("git", ["ls-files", "-z", "--", "skills/*/*/SKILL.md"], { encoding: "utf8" })
     .split("\0")
-    .filter((path) => /^skills\/[^/]+\/SKILL\.md$/.test(path))
-    .map((path) => `./skills/${path.split("/")[1]}`)
+    .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
+    .map((path) => `./${path.slice(0, -"/SKILL.md".length)}`)
     .sort();
 }
 
 test("the plugin skills array lists every tracked skill once and nothing else", () => {
   const tracked = trackedSkillPaths();
-  assert.ok(tracked.length > 0, "found no tracked skills/*/SKILL.md");
+  assert.ok(tracked.length > 0, "found no tracked skills/*/*/SKILL.md");
   const listed = readJson(PLUGIN).skills;
   assert.ok(Array.isArray(listed), `${PLUGIN} has no skills array`);
   assert.deepEqual([...listed].sort(), tracked);

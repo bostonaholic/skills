@@ -7,6 +7,7 @@
 // untracked skill directories are ignored.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { basename, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const LEDE = "Agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.";
@@ -73,17 +74,18 @@ function scalar(text, key) {
 
 function calls(dir, skillNames) {
   const called = new Set();
-  for (const path of lsFiles(`skills/${dir}`)) {
+  for (const path of lsFiles(dir)) {
     if (!path.endsWith(".md")) continue;
     for (const [, name] of readFileSync(path, "utf8").matchAll(SKILL_CALL)) {
-      if (name !== dir && skillNames.has(name)) called.add(name);
+      if (name !== basename(dir) && skillNames.has(name)) called.add(name);
     }
   }
   return [...called].sort();
 }
 
 function loadSkill(path, skillNames, errors) {
-  const dir = path.split("/")[1];
+  const dir = dirname(path);
+  const directoryName = basename(dir);
   const frontmatter = readFileSync(path, "utf8").match(FRONTMATTER)?.[1];
   if (frontmatter === undefined) {
     errors.push(`${path}: no frontmatter`);
@@ -92,15 +94,17 @@ function loadSkill(path, skillNames, errors) {
   const name = scalar(frontmatter, "name");
   const description = scalar(frontmatter, "description");
   if (!name) errors.push(`${path}: no name`);
-  else if (name !== dir) errors.push(`${path}: name "${name}" differs from its directory "${dir}"`);
+  else if (name !== directoryName) errors.push(`${path}: name "${name}" differs from its directory "${directoryName}"`);
   if (!description) errors.push(`${path}: no description`);
-  if (name !== dir || !description) return null;
+  if (name !== directoryName || !description) return null;
 
-  const yamlPath = `skills/${dir}/agents/openai.yaml`;
+  const yamlPath = `${dir}/agents/openai.yaml`;
   const yaml = existsSync(yamlPath) ? readFileSync(yamlPath, "utf8") : "";
   const shortDescription = scalar(yaml, "short_description") ?? description.match(FIRST_SENTENCE)?.[0] ?? description;
   return {
     name,
+    directory: dir,
+    category: path.split("/")[1],
     displayName: scalar(yaml, "display_name") ?? name,
     summary: shortDescription.replace(/\.$/, ""),
     description,
@@ -112,9 +116,14 @@ function loadSkill(path, skillNames, errors) {
 
 // Returns the tracked skills sorted by name. Throws CatalogError naming every bad SKILL.md.
 export function loadCatalog() {
-  const paths = lsFiles("skills/*/SKILL.md").filter((path) => /^skills\/[^/]+\/SKILL\.md$/.test(path));
-  const skillNames = new Set(paths.map((path) => path.split("/")[1]));
+  const paths = lsFiles("skills/*/*/SKILL.md").filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path));
+  const skillNames = new Set();
   const errors = [];
+  for (const path of paths) {
+    const name = basename(dirname(path));
+    if (skillNames.has(name)) errors.push(`${path}: duplicate skill name "${name}" across categories`);
+    skillNames.add(name);
+  }
   const skills = paths.map((path) => loadSkill(path, skillNames, errors));
   if (errors.length) throw new CatalogError(errors.join("\n"));
   return skills.sort((a, b) => (a.name < b.name ? -1 : 1));
@@ -122,13 +131,13 @@ export function loadCatalog() {
 
 export function skillGroups(catalog) {
   return [
-    { heading: "User-invoked", skills: catalog.filter((skill) => skill.userInvoked) },
-    { heading: "Model-invoked", skills: catalog.filter((skill) => !skill.userInvoked) },
+    { heading: "Engineering", skills: catalog.filter((skill) => skill.category === "engineering") },
+    { heading: "Productivity", skills: catalog.filter((skill) => skill.category === "productivity") },
   ].filter((group) => group.skills.length);
 }
 
 function readmeEntry(skill) {
-  const entry = `- **[${skill.name}](./skills/${skill.name}/SKILL.md)**: ${skill.summary}.`;
+  const entry = `- **[${skill.name}](./${skill.directory}/SKILL.md)**: ${skill.summary}.${skill.userInvoked ? " Explicit invocation only." : ""}`;
   if (!skill.calls.length) return entry;
   return `${entry} Calls: ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
 }

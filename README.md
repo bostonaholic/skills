@@ -50,29 +50,29 @@ A skill that calls another skill names it, and stops or falls back when that ski
 
 ## Skills
 
-### User-invoked
+### Engineering
 
-- **[no-comments](./skills/no-comments/SKILL.md)**: Remove low-value source comments.
-- **[pr-rebase](./skills/pr-rebase/SKILL.md)**: Rebase a branch onto its base.
-- **[pr-watch-as-reviewer](./skills/pr-watch-as-reviewer/SKILL.md)**: Watch a PR you review, then approve once.
-- **[retro](./skills/retro/SKILL.md)**: Mine this session for durable learnings.
+- **[audit-complexity](./skills/engineering/audit-complexity/SKILL.md)**: Rank where code complexity concentrates in a codebase.
+- **[audit-tests](./skills/engineering/audit-tests/SKILL.md)**: Audit a test suite for low-value tests.
+- **[code-review](./skills/engineering/code-review/SKILL.md)**: Review a diff with fresh-context discipline.
+- **[eng-design-doc-review](./skills/engineering/eng-design-doc-review/SKILL.md)**: Adversarially review a design document.
+- **[groom-backlog](./skills/engineering/groom-backlog/SKILL.md)**: Groom a project backlog end to end.
+- **[how](./skills/engineering/how/SKILL.md)**: Explain how a subsystem works. Calls: `why`.
+- **[no-comments](./skills/engineering/no-comments/SKILL.md)**: Remove low-value source comments. Explicit invocation only.
+- **[paparazzi](./skills/engineering/paparazzi/SKILL.md)**: Capture verified screenshots of an app.
+- **[pr-open-comments](./skills/engineering/pr-open-comments/SKILL.md)**: Triage unresolved PR review comments. Calls: `pr-screenshots`.
+- **[pr-rebase](./skills/engineering/pr-rebase/SKILL.md)**: Rebase a branch onto its base. Explicit invocation only.
+- **[pr-screenshots](./skills/engineering/pr-screenshots/SKILL.md)**: Attach local images to a PR body.
+- **[pr-watch-as-author](./skills/engineering/pr-watch-as-author/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `pr-open-comments`.
+- **[pr-watch-as-reviewer](./skills/engineering/pr-watch-as-reviewer/SKILL.md)**: Watch a PR you review, then approve once. Explicit invocation only.
+- **[prove](./skills/engineering/prove/SKILL.md)**: Prove claims or a PR test plan with evidence. Calls: `how`, `paparazzi`, `why`.
+- **[shipit](./skills/engineering/shipit/SKILL.md)**: Land a reviewed pull request.
+- **[why](./skills/engineering/why/SKILL.md)**: Investigate the design rationale behind code.
 
-### Model-invoked
+### Productivity
 
-- **[agent-prompt](./skills/agent-prompt/SKILL.md)**: Compose an agent-optimized prompt for a task.
-- **[audit-complexity](./skills/audit-complexity/SKILL.md)**: Rank where code complexity concentrates in a codebase.
-- **[audit-tests](./skills/audit-tests/SKILL.md)**: Audit a test suite for low-value tests.
-- **[code-review](./skills/code-review/SKILL.md)**: Review a diff with fresh-context discipline.
-- **[eng-design-doc-review](./skills/eng-design-doc-review/SKILL.md)**: Adversarially review a design document.
-- **[groom-backlog](./skills/groom-backlog/SKILL.md)**: Groom a project backlog end to end.
-- **[how](./skills/how/SKILL.md)**: Explain how a subsystem works. Calls: `why`.
-- **[paparazzi](./skills/paparazzi/SKILL.md)**: Capture verified screenshots of an app.
-- **[pr-open-comments](./skills/pr-open-comments/SKILL.md)**: Triage unresolved PR review comments. Calls: `pr-screenshots`.
-- **[pr-screenshots](./skills/pr-screenshots/SKILL.md)**: Attach local images to a PR body.
-- **[pr-watch-as-author](./skills/pr-watch-as-author/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `pr-open-comments`.
-- **[prove](./skills/prove/SKILL.md)**: Prove claims or a PR test plan with evidence. Calls: `how`, `paparazzi`, `why`.
-- **[shipit](./skills/shipit/SKILL.md)**: Land a reviewed pull request.
-- **[why](./skills/why/SKILL.md)**: Investigate the design rationale behind code.
+- **[agent-prompt](./skills/productivity/agent-prompt/SKILL.md)**: Compose an agent-optimized prompt for a task.
+- **[retro](./skills/productivity/retro/SKILL.md)**: Mine this session for durable learnings. Explicit invocation only.
 
 <!-- generated:end -->
 

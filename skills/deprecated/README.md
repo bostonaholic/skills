@@ -6,4 +6,4 @@ Their shared files are frozen copies and are not updated by `sync-shared`.
 
 - [pr-cleanup](pr-cleanup/SKILL.md.disabled): retired standalone post-PR cleanup. Its original teardown declaration and variables are preserved in the archive.
 
-To reactivate a skill, move it to `skills/<name>/`, rename `SKILL.md.disabled` to `SKILL.md`, update the plugin manifest, and regenerate shared copies and the catalog.
+To reactivate a skill, move it to `skills/engineering/<name>/` or `skills/productivity/<name>/`, rename `SKILL.md.disabled` to `SKILL.md`, update the plugin manifest, and regenerate shared copies and the catalog.

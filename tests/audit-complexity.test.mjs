@@ -1,4 +1,4 @@
-// Acceptance tests for skills/audit-complexity. No test creates a commit:
+// Acceptance tests for skills/engineering/audit-complexity. No test creates a commit:
 // the real-git cases only read this checkout, and each new repository is a `git init` with no commit.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -6,12 +6,12 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
-import { buildGitArgs, classifyStatus, listDirty } from "../skills/audit-complexity/scripts/inventory.mjs";
-import { renderReport, validateReport } from "../skills/audit-complexity/scripts/render-report.mjs";
+import { buildGitArgs, classifyStatus, listDirty } from "../skills/engineering/audit-complexity/scripts/inventory.mjs";
+import { renderReport, validateReport } from "../skills/engineering/audit-complexity/scripts/render-report.mjs";
 
 const TOP = resolve(".");
-const INVENTORY = resolve("skills/audit-complexity/scripts/inventory.mjs");
-const RENDER = resolve("skills/audit-complexity/scripts/render-report.mjs");
+const INVENTORY = resolve("skills/engineering/audit-complexity/scripts/inventory.mjs");
+const RENDER = resolve("skills/engineering/audit-complexity/scripts/render-report.mjs");
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const COVERAGE = "coverage/lines.txt";
 

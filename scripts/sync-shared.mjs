@@ -11,7 +11,7 @@
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const SKILL_LINK = /^shared\/([a-z0-9-]+\.md)$/;
 const SIBLING_LINK = /^([a-z0-9-]+\.md)(?:#.*)?$/;
@@ -59,7 +59,7 @@ function* references(text, { spans }) {
 }
 
 // Returns the canonical names one skill needs: its direct shared/ links plus their closure.
-function derive(name, files, errors) {
+function derive(dir, files, errors) {
   const needed = new Map();
   const need = (file, from) => {
     if (needed.has(file)) return;
@@ -75,7 +75,7 @@ function derive(name, files, errors) {
     }
   };
   for (const path of files) {
-    if (!path.endsWith(".md") || path.startsWith(`skills/${name}/shared/`)) continue;
+    if (!path.endsWith(".md") || path.startsWith(`${dir}/shared/`)) continue;
     for (const { line, target } of references(readFileSync(path, "utf8"), { spans: true })) {
       const match = target.split("#")[0].match(SKILL_LINK);
       if (match) need(match[1], `${path}:${line}`);
@@ -100,26 +100,26 @@ function containmentError(root, path, { entries }) {
 }
 
 function plan() {
-  const skills = lsFiles("skills/*/SKILL.md")
-    .filter((path) => /^skills\/[^/]+\/SKILL\.md$/.test(path))
-    .map((path) => path.split("/")[1])
+  const skills = lsFiles("skills/*/*/SKILL.md")
+    .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
+    .map(dirname)
     .sort();
   const root = realpathSync(".");
-  const tracked = new Map(skills.map((name) => [name, lsFiles(`skills/${name}`)]));
+  const tracked = new Map(skills.map((dir) => [dir, lsFiles(dir)]));
   const errors = [
     containmentError(root, "shared", { entries: true }),
     ...skills.map(
-      (name) =>
-        containmentError(root, join("skills", name), { entries: false }) ??
-        containmentError(root, join("skills", name, "shared"), { entries: true }) ??
+      (dir) =>
+        containmentError(root, dir, { entries: false }) ??
+        containmentError(root, join(dir, "shared"), { entries: true }) ??
         tracked
-          .get(name)
+          .get(dir)
           .map((path) => containmentError(root, path, { entries: false }))
           .find(Boolean),
     ),
   ].filter(Boolean);
   if (errors.length) return { errors, copies: [] };
-  const copies = skills.map((name) => ({ dir: `skills/${name}/shared`, files: derive(name, tracked.get(name), errors) }));
+  const copies = skills.map((dir) => ({ dir: `${dir}/shared`, files: derive(dir, tracked.get(dir), errors) }));
   return { errors, copies };
 }
 

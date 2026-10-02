@@ -7,11 +7,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { deflateSync } from "node:zlib";
-import { MAX_BYTES, decodePng, inspect } from "../skills/paparazzi/scripts/png-check.mjs";
-import { DEFAULT_CONTEXT, InputError, planFrames } from "../skills/paparazzi/scripts/shoot.mjs";
+import { MAX_BYTES, decodePng, inspect } from "../skills/engineering/paparazzi/scripts/png-check.mjs";
+import { DEFAULT_CONTEXT, InputError, planFrames } from "../skills/engineering/paparazzi/scripts/shoot.mjs";
 
-const PNG_CHECK = resolve("skills/paparazzi/scripts/png-check.mjs");
-const SHOOT = resolve("skills/paparazzi/scripts/shoot.mjs");
+const PNG_CHECK = resolve("skills/engineering/paparazzi/scripts/png-check.mjs");
+const SHOOT = resolve("skills/engineering/paparazzi/scripts/shoot.mjs");
 
 function crc32(buffer) {
   let crc = ~0;
