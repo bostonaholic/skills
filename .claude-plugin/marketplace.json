@@ -4,12 +4,12 @@
     "name": "Matthew Boston",
     "url": "https://matthewboston.com"
   },
-  "description": "Matthew Boston's agent skills, as an installable Claude Code plugin.",
+  "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "plugins": [
     {
       "name": "bostonaholic-skills",
       "source": "./",
-      "description": "Matthew Boston's agent skills for pull requests, code and design review, codebase audits, and investigation. Each skill installs on its own.",
+      "description": "Matthew Boston's personal software engineering skills for coding agents.",
       "category": "engineering",
       "keywords": [
         "skills",

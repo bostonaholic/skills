@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Align plugin and package descriptions with the personal software engineering collection. [#3](https://github.com/bostonaholic/skills/pull/3)
+- Document how to update the README and site together. [#3](https://github.com/bostonaholic/skills/pull/3)
 - Describe the collection as personal software engineering skills in the site and README. [#3](https://github.com/bostonaholic/skills/pull/3)
 - Remove the Team extraction note from the site and README. [#3](https://github.com/bostonaholic/skills/pull/3)
 

@@ -76,11 +76,11 @@ A skill that calls another skill names it, and stops or falls back when that ski
 
 ## Docs
 
-Every skill, with its usage and install command: https://skills.bostonaholic.dev
+Browse the [skill catalog](https://skills.bostonaholic.dev) for usage and installation instructions.
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) before changing a skill. Maintainers: [versioning and releases](docs/versioning.md).
+Read [AGENTS.md](AGENTS.md) before making changes. See [README and site maintenance](docs/catalog.md) for documentation changes and [versioning and releases](docs/versioning.md) for publishing.
 
 ## License
 
