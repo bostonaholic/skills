@@ -29,3 +29,21 @@ export interface EditRootQuery {
 
 /** The root the running host loads: <repo>/skills or <repo>/.claude/skills. */
 export function preferredEditRoot(query: EditRootQuery): string;
+
+export interface EditTargetQuery {
+  /** The result of `preferredEditRoot`. */
+  editRoot: string;
+  /** A name already accepted by `isValidSkillName`. */
+  name: string;
+}
+
+export type EditTargetResult =
+  /** Exactly one `<editRoot>/[<category>/]<name>/SKILL.md` exists. */
+  | { status: "found"; target: string }
+  /** None exists; `target` is the flat `<editRoot>/<name>/SKILL.md`. */
+  | { status: "missing"; target: string }
+  /** More than one exists; the caller must refuse. */
+  | { status: "ambiguous"; matches: string[] };
+
+/** Locates a skill directly under `editRoot` or one category level down. */
+export function resolveEditTarget(query: EditTargetQuery): EditTargetResult;

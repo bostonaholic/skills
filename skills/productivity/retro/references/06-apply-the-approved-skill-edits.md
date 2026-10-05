@@ -92,7 +92,10 @@ rather than read back from an earlier block's variable.
 - **A name or path** the allowlist or the guard refuses drops only that
   one item, named in the summary, while the others proceed.
 - **An edit** lands under the guard's `edit root`, the skills root the running
-  host actually loads. When both `<repo>/skills/` and `<repo>/.claude/skills/`
+  host actually loads. The guard finds the skill at `<edit root>/<name>/` or
+  one category level down at `<edit root>/<category>/<name>/`, and refuses the
+  name when more than one of those holds it; that refusal drops only that one
+  item, named in the summary with the paths the guard printed. When both `<repo>/skills/` and `<repo>/.claude/skills/`
   hold the same name, the plan names both paths and marks the shadowed one
   untouched.
 - **A skill creation** only ever targets `.claude/skills/<name>/SKILL.md` under the

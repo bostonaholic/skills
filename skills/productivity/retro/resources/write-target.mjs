@@ -14,7 +14,7 @@
  * resolve-transcript.mjs — one job each.
  */
 
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -107,6 +107,31 @@ export function preferredEditRoot(query) {
     : join(repoRoot, ".claude", "skills");
 }
 
+/**
+ * Where an existing skill named `name` lives under `editRoot`: directly at
+ * `<editRoot>/<name>/SKILL.md`, or one category level down at
+ * `<editRoot>/<category>/<name>/SKILL.md`. A name found in more than one place
+ * is ambiguous, and the caller must refuse rather than guess which copy the
+ * user meant. A name found nowhere resolves to the flat path, which does not
+ * exist. Containment is the caller's check; this only locates.
+ */
+export function resolveEditTarget(query) {
+  const { editRoot, name } = query ?? {};
+  const flat = join(editRoot, name, "SKILL.md");
+  const categories = existsSync(editRoot)
+    ? readdirSync(editRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
+        .map((entry) => entry.name)
+        .sort()
+    : [];
+  const matches = [flat, ...categories.map((category) => join(editRoot, category, name, "SKILL.md"))].filter(
+    (candidate) => existsSync(candidate),
+  );
+  if (matches.length > 1) return { status: "ambiguous", matches };
+  if (matches.length === 1) return { status: "found", target: matches[0] };
+  return { status: "missing", target: flat };
+}
+
 // CLI entry point — runs only when executed directly, never on import, so a
 // test import has no side effects.
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
@@ -141,7 +166,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   }
 
   const editRoot = preferredEditRoot({ repoRoot, hasPluginMarker: hasPluginMarker(repoRoot) });
-  const editTarget = join(editRoot, name, "SKILL.md");
+  const resolved = resolveEditTarget({ editRoot, name });
+  if (resolved.status === "ambiguous") {
+    process.stderr.write(`refusing: '${name}' names more than one skill: ${resolved.matches.join(", ")}\n`);
+    process.exit(1);
+  }
+  const editTarget = resolved.target;
   const createTarget = join(repoRoot, ".claude", "skills", name, "SKILL.md");
 
   for (const [label, target] of [
