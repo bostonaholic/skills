@@ -1,4 +1,4 @@
-## Input
+# Input
 
 `$ARGUMENTS` is optional: a **retro prompt** saying what to retro on. Empty
 means this session, read through the three lenses.

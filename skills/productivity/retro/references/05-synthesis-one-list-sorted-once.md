@@ -1,4 +1,4 @@
-## Synthesis — one list, sorted once
+# Synthesis — one list, sorted once
 
 Merge the passes' findings into one list, collapsing findings that name
 the same cause. Every item lands in exactly one bucket:

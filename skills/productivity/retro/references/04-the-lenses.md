@@ -1,4 +1,4 @@
-## The lenses
+# The lenses
 
 Without a prompt, three read-only passes over `transcript.jsonl`, each
 looking for one thing:

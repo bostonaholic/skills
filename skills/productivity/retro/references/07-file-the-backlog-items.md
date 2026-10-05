@@ -1,10 +1,10 @@
-## File the backlog items
+# File the backlog items
 
 Each Backlog item becomes an issue on **whatever tracker this repo already
 names** — never a tracker this skill picked, and never a local file a tool
 outside the plugin would have to read.
 
-### Resolve the tracker, in this order
+## Resolve the tracker, in this order
 
 1. **The repo's own router.** `AGENTS.md`, `CLAUDE.md`, or the instructions
    this session loaded name the tracker and the board, and that answer wins.
@@ -31,7 +31,7 @@ gh issue create --repo "${REPO:?}" --title "${TITLE:?}" \
 Write the title with the file-writing tool alongside the body. Every
 `gh issue` call carries `--repo` explicitly.
 
-### One question per issue
+## One question per issue
 
 Creation is public and irreversible, so the granularity is **one question per
 issue**, not one for the class: fire a separate `AskUserQuestion` per proposed
@@ -43,12 +43,12 @@ Each body paraphrases — it carries the learning, the file path, turn index, or
 source URL behind it, and the layer the check would live at. It never quotes a
 source line into a public tracker.
 
-### The fields the router states
+## The fields the router states
 
 Where the router states field rules, obey them; where it states none, the issue
 carries title and body only.
 
-### When filing fails
+## When filing fails
 
 An unauthenticated tracker, a repository with issues disabled, or a failed
 `gh issue create` does not stop the run: print the remaining item bodies

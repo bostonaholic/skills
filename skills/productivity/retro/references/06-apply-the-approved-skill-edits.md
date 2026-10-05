@@ -1,9 +1,9 @@
-## Apply the approved edits
+# Apply the approved edits
 
 The plan turn ends here. Applying the plan is a **separate turn** that reads
 the plan file.
 
-### The approval question
+## The approval question
 
 Ask one `AskUserQuestion` for the whole file-write class, presenting each
 proposed edit with its target path, the learning it lands, and its evidence
@@ -17,7 +17,7 @@ retro wrote it, undone by `git restore -- <path>`. Neither undo can reach
 work of the user's own. A tracker issue is not in this class: it is public and
 irreversible, so it takes its own question per issue.
 
-### The plan path came from this conversation
+## The plan path came from this conversation
 
 Apply the plan file in the run cache whose absolute path **this conversation
 printed**. Never read a plan file from a directory this conversation did not
@@ -25,7 +25,7 @@ print. With no printed path — a fresh session, or a compaction that lost it �
 stop and fire `AskUserQuestion` for the absolute plan path rather than
 guessing at one.
 
-### Per item: the precondition that makes the undo true
+## Per item: the precondition that makes the undo true
 
 Hold an edit to the tracked-and-clean fence; hold a creation to the absence of
 its target.
@@ -46,7 +46,7 @@ target that already carries the edit and a target that changed some other way.
 that does exist skips that item and reports it, because retro overwrites
 nothing it did not create.
 
-### Where a write may land
+## Where a write may land
 
 Resolve the target through the bundled guard rather than by hand — a skill
 name or file path comes from source text, so it is untrusted. A target that
@@ -107,7 +107,7 @@ rather than read back from an earlier block's variable.
 - **Never write** `~/.claude/**` (a plugin update overwrites cached skills) or
   a sibling repository.
 
-### How a skill edit is authored
+## How a skill edit is authored
 
 A non-skill file follows its own existing structure and the repo's writing
 guidance; the rules below apply to `SKILL.md` targets only.
@@ -124,7 +124,7 @@ every tier is not an error — the fallback is fixed here:
 - `user-invocable: false` and **no** `effort` otherwise.
 - No other frontmatter field.
 
-### After the writes
+## After the writes
 
 Run the repo's own check — read the [verify playbook](shared/verify.md)
 to detect it, never invent one — and report the verdict. A failure names the
