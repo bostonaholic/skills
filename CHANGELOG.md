@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-05
+
 ### Fixed
 
 - Let `retro` find skill edit targets nested one category down, refusing names held by more than one category. [#10](https://github.com/bostonaholic/skills/pull/10)
@@ -75,5 +77,7 @@
 
 [0.3.0]: https://github.com/bostonaholic/skills/compare/v0.2.0...v0.3.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/bostonaholic/skills/compare/v0.3.0...v0.4.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/bostonaholic/skills/compare/v0.4.0...v0.4.1
