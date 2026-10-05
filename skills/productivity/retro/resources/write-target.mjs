@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Where an approved skill edit is allowed to land, and whether a proposed
- * skill name may be used at all.
+ * Where an approved edit is allowed to land, and whether a proposed skill
+ * name or repo path may be used at all.
  *
  *     node "<skill-dir>/resources/write-target.mjs" <repo-root> <skill-name>
+ *     node "<skill-dir>/resources/write-target.mjs" <repo-root> --path <repo-relative-path>
  *
  * Every input here comes from transcript text, so it is untrusted. The three
  * checks below are `f(input) -> output`, which is why they are code rather
@@ -28,6 +29,22 @@ const SKILL_NAME = /^[a-z][a-z0-9-]*$/;
 
 export function isValidSkillName(name) {
   return typeof name === "string" && SKILL_NAME.test(name);
+}
+
+/**
+ * A repo-relative file path a retro prompt may target, such as
+ * `CODING_STANDARDS.md` or `docs/standards/naming.md`. Plain segments of
+ * letters, digits, `.`, `_`, and `-` only: no absolute path, no `..` or `.`
+ * segment, no empty segment, and no leading `-` that a command could read as
+ * an option. Containment is checked separately, after symlinks resolve.
+ */
+const REPO_PATH_SEGMENT = /^[A-Za-z0-9._-]+$/;
+
+export function isValidRepoPath(path) {
+  if (typeof path !== "string" || path === "" || path.startsWith("-")) return false;
+  return path
+    .split("/")
+    .every((segment) => REPO_PATH_SEGMENT.test(segment) && segment !== "." && segment !== "..");
 }
 
 /**
@@ -97,9 +114,25 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const repoRoot = process.argv[2] ?? "";
   const name = process.argv[3] ?? "";
 
-  if (!repoRoot || !name) {
-    process.stderr.write("usage: write-target.mjs <repo-root> <skill-name>\n");
+  if (!repoRoot || !name || (name === "--path" && !process.argv[4])) {
+    process.stderr.write("usage: write-target.mjs <repo-root> <skill-name | --path <repo-relative-path>>\n");
     process.exit(1);
+  }
+
+  if (name === "--path") {
+    const path = process.argv[4];
+    if (!isValidRepoPath(path)) {
+      process.stderr.write(`refusing: '${path}' is not a plain repo-relative path\n`);
+      process.exit(1);
+    }
+    const target = join(repoRoot, path);
+    if (!isInsideRepo({ candidatePath: target, repoRoot })) {
+      process.stderr.write("refusing: target resolves outside the repository\n");
+      process.exit(1);
+    }
+    process.stdout.write(`target: ${target}\n`);
+    process.stdout.write(`target exists: ${existsSync(target)}\n`);
+    process.exit(0);
   }
 
   if (!isValidSkillName(name)) {
