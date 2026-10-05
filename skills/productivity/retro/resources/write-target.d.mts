@@ -5,6 +5,9 @@
 /** True only for a name matching `^[a-z][a-z0-9-]*$`. */
 export function isValidSkillName(name: unknown): boolean;
 
+/** True only for a plain repo-relative path: no absolute, `..`, `.`, or empty segment. */
+export function isValidRepoPath(path: unknown): boolean;
+
 export interface ContainmentQuery {
   /** The write target, whose final component need not exist yet. */
   candidatePath: string;

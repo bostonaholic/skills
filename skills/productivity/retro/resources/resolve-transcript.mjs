@@ -5,6 +5,7 @@
  * normalize it into one complete record stream.
  *
  *     node "<skill-dir>/resolve-transcript.mjs" <run-cache-dir> [store-root]
+ *     node "<skill-dir>/resolve-transcript.mjs" <run-cache-dir> --file <transcript.jsonl>
  *
  * THREE HOSTS, ONE CONTRACT. Claude Code and Codex CLI each keep their own
  * session store in their own record format; OpenCode keeps its sessions in a
@@ -44,7 +45,7 @@ import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /**
@@ -874,10 +875,13 @@ export function normalizeOpencode({ dbPath, sessionId }) {
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const runDir = process.argv[2] ?? "";
-  const storeOverride = process.argv[3] ?? "";
+  // `--file <path>` normalizes a transcript the caller already named, such as
+  // a past session a retro prompt asked for, instead of resolving this one.
+  const namedFile = process.argv[3] === "--file" ? process.argv[4] ?? "" : null;
+  const storeOverride = namedFile === null ? process.argv[3] ?? "" : "";
 
-  if (!runDir) {
-    process.stderr.write("usage: resolve-transcript.mjs <run-cache-dir> [store-root]\n");
+  if (!runDir || namedFile === "") {
+    process.stderr.write("usage: resolve-transcript.mjs <run-cache-dir> [store-root | --file <transcript.jsonl>]\n");
     process.exit(1);
   }
 
@@ -905,12 +909,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   // session also started here, so it is an optimization, never the mechanism.
   const slug = process.cwd().replace(/[/.]/g, "-");
 
-  const resolved = resolveSession({
-    candidates: detectHost(process.env),
-    storeRootOf: (host) => storeOverride || storeRootFor(host, process.env),
-    marker: runDir,
-    slug,
-  });
+  const resolved = namedFile !== null
+    ? existsSync(namedFile)
+      ? { ok: true, host: "named-file", via: "--file", path: resolve(namedFile) }
+      : { ok: false, failure: "no-match", tried: [namedFile] }
+    : resolveSession({
+        candidates: detectHost(process.env),
+        storeRootOf: (host) => storeOverride || storeRootFor(host, process.env),
+        marker: runDir,
+        slug,
+      });
   if (!resolved.ok) fail(resolved.failure, resolved.tried, FAILURE_NOTES[resolved.failure]);
 
   // The file hosts report a resolved path and its raw character count; OpenCode
@@ -939,8 +947,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     fail("unsupported-format", [transcriptLabel], `${FAILURE_NOTES["unsupported-format"]} (format: ${normalized.format}, unrecognized records: ${normalized.unrecognizedRecords})`);
   }
 
-  mkdirSync(runDir, { recursive: true });
-  const outPath = join(runDir, "transcript.jsonl");
+  const outDir = namedFile === null ? runDir : join(runDir, "sources");
+  const outName = namedFile === null ? "transcript.jsonl" : `${basename(namedFile, extname(namedFile))}.jsonl`;
+  mkdirSync(outDir, { recursive: true });
+  const outPath = join(outDir, outName);
   writeFileSync(outPath, normalized.records.map((r) => JSON.stringify(r)).join("\n"), "utf8");
 
   process.stdout.write(`host: ${resolved.host}\n`);

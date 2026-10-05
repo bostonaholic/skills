@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Accept a `/retro` prompt naming what to retro on, which sources to read (past sessions, PR review comments, other files), and which repository files to target. [#8](https://github.com/bostonaholic/skills/pull/8)
+
 ## [0.3.0] - 2026-10-02
 
 ### Added

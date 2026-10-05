@@ -1,11 +1,11 @@
-## Apply the approved skill edits
+## Apply the approved edits
 
 The plan turn ends here. Applying the plan is a **separate turn** that reads
 the plan file.
 
 ### The approval question
 
-Ask one `AskUserQuestion` for the whole skill-write class, presenting each
+Ask one `AskUserQuestion` for the whole file-write class, presenting each
 proposed edit with its target path, the learning it lands, and its evidence
 line. Nothing is written before the answer. No answer writes nothing; a
 partial answer writes only the subset that was answered.
@@ -48,8 +48,10 @@ nothing it did not create.
 
 ### Where a write may land
 
-Resolve the target through the bundled guard rather than by hand — the name
-comes from transcript text, so it is untrusted. **The name never appears in a
+Resolve the target through the bundled guard rather than by hand — a skill
+name or file path comes from source text, so it is untrusted. A target that
+is a skill goes by **name**; every other target goes by **repo-relative
+path**. **The name never appears in a
 command as a literal.** Write it into the run cache with the file-writing tool,
 then read it back and hold it to a character allowlist before it reaches
 anything else:
@@ -65,28 +67,50 @@ esac
 node "<skill-dir>/resources/write-target.mjs" "$(git rev-parse --show-toplevel)" "${NAME:?}"
 ```
 
-Reference the value only as `"$NAME"` and never paste the literal into a later
+Any other file goes by path, with the same read-back and an allowlist of
+plain path characters:
+
+```sh
+TARGET="$(cat "<run cache>/path-<n>.txt")"
+LC_ALL=C
+case "$TARGET" in
+  ''|-*|/*|*[!A-Za-z0-9._/-]*)
+    echo "refusing: a proposed path must be plain and repo-relative" >&2
+    exit 1 ;;
+esac
+node "<skill-dir>/resources/write-target.mjs" "$(git rev-parse --show-toplevel)" --path "${TARGET:?}"
+```
+
+The guard also refuses `..`, `.`, and empty segments, and any path whose
+resolved real path leaves the repository.
+
+Reference the value only as `"$NAME"` or `"$TARGET"` and never paste the literal into a later
 command; shell state does not survive between invocations, so the file is
 re-read and the repository root re-derived in whichever invocation needs them,
 rather than read back from an earlier block's variable.
 
-- **A name** the allowlist or the guard's name check refuses drops only that
+- **A name or path** the allowlist or the guard refuses drops only that
   one item, named in the summary, while the others proceed.
 - **An edit** lands under the guard's `edit root`, the skills root the running
   host actually loads. When both `<repo>/skills/` and `<repo>/.claude/skills/`
   hold the same name, the plan names both paths and marks the shadowed one
   untouched.
-- **A creation** only ever targets `.claude/skills/<name>/SKILL.md` under the
+- **A skill creation** only ever targets `.claude/skills/<name>/SKILL.md` under the
   repository, and only when that path does not exist. Adding a file to a
   distributed plugin's own `skills/` directory is a release decision, so it
   goes to Backlog instead. A missing parent directory is created as part of the
   write.
 - **Every resolved real path must stay inside the repository**, so a symlinked
   directory cannot carry a write out of it.
-- **Never write** `~/.claude/**` (a plugin update overwrites cached skills), a
-  sibling repository, or `agents/*.md`.
+- **A path target** is any file inside the repository: an edit to a tracked
+  file, or a new file such as one of several `CODING_STANDARDS` split files.
+- **Never write** `~/.claude/**` (a plugin update overwrites cached skills) or
+  a sibling repository.
 
-### How the edit is authored
+### How a skill edit is authored
+
+A non-skill file follows its own existing structure and the repo's writing
+guidance; the rules below apply to `SKILL.md` targets only.
 
 Probe for the repo's own authoring guidance and follow the first hit:
 any repo skill whose directory name

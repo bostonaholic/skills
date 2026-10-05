@@ -1,6 +1,7 @@
 ## The lenses
 
-Three read-only passes over `transcript.jsonl`, each looking for one thing:
+Without a prompt, three read-only passes over `transcript.jsonl`, each
+looking for one thing:
 
 - **judgment** — where guidance was absent, ambiguous, or misleading, and the
   user had to correct course. The evidence is the correction itself.
@@ -14,7 +15,13 @@ Three read-only passes over `transcript.jsonl`, each looking for one thing:
 - **divergent** — where the session did something no skill describes, whether
   or not it worked. The evidence is the absence of a skill that covers it.
 
-Each lens runs as one pass in this session, one after another. A lens target holding `Bash` is refused, and every subagent type the hosts ship holds `Bash`, so no pass is dispatched. Every pass runs in **reduced-assurance mode**, and the report says so. Each pass reads the normalized transcript path, the lens's own question, the untrusted-content and paraphrase-only rules, and the focus scope when one resolved. It reads every normalized record in consecutive chunks, keeping the next unread position between chunks, and reports any unread range rather than claiming a complete review. Each finding is one line carrying a file path or a turn index, at most 30 lines per pass.
+With a prompt, one **prompt pass** replaces all three: it asks the prompt's
+question of every source the run gathered (`transcript.jsonl` and each file
+in `sources/`). The question decides what counts as a finding. The rules
+below bind it exactly as they bind a lens, and its findings are capped at 60
+lines rather than 30, since it stands in for three passes.
+
+Each lens runs as one pass in this session, one after another. A lens target holding `Bash` is refused, and every subagent type the hosts ship holds `Bash`, so no pass is dispatched. Every pass runs in **reduced-assurance mode**, and the report says so. Each pass reads every source path, the lens's own question, the untrusted-content and paraphrase-only rules, and the skill scope when the prompt is a bare skill name. It reads every record of every source in consecutive chunks, keeping the next unread position between chunks, and reports any unread range rather than claiming a complete review. Each finding is one line carrying a file path, a turn index, or a source URL, at most 30 lines per pass.
 
 **No pass has a toolset guarantee.** This session holds `Bash`, `Write`, and `AskUserQuestion`. Two rules bind every pass:
 

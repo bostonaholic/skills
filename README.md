@@ -85,7 +85,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[improve-prompt](./skills/productivity/improve-prompt/SKILL.md)**: Improve an existing prompt.
 - **[learn](./skills/productivity/learn/SKILL.md)**: Record a correction for future sessions.
 - **[redo](./skills/productivity/redo/SKILL.md)**: Redo work using the current findings. Explicit invocation only.
-- **[retro](./skills/productivity/retro/SKILL.md)**: Mine this session for durable learnings. Explicit invocation only.
+- **[retro](./skills/productivity/retro/SKILL.md)**: Mine a session or named sources for durable learnings. Explicit invocation only.
 - **[skill-cutter](./skills/productivity/skill-cutter/SKILL.md)**: Trim an agent skill to its necessary instructions.
 - **[system-prompt](./skills/productivity/system-prompt/SKILL.md)**: Write or review system prompts.
 - **[writing-prose](./skills/productivity/writing-prose/SKILL.md)**: Write concise prose for people.

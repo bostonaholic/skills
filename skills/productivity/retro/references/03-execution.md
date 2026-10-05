@@ -11,7 +11,7 @@ echo "run cache: $RUN_DIR"
 ```
 
 A cache that cannot be created stops the run rather than falling back to
-memory. The printed path is **this run's fallback marker**: the host records
+memory. With a prompt, write it to `<run cache>/prompt.md` now. The printed path is **this run's fallback marker**: the host records
 command output inline in the transcript, so the path appears in this session's
 records and in no other file on disk. Step 2 searches for it on a host that
 exports no session id of its own.
@@ -24,6 +24,10 @@ cache is disposable and is **never deleted**, so the report stays auditable
 after the run ends.
 
 ### Step 2 — resolve and normalize this session's transcript
+
+Run this step when the sources include this session: always without a
+prompt, and with one that names it or names no source. Otherwise skip to
+step 3; the marker printed in step 1 is unused.
 
 ```bash
 node "<skill-dir>/resources/resolve-transcript.mjs" "<the printed run cache path>"
@@ -78,6 +82,36 @@ not read. If a lens cannot finish reading, report its unread record range. Say
 so in the summary, and **never substitute your own memory of the session for
 the part the transcript did not carry**.
 
-### Step 3 — run the lenses over the normalized file
+### Step 3 — gather the other sources the prompt names
 
-Run the three lens passes below in this session, one after another, then synthesize their findings.
+Each source lands as a file under `<run cache>/sources/`, and each gets one
+line in `<run cache>/sources.md`: what it is, where it came from (a path or
+URL), how many items it holds, and what was asked for but not read. Gather
+read-only, with whatever this host already holds; never authenticate, never
+write to a remote, and never widen a source past what the prompt asked.
+
+- **Past agent sessions** — find the files in the host's own store, newest
+  first, for the repository this run is in (Claude Code keeps them in
+  `~/.claude/projects/<project-slug>/`; Codex in its dated `sessions/` tree,
+  matched by the working directory each rollout records). Normalize each with
+  `node "<skill-dir>/resources/resolve-transcript.mjs" "<the printed run cache path>" --file "<transcript path>"`,
+  which writes `sources/<name>.jsonl` and prints the same counts as step 2.
+  Exclude this session's own file unless the prompt asked for it. OpenCode's
+  past sessions live in SQLite and are not read; say so.
+- **PR review comments, issues, and other tracker text** — fetch with the
+  repo's authenticated `gh` (`gh api --paginate`), every call carrying the
+  repository explicitly, and save the JSON response as the source file. "As
+  many as you have access to" means paginate until the API stops, and report
+  the count and the oldest item reached.
+- **Anything else the prompt names** (a log file, a docs folder, a CI run) —
+  read it where it lives, or save its fetched content as a source file.
+
+A source that cannot be read is reported with the reason and does not stop
+the run while another source remains. **A partial read is stated, never
+absorbed**, as in step 2.
+
+### Step 4 — run the lenses over the sources
+
+Without a prompt, run the three lens passes below in this session, one after
+another, then synthesize their findings. With one, run the single pass the
+prompt's question defines.
