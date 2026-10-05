@@ -13,9 +13,9 @@ import { pathToFileURL } from "node:url";
 export const LEDE = "The skills I use to build software with coding agents.";
 
 export const CLAUDE_MARKETPLACE_ADD = "claude plugin marketplace add bostonaholic/skills";
-export const CLAUDE_PLUGIN_INSTALL = "claude plugin install bostonaholic-skills@bostonaholic";
+export const CLAUDE_PLUGIN_INSTALL = "claude plugin install bostonaholic@bostonaholic";
 export const CLAUDE_MARKETPLACE_UPDATE = "claude plugin marketplace update bostonaholic";
-export const CLAUDE_PLUGIN_UPDATE = "claude plugin update bostonaholic-skills@bostonaholic";
+export const CLAUDE_PLUGIN_UPDATE = "claude plugin update bostonaholic@bostonaholic";
 export const NPX_ADD_ALL = "npx skills@latest add bostonaholic/skills";
 export const NPX_ADD_SKILL = "npx skills@latest add bostonaholic/skills --skill <name>";
 export const NPX_UPDATE_SKILL = "npx skills@latest update <name>";

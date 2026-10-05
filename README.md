@@ -12,14 +12,14 @@ Two ways in. The Claude Code plugin installs every skill as one managed bundle t
 
 ```sh
 claude plugin marketplace add bostonaholic/skills
-claude plugin install bostonaholic-skills@bostonaholic
+claude plugin install bostonaholic@bostonaholic
 ```
 
 Update the marketplace first, then the plugin:
 
 ```sh
 claude plugin marketplace update bostonaholic
-claude plugin update bostonaholic-skills@bostonaholic
+claude plugin update bostonaholic@bostonaholic
 ```
 
 ### Any agent, whole set
