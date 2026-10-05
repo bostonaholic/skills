@@ -7,7 +7,7 @@
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "plugins": [
     {
-      "name": "bostonaholic-skills",
+      "name": "bostonaholic",
       "source": "./",
       "description": "Matthew Boston's personal software engineering skills for coding agents.",
       "category": "engineering",
