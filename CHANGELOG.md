@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-05
+
 ### Changed
 
 - Rename the Claude Code plugin to `bostonaholic`, shortening the skill prefix; reinstall with `claude plugin install bostonaholic@bostonaholic`. [#9](https://github.com/bostonaholic/skills/pull/9)
@@ -83,5 +85,7 @@
 
 [0.4.0]: https://github.com/bostonaholic/skills/compare/v0.3.0...v0.4.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.4.1...HEAD
 [0.4.1]: https://github.com/bostonaholic/skills/compare/v0.4.0...v0.4.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/bostonaholic/skills/compare/v0.4.1...v0.5.0
