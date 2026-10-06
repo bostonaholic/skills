@@ -27,7 +27,8 @@ const GERUND = /^[a-z]+ing(?:-|$)/;
 const XML_TAG = /<\/?[A-Za-z][^>]*>/;
 const THIRD_PERSON_VERB = /^[A-Z][a-z]+s\b/;
 const NOT_A_VERB = new Set(["This", "Its"]);
-const FIRST_OR_SECOND_PERSON = /\b(?:I|I'm|I'll|me|my|you|you're|your)\b/i;
+// Hyphens count as word characters so names such as "oh-my-zsh" are not read as "my".
+const FIRST_OR_SECOND_PERSON = /(?<![\w-])(?:I|I'm|I'll|me|my|you|you're|your)(?![\w-])/i;
 const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 

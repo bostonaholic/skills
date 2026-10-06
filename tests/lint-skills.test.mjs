@@ -79,6 +79,12 @@ test("A4 reports a description that opens without a third-person verb or address
   assertReports(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ description: "Reviews your widgets. Use when asked." }) }), "A4", /addresses I or you/);
 });
 
+test("A4 does not read a hyphenated name such as oh-my-zsh as first person", (t) => {
+  const description = "Configures oh-my-zsh plugins. Use when editing zsh configuration.";
+  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ description }) }));
+  assert.deepEqual(run, { status: 0, output: "" });
+});
+
 test("A5 reports a description without a Use when clause", (t) => {
   assertReports(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ description: "Reviews widgets for defects." }) }), "A5", /"Use when \.\.\." clause/);
 });
