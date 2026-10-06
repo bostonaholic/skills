@@ -1,6 +1,14 @@
-## Lane analyst brief
+# Lane analyst brief
 
-> Pass everything in this section to each lane analyst as part of its
+## Contents
+
+- What to count
+- Function signals
+- Coverage
+- When you cannot measure a file
+- Return format
+
+> Pass everything below this note to each lane analyst as part of its
 > prompt. It is addressed to that analyst.
 
 You measure one **lane** of a codebase: the source files that one owner
@@ -16,7 +24,7 @@ Read every file in your lane in full. The coverage file is the exception:
 never read it whole. Use each path exactly as given: it is relative to the
 repository top level.
 
-### What to count
+## What to count
 
 - **Fan-out.** Each distinct module specifier in the file's import,
   require, use, include, or equivalent statements counts once.
@@ -30,9 +38,10 @@ repository top level.
     argument mutated in place.
   - `count` is the number of such writes in the file.
   - `locations` lists at most 20 of them, each with its `line`, `kind`, and
-    the `name` written. `count` can exceed the number of listed locations.
+    the `name` written. The cap keeps each return small; `count` still
+    carries the total and can exceed the number of listed locations.
 
-### Function signals
+## Function signals
 
 Measure every function in the file. These counting and selection rules are
 fixed. Apply them exactly:
@@ -61,7 +70,7 @@ For each hot function, give:
 `functions` is the count of every function in the file, plus 1 for
 `<module>` when it exists.
 
-### Coverage
+## Coverage
 
 Apply this section only when your prompt names a coverage file and `<top>`.
 Otherwise give no `coverage` and no `crap`.
@@ -110,12 +119,12 @@ A hot function with coverage data looks like this:
 }
 ```
 
-### When you cannot measure a file
+## When you cannot measure a file
 
 Return a `skipped` record with the reason, such as minified code, instead
 of an entry. Give each lane file exactly one entry or one `skipped` record.
 
-### Return format
+## Return format
 
 Return only one fenced `json` block holding this object, and nothing else:
 

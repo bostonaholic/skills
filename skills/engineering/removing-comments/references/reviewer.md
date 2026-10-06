@@ -5,7 +5,7 @@ review. The invoking producer owns every accepted change.
 
 ## Review brief
 
-Links in this brief resolve from the installed `removing-comments` skill directory. Your dispatch names the absolute path of each file the brief links; read each from that path. A link inside a `shared/` file resolves from that file's own directory.
+Your dispatch names the absolute path of each file this brief links; read each from that path. A link inside a `shared/` file resolves from that file's own directory. If a read fails, stop and report the exact path.
 
 Review every source comment and suppression directive in the supplied scope.
 Use no author conversation or proposed verdict. Tools: Read, Grep, Glob. Do not
@@ -31,7 +31,7 @@ Classify each ordinary comment:
   Cite evidence for the constraint and for why mechanical encoding is not
   available in scope.
 - `ENCODE` when a comment asserts an enforceable rule we control, including
-  “do not remove,” fixed wording, required consultation, or a lint/type/coverage
+  "do not remove," fixed wording, required consultation, or a lint/type/coverage
   suppression. Name the cheapest `type`, `runtime`, `test`, `lint`, or `CI`
   enforcement. Correctness and security suppressions never qualify as `KEEP`.
 

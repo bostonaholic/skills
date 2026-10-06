@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Validates an auditing-tests report.json and renders report.md beside it.
 // Usage: render-report.mjs <report.json> [<report.md>]
-import { readFileSync, realpathSync, writeFileSync } from "node:fs";
+//   exit 0  wrote report.md (beside report.json unless named) and printed its path
+//   exit 1  wrote nothing; stderr names an unreadable report.json, lists every validation error, or
+//           names a report.md that is a symlink or cannot be written
+//   exit 2  no report.json argument; stderr prints the usage line
+import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -35,7 +39,7 @@ const list = (value) => (Array.isArray(value) ? value : []);
 
 export function validateReport(report) {
   const errors = [];
-  if (report === null || typeof report !== "object") return ["report is not a JSON object"];
+  if (report === null || typeof report !== "object" || Array.isArray(report)) return ["report is not a JSON object"];
   if (report.version !== 1) errors.push("version must be 1");
 
   const scope = report.scope ?? {};
@@ -109,9 +113,9 @@ export function validateReport(report) {
   }
 
   for (const lane of list(report.lanes)) {
-    for (const seam of list(lane.seams)) {
-      for (const id of list(seam.freedBy)) {
-        if (!tests.has(id)) errors.push(`seam ${seam.location} names unknown test ${id}`);
+    for (const code of list(lane.testOnlyCode)) {
+      for (const id of list(code.freedBy)) {
+        if (!tests.has(id)) errors.push(`testOnlyCode ${code.location} names unknown test ${id}`);
       }
     }
   }
@@ -213,11 +217,11 @@ export function renderReport(report) {
     ),
   );
 
-  out.push("## Test-only production code\n");
+  out.push("## Test-only code\n");
   out.push(
     table(
       ["Location", "Kind", "Freed by"],
-      list(report.lanes).flatMap((lane) => list(lane.seams).map((s) => [s.location, s.kind, list(s.freedBy).join(", ")])),
+      list(report.lanes).flatMap((lane) => list(lane.testOnlyCode).map((c) => [c.location, c.kind, list(c.freedBy).join(", ")])),
     ),
   );
 
@@ -259,6 +263,16 @@ export function renderReport(report) {
   return out.join("\n");
 }
 
+// Returns why the renderer refuses to write `target`, or null when it may write there.
+function writeRefusal(target) {
+  try {
+    if (lstatSync(target).isSymbolicLink()) return `${target} is a symlink, and the renderer never writes through one`;
+  } catch (error) {
+    if (error.code !== "ENOENT") return `cannot check ${target}: ${error.message}`;
+  }
+  return null;
+}
+
 function main(args) {
   const [input, output] = args;
   if (!input) {
@@ -279,7 +293,17 @@ function main(args) {
     return 1;
   }
   const target = output ?? join(dirname(input), "report.md");
-  writeFileSync(target, renderReport(report));
+  const refusal = writeRefusal(target);
+  if (refusal) {
+    process.stderr.write(`render-report.mjs: ${refusal}\n`);
+    return 1;
+  }
+  try {
+    writeFileSync(target, renderReport(report));
+  } catch (error) {
+    process.stderr.write(`render-report.mjs: cannot write ${target}: ${error.message}\n`);
+    return 1;
+  }
   process.stdout.write(`${target}\n`);
   return 0;
 }

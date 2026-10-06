@@ -1,39 +1,60 @@
 ---
 name: reviewing-design-docs
-description: 'Use for reviewing technical designs with fresh context.'
+description: 'Reviews a technical design document adversarially in a fresh-context read-only subagent (coverage, decisions, edge cases, citations, scope) and returns findings with a verdict. Use when asked to review a design doc or technical design. Not for code diffs; use reviewing-code.'
 effort: high
 argument-hint: "[<design-doc-path>]"
 ---
 
-Before review dispatch, resolve the absolute path of the [design reviewer brief](references/design-reviewer.md) in this skill directory and supply it with the resource paths below.
-Pass the applicable resource paths and require reads before work.
-If a required resource is missing, stop and report its resolved path; never use checkout fallback or recursive loading.
-
 # Engineering Design Doc Review
-Before dispatch, resolve [independent review](shared/independent-review.md), [verified results](shared/verified-results.md), [focused work](shared/focused-work.md). Pass their absolute installed paths with the retained brief. The receiver reads them before work.
-Before each consuming step, read its linked shared rules from this installed skill directory; if a required read fails, stop that step with the exact path. Never use checkout fallback or recursive loading.
 
-Adversarially review a design document with fresh context.
-
-Write the prose this skill governs at a seventh-grade reading level, in
-STE-flavored mode. Before you finalize it, read the
-[writing standards](shared/writing.md) and apply its `## Self-lint` checklist.
+Read each linked file from this skill's directory when the step that uses it begins. If a read fails, stop that step and report the exact path.
 
 ## Input
 
-`$ARGUMENTS` is the path to one design document. When it is empty, names a directory, or names no readable file, fire `AskUserQuestion` with a `Setup` header asking for the file path. Never guess.
+`$ARGUMENTS` is the path to one design document. When it is empty, names a
+directory, or names no readable file, ask for the file path with
+`AskUserQuestion` under a `Setup` header. Never guess.
 
-## Execution
+## Steps
 
-1. Use the document resolved in `## Input`.
-2. **Dispatch the review.** Read the [design reviewer brief](references/design-reviewer.md) `## Review brief`. On Claude Code, call the `Agent` tool with `subagent_type: Explore` and `model: opus`. On a host without `Explore`, spawn the host's general-purpose subagent with the brief as its role instructions, grant it read and search tools only, and state that restriction in its prompt. Substitute the document's absolute path for `$ARGUMENTS`. Pass the absolute path of this skill's directory as the base of the brief's links, and the absolute paths of `references/design-template.md`, `shared/findings.md`, `shared/code-standards.md`, `shared/decisions.md`, `shared/writing.md`, and the three principles. Do not define or reference a project agent. If the host cannot spawn a subagent, report the dispatch failure and stop.
-3. **Present the verdict in full.** Relay the subagent's report verbatim —
-   the subagent's output is not shown to the user directly.
-   When the reviewer ran as a restricted general-purpose subagent, add one line after the report: the read-only guarantee rests on the prompt, not the host.
-4. **Do not auto-revise.** On REQUEST CHANGES, surface the findings and let the user decide how to revise the design.
+This session holds the author's conversation, so it is not a valid reviewer
+([independent review rules](shared/independent-review.md)). Never review
+inline.
 
-## Rules
+1. **Load the brief.** Read the
+   [design reviewer brief](references/design-reviewer.md).
+2. **Dispatch.** Pass the brief's
+   [Review brief](references/design-reviewer.md#review-brief) section as the
+   prompt, with the document's absolute path in place of `$ARGUMENTS`. On
+   Claude Code, call the `Agent` tool with `subagent_type: Explore`. On a
+   host without `Explore`, spawn the host's general-purpose subagent with
+   read and search tools only, and state that restriction in its prompt. If
+   the host cannot spawn a subagent, report the dispatch failure and stop.
 
-- This skill is **read-only, structurally for writes** on Claude Code: the `Explore` subagent holds no Write/Edit tools, so it cannot change the design document. Residual tools (a `Bash` grant included, when the host's `Explore` type carries one) are governed by the brief's read-only instruction, and that residual is accepted. On other hosts the read-only rule rests on the tool grant and the prompt, and the report says so. The skill itself writes no artifacts.
+   Pass the absolute path of this skill's directory and of each file the
+   reviewer reads before work; this session does not read them:
+   [design template](references/design-template.md),
+   [finding format](shared/findings.md),
+   [code standards](shared/code-standards.md),
+   [decision-record rules](shared/decisions.md),
+   [writing standards](shared/writing.md),
+   [focused work rules](shared/focused-work.md),
+   [verified results rules](shared/verified-results.md), and the
+   independent review rules above.
 
-Print the verdict and the count of issue / suggestion / nitpick findings.
+3. **Validate the verdict.** The report's first line must be exactly one of
+   `**Verdict: APPROVE**`, `**Verdict: REQUEST CHANGES**`, or
+   `**Verdict: COMMENT**`. When it is missing or holds another token,
+   dispatch one new reviewer with the same inputs and name the failed
+   contract. When the second report also fails, print it, name the failure,
+   and stop. Never repair a verdict yourself.
+4. **Relay.** Print the report verbatim; the user does not see subagent
+   output. When the reviewer ran as a restricted general-purpose subagent,
+   add one line after the report: the read-only guarantee rests on the
+   prompt, not the host.
+5. **Do not revise the document.** On REQUEST CHANGES, the user decides how
+   to revise it.
+
+The skill writes no files. On Claude Code the `Explore` subagent holds no
+Write or Edit tool, so it cannot change the document; the brief forbids any
+shell it may hold.

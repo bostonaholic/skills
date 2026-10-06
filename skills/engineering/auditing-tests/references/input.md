@@ -1,4 +1,4 @@
-## Input
+# Input
 
 `$ARGUMENTS` holds optional scope paths and an optional `--out <dir>`.
 

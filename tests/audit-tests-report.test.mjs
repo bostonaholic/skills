@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -33,7 +33,7 @@ function report(overrides = {}) {
           { id: "tests/store.test.js::write invalidates cached read", name: "write invalidates cached read", file: "tests/store.test.js", line: 88, mark: "R", contract: "a write evicts the cached value", catches: "stale reads after a write" },
           { id: "tests/cache.test.js::clears on write", name: "clears on write", file: "tests/cache.test.js", line: 40, mark: "D", junkClass: "promises-more-than-checked", evidence: { ...EVIDENCE }, verified: true },
         ],
-        seams: [{ location: "src/cache.js:9", kind: "export", freedBy: ["tests/cache.test.js::clears on write"] }],
+        testOnlyCode: [{ location: "src/cache.js:9", kind: "export", freedBy: ["tests/cache.test.js::clears on write"] }],
       },
     ],
     layers: [],
@@ -75,6 +75,21 @@ test("an inventory file placed in no lane and no gap is rejected", () => {
   assert.deepEqual(validateReport(broken), ["tests/orphan.test.js is in no lane and no gap"]);
 });
 
+test("a JSON array is rejected as a report", () => {
+  assert.deepEqual(validateReport([report()]), ["report is not a JSON object"]);
+});
+
+test("test-only code freed by an unknown test is rejected with its location named", () => {
+  const broken = report();
+  broken.lanes[0].testOnlyCode[0].freedBy = ["tests/cache.test.js::no such test"];
+  assert.deepEqual(validateReport(broken), ["testOnlyCode src/cache.js:9 names unknown test tests/cache.test.js::no such test"]);
+});
+
+test("the rendered test-only code table lists the freed location", () => {
+  const section = renderReport(report()).split("## Test-only code\n")[1].split("\n## ")[0];
+  assert.match(section, /\| src\/cache\.js:9 \| export \| tests\/cache\.test\.js::clears on write \|/);
+});
+
 test("the rendered summary counts each mark", () => {
   const markdown = renderReport(report());
   assert.match(markdown, /\| R: retain \| 1 \|/);
@@ -95,4 +110,29 @@ test("the CLI rejects an invalid report and writes no markdown", (t) => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /- version must be 1/);
   assert.equal(existsSync(join(dir, "report.md")), false);
+});
+
+function cliDir(t, contents) {
+  const dir = mkdtempSync(join(tmpdir(), "audit-tests-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, "report.json"), JSON.stringify(contents));
+  return dir;
+}
+
+test("the CLI refuses to write through a symlinked report.md", (t) => {
+  const dir = cliDir(t, report());
+  writeFileSync(join(dir, "victim.md"), "original\n");
+  symlinkSync(join(dir, "victim.md"), join(dir, "report.md"));
+  const run = spawnSync(process.execPath, [RENDER, join(dir, "report.json")], { encoding: "utf8" });
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^render-report\.mjs: .*report\.md is a symlink/);
+  assert.equal(readFileSync(join(dir, "victim.md"), "utf8"), "original\n");
+});
+
+test("the CLI names a report.md it cannot write", (t) => {
+  const dir = cliDir(t, report());
+  mkdirSync(join(dir, "report.md"));
+  const run = spawnSync(process.execPath, [RENDER, join(dir, "report.json")], { encoding: "utf8" });
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^render-report\.mjs: cannot write .*report\.md/);
 });

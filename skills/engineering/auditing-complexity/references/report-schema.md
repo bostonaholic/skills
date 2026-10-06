@@ -1,15 +1,21 @@
-## Report
+# Report schema
 
-Two JSON files hold the audit's data, and each has one owner. The skill
-writes `report.json`. `scripts/inventory.mjs` writes `inventory.json`, and
-no agent edits it. `scripts/render-report.mjs` joins the two and writes
-`report.md`, which nobody edits by hand. When any rule below breaks, the
-renderer names each broken rule and writes nothing.
+## Contents
 
-### `report.json`
+- `report.json`
+- `inventory.json`
+- Rules the renderer enforces
+- `report.md`
 
-Step 2 writes `version`, `skill`, and `scope` without `commit`. Step 5 adds
-`scope.commit`, `lanes`, and `gaps`.
+The skill writes `report.json`, `scripts/inventory.mjs` writes
+`inventory.json`, and `scripts/render-report.mjs` joins the two into
+`report.md`. When any rule below breaks, the renderer names each broken rule
+and writes nothing.
+
+## `report.json`
+
+Procedure step 2 writes `version`, `skill`, and `scope` without `commit`.
+Step 5 adds `scope.commit`, `lanes`, and `gaps`.
 
 ```json
 {
@@ -36,7 +42,7 @@ other than `<module>` also holds `coverage`: either
 `{ "hit": [<line>], "missed": [<line>] }` with `crap`, a number with 2
 decimals, or `{ "reason": "<why no score>" }` with no `crap`.
 
-### `inventory.json`
+## `inventory.json`
 
 ```json
 {
@@ -76,7 +82,7 @@ decimals, or `{ "reason": "<why no score>" }` with no `crap`.
 - Every git call pins the output the script parses, so user, repository,
   and system git config change no number.
 
-### Rules the renderer enforces
+## Rules the renderer enforces
 
 - Both `version` values are 1, and `skill` is `auditing-complexity`.
 - `scope.commit`, `scope.pathspecs`, and the `scope.exclude` paths match
@@ -107,63 +113,31 @@ decimals, or `{ "reason": "<why no score>" }` with no `crap`.
   `cyclomatic² × (missed / (hit + missed))³ + cyclomatic`, where `hit` and
   `missed` are the list lengths. The error names the expected value.
 
-### `report.md`
+## `report.md`
 
-The renderer lays out these sections, in order:
+`scripts/render-report.mjs` owns the layout, ranking, row caps, and bands,
+and the report states each rule beside the table it governs. Its sections,
+in order:
 
-1. **Summary.** The root, commit, date, scope, and exclusions, and the file
-   counts. Without a coverage file, `Not run: no coverage file was given.`
-   With one, a second table: combined CRAP, average CRAP, the files with a
-   CRAP score, and the scored functions. A file's CRAP is the sum over its
-   scored hot functions, at most 6 per file. Combined CRAP sums those
-   files, and average CRAP divides it by the number of files with a score.
-   Both show 1 decimal, and both show `-` when no function has a score.
-2. **Files.** Measured lane files ranked by the highest `cyclomatic` among
-   their hot functions, with ties by `lines`, most first, then by path, and
-   its CC band. A file with no hot function shows `-` for both and ranks
-   below every file that has one. The table shows at most 25 rows, then the omitted count.
-3. **Functions.** Every hot function ranked by `cyclomatic`, with ties by
-   file, then line, and its CC band, nesting, length (`endLine - line + 1`), and
-   parameters. The table shows at most 25 rows, then the omitted count. Its
-   heading states that a function ranked fourth or lower in its own file
-   can be missing.
-4. **Change risk.** Without a coverage file, only
-   `Not run: no coverage file was given.` With one, scored hot functions
-   ranked by the renderer's own CRAP recount, then `cyclomatic`, file, and
-   line, with each function's coverage as a floored whole percent and its
-   CRAP to 1 decimal, and its CRAP band. The table shows at most 25 rows, then the omitted
-   count. Its text states the formula, the source of each value, the
-   6-function cap, the `<module>` exemption, the commit limit, the record
-   match rule, and the nested-line rule. A `Not scored` table follows, one
-   row per file with a `reason`, with its count and distinct reasons,
-   sorted by path and not capped.
-5. **Lanes.** One table per lane, with one row per measured file: its
-   fan-out, its mutable-state count, its function count, its highest
-   cyclomatic complexity and its CC band, and its highest nesting, length,
-   and parameters among its hot functions. Length and parameters skip `<module>`, because it spans the
-   whole file.
-6. **Gaps.** Every `gaps` record and every `skipped` record, with its
-   reason.
+1. **Summary.** Root, commit, date, scope, exclusions, and file counts;
+   with a coverage file, combined and average CRAP.
+2. **Files.** Measured files ranked by their highest hot-function
+   cyclomatic complexity, with its CC band.
+3. **Functions.** Every hot function ranked by cyclomatic complexity, with
+   its CC band, nesting, length, and parameters.
+4. **Change risk.** With a coverage file, scored functions ranked by the
+   renderer's own CRAP recount, with coverage and CRAP band, then a
+   `Not scored` table. Without one, `Not run: no coverage file was given.`
+5. **Lanes.** One table per lane, one row per measured file.
+6. **Gaps.** Every `gaps` and `skipped` record, with its reason.
 7. **Not measured.** Every `inventory.json` file whose `status` is not
-   `text`, with its status.
-8. **Reading the numbers.** Always last, once. Both band tables, the four
-   general reduction strategies, and the trend tip, attributed to
+   `text`.
+8. **Reading the numbers.** The CC and CRAP bands, four general reduction
+   strategies, and the trend tip, from
    <https://getotterwise.com/blog/understanding-crap-and-cyclomatic-complexity-metrics>.
-   The strategies name no function. After them, one unattributed line
-   gives their direction: find the 20 lines that replace the 200, a
-   figure of speech, not a target line count.
+   They are reading aids that name no function. No band or score changes
+   either script's exit status.
 
-The bands come from that post. A value equal to a band's upper end takes
-the lower band:
-
-- CC band: 1-6 low, 7-9 moderate, 10-20 high, above 20 very complex.
-- CRAP band: up to 30 acceptable, above 30 to 60 needs attention, above 60
-  high risk. The CRAP band uses the shown 1-decimal value, so a cell never
-  reads 30.0 beside "needs attention".
-
-No band and no score changes the exit status of either script.
-
-The report labels every analyst value as "estimated by reading". `lines`
-comes from the script and is an exact count. Hit and missed lines come
-from the coverage file through the analysts, and no script parses that
-file.
+The report labels every analyst value "estimated by reading". `lines` is an
+exact count from the script. Hit and missed lines come from the coverage
+file through the analysts; no script parses that file.

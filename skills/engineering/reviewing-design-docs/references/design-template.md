@@ -40,7 +40,7 @@ Put intentional deferrals in Out of scope.>
 <Include ONLY for multiple entry modes, self-contained paths, turn splits, or procedures reachable without the rest. List surfaces, then map each safeguard:>
 
 | Safeguard | Mode A | Mode B | ... |
-|---|---|---|
+|---|---|---|---|
 | <rule> | yes | yes | |
 | <rule> | yes | no — <why not> | |
 

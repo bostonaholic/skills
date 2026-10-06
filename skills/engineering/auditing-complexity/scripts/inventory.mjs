@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 // Lists the tracked files and their line counts for an auditing-complexity scope and writes inventory.json beside it.
 // Usage: inventory.mjs <report.json>
+//   exit 0  wrote <dir of report.json>/inventory.json and printed its path
+//   exit 1  wrote nothing; stderr names the failure: a git failure, a bad report.json, a pathspec
+//           that matches no tracked file, a bad coverage path or file, or an inventory.json that is
+//           a symlink or cannot be written
+//   exit 2  no report.json argument; stderr prints the usage line
 import { spawn } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
@@ -201,7 +206,12 @@ async function main(args) {
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
     return 1;
   }
-  writeFileSync(target, `${JSON.stringify(inventory, null, 2)}\n`);
+  try {
+    writeFileSync(target, `${JSON.stringify(inventory, null, 2)}\n`);
+  } catch (error) {
+    process.stderr.write(`${SCRIPT}: cannot write ${target}: ${error.message}\n`);
+    return 1;
+  }
   process.stdout.write(`${target}\n`);
   return 0;
 }

@@ -1,21 +1,31 @@
 #!/usr/bin/env node
 // Joins an auditing-complexity report.json with the inventory.json beside it, validates both, and renders report.md.
 // Usage: render-report.mjs <report.json> [<report.md>]
+//   exit 0  wrote report.md (beside report.json unless named) and printed its path
+//   exit 1  wrote nothing; stderr names an unreadable input, lists every validation error, or names
+//           a report.md that is a symlink or cannot be written
+//   exit 2  no report.json argument; stderr prints the usage line
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const MUTATION_KINDS = ["global", "field", "param"];
+// Each ranked table stops here and states the omitted count, so the report stays readable.
 const TABLE_ROWS = 25;
+// The lane analyst brief picks each file's top 3 functions by cyclomatic complexity, plus at most
+// its deepest, longest, and most-parameter function: 3 + 3.
+const TOP_BY_CYCLOMATIC = 3;
 const MAX_HOT_FUNCTIONS = 6;
 const MODULE = "<module>";
 const HOT_FUNCTION_COUNTS = ["line", "endLine", "cyclomatic", "nesting", "deepestLine", "params"];
+// Analysts round crap to 2 decimals, so a correct value sits within 0.01 of the recount.
 const CRAP_TOLERANCE = 0.01;
 // Float slack, so a 2-decimal crap exactly 0.01 from the recount still passes.
 const FLOAT_SLACK = 1e-9;
 const NOT_RUN = "Not run: no coverage file was given.\n";
 const SOURCE_POST = "https://getotterwise.com/blog/understanding-crap-and-cyclomatic-complexity-metrics";
-// A value equal to a band's max goes to that band, so a shared endpoint reads as the lower band.
+// Both band tables come from SOURCE_POST. A value equal to a band's max goes to that band, so a
+// shared endpoint reads as the lower band.
 const CC_BANDS = [
   { max: 6, label: "low" },
   { max: 9, label: "moderate" },
@@ -330,8 +340,8 @@ function renderFunctions(report) {
   return [
     "## Functions\n",
     "Hot functions rank by cyclomatic complexity, and equal values rank by file, then line. " +
-      "Values are estimated by reading. Each file lists at most 6 hot functions, " +
-      "so a function that ranks fourth or lower in its own file can be missing.\n",
+      `Values are estimated by reading. Each file lists at most ${MAX_HOT_FUNCTIONS} hot functions, ` +
+      `so a function that ranks below the top ${TOP_BY_CYCLOMATIC} in its own file can be missing.\n`,
     table(
       ["Rank", "Function", "File", "Line", "Cyclomatic", "CC band", "Nesting", "Length", "Params"],
       shown.map((hot, i) => [
@@ -501,13 +511,14 @@ export function renderReport(report, inventory) {
     .join("\n");
 }
 
-function isSymlink(path) {
+// Returns why the renderer refuses to write `target`, or null when it may write there.
+function writeRefusal(target) {
   try {
-    return lstatSync(path).isSymbolicLink();
+    if (lstatSync(target).isSymbolicLink()) return `${target} is a symlink, and the renderer never writes through one`;
   } catch (error) {
-    if (error.code === "ENOENT") return false;
-    throw error;
+    if (error.code !== "ENOENT") return `cannot check ${target}: ${error.message}`;
   }
+  return null;
 }
 
 function readJson(path) {
@@ -537,11 +548,17 @@ function main(args) {
     return 1;
   }
   const target = output ?? join(dirname(input), "report.md");
-  if (isSymlink(target)) {
-    process.stderr.write(`render-report.mjs: ${target} is a symlink, and the renderer never writes through one\n`);
+  const refusal = writeRefusal(target);
+  if (refusal) {
+    process.stderr.write(`render-report.mjs: ${refusal}\n`);
     return 1;
   }
-  writeFileSync(target, renderReport(report, inventory));
+  try {
+    writeFileSync(target, renderReport(report, inventory));
+  } catch (error) {
+    process.stderr.write(`render-report.mjs: cannot write ${target}: ${error.message}\n`);
+    return 1;
+  }
   process.stdout.write(`${target}\n`);
   return 0;
 }

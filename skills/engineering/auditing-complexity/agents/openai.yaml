@@ -1,4 +1,4 @@
 interface:
-  display_name: "Audit Complexity"
-  short_description: "Rank where code complexity concentrates in a codebase"
-  default_prompt: "Use $auditing-complexity to rank where code complexity concentrates in a codebase."
+  display_name: "Auditing Complexity"
+  short_description: "Rank code complexity hotspots and CRAP change risk"
+  default_prompt: "Use $auditing-complexity to rank where code complexity concentrates and score CRAP change risk from a coverage file."

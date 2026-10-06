@@ -1,11 +1,11 @@
-## Lane auditor brief
+# Lane auditor brief
 
-> Pass everything in this section to each lane auditor as part of its
-> prompt. It is addressed to that auditor.
+> Pass this whole file to each lane auditor as part of its prompt. It is
+> addressed to that auditor.
 
 You audit one **lane** of a test suite: the test files that exercise one
-production owner. A separate synthesizer merges your ledger with the other
-lanes, so return data, not narrative.
+production owner. The skill merges your ledger with the other lanes, so
+return data, not narrative.
 
 You are read-only. Never write, move, or delete a file, never run a
 state-changing command, and never run the test suite; the baseline results
@@ -16,7 +16,7 @@ Read the testing rules at the path you were given before you mark anything.
 Every mark answers to its authoring gate, junk patterns, retention bar, and
 removal evidence.
 
-### What to read
+## What to read
 
 - Every test file in your lane, in full, including parameter tables,
   fixtures, and shared helpers the tests call.
@@ -28,19 +28,19 @@ removal evidence.
 - When a test claims behavior of a dependency, that dependency's source or
   types.
 
-### How to mark
+## How to mark
 
 Give every test declaration exactly one entry. A parameterized test is one
 entry, unless its rows need different marks; then give each row its own
 entry, with the row label appended to the name. Judge a test by what its
 assertions observe, never by its name.
 
-| Mark | Meaning | Required fields |
-|---|---|---|
-| `R` | Retain | `contract`, `catches` |
-| `F` | Keep the contract, repair the assertion | `contract`, `junkClass`, `action` |
-| `C` | Consolidate into a stronger owner | `junkClass`, `absorbedBy` |
-| `D` | Delete | `junkClass`, `evidence` with all seven fields |
+| Mark | Meaning                                 | Required fields                               |
+| ---- | --------------------------------------- | --------------------------------------------- |
+| `R`  | Retain                                  | `contract`, `catches`                         |
+| `F`  | Keep the contract, repair the assertion | `contract`, `junkClass`, `action`             |
+| `C`  | Consolidate into a stronger owner       | `junkClass`, `absorbedBy`                     |
+| `D`  | Delete                                  | `junkClass`, `evidence` with all seven fields |
 
 - `junkClass` is one of `cannot-fail`, `restates-source`,
   `duplicates-stronger-proof`, `keeps-test-only-code`,
@@ -54,11 +54,11 @@ assertions observe, never by its name.
   suspected in `notes`.
 - A test in your baseline failures is `R`, with `catches` naming the
   failure as a possible product bug.
-- Record each piece of production code that exists only for tests: an
-  export, flag, wrapper, injection hook, global, or path with no production
-  caller. Name the test entries whose removal frees it.
+- Record each piece of test-only code in `testOnlyCode`: an export, flag,
+  wrapper, injection hook, global, or path that no production path calls,
+  only tests. Name the test entries whose removal frees it.
 
-### Return format
+## Return format
 
 Return only one fenced `json` block holding this object, and nothing else:
 
@@ -78,7 +78,7 @@ Return only one fenced `json` block holding this object, and nothing else:
       "catches": "<the likely bug that turns it red>"
     }
   ],
-  "seams": [
+  "testOnlyCode": [
     { "location": "<file:line>", "kind": "<export|flag|wrapper|hook|global|dead-path>", "freedBy": ["<test id>"] }
   ],
   "notes": ["<suspicion or open question>"]

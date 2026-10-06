@@ -1,12 +1,12 @@
-## Input
+# Input
 
 `$ARGUMENTS` holds optional scope paths, an optional `--out <dir>`, and an
 optional `--coverage <file>`.
 
 - **Path base.** Every relative path, named, `--out`, or `--coverage`,
-  resolves against the repository top level that `git rev-parse
-  --show-toplevel` prints. It never resolves against the session's
-  directory. From `packages/api/`, `src` means `<top>/src`.
+  resolves against the repository top level that
+  `git rev-parse --show-toplevel` prints. It never resolves against the
+  session's directory. From `packages/api/`, `src` means `<top>/src`.
 - **Scope.** Each named path is a top-level-relative directory or file. With
   no named path, the pathspec is `.`, the whole repository. A subsystem
   name that is not a path resolves to the top-level-relative directories
@@ -23,6 +23,7 @@ optional `--coverage <file>`.
   Stop on any other value before you write anything. A run writes only
   `report.json`, `inventory.json`, and `report.md` there, and touches nothing
   else. Never stage or commit the output.
+
 - **Coverage file.** Optional. Without it, the report states that CRAP did
   not run. A `--coverage` value must obey these rules:
   - It appears at most once, and it has a value.
@@ -43,7 +44,7 @@ optional `--coverage <file>`.
 
 ## Keep vendored and generated code out
 
-Before step 2 of the [execution](references/02-execution.md), build `scope.exclude`. It
+Before step 2 of the [procedure](references/procedure.md), build `scope.exclude`. It
 holds one `{ path, reason }` record for the top directory of each tracked
 tree of these kinds, or for a single file when no such directory holds it:
 
@@ -59,5 +60,5 @@ level, add it too, with reason `audit output`. A directory name alone, such
 as `vendor` or `dist`, is not evidence. Never exclude a path that equals or
 contains a named path.
 
-`inventory.mjs` applies every exclusion to every `git ls-files` call, as a
+`scripts/inventory.mjs` applies every exclusion to every `git ls-files` call, as a
 literal path, so an excluded path never enters the inventory.

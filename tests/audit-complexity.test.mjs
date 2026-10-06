@@ -665,8 +665,8 @@ test("renderReport ranks hot functions", async (t) => {
     assert.match(lineMatching(functions, /omitted/i), /\b1\b/);
   });
 
-  await t.test("the heading warns that a file's fourth-ranked function or lower can be missing", () => {
-    assert.match(section(renderReport(report(), inventory()), "Functions"), /fourth or lower/i);
+  await t.test("the heading warns that a function below its file's top 3 can be missing", () => {
+    assert.match(section(renderReport(report(), inventory()), "Functions"), /below the top 3 in its own file can be missing/i);
   });
 
   await t.test("file maxima skip <module> for length and parameters only", () => {
@@ -1364,6 +1364,26 @@ test("both CLIs exit 1 and write nothing", async (t) => {
     assert.equal(run.status, 1, run.stderr);
     assert.match(run.stderr, /^inventory\.mjs: .*inventory\.json/);
     assert.equal(readFileSync(join(dir, "victim.json"), "utf8"), "original\n");
+  });
+
+  await t.test("inventory.mjs names an inventory.json it cannot write", (st) => {
+    const dir = tempDir(st);
+    writeFileSync(join(dir, "report.json"), auditRequest(["docs/style.css"]));
+    writeFileSync(join(dir, "empty.gitconfig"), "");
+    mkdirSync(join(dir, "inventory.json"));
+    const run = runInventory(join(dir, "report.json"), { cwd: TOP, env: isolatedGitEnv(join(dir, "empty.gitconfig")) });
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /^inventory\.mjs: cannot write .*inventory\.json/);
+  });
+
+  await t.test("render-report.mjs names a report.md it cannot write", (st) => {
+    const dir = tempDir(st);
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report()));
+    writeFileSync(join(dir, "inventory.json"), JSON.stringify(inventory()));
+    mkdirSync(join(dir, "report.md"));
+    const run = runRender(join(dir, "report.json"));
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /^render-report\.mjs: cannot write .*report\.md/);
   });
 
   await t.test("render-report.mjs at a symlinked report.md", (st) => {

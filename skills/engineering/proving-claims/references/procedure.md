@@ -1,6 +1,6 @@
-## Execution
+# Procedure
 
-### Step 1 — extract the claims
+## Step 1 — extract the claims
 
 - **Claims in arguments or from a caller:** split them into atomic claims,
   one checkable assertion each. Keep the claimant's wording beside each
@@ -12,7 +12,7 @@
 
 No claims anywhere → report `nothing to prove` and stop (Hard Rule 7).
 
-### Step 2 — sharpen each claim
+## Step 2 — sharpen each claim
 
 For every claim, write its **criterion**: the observation that would prove it
 false, and the observation that would prove it true. A claim too vague to
@@ -23,9 +23,9 @@ could adopt, such as "p50 export time under 2s on the fixture dataset".
 Output the numbered claims with their criteria before verifying anything
 (Hard Rule 6).
 
-### Step 3 — gather and judge
+## Step 3 — gather and judge
 
-Pick each claim's strategy and rung from [Evidence](references/04-evidence.md). Run at
+Pick each claim's strategy and rung from [Evidence](references/evidence.md). Run at
 most 4 verifications in flight (Hard Rule 9). Look for the disproving
 observation first. For each claim, record:
 
@@ -36,18 +36,18 @@ observation first. For each claim, record:
 - the **verdict**, from the table below
 - the **confidence**, from the table below
 
-| Verdict | Meaning |
-|---|---|
-| **PROVEN** | The evidence meets the criterion, and the search for a disproving observation found none |
-| **PARTIAL** | The claim holds in part, or only with a nuance the claim does not state |
-| **DISPROVEN** | The evidence shows the disproving observation |
-| **UNPROVEN** | No evidence reached either way: out of reach, untrusted to execute, or too vague to test |
+| Verdict       | Meaning                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| **PROVEN**    | The evidence meets the criterion, and the search for a disproving observation found none |
+| **PARTIAL**   | The claim holds in part, or only with a nuance the claim does not state                  |
+| **DISPROVEN** | The evidence shows the disproving observation                                            |
+| **UNPROVEN**  | No evidence reached either way: out of reach, untrusted to execute, or too vague to test |
 
-| Confidence | Meaning |
-|---|---|
-| **HIGH** | Evidence from the claim's own rung directly and unambiguously settles it |
+| Confidence | Meaning                                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| **HIGH**   | Evidence from the claim's own rung directly and unambiguously settles it                                         |
 | **MEDIUM** | The settling evidence comes from a lower rung, holds with a nuance, or concerns intent rather than current state |
-| **LOW** | The evidence is ambiguous, contradictory, or indirect |
+| **LOW**    | The evidence is ambiguous, contradictory, or indirect                                                            |
 
 Method notes:
 
@@ -58,7 +58,7 @@ Method notes:
 - **Structural claims:** glob all files and cross-reference against the
   expected list. Report both missing and extra entries.
 
-### Step 4 — report
+## Step 4 — report
 
 The first line is the overall verdict, applied mechanically. No judgment
 call overrides a DISPROVEN:
@@ -74,7 +74,7 @@ NEEDS ATTENTION as NEEDS ATTENTION, and DISPROVEN as NOT READY.
 
 Then present a summary table and the detailed findings:
 
-```
+```markdown
 | # | Claim | Verdict | Confidence | Method | Key evidence |
 |---|-------|---------|------------|--------|--------------|
 ```
@@ -84,7 +84,7 @@ evidence collected, the confidence and its justification, and any nuances.
 Name the scratch directory holding logs or frames, every delegate that was
 unavailable, and every rung that was out of reach, each on its own line.
 
-### Step 5 — follow-ups
+## Step 5 — follow-ups
 
 For every PARTIAL, DISPROVEN, UNPROVEN, or LOW-confidence claim, suggest the
 specific action that resolves it. Say which kind of action it needs: a code
