@@ -51,7 +51,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[addressing-pr-comments](./skills/engineering/addressing-pr-comments/SKILL.md)**: Triage and address open PR feedback. Calls: `attaching-pr-screenshots`.
 - **[attaching-pr-screenshots](./skills/engineering/attaching-pr-screenshots/SKILL.md)**: Attach local images to a PR body.
 - **[auditing-complexity](./skills/engineering/auditing-complexity/SKILL.md)**: Rank code complexity hotspots and CRAP change risk.
-- **[auditing-repo-security](./skills/engineering/auditing-repo-security/SKILL.md)**: Audit a cloned repo before running it.
+- **[auditing-repo-security](./skills/engineering/auditing-repo-security/SKILL.md)**: Audit a third-party repo before running it.
 - **[auditing-tests](./skills/engineering/auditing-tests/SKILL.md)**: Audit a test suite for low-value tests.
 - **[capturing-screenshots](./skills/engineering/capturing-screenshots/SKILL.md)**: Capture verified screenshots of an app.
 - **[configuring-zsh](./skills/engineering/configuring-zsh/SKILL.md)**: Place zsh config in the right startup file.

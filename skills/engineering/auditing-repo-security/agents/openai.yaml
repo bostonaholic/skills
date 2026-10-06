@@ -1,4 +1,4 @@
 interface:
   display_name: "Auditing Repo Security"
-  short_description: "Audit a cloned repo before running it"
-  default_prompt: "Use $auditing-repo-security to audit this cloned repository, without installing or running it, and grade whether it is safe to run."
+  short_description: "Audit a third-party repo before running it"
+  default_prompt: "Use $auditing-repo-security to audit this third-party or freshly cloned repository, without installing or running it, and grade whether it is safe to run."

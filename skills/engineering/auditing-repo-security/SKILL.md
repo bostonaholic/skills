@@ -1,6 +1,6 @@
 ---
 name: auditing-repo-security
-description: 'Audits a cloned repo before install or run: install hooks, auto-run files, lockfile CVEs, typosquats, and exfiltration, credential-theft, code-execution, and obfuscation patterns, graded A-F with a safe-to-run verdict. Use when asked to audit a repo, check whether a clone is safe to run, or scan for malicious code.'
+description: Audits a third-party or freshly cloned repo before install or run for install hooks, auto-run files, CVEs, typosquats, and malicious code, graded A-F with a safe-to-run verdict. Use when asked whether a clone is safe to run, or to audit or scan a third-party repo. Not for security review of the user's own code; use reviewing-code.
 ---
 
 # Auditing repo security
