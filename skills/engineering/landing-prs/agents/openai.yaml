@@ -1,4 +1,4 @@
 interface:
-  display_name: "Shipit"
-  short_description: "Land a reviewed pull request"
-  default_prompt: "Use $landing-prs to land a reviewed pull request."
+  display_name: "Landing PRs"
+  short_description: "Land a reviewed pull request on explicit request"
+  default_prompt: "Use $landing-prs to land the reviewed pull request for the current branch."

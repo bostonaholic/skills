@@ -1,6 +1,6 @@
 interface:
-  display_name: "Rebase Dependabots"
-  short_description: "Rebase selected Dependabot pull requests"
-  default_prompt: "Use $rebasing-dependabot-prs to rebase the requested Dependabot pull requests."
+  display_name: "Rebasing Dependabot PRs"
+  short_description: "Ask Dependabot to rebase its open pull requests after confirmation"
+  default_prompt: "Use $rebasing-dependabot-prs to ask Dependabot to rebase the requested pull requests."
 policy:
   allow_implicit_invocation: false

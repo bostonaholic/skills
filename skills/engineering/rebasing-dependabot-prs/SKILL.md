@@ -1,43 +1,69 @@
 ---
 name: rebasing-dependabot-prs
 argument-hint: "[PR numbers] [--dry-run]"
-description: This skill should be used when the user asks to "rebase dependabot PRs", "rebase dependabots", "refresh stale dependabot branches", or wants to comment "@dependabot rebase" on open Dependabot PRs to trigger a rebase.
+description: Comments @dependabot rebase on open Dependabot pull requests, all or the given numbers, after the user confirms the list, and reports PRs that need @dependabot recreate instead. Use when the user explicitly asks to rebase or refresh Dependabot PRs. Never infer from stale or conflicting Dependabot PRs.
 disable-model-invocation: true
 ---
 
 # Rebase Dependabots
 
-Find all open Dependabot PRs and comment "@dependabot rebase" on each to trigger a rebase of stale branches.
+Ask Dependabot to rebase its open PRs by commenting `@dependabot rebase`. Each
+comment is public, and every rebase re-runs that PR's CI.
 
 ## Arguments
 
-- **PR numbers** (optional): Space-separated PR numbers to process. If omitted, discover all open Dependabot PRs.
-- **--dry-run** (optional): List PRs that would be rebased without commenting.
+- **PR numbers** (optional): space-separated. Without them, use every open
+  Dependabot PR.
+- **--dry-run** (optional): show the plan and stop without commenting.
 
 ## Procedure
 
-1. **Find open Dependabot PRs**
-
-   If PR numbers were provided, use those. Otherwise discover all:
+1. **Preflight.**
 
    ```bash
-   gh pr list --author "app/dependabot" --state open --json number,title
+   command -v gh >/dev/null && gh auth status
    ```
 
-2. **If `--dry-run`: list and stop**
+   If gh is missing or not authenticated, stop and tell the user to install it
+   or run `gh auth login`.
 
-   Print the PRs that would receive the rebase comment, then exit without commenting.
-
-3. **For each PR, comment to trigger rebase**
+2. **Collect PRs.** With PR numbers, refuse any argument that is not all
+   digits and use them. Without PR numbers, list them:
 
    ```bash
-   gh pr comment <PR_NUMBER> --body "@dependabot rebase"
+   gh pr list --author app/dependabot --state open --limit 200 --json number --jq '.[].number'
    ```
 
-4. **Report results**: List each PR that received the rebase comment. Report any failures.
+   200 covers any realistic Dependabot backlog in one call. If exactly 200
+   come back, warn the user that the list may be truncated. Then read each PR
+   (the list query cannot include commits; GitHub rejects that many nodes):
 
-## Notes
+   ```bash
+   gh pr view <n> --json number,title,state,author,commits \
+     --jq '{number, title, state, author: .author.login, others: [.commits[].authors[].login | select(. != "dependabot[bot]")] | unique}'
+   ```
 
-- This triggers Dependabot to rebase each PR against the base branch
-- Useful when PRs become stale due to main branch updates
-- Safe operation — only adds a comment, does not merge anything
+3. **Classify each PR.**
+   - `author` is not `app/dependabot`, or `state` is not `OPEN`: **skip**, and
+     name the author or state.
+   - `others` is non-empty: someone else pushed commits, so Dependabot ignores
+     `@dependabot rebase`. **Needs recreate:** report it; `@dependabot recreate`
+     discards those commits, so only the user decides to post it.
+   - Otherwise: **rebase**.
+
+4. **Confirm.** Show one table (PR, title, action, reason) and say that each
+   rebase posts a public comment and re-runs CI. With `--dry-run`, stop here.
+   Otherwise wait for a clear go-ahead; it covers only the listed **rebase**
+   rows.
+
+5. **Comment** on each approved PR:
+
+   ```bash
+   gh pr comment <n> --body "@dependabot rebase"
+   ```
+
+   Success prints the comment URL. Record any failure with gh's message and
+   continue with the next PR.
+
+6. **Report** every PR from step 3 with its outcome: commented (with URL),
+   needs recreate, skipped (with reason), or failed (with gh's message).

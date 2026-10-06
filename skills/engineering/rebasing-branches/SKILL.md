@@ -1,42 +1,156 @@
 ---
 name: rebasing-branches
-description: 'Use for branch rebases only on explicit request. Never infer from a behind branch. Rebases onto the branch base.'
+description: Rebases the current branch onto its PR or default base, resolves conflicts by intent, re-runs the project's checks, and force-pushes with an explicit lease. Use when the user explicitly asks to rebase the current branch. Never infer from a behind branch. Not for rebasing every open PR; use rebasing-open-prs.
 effort: high
 argument-hint: "[<pr-number-or-url>]"
 disable-model-invocation: true
 ---
 
-# rebasing-branches — rebase onto the latest base
+# rebasing-branches: rebase onto the latest base
 
 Fetch the base, rebase the current branch onto it, resolve conflicts from both
-sides' intent, and confirm the branch still works before publishing it.
+sides' intent, and confirm the branch still works before publishing it. The
+explicit invocation authorizes the history rewrite and the force-push; do not
+stop to confirm them. This skill does not wait for CI and does not merge.
 
-- **Base.** Resolve it from `$ARGUMENTS` when that names a PR number or URL —
-  a failed lookup stops the run — otherwise from the repository's default
-  branch (`git symbolic-ref refs/remotes/origin/HEAD`), then `main`. Fetch it
-  from `origin`, or from the remote that owns the base repository when they
-  differ. The argument selects the base only; the branch rebased is always the
-  current checkout.
-- **Pre-flight.** Refuse to start on a dirty tracked tree, a rebase or merge
-  already in progress, or a checkout of the base branch itself. Record
-  `git rev-parse HEAD` as the recovery point, report `git reset --hard <sha>`
-  whenever the run stops, and run the project's checks once, keeping each
-  result.
-- **Rebase** the checkout onto the fetched base, with `--rebase-merges` when
-  the branch contains merge commits. On a conflict, read the stages
-  (`git show :1:`, `:2:`, `:3:`) and keep both sides' intent. During a rebase
-  `--ours` is the base and `--theirs` is your commit — the reverse of a merge.
-  Never take a side whole, never `git rebase --skip`, and ask the user when
-  the code and its history do not decide.
-- **Verify** by re-running the same checks. A check that passed before and
-  fails now stops the run, as does an undecided conflict; nothing reaches the
-  remote while either stands.
-- **Publish** with
-  `git push --force-with-lease=<branch>:<pre-fetch-sha> --force-if-includes`,
-  the lease sha captured before the fetch. Never use a bare `--force`; a
-  branch that was never pushed gets `git push -u` instead. The explicit
-  invocation authorized the rewrite — do not stop to confirm it.
+Copy this checklist and check off each step:
 
-Report the base and its source, the commits replayed, the conflicts resolved,
-the before/after checks, and whether the push happened. Does not wait for CI
-and does not merge.
+```text
+- [ ] 1. Preflight
+- [ ] 2. Resolve the base and its remote
+- [ ] 3. Record the recovery point and lease
+- [ ] 4. Run baseline checks
+- [ ] 5. Fetch and rebase
+- [ ] 6. Re-run checks and compare
+- [ ] 7. Publish with an explicit lease
+- [ ] 8. Report
+```
+
+## 1. Preflight
+
+```bash
+command -v gh >/dev/null && command -v git >/dev/null && gh auth status
+git branch --show-current
+git status --porcelain --untracked-files=no
+for p in rebase-merge rebase-apply MERGE_HEAD; do
+  [ -e "$(git rev-parse --git-path "$p")" ] && echo "in progress: $p"
+done
+```
+
+If gh is missing or not authenticated, stop and tell the user to install it or
+run `gh auth login`. Refuse to start on a detached HEAD (empty branch name), a
+dirty tracked tree (any `status` output), or a rebase or merge already in
+progress (any `in progress` line). Refuse an argument that is neither a number
+nor an `https://` PR URL.
+
+## 2. Resolve the base and its remote
+
+The argument selects the base only; the branch rebased is always the current
+checkout.
+
+- **PR number or URL given:** a failed lookup stops the run.
+
+  ```bash
+  gh pr view <pr-number-or-url> --json baseRefName,url --jq '.baseRefName + " " + .url'
+  ```
+
+  The base repository is the `<owner>/<repo>` part of the printed URL.
+
+- **No argument:** use the default branch of the repository gh targets, which
+  is the upstream when the checkout is a fork that gh knows about.
+
+  ```bash
+  gh repo view --json defaultBranchRef,nameWithOwner --jq '.defaultBranchRef.name + " " + .nameWithOwner'
+  ```
+
+Validate the base with `git check-ref-format --branch <base>`. Refuse to run
+when the current branch is the base. Find the remote that owns the base
+repository:
+
+```bash
+for r in $(git remote); do
+  case "$(git remote get-url "$r")" in
+    *[:/]"<owner>/<repo>" | *[:/]"<owner>/<repo>".git) echo "$r"; break ;;
+  esac
+done
+```
+
+No match: stop and report the repository and `git remote -v`. Call the match
+`<base-remote>`.
+
+## 3. Record the recovery point and lease
+
+Before any fetch, record where the branch is and what its remote copy was last
+seen as:
+
+```bash
+branch=$(git branch --show-current)
+push_remote=$(git config --get "branch.$branch.remote" || echo origin)
+echo "RECOVERY=$(git rev-parse HEAD) PUSH_REMOTE=$push_remote"
+echo "LEASE=$(git rev-parse --verify --quiet "refs/remotes/$push_remote/$branch" || echo none)"
+```
+
+The lease must predate the fetch: a fetch moves the remote-tracking ref, so a
+lease taken after it would accept commits someone else pushed that this branch
+never saw. `LEASE=none` means the branch was never pushed. Whenever the run
+stops after this step, report `git rebase --abort` (if a rebase is in progress)
+and `git reset --hard <recovery>`.
+
+## 4. Run baseline checks
+
+Find the project's checks in its agent instructions (`AGENTS.md`, `CLAUDE.md`),
+`package.json` scripts, `Makefile` targets, and CI workflow steps. Run each
+once, fastest first (format, lint, typecheck, build, test), and record the
+exact command and exit code. Run a suite that takes more than about a minute
+with `run_in_background: true`. A check that already fails here does not block
+the rebase; step 6 compares against it.
+
+## 5. Fetch and rebase
+
+```bash
+git fetch <base-remote> <base>
+git rev-list --merges --count "refs/remotes/<base-remote>/<base>..HEAD"
+git rebase "refs/remotes/<base-remote>/<base>"
+```
+
+Add `--rebase-merges` when the count is above zero.
+
+On a conflict, read the stages with `git show :1:<path>` (common ancestor),
+`:2:<path>`, and `:3:<path>`, and keep both sides' intent. During a rebase
+`--ours` (stage 2) is the base and `--theirs` (stage 3) is the commit being
+replayed, the reverse of a merge. Never take a side whole and never
+`git rebase --skip`. When the code and its history do not decide a conflict,
+ask the user. Stage each resolved file and continue with
+`GIT_EDITOR=true git rebase --continue`.
+
+## 6. Re-run checks and compare
+
+Re-run every check from step 4 the same way. A check that passed at baseline
+and fails now stops the run, as does an undecided conflict. Nothing reaches the
+remote while either stands.
+
+## 7. Publish with an explicit lease
+
+With a recorded lease:
+
+```bash
+git push --force-with-lease=<branch>:<lease> <push-remote> <branch>
+```
+
+With `LEASE=none`, use `git push -u <push-remote> <branch>`. Never use a bare
+`--force`. A lease rejection means the remote moved since step 3: stop and
+report it without retrying. After a successful push, confirm
+`git ls-remote <push-remote> refs/heads/<branch>` prints the local `HEAD`.
+
+## 8. Report
+
+Use this shape, every line present:
+
+```text
+Base: <base-remote>/<base> (from PR <n> | default branch)
+Replayed: <count> commits, <recovery-short> -> <new-head-short>
+Conflicts: none | <path>: <how both intents were kept>, one line each
+Checks: <command>: before <pass|fail>, after <pass|fail>, one line each
+Push: pushed with lease <lease-short> | first push | not pushed: <reason>
+Recovery: git reset --hard <recovery>
+```

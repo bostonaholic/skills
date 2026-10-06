@@ -1,185 +1,102 @@
 ---
 name: using-gh-cli
-description: Use when working with GitHub PRs, issues, workflows, or CI/CD - automates GitHub operations from terminal
+description: Runs GitHub work through the gh CLI and verifies each result, opening PRs only after reviewing every branch commit. Use when opening a PR, checking CI or failed logs, or handling GitHub issues from a terminal. Merges, closes, reviews, comments, and force operations need an explicit request. Not for landing a PR; use landing-prs.
 ---
 
 # GitHub CLI
 
-## Overview
-
-GitHub operations should be fast, scriptable, and verifiable. Stay in terminal flow—use web UI only for complex reviews.
-
-**MANDATORY:** Always verify gh operations succeeded. Never assume commands worked.
-
 ## Iron Law
 
-- NO PR CREATION WITHOUT REVIEWING ALL COMMITS IN BRANCH
-- NO PR MERGING WITHOUT USER CONFIRMATION
-- NO FORCE OPERATIONS WITHOUT EXPLICIT REQUEST
-- ALWAYS VERIFY GH OPERATIONS SUCCEEDED
+- No PR creation without reviewing every commit on the branch.
+- No operation from the explicit-request list without an explicit user request
+  for that operation on that target.
+- Verify every gh operation succeeded with its exit status and a read-back.
+  Never assume a command worked.
 
-## When to Use / Not Use
-
-**Use gh CLI for:** Creating PRs, monitoring CI, managing issues, checking out PRs for review, routine operations.
-
-**Use web UI for:** Complex PR reviews, large diffs, repository settings, visual context.
-
-## Workflow 1: Creating a Pull Request
-
-### 1. Gather Context (parallel)
+## Preflight
 
 ```bash
-git status
-git diff main...HEAD
-git log main..HEAD --oneline
+command -v gh >/dev/null && gh auth status
+gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
-### 2. Analyze
+If gh is missing or not authenticated, stop and tell the user to install it or
+run `gh auth login`. Confirm the printed repository is the intended target
+before any write.
 
-- Understand every change in diff
-- No "wip" or "debug" commits
-- Branch has clear purpose
-- Tests exist for new functionality
+## Explicit request only
 
-### 3. Create PR
+Run these only when the user asked for that operation on that target. An
+approved, green, stale, or finished-looking PR or issue is not a request.
 
-```bash
-git push -u origin HEAD
+- `gh pr merge`, and never `--admin`, which bypasses branch protection
+- `gh pr close`, `gh issue close`
+- `gh pr review` with `--approve`, `--request-changes`, or `--comment`
+- `gh pr comment`, `gh issue comment`
+- `gh issue create`
+- any delete (`gh repo delete`, `gh release delete`, and similar)
+- any force operation (`git push --force`, `--force-with-lease`)
+- any write to a repository the user does not own
 
-gh pr create --title "feat: add auth middleware" --body "$(cat <<'EOF'
-## Summary
-- Implements JWT authentication middleware
-- Adds login/logout endpoints
+## Creating a pull request
 
-## Test plan
-- [x] Unit tests pass
-- [x] Integration tests cover auth flow
+1. **Resolve the base.** Use the base the user names, else the default branch,
+   and refuse to open a PR from the base itself:
 
-Fixes #142
-EOF
-)"
-```
+   ```bash
+   gh repo view --json defaultBranchRef --jq .defaultBranchRef.name
+   git branch --show-current
+   ```
 
-### 4. Verify
+2. **Gather context** in one parallel batch:
 
-```bash
-gh pr view      # Confirm PR created
-gh pr checks    # Verify CI started
-```
+   ```bash
+   git fetch origin <base>
+   git status
+   git log --oneline origin/<base>..HEAD
+   git diff origin/<base>...HEAD
+   ```
 
-## Workflow 2: Monitor CI
+3. **Review every commit.** Understand each change in the diff. Stop and tell
+   the user when the branch has "wip" or debug commits, mixes unrelated
+   purposes, or adds behavior without tests.
 
-```bash
-gh run list --limit 5     # Recent runs
-gh run view               # Latest run details
-gh run view --log-failed  # Failed job logs
-gh run watch              # Real-time monitoring
-```
+4. **Push and create.** Write the body to a file with the file-writing tool
+   from the template below (default to adapt: drop `Closes` when there is no
+   issue), then pass it by path:
 
-## Workflow 3: Issue Management
+   ```bash
+   git push -u origin HEAD
+   gh pr create --base <base> --title '<title>' --body-file <body-file>
+   ```
 
-```bash
-gh issue list --assignee @me
-gh issue view 123
-gh issue create --title "bug: login fails" --body "..."
-gh issue comment 123 --body "Fixed in PR #456"
-```
+   Keep single quotes out of the title.
 
-## Workflow 4: Review PR Locally
+   ```markdown
+   ## Summary
 
-```bash
-gh pr list
-gh pr view 456
-gh pr checkout 456
-git log main..HEAD
-git diff main...HEAD
-# Test locally
-gh pr review --approve
-# or
-gh pr review --request-changes --body "Needs unit tests"
-```
+   - <main change and why>
+   - <secondary change>
 
-## Workflow 5: Check PR Status
+   ## Test plan
 
-```bash
-gh pr status              # Your PR dashboard
-gh pr view 123            # Full details
-gh pr checks              # CI status
-gh pr view 123 --json mergeable,mergeStateStatus
-```
+   - [ ] <command or check that proves the change>
 
-## Safety Protocols
+   Closes #<issue>
+   ```
 
-**Never do without explicit user request:**
+5. **Verify.**
 
-- `gh pr merge` - Always confirm first
-- `gh pr close` / `gh issue close`
-- `gh pr merge --admin` - Bypasses checks
-- Operations on repos you don't own
+   ```bash
+   gh pr view --json url,state,baseRefName,headRefName
+   gh pr checks
+   ```
 
-**Always verify before operations:**
+   `gh pr checks` exits 0 when all pass, 1 when any fail, and 8 while any are
+   pending, which is expected right after creation.
 
-- `gh auth status` - Check authentication
-- `gh repo view` - Confirm correct repo
-- `gh pr checks` - CI must pass before merge
+## CI and status
 
-## Quick Reference
-
-```bash
-# Pull Requests
-gh pr create --fill                    # From commit messages
-gh pr create --title "..." --body "..."
-gh pr list
-gh pr view 123
-gh pr view --web
-gh pr checkout 123
-gh pr checks
-gh pr review --approve
-gh pr review --request-changes --body "..."
-gh pr merge --squash
-gh pr status
-
-# Workflow Runs
-gh run list --limit 10
-gh run watch
-gh run view
-gh run view --log-failed
-
-# Issues
-gh issue list
-gh issue list --assignee @me
-gh issue view 456
-gh issue create --title "..." --body "..."
-gh issue comment 123 --body "..."
-
-# Repository
-gh repo view
-gh repo view --web
-
-# Auth
-gh auth status
-gh auth login
-```
-
-## PR Body Template
-
-```markdown
-## Summary
-- [Main change and why]
-- [Secondary change]
-
-## Test plan
-- [ ] Unit tests pass
-- [ ] Integration tests cover new behavior
-
-Fixes #[issue]
-```
-
-## Key Takeaways
-
-1. **Review all branch changes before PR** - Not just latest commit
-2. **Verify CI before merge** - `gh pr checks` must show green
-3. **Descriptive PR titles and bodies** - High-level summary, not commit list
-4. **Terminal for routine, web for complex** - Know when to switch
-5. **Confirm destructive operations** - Merge, close, delete need user confirmation
-6. **Link issues to PRs** - "Fixes #123" auto-closes on merge
+- Failing job logs: `gh run view <run-id> --log-failed`.
+- Mergeability: `gh pr view <n> --json mergeable,mergeStateStatus`.
+- Before any approved merge, `gh pr checks <n>` must exit 0.
