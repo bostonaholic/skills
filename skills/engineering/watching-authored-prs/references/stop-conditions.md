@@ -11,7 +11,7 @@ below. Each is reported by name, and this is the complete list.
 | `Third-party participant` | The poll's third-party check fired.                                                  |
 | `Awaiting decision`       | Under `present-then-stop`, a batch left items below the auto-apply bar.              |
 | `Feedback exclusion`      | A feedback item hit an exclusion, under either grant.                                |
-| `Push failure`            | An authorized or CI fix push failed. Report the actual error output.                 |
+| `Push failure`            | A feedback or CI fix push failed. Report the actual error output.                    |
 | `CI fix bound`            | A check failed after its second fix attempt. Name the check, head SHA, and fix SHAs. |
 | `CI exclusion`            | A candidate CI fix hit a CI exclusion. Report the candidate diff and restored paths. |
 

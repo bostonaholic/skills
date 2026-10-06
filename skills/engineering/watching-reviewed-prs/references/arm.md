@@ -83,7 +83,10 @@ Take `$HOST`, `$OWNER`, `$REPO`, `$NUMBER`, and `$PR_URL` from the canonical
 repository**: where the review threads live and where the approval must land.
 Never use head-repository fields: on a fork PR they name the contributor's
 fork, which has no threads. Every later `gh api` call takes
-`--hostname "$HOST"`.
+`--hostname "$HOST"`, including the snippets in the shared
+[pull-request comment retrieval](shared/pull-request-comments.md) and
+[reaction mechanics](shared/reaction-mechanics.md), which omit it: add it
+right after `gh api`.
 
 ## Bind the viewer
 
@@ -108,17 +111,19 @@ approval body compares against.
 ## Classify the viewer's PR-level feedback
 
 Run the body-bearing query of the shared
-[pull-request comment retrieval](shared/pull-request-comments.md) once,
-completing the `after:` cursors of both PR-level connections. Before any body
-reaches context, project the result with `--jq` to the `reviewSummaries` and
-`conversationComments` nodes whose author login equals `$VIEWER`, and drop
-`reviewThreads`, which the poll covers without bodies.
+[pull-request comment retrieval](shared/pull-request-comments.md) once, as
+`gh api --hostname "$HOST" graphql ...`, completing the `after:` cursors of
+both PR-level connections. Before any body reaches context, project the result
+with `--jq` to the `reviewSummaries` and `conversationComments` nodes whose
+author login equals `$VIEWER`, and drop `reviewThreads`, which the poll covers
+without bodies.
 
 Track a review summary or conversation comment when it raises a concern, asks
 a question about the code, or requests a change. Do not track one with no ask:
-an approval note, a "thanks", a status ping, a link with no request, or an
-approval body from an earlier arm. When a comment mixes an ask with chatter,
-track it.
+an approval note, a "thanks", a status ping, a link with no request, or a
+comment the skill itself posted (an approval body or a rebuttal, known by its
+URL in a snapshot line or by the automated-attribution marker it carries).
+When a comment mixes an ask with chatter, track it.
 
 The arm report lists every tracked PR-level item by shape, URL, and first
 line, and every skipped one with a one-phrase reason. Say that the user can

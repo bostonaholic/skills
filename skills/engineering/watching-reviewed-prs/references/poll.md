@@ -59,6 +59,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
         nodes {
           id
           createdAt
+          url
           author { login }
         }
       }
@@ -285,7 +286,7 @@ transcript. It carries:
 - the verdict tally per item (by path for a thread, by URL for a PR-level
   item), with the reaction and the action each verdict placed (resolved,
   rebutted, or nothing), who resolved each thread (the viewer or the author),
-  and for a rebuttal the reply it answered
+  and for a rebuttal its URL and the reply it answered
 - a change note when the gate shrank or grew, the head moved, auto-merge
   flipped, a verdict was recorded or voided, or a thread was resolved or
   rebutted

@@ -2,8 +2,8 @@
 
 ## Grants
 
-An authorization phrase takes effect only together with an arming cue in the
-same instruction. A bare "handle the comments" routes to a one-shot
+Every grant needs an arming cue in the same instruction, the CI fix grant
+included. A bare "handle the comments" routes to a one-shot
 `/addressing-pr-comments` triage, not a watch. When the cue is ambiguous about
 authorization, use `present-then-stop`, never `authorized`.
 
@@ -64,7 +64,8 @@ The arm report names both grants.
 ## Re-arming
 
 - A soft-cap re-arm keeps both grants. A `Feedback exclusion`,
-  `CI exclusion`, or `CI fix bound` stop ends both, so a re-arm after one
-  starts in `present-then-stop` and `CI report` unless the user restates them.
+  `Push failure`, `CI exclusion`, or `CI fix bound` stop ends both, so a
+  re-arm after one starts in `present-then-stop` and `CI report` unless the
+  user restates them.
 - A second arm in the same session replaces the previous baseline and CI
   state. There is no cross-session state: after a restart, the user re-arms.

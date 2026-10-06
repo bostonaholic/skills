@@ -149,4 +149,11 @@ test("splice.mjs prints the same refused: prefix in splice mode as in --check mo
   });
   assert.equal(result.status, 1);
   assert.equal(result.stderr, "refused: the section to splice is empty\n");
+
+  const checkBody = join(dir, "check-body.md");
+  writeFileSync(checkBody, 'Body <img src="x">\n');
+  const check = spawnSync(process.execPath, [join(SCRIPTS, "splice.mjs"), "--check", "--body-file", checkBody], { encoding: "utf8" });
+  assert.equal(check.status, 1);
+  assert.match(check.stderr, /^refused: the body carries an HTML image tag/);
+  assert.equal(check.stdout, "");
 });

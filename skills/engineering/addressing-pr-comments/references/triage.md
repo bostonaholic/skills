@@ -22,8 +22,14 @@ gh pr view --json number,url,baseRefName
 gh pr view "<number-or-url>" --json number,url,baseRefName
 ```
 
-Take `owner`, `repo`, and `number` from `url`. On a GitHub Enterprise PR, pass
-`--hostname <host>`, the host of `url`, to every `gh api` call.
+Take `host`, `owner`, `repo`, and `number` from `url`. On a GitHub Enterprise
+PR, pass `--hostname <host>` to every `gh api` call.
+
+Record the working tree's state for step 8:
+
+```bash
+git status --porcelain=v1 --untracked-files=all
+```
 
 ## Step 2: Fetch all feedback
 
@@ -51,13 +57,12 @@ connections are disjoint; never take inline comments from a review summary.
 Keep `isOutdated` threads and flag them: an outdated thread is not resolved,
 and its concern can survive a rebase.
 
-Drop the viewer's own items by default: a review summary or conversation
-comment `$VIEWER` wrote, and a thread whose comments are all `$VIEWER`'s.
-They are the user's own notes, not feedback to address. Include them only when
-the user asks, and even then keep dropping the viewer's conversation comments
-whose first line starts with a review-record marker
-(`<!-- <producer>:pr-comment` and a space): a tool wrote those to record a
-deferred finding or review disposition. Count every dropped item for step 7.
+Drop a conversation comment only when `$VIEWER` wrote it and the first line
+of its body starts with a review-record marker (`<!-- <producer>:pr-comment`
+and a space, where `<producer>` is the producing tool's identifier): a tool
+wrote it to record a deferred finding or review disposition. The same marker
+from any other author stays in the set, and so does every unmarked item the
+viewer wrote. Count the dropped comments for step 7.
 
 Every item left in the set appears in the step 7 report exactly once, keyed by
 node id. Nothing is dropped silently; an ambiguous item surfaces as
@@ -129,8 +134,8 @@ Report in two sections:
    options tailored to it, and exactly one recommendation based on the
    verdict, the class, and the current diff.
 
-When step 3 dropped any items, end the report with
-`Skipped <n> of your own comments.`. Omit the line when n is 0.
+When step 3 dropped any comments, end the report with
+`Skipped <n> review-record comments.`. Omit the line when n is 0.
 
 Option menu (offer the ones that apply):
 
@@ -194,9 +199,17 @@ items last. Number blocks globally so the user can pick by number.
 
 ## Step 8: Stop and hand off
 
-Before ending the turn, confirm the working tree matches its state at step 1.
+Before ending the turn:
+
+1. Delete any throwaway test from step 4 that is still on disk.
+2. Rerun the step 1 `git status` command and compare its output with the
+   recorded one. When they differ, report each differing path. Never restore
+   or discard a change triage did not make.
+
 Do not begin editing, posting, or resolving any `Needs your decision` item in
-this turn. End with a short hand-off prompt, for example:
+this turn. When the set holds both the viewer's own items and other authors'
+items, ask whether the viewer's own items count as open items to address. End
+with a short hand-off prompt, for example:
 
 > Tell me which items to address and which option to take for each (default:
 > the recommendation). I will not touch anything else until you agree.

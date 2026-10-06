@@ -28,7 +28,9 @@ client-side:
   submits mid-watch join the gate. A PR-level item the viewer posts mid-watch
   joins only after a re-arm, because classification runs once at arm and a
   mid-watch body read is outside the hard rules. When one appears, name it,
-  say it is not tracked, and offer the re-arm.
+  say it is not tracked, and offer the re-arm. A rebuttal comment the skill
+  posted, matched by its URL in the snapshot line, is exempt: it never joins
+  and draws no note.
 - **Approval condition:** the tracked set is non-empty, the gate is empty, AND
   every tracked item holds a current re-review verdict of addressed or
   answered. A pending verdict blocks the approval and does not stop the loop.

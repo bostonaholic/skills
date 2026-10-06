@@ -14,13 +14,26 @@
 and an optional `--entries <path>`. With no PR token, the current branch's PR
 is resolved. Run `scripts/resolve-pr.sh` first: it splits the arguments,
 validates the PR token alone, resolves the PR in one call, and writes each
-derived value into the run's own directory. Bind the values the inline `gh`
-commands below and in [verify](references/verify.md) expand:
+derived value into the run's own directory.
+
+The invocation is caller text, so it never appears in a command, where a quote
+or a `$(` would rewrite the command rather than fill a slot in it
+([external-data rules](shared/external-data.md)). Create the run directory:
 
 ```bash
 RUN_DIR="$(mktemp -d)"                     # every temporary this run writes
 printf 'RUN_DIR=%s\n' "$RUN_DIR"           # later commands reuse this literal path
-"<skill-dir>/scripts/resolve-pr.sh" "$ARGUMENTS" "$RUN_DIR" || exit
+```
+
+With the file-writing tool, write the invocation exactly as given to
+`<RUN_DIR>/invocation`, even when it is empty. Then resolve the PR, and bind
+the values the inline `gh` commands below and in
+[verify](references/verify.md) expand:
+
+```bash
+RUN_DIR='<the literal RUN_DIR path>'
+INVOCATION="$(cat "$RUN_DIR/invocation")" || exit
+"<skill-dir>/scripts/resolve-pr.sh" "$INVOCATION" "$RUN_DIR" || exit
 PR_URL="$(cat "$RUN_DIR/pr-url")"          # the canonical URL, on the base repo
 PR_HOST="$(cat "$RUN_DIR/pr-host")"
 OWNER="$(cat "$RUN_DIR/owner")"
@@ -38,10 +51,10 @@ on stderr; report it with `outcome: refused`. Exit 2 is a fault (a missing
 writes its outputs back into it, so its literal path is the one value that has
 to survive from one command to the next, and the path the file-writing tool
 writes into. A command that lost the others re-binds them by re-running the
-six `cat` lines above against the same `$RUN_DIR`. Never re-run the
-`mktemp -d` and `resolve-pr.sh` lines: they resolve the PR a second time into
-a fresh directory and leave everything this run produced behind in the old
-one.
+six `cat` lines after `resolve-pr.sh` against the same `$RUN_DIR`. Never
+re-run the `mktemp -d` and `resolve-pr.sh` lines: they resolve the PR a second
+time into a fresh directory and leave everything this run produced behind in
+the old one.
 
 **`repo-spec` carries the host, and every later call uses it.** Every inline
 `gh pr view` and `gh pr edit` takes `--repo "$REPO_SPEC"`, never
@@ -61,11 +74,11 @@ edited.
 
 ## The entries file
 
-One input, one file, JSON. A calling skill writes it from its capture manifest. A
-session with no `--entries` flag writes the same JSON itself under
-`$(mktemp -d)` from the request — the paths exactly as the user gave them, and
-`root` set to the directory those images already live in, never to the
-directory the JSON was just written to.
+One input, one file, JSON. A calling skill writes it from its capture manifest.
+A session with no `--entries` flag writes the same JSON itself into `$RUN_DIR`
+from the request: the paths exactly as the user gave them, and `root` set to
+the directory those images already live in, never to the directory the JSON
+is written to.
 
 ```json
 {
@@ -87,34 +100,56 @@ basename with its extension removed.** Never describe the image instead: a
 guessed description is a claim in a public body. Ask only when the basename is
 empty after normalization.
 
-Write the file with `jq`, never by pasting the paths into a JSON string: a path
-is caller text, and a quote or a backslash in one rewrites the document rather
-than filling a slot in it ([external-data rules](shared/external-data.md)). This is the whole
-step; each entry's caption is that entry's own path, basename-only and
-extension-stripped:
+Never paste a request value into a JSON string or a command: a path or a
+caption is caller text, and a quote, a backslash, or a `$(` in one rewrites
+the document or the command rather than filling a slot in it
+([external-data rules](shared/external-data.md)). Instead, write each value
+with the file-writing tool into `$RUN_DIR`, one value per line, and let `jq`
+read the files with `--rawfile`:
+
+| File                  | Holds                                                         | Required |
+| --------------------- | ------------------------------------------------------------- | -------- |
+| `request-root`        | The directory the images already live in                      | Yes      |
+| `request-paths`       | One image path per line, exactly as the user gave them        | Yes      |
+| `request-captions`    | Line N: the caption the request named for path N, or nothing  | No       |
+| `request-states`      | Line N: the `state` the request named for path N, or nothing  | No       |
+| `request-entry-notes` | Line N: the `note` the request named for path N, or nothing   | No       |
+| `request-notes`       | One discrepancy line per line, for the top-level `notes` list | No       |
+
+A path that holds a newline cannot be written one per line: refuse the run and
+name it. Then build the entries file. This is the whole step; an entry with no
+caption line gets its basename, extension-stripped:
 
 ```bash
-ENTRIES_DIR="$(mktemp -d)"
-ENTRIES_FILE="$ENTRIES_DIR/entries.json"
-CAPTURE_ROOT=/Users/dev/Desktop/shots          # where the images ALREADY live
-jq -n --arg root "$CAPTURE_ROOT" '{
-  root: $root,
-  entries: ($ARGS.positional | map({
-    path: .,
-    caption: (split("/") | last | sub("\\.[^.]+$"; ""))
-  })),
-  notes: []
-}' --args "$CAPTURE_ROOT/login.png" "$CAPTURE_ROOT/login-error.png" >"$ENTRIES_FILE"
-printf '%s\n' "$ENTRIES_FILE" >"$RUN_DIR/entries-file"   # what `upload.sh` reads
+RUN_DIR='<the literal RUN_DIR path>'
+touch "$RUN_DIR/request-captions" "$RUN_DIR/request-states" \
+  "$RUN_DIR/request-entry-notes" "$RUN_DIR/request-notes"   # optional, may be absent
+jq -n \
+  --rawfile root "$RUN_DIR/request-root" --rawfile paths "$RUN_DIR/request-paths" \
+  --rawfile captions "$RUN_DIR/request-captions" --rawfile states "$RUN_DIR/request-states" \
+  --rawfile notes "$RUN_DIR/request-entry-notes" --rawfile top "$RUN_DIR/request-notes" '
+  def lines: rtrimstr("\n") | if . == "" then [] else split("\n") end;
+  def default_caption: split("/") | last | sub("\\.[^.]+$"; "");
+  ($captions | lines) as $c | ($states | lines) as $s | ($notes | lines) as $n
+  | {
+      root: ($root | lines | first),
+      entries: [$paths | lines | to_entries[]
+        | {path: .value,
+           caption: (if ($c[.key] // "") != "" then $c[.key] else .value | default_caption end)}
+          + (if ($s[.key] // "") != "" then {state: $s[.key]} else {} end)
+          + (if ($n[.key] // "") != "" then {note: $n[.key]} else {} end)],
+      notes: ($top | lines | map(select(. != "")))
+    }' >"$RUN_DIR/entries.json" || exit
+printf '%s\n' "$RUN_DIR/entries.json" >"$RUN_DIR/entries-file"   # what `upload.sh` reads
 ```
 
 The last line is what makes this path reachable: `resolve-pr.sh` writes an
 empty `entries-file` when the invocation carried no `--entries`, and
 `upload.sh` reads that file rather than a variable.
 
-`--args` binds each path as a positional value, so `jq` never parses one. Add a
-`caption`, a `state`, or a `note` the request supplied by binding each with its
-own `--arg`; add each discrepancy line to `notes` the same way.
+`--rawfile` hands each file to `jq` as one string, which the program splits on
+newlines, so no value is ever parsed as JSON or as shell. `touch` leaves a
+written file unchanged and creates an absent optional one empty.
 
 What `root` bounds is scope, not trust; the check that survives a hostile
 entries file is the per-entry validation in step 5 of
