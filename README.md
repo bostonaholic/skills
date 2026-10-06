@@ -85,6 +85,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core.
 - **[improving-prompts](./skills/productivity/improving-prompts/SKILL.md)**: Compress and clarify an existing prompt.
 - **[learning-from-mistakes](./skills/productivity/learning-from-mistakes/SKILL.md)**: Turn a correction into an approved instructions-file rule.
+- **[pricing-creativity](./skills/productivity/pricing-creativity/SKILL.md)**: Price creative work by value with Blair Enns's frameworks.
 - **[running-retros](./skills/productivity/running-retros/SKILL.md)**: Mine a session or named sources for durable learnings. Explicit invocation only.
 - **[writing-prose](./skills/productivity/writing-prose/SKILL.md)**: Write plain, short prose for people.
 - **[writing-system-prompts](./skills/productivity/writing-system-prompts/SKILL.md)**: Write or review a system prompt.
