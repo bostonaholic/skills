@@ -26,7 +26,7 @@ Copy this checklist and check off each step:
 | ------------------------------ | --------------------------------------------------------------------------------------- |
 | File paths                     | Those files                                                                             |
 | Directory                      | `git ls-files -- '<dir>/*.rb'` (the `*` also matches nested paths)                      |
-| Branch name                    | `git diff --name-only <branch>...HEAD -- '*.rb'`                                        |
+| Branch name                    | `git diff --name-only --diff-filter=d <branch>...HEAD -- '*.rb'`                        |
 | Nothing specified              | `git ls-files -- 'app/*.rb' 'lib/*.rb'`; start with services, models, concerns, helpers |
 | Focus area ("service objects") | The full-audit list, examining that pattern first                                       |
 
@@ -34,7 +34,7 @@ Copy this checklist and check off each step:
 
 Call the Skill tool with `simplifying-ruby-code` and cite its pattern numbers
 in findings. If it is missing, use these patterns and tell the user to install
-it with `npx skills add bostonaholic/skills --skill simplifying-ruby-code`:
+it with `npx skills@latest add bostonaholic/skills --skill simplifying-ruby-code`:
 
 1. Command objects to module functions
 2. Value objects to Data, Struct, or Hash
@@ -79,14 +79,15 @@ downgrade a finding whose callers you cannot account for.
 ## 6. Report template
 
 Use this template exactly: keep the section order and field labels, and write
-"None" under an empty section.
+"None" under an empty section. Head a finding with its pattern number and name,
+or with the section 3 anti-pattern name when no numbered pattern fits.
 
 ````markdown
 # Simplicity review: <scope>
 
 ## Critical issues
 
-### 1. Pattern <N>: <pattern name> in `<path>:<line>`
+### 1. <Pattern N: pattern name | anti-pattern name> in `<path>:<line>`
 
 **Problem:** <why it adds complexity; name its callers>
 **Complexity:** <S | M | L>

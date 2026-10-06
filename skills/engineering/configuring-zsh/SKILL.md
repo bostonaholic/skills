@@ -28,8 +28,8 @@ Write to the repo file, not the link: many editors and write tools replace a
 symlink with a regular file.
 
 ```sh
-zsh -c 'print -r -- ${ZDOTDIR:-$HOME}'
-for f in ~/.zshenv ~/.zprofile ~/.zshrc ~/.zlogin ~/.zlogout; do
+zdot=$(zsh -c 'print -r -- ${ZDOTDIR:-$HOME}')
+for f in ~/.zshenv "$zdot"/.zprofile "$zdot"/.zshrc "$zdot"/.zlogin "$zdot"/.zlogout; do
   [ -e "$f" ] && printf '%s -> %s\n' "$f" "$(readlink "$f" || echo 'regular file')"
 done
 ```
@@ -55,20 +55,21 @@ then `.zprofile` (login shells), then `.zshrc` (interactive shells), then
 terminal apps open login shells; most Linux terminals open non-login
 interactive shells.
 
-| Change                                                                  | File                                                                         |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `PATH` entries and exported variables for programs (`EDITOR`, `XDG_*`)  | `.zprofile`                                                                  |
-| Variables every shell needs, including scripts (`ZDOTDIR`, guard flags) | `.zshenv`                                                                    |
-| `setopt`, `unsetopt`, `zstyle`, prompt, framework and plugin list       | `.zshrc`                                                                     |
-| `FPATH` additions                                                       | `.zshrc`, before `compinit` (with oh-my-zsh, before sourcing `oh-my-zsh.sh`) |
-| Aliases, functions, `compdef` for them, interactive variables (`LESS`)  | `.zshrc` after `compinit`, or the custom plugin file                         |
-| Commands to run after login completes                                   | `.zlogin`                                                                    |
-| Cleanup on logout                                                       | `.zlogout`                                                                   |
+| Change                                                                                        | File                                                                         |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `PATH`, tool init that sets it (`eval "$(brew shellenv)"`), variables for programs (`EDITOR`) | `.zprofile`                                                                  |
+| Variables every shell needs, including scripts (`ZDOTDIR`, guard flags)                       | `.zshenv`                                                                    |
+| `setopt`, `unsetopt`, `zstyle`, prompt, framework and plugin list                             | `.zshrc`                                                                     |
+| `FPATH` additions                                                                             | `.zshrc`, before `compinit` (with oh-my-zsh, before sourcing `oh-my-zsh.sh`) |
+| Aliases, functions, `compdef` for them, interactive variables (`LESS`)                        | `.zshrc` after `compinit`, or the custom plugin file                         |
+| Commands to run after login completes                                                         | `.zlogin`                                                                    |
+| Cleanup on logout                                                                             | `.zlogout`                                                                   |
 
 - Put `PATH` in `.zprofile`, not `.zshenv` or `.zshrc`: macOS `/etc/zprofile`
   runs `path_helper`, which moves entries set in `.zshenv` behind the system
   paths, and `.zshrc` never runs for programs started outside an interactive
-  shell.
+  shell. Where no `path_helper` runs (most Linux systems), `.zshenv` is also
+  safe for `PATH` and reaches the non-login shells most Linux terminals open.
 - Keep `.zshenv` fast and silent; it runs for every script.
 - Edit an existing file when it is there; create a new startup file only when
   no existing one runs in the needed context.
@@ -95,7 +96,11 @@ Run until every check passes:
    - `.zprofile`: `zsh -lc 'print -r -- $VAR; print -r -- $PATH'`
    - `.zshrc` or plugin: `zsh -ic 'alias <name>; whence -v <function>'`
    - All together: `zsh -lic '...'`
-3. For a guarded alias, rerun the check with a marker the guard tests (for
-   example `CLAUDECODE=1 zsh -ic 'alias <name>'`) and confirm it prints
-   nothing.
+3. For a guarded alias, check both sides of the guard. An agent shell already
+   sets markers, so read every marker the guard tests, then:
+   - Unset all of them and confirm the new definition prints:
+     `env -u CLAUDECODE -u AI_AGENT zsh -ic 'alias <name>'`, with one `-u` per
+     marker.
+   - Set one and confirm the new definition is gone (it may print nothing or
+     an alias from another layer): `CLAUDECODE=1 zsh -ic 'alias <name>'`.
 4. Tell the user to open a new terminal; running shells keep the old config.

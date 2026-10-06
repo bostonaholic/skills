@@ -11,11 +11,12 @@ linters, and custom commands through one interface.
 ## Requirements
 
 Run `command -v dev && dev --version`. If `dev` is missing, ask the user how
-they install it; do not install it yourself. The `ruby`, `node`, `mysql`,
-`redis`, `postgresql`, and `yarn` tasks install missing Homebrew formulas
-(rbenv, nodenv, services) with `brew install`; `claude` and `claude-code` are
-macOS-only casks; `docker-compose` needs a running Docker. When the installed
-`dev` disagrees with this skill, trust `dev help` and its error messages.
+they install it; do not install it yourself. The `ruby`, `node`, `bundler`,
+`bun`, `yarn`, `mysql`, `redis`, and `postgresql` tasks install missing Homebrew
+formulas (rbenv and ruby-build, nodenv and node-build, bun, yarn, the services)
+with `brew install`; `claude` and `claude-code` are macOS-only casks;
+`docker-compose` needs a running Docker. When the installed `dev` disagrees
+with this skill, trust `dev help` and its error messages.
 
 ## Commands
 
@@ -36,9 +37,11 @@ macOS-only casks; `docker-compose` needs a running Docker. When the installed
   `dev check rubocop`, `dev up bundler`); extra `ARGS` are appended to the
   command.
 - `build`, `server`, `test`, `console`, and custom commands refuse to run until
-  `dev up` has created `.dev/`.
-- `DEBUG=1 dev up` prints debug logging to stderr. Exit code 1 is an expected
-  error (bad config, failed command); 2 is a bug in `dev`.
+  the last full `dev up` (no `TASK`) succeeded and wrote `.dev/up-complete`;
+  `dev up TASK` does not count. `check` and `open` are not gated.
+- `DEBUG=1 dev up` prints debug logging to stderr. Exit code 1 with an error
+  message is an expected failure (bad config, failed command); a Ruby backtrace
+  means a bug in `dev`.
 
 ### dev reset is destructive
 
@@ -62,8 +65,9 @@ Copy this checklist and check off each step:
 - [ ] 3. Write dev.yml, starting from the closest example config
 - [ ] 4. Parse it: ruby -ryaml -e 'YAML.load_file("dev.yml")'
 - [ ] 5. Add `.dev/` to .gitignore if it is missing
-- [ ] 6. Run `dev up`; fix the failing task, rerun `dev up <task>`, repeat until `dev up` passes
-- [ ] 7. Run `dev test` and `dev check`; fix the config (not the project) when a command is misconfigured
+- [ ] 6. List the Homebrew formulas, casks, and services `dev up` will install or start (see Requirements); before the first run, get the user's confirmation
+- [ ] 7. Run `dev up`; fix the failing task, rerun `dev up <task>`, repeat until a full `dev up` passes
+- [ ] 8. Run `dev test` and `dev check`; fix the config (not the project) when a command is misconfigured
 ```
 
 Read [example configurations](references/example-configs.md) at step 3 when
@@ -76,20 +80,22 @@ uses it begins. If a read fails, stop that step and report the exact path.
 `dev.yml` lives at the project root; `dev` finds it by walking up from the
 working directory.
 
-| Key        | Type                      | Used by                    |
-| ---------- | ------------------------- | -------------------------- |
-| `name`     | String                    | Output and help headings   |
-| `up`       | Array of tasks            | `dev up`                   |
-| `build`    | Runnable                  | `dev build`                |
-| `server`   | Runnable                  | `dev server`               |
-| `test`     | Runnable                  | `dev test`                 |
-| `console`  | Runnable                  | `dev console`              |
-| `check`    | Flat Hash[String, String] | `dev check` (linters only) |
-| `open`     | Flat Hash[String, URL]    | `dev open`                 |
-| `commands` | Hash[String, Runnable]    | `dev <name>`               |
+| Key        | Type                      | Used by                                              |
+| ---------- | ------------------------- | ---------------------------------------------------- |
+| `name`     | String                    | Output and help headings                             |
+| `env`      | Hash[String, String]      | Runnables, checks, and `custom` and `database` tasks |
+| `up`       | Array of tasks            | `dev up`                                             |
+| `build`    | Runnable                  | `dev build`                                          |
+| `server`   | Runnable                  | `dev server`                                         |
+| `test`     | Runnable                  | `dev test`                                           |
+| `console`  | Runnable                  | `dev console`                                        |
+| `check`    | Flat Hash[String, String] | `dev check` (linters only)                           |
+| `open`     | Flat Hash[String, URL]    | `dev open`                                           |
+| `commands` | Hash[String, Runnable]    | `dev <name>`                                         |
 
-Any other top-level key is silently ignored, so a top-level `deploy:` does
-nothing.
+Top-level `env` values expand `$VAR` and `${VAR}`; a runnable's own `env:`
+overrides them. Any key not in this table is silently ignored, so a top-level
+`deploy:` does nothing.
 
 ### Runnables
 
@@ -98,7 +104,7 @@ ignored):
 
 ```yaml
 test:
-  build_first: true # run `build:` first; requires a build: key; list it first
+  build_first: true # run `build:` first (base command only); list it first
   run: "bun run test:unit" # required in the hash form
   env:
     NODE_ENV: test # $VAR and ${VAR} expand from the current environment
@@ -107,6 +113,9 @@ test:
     watch: "bun run test" # dev test watch
     e2e: "bun run test:e2e" # dev test e2e
 ```
+
+`build_first` needs a `build:` key and applies only to the base command:
+`dev test e2e` skips the build, and a subcommand's own `build_first` is ignored.
 
 Subcommands must sit under `subcommands:`; a bare key beside `run:` is ignored
 and `dev test e2e` would append `e2e` to the base command. Subcommands take the
@@ -137,23 +146,28 @@ after a built-in command or alias (`server`, `s`) is shadowed by the built-in.
 Tasks run in the order listed. Each entry is a bare name or a one-key hash;
 unknown names and multi-key hashes are errors.
 
-| Task             | Arguments                                  | Effect                                                                                     |
-| ---------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `ruby`           | version, else `.ruby-version`              | `rbenv install`                                                                            |
-| `node`           | version, else `.node-version`              | `nodenv install`                                                                           |
-| `bundler`        | none                                       | `bundle install` into `vendor/bundle`                                                      |
-| `yarn`           | none                                       | `yarn install`                                                                             |
-| `npm`            | none                                       | `npm install`                                                                              |
-| `bun`            | none                                       | `bun install`                                                                              |
-| `env`            | none                                       | Copy missing `.env*` files from the main worktree, then from `.env*.example`; no overwrite |
-| `mysql`          | none                                       | `brew services start mysql`                                                                |
-| `redis`          | none                                       | `brew services start redis`                                                                |
-| `postgresql`     | none                                       | `brew services start postgresql`                                                           |
-| `docker-compose` | none                                       | `docker compose up -d --wait`                                                              |
-| `claude`         | none                                       | Install the Claude desktop app cask (macOS)                                                |
-| `claude-code`    | none                                       | Install the Claude Code cask (macOS)                                                       |
-| `database`       | `bootstrap`, `migrate` (optional)          | Bare: `bin/rails db:prepare`. With args: `migrate`, falling back to `bootstrap`            |
-| `custom`         | `name`, `met?`, `meet` (required), `reset` | Shell-based idempotent task                                                                |
+| Task             | Arguments                                  | Effect                                                                                             |
+| ---------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `ruby`           | version, else `.ruby-version`              | `rbenv install`                                                                                    |
+| `node`           | version, else `.node-version`              | `nodenv install`                                                                                   |
+| `bundler`        | none                                       | `bundle install` into `vendor/bundle`                                                              |
+| `yarn`           | none                                       | `yarn install`                                                                                     |
+| `npm`            | none                                       | `npm install`                                                                                      |
+| `bun`            | none                                       | `bun install`                                                                                      |
+| `env`            | none                                       | Copy missing env files; see below                                                                  |
+| `mysql`          | none                                       | `brew services start mysql`                                                                        |
+| `redis`          | none                                       | `brew services start redis`                                                                        |
+| `postgresql`     | none                                       | `brew services start postgresql`                                                                   |
+| `docker-compose` | none                                       | `docker compose up -d --wait`                                                                      |
+| `claude`         | none                                       | Install the Claude desktop app cask (macOS)                                                        |
+| `claude-code`    | none                                       | Install the Claude Code cask (macOS)                                                               |
+| `database`       | `bootstrap`, `migrate` (optional)          | Bare: `rbenv exec bundle exec rails db:prepare`. With args: `migrate`, falling back to `bootstrap` |
+| `custom`         | `name`, `met?`, `meet` (required), `reset` | Shell-based idempotent task                                                                        |
+
+The `env` task copies `.env`, `.env.local`, `.envrc`, `.env.keys`, and each
+file a `.env*.example` template names from the main worktree when missing here,
+then creates any still-missing templated file from its `.env*.example`. It never
+overwrites a file.
 
 A custom task runs `met?`; on a nonzero exit it runs `meet`, then `met?` again
 and fails if it still fails. `reset` is an idempotent undo that `dev reset`
@@ -170,10 +184,11 @@ up:
 
 ## Troubleshooting
 
-- A command uses the wrong Ruby or Node: `dev` sets `RBENV_VERSION`,
-  `NODENV_VERSION`, shims-first `PATH`, and `BUNDLE_PATH=vendor/bundle` from
-  `up:` or the version files. Check the `ruby`/`node` entries and version files
-  before changing the command.
+- A command uses the wrong Ruby or Node: `dev` sets `RBENV_VERSION` from the
+  `ruby` entry or `.ruby-version`, rbenv shims first on `PATH`, and
+  `BUNDLE_PATH=vendor/bundle`. It sets `NODENV_VERSION` and nodenv shims only
+  when `up:` lists `node`. Check those entries and version files before
+  changing the command.
 - A subcommand runs the base command: it is a bare key; move it under
   `subcommands:`.
 - A key seems to do nothing: it is an unknown top-level or runnable key, which

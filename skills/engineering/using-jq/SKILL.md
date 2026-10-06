@@ -52,18 +52,19 @@ list does not apply there.
 ## Edit a file in place
 
 `jq '...' f.json > f.json` truncates `f.json` before jq reads it. Write to a
-temporary file, check that it holds exactly one valid JSON value, then replace
-the original:
+temporary file, check that it holds exactly one JSON value of the expected
+type, then replace the original:
 
 ```sh
 jq '.version = "2.0"' package.json > package.json.tmp &&
-  [ "$(jq -s length package.json.tmp)" = 1 ] &&
+  jq -se 'length == 1 and (.[0] | type == "object")' package.json.tmp > /dev/null &&
   mv package.json.tmp package.json
 ```
 
-If any step fails, delete `package.json.tmp` and leave the original untouched.
-The length check catches a filter that emits a stream (for example a stray
-`.[]`), which `jq empty` alone accepts.
+Set `"object"` to the type the file should hold. If any step fails, delete
+`package.json.tmp` and leave the original untouched. The check rejects a filter
+that emits a stream (a stray `.[]`), nothing, or the wrong type (a stray
+`.version`), all of which `jq empty` accepts.
 
 ## References
 

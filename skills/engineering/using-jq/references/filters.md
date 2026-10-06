@@ -192,8 +192,9 @@ limit(3; .[] | select(.score > 50))
 {"b":2,"a":1} | keys          # ["a","b"]  (sorted)
 {"b":2,"a":1} | keys_unsorted # ["b","a"]  (insertion order)
 
-# values
-{"a":1,"b":2} | values        # [1,2]
+# values drops nulls; for an object's values use [.[]]
+[1,null,2] | map(values)      # [1,2]
+{"a":1,"b":2} | [.[]]         # [1,2]
 
 # has — check key/index existence
 {"a":1} | has("a")            # true
@@ -266,13 +267,13 @@ pow(2; 10)         # 1024
 0 | sin            # 0
 0 | cos            # 1
 1 | atan           # 0.7853981...
-atan(1; 1)         # 0.7853981... (atan2)
+atan2(1; 1)        # 0.7853981...
 
 # Special values
 infinite           # infinity
 nan                # NaN
 1e308 * 10 | isinfinite  # true
-(0/0) | isnan            # true
+nan | isnan              # true
 ```
 
 ## Date and Time Functions
