@@ -25,7 +25,8 @@ bind it exactly as they bind a lens.
 Run each pass inline in this session, one after another. Every subagent type
 the hosts ship can run shell commands, so no read-only target exists to
 dispatch a pass to; the read-only rule is a prompt restriction rather than a
-structural guarantee, and the report says the lenses ran inline.
+structural guarantee. The report's Lenses field says so:
+`ran inline; structural read-only guarantee unavailable`.
 
 Each pass reads every source path, its own question, the source-text and
 paraphrase rules, and the skill scope when the prompt is a bare skill name. It

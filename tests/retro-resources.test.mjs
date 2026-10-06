@@ -3,7 +3,7 @@
 // overwriting another source, an unreadable one must fail by name, and an
 // arbitrary repo path must pass the allowlist and containment guard.
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -73,6 +73,21 @@ test("resolve-transcript.mjs --file keeps two sources that share a basename", (t
   assert.match(second.stdout, new RegExp(`^normalized: ${join(runDir, "sources", "abc-2.jsonl")}$`, "m"));
   assert.equal(readFileSync(join(runDir, "sources", "abc.jsonl"), "utf8").split("\n").length, 2);
   assert.equal(readFileSync(join(runDir, "sources", "abc-2.jsonl"), "utf8").split("\n").length, 1);
+});
+
+test("resolve-transcript.mjs --file reuses the path when the normalized bytes match", (t) => {
+  const dir = scratchDir(t);
+  const transcript = join(dir, "abc.jsonl");
+  writeFileSync(transcript, CLAUDE_CODE_LINES);
+  const runDir = join(dir, "run");
+
+  const first = run("resolve-transcript.mjs", [runDir, "--file", transcript]);
+  const again = run("resolve-transcript.mjs", [runDir, "--file", transcript]);
+
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(again.status, 0, again.stderr);
+  assert.match(again.stdout, new RegExp(`^normalized: ${join(runDir, "sources", "abc.jsonl")}$`, "m"));
+  assert.deepEqual(readdirSync(join(runDir, "sources")), ["abc.jsonl"]);
 });
 
 test("resolve-transcript.mjs --file reports bytes as UTF-8 bytes", (t) => {

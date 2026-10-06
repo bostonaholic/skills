@@ -34,14 +34,15 @@ source line into a public tracker.
 ## File an approved issue
 
 Read the approved repository back from `<run cache>/repo.txt` and hold it to
-`owner/name` (letters, digits, `.`, `_`, `-`) in the same command that files the
-issue. Every prose value travels by file, the title included:
+`owner/name` (letters, digits, `.`, `_`, `-`; an owner never starts with `.`,
+and a name is never `.` or `..`) in the same command that files the issue.
+Every prose value travels by file, the title included:
 
 ```sh
 REPO="$(cat "<run cache>/repo.txt")"
 LC_ALL=C
 case "$REPO" in
-  '' | -* | */*/* | *[!A-Za-z0-9._/-]* | /* | */)
+  '' | -* | .* | */. | */.. | */*/* | *[!A-Za-z0-9._/-]* | /* | */)
     echo "refusing: the repository must be owner/name" >&2
     exit 1
     ;;

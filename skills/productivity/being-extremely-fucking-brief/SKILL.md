@@ -14,5 +14,6 @@ These run as long as they need to:
 
 - detail the user explicitly asked for;
 - code, commands, diffs, and file contents;
+- output formats another skill or instruction requires;
 - safety-critical warnings; and
 - approval prompts, which state exactly what will happen.

@@ -21,7 +21,7 @@ Classify each finding before writing it:
   shape, a file-location rule: anything restatable as a deterministic predicate
   over files at rest or over a command's exit status, with no judgment about
   intent. It goes to Backlog, and the item names the layer that would carry the
-  check (`docs/testing.md`).
+  check (per the repository's testing doc, when it has one).
 - **Judgment call**: cross-file consistency, "matches the surrounding style,"
   anything that needs intent to decide. It stays Accepted as a file edit.
 

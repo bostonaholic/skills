@@ -53,7 +53,8 @@ Codex, or OpenCode. A Conductor session resolves as whichever of those it runs.
 It identifies the session by the id the host exported, or, where the host
 exports none, by a fixed-string search for the marker. It never returns an
 unmatched session's content, takes the newest file, guesses from the working
-directory, or picks among candidates. Named failures stop the run instead:
+directory, or picks among candidates. In this step, a named failure stops the
+run instead:
 
 | Failure                    | What it means                                                                                                       | What to report                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -90,10 +91,13 @@ and never widen a source past what the prompt asked.
   `~/.claude/projects/<project-slug>/`; Codex in its dated `sessions/` tree,
   matched by the working directory each rollout records). Normalize each with
   `node "<skill-dir>/scripts/resolve-transcript.mjs" "<the printed run cache path>" --file "<transcript path>"`,
-  which writes `sources/<name>.jsonl` (suffixed `-2`, `-3`, ... when an earlier
-  source took the name) and prints the same counts as step 3. Exclude this
-  session's own file unless the prompt asked for it. OpenCode's past sessions
-  live in SQLite and are not read; say so.
+  which writes `sources/<name>.jsonl` (suffixed `-2`, `-3`, ... when a
+  different earlier source took the name; the same transcript normalized again
+  reuses its path) and prints the same counts as step 3. A named failure here,
+  such as `unreadable-transcript` or `unsupported-format`, does not stop the
+  run: mark that session unread in `sources.md` with the failure name. Exclude
+  this session's own file unless the prompt asked for it. OpenCode's past
+  sessions live in SQLite and are not read; say so.
 - **PR review comments, issues, and other tracker text**: fetch with the
   repository's authenticated `gh` (`gh api --paginate`), every call carrying
   the repository explicitly, and save the JSON response as the source file.

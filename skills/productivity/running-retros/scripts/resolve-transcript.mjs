@@ -9,8 +9,9 @@
  *
  * Output: the session form writes <run-cache-dir>/transcript.jsonl; the --file
  * form writes <run-cache-dir>/sources/<name>.jsonl, suffixed -2, -3, ... when
- * an earlier source already took that name. Both print `key: value` count
- * lines on stdout.
+ * a different earlier source already took that name, and reuses the path when
+ * the same output is already there. Both print `key: value` count lines on
+ * stdout.
  *
  * Exit codes: 0 when the transcript was normalized; 1 on a usage error or a
  * named failure, whose name is the first stderr line, followed by `tried:` and
@@ -886,17 +887,21 @@ export function normalizeOpencode({ dbPath, sessionId }) {
 /**
  * Writes `text` to a new `<stem>.jsonl` in `dir`, or `<stem>-2.jsonl`, `-3`, ...
  * when that name is taken, so two named sources with one basename never
- * overwrite each other. The exclusive flag makes the existence check and the
- * write one step. Returns the path written.
+ * overwrite each other. A taken name whose bytes already equal `text` is the
+ * same source normalized again, so its path is reused instead of adding a
+ * duplicate. The exclusive flag makes the existence check and the write one
+ * step. Returns the path holding `text`.
  */
 function writeNewSource(dir, stem, text) {
+  const bytes = Buffer.from(text, "utf8");
   for (let suffix = 1; ; suffix++) {
     const path = join(dir, suffix === 1 ? `${stem}.jsonl` : `${stem}-${suffix}.jsonl`);
     try {
-      writeFileSync(path, text, { encoding: "utf8", flag: "wx" });
+      writeFileSync(path, bytes, { flag: "wx" });
       return path;
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
+      if (readFileSync(path).equals(bytes)) return path;
     }
   }
 }

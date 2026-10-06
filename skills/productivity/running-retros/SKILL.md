@@ -163,7 +163,7 @@ step 7 and the full report after the apply turn.
 Run cache: <absolute path>
 Prompt: <the restatement from step 1, or "none: this session, three lenses">
 Sources: <per source: path or URL, counts printed when gathered, "read whole" or the unread part>
-Lenses: ran inline in this session; <"every pass read every source whole", or each pass left unrun or partly read>
+Lenses: ran inline; structural read-only guarantee unavailable; <"every pass read every source whole", or each pass left unrun or partly read>
 Plan: <absolute path of plan.md>
 Accepted: <per item: target, learning, evidence>
 Rejected: <per item: finding, reason>
