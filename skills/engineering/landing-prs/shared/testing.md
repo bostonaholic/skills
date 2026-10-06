@@ -19,6 +19,7 @@ These rules govern every acceptance test and are the bar reviewers hold changed 
 - Test failures must be actionable
 - Wait for the condition. Never sleep
 - Assert outcomes, not interleavings
+- Prove a race with two connections
 - Control the clock
 - Seed all randomness
 - Tests own their state — any order, any host
@@ -148,6 +149,12 @@ Replace every fixed `sleep(N)` with a wait-for-condition primitive.
 ## Assert outcomes, not interleavings
 
 Never depend on scheduler order. `join()`/`await` every concurrent task before asserting. Sort or compare sets unless order is the contract.
+
+## Prove a race with two connections
+
+A claimed race is proven by a test that reproduces it, never by reading code, and the test must fail before the fix. Drive each side on its own connection: a transactional test harness puts both sides on one connection, which hides the conflict. Gate the interleaving with explicit handoffs so it does not depend on the scheduler, then assert the surviving state. The handoffs make the outcome reachable; they are not the assertion.
+
+Detect blocking by whether the second side completes within a timeout. Engine lock tables report only your own transactions without elevated privileges, so an empty result there is not evidence that nothing is locked.
 
 ## Control the clock
 
