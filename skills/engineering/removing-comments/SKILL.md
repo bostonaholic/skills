@@ -61,8 +61,9 @@ Track these steps per the [execution rules](shared/execution.md).
 5. **Delete comment-only removals.** Leave every `KEEP` unchanged. Delete
    each `REMOVE [comment-only]` comment.
 6. **Gate behavior changes.** Present every `REMOVE [root-cause]` and every
-   `ENCODE` finding as one named set through `AskUserQuestion`: approve the
-   stated corrections and encodings, or keep those comments.
+   `ENCODE` finding as one named set through `AskUserQuestion` (in chat on a
+   host without it, then wait): approve the stated corrections and encodings,
+   or keep those comments.
    - On approval, for each root-cause finding, reproduce the behavior the
      comment works around, make the smallest in-scope correction of its
      cause, verify it with the narrowest project check, and then delete the

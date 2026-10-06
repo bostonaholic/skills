@@ -13,7 +13,8 @@ Read each linked file from this skill's directory when the step that uses it beg
 
 `$ARGUMENTS` is the path to one design document. When it is empty, names a
 directory, or names no readable file, ask for the file path with
-`AskUserQuestion` under a `Setup` header. Never guess.
+`AskUserQuestion` under a `Setup` header where the host has it; otherwise ask
+in chat and wait. Never guess.
 
 ## Steps
 

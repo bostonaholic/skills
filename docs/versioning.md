@@ -9,7 +9,8 @@ separate version PRs, or npm package publications.
 ## What releases
 
 Changes under `skills/engineering/`, `skills/productivity/`, and `agents/`, plus functional
-changes in the plugin and marketplace manifests, require a release.
+changes in the Claude Code and Cursor plugin manifests and the marketplace
+manifest, require a release.
 Renames and removals count. Shared source edits reach users through regenerated
 copies in active skills. Archives, tests, workflows, site code, and maintainer
 documentation alone do not bump the version. Manifest comparisons ignore
@@ -59,7 +60,8 @@ the plugin manifest also excludes it. It remains available to repository maintai
    ancestor of the current branch. Require a clean checkout.
 2. Run `npm run release:prepare -- minor origin/main` (choose the actual level
    and base). This regenerates shared copies, computes the version from the
-   fetched base, updates `.claude-plugin/plugin.json`, `package.json`, and both
+   fetched base, updates `.claude-plugin/plugin.json`,
+   `.cursor-plugin/plugin.json`, `package.json`, and both
    root versions in `package-lock.json`, and cuts the dated changelog section.
 3. Review the generated diff, run `npm test`, and make a signed
    `chore(version): X.Y.Z` commit. Verify its signature.

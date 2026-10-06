@@ -1,0 +1,61 @@
+{
+  "name": "bostonaholic",
+  "version": "0.13.0",
+  "description": "Matthew Boston's personal software engineering skills for coding agents.",
+  "author": {
+    "name": "Matthew Boston"
+  },
+  "homepage": "https://skills.bostonaholic.dev",
+  "repository": "https://github.com/bostonaholic/skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "pull-requests",
+    "code-review",
+    "audits"
+  ],
+  "skills": [
+    "./skills/engineering/addressing-pr-comments",
+    "./skills/engineering/attaching-pr-screenshots",
+    "./skills/engineering/auditing-complexity",
+    "./skills/engineering/auditing-repo-security",
+    "./skills/engineering/auditing-tests",
+    "./skills/engineering/capturing-screenshots",
+    "./skills/engineering/configuring-zsh",
+    "./skills/engineering/diagnosing-react-code",
+    "./skills/engineering/drawing-mermaid-diagrams",
+    "./skills/engineering/explaining-architecture",
+    "./skills/engineering/grooming-backlogs",
+    "./skills/engineering/investigating-design-rationale",
+    "./skills/engineering/landing-prs",
+    "./skills/engineering/merging-dependabot-prs",
+    "./skills/engineering/proving-claims",
+    "./skills/engineering/rebasing-branches",
+    "./skills/engineering/rebasing-dependabot-prs",
+    "./skills/engineering/rebasing-open-prs",
+    "./skills/engineering/redoing-implementations",
+    "./skills/engineering/removing-comments",
+    "./skills/engineering/reviewing-code",
+    "./skills/engineering/reviewing-design-docs",
+    "./skills/engineering/reviewing-rails-code",
+    "./skills/engineering/reviewing-ruby-code",
+    "./skills/engineering/simplifying-ruby-code",
+    "./skills/engineering/using-gh-cli",
+    "./skills/engineering/using-jq",
+    "./skills/engineering/watching-authored-prs",
+    "./skills/engineering/watching-reviewed-prs",
+    "./skills/productivity/being-extremely-fucking-brief",
+    "./skills/productivity/composing-agent-prompts",
+    "./skills/productivity/cutting-skills",
+    "./skills/productivity/improving-prompts",
+    "./skills/productivity/learning-from-mistakes",
+    "./skills/productivity/pricing-creativity",
+    "./skills/productivity/running-retros",
+    "./skills/productivity/writing-prose",
+    "./skills/productivity/writing-system-prompts"
+  ],
+  "agents": [
+    "./agents/clean-code-architect.md",
+    "./agents/oracle.md"
+  ]
+}

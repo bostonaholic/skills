@@ -59,6 +59,7 @@ function fixture(t, { bootstrap = false } = {}) {
     "package.json": JSON.stringify({ name: "fixture", version: "0.1.0", private: true, scripts: SCRIPTS }),
     "package-lock.json": JSON.stringify({ name: "fixture", version: "0.1.0", lockfileVersion: 3, packages: { "": { name: "fixture", version: "0.1.0" } } }),
     ".claude-plugin/plugin.json": JSON.stringify({ name: "fixture", version: "0.1.0" }),
+    ".cursor-plugin/plugin.json": JSON.stringify({ name: "fixture", version: "0.1.0" }),
     "CHANGELOG.md": bootstrap ? "# Changelog\n\n## [Unreleased]\n\n- Initial fixture release.\n" : RELEASED,
     "shared/rule.md": RULE,
     "skills/engineering/widget/SKILL.md": "Read [the fixture rule](shared/rule.md).\n",
@@ -125,12 +126,14 @@ test("runtime classification excludes archives and tooling and ignores manifest 
   assert.equal(runtimeChanged(["skills/deprecated/old/file", "scripts/release.mjs", "docs/versioning.md"], before, after), false);
   assert.equal(runtimeChanged([".claude-plugin/plugin.json"], before, after), false);
   assert.equal(runtimeChanged([".claude-plugin/plugin.json"], before, () => '{"name":"renamed","version":"0.2.0"}'), true);
+  assert.equal(runtimeChanged([".cursor-plugin/plugin.json"], before, after), false);
+  assert.equal(runtimeChanged([".cursor-plugin/plugin.json"], before, () => '{"name":"renamed","version":"0.2.0"}'), true);
   assert.equal(runtimeChanged(["skills/productivity/widget/file"], before, after), true);
   assert.equal(runtimeChanged(["agents/widget.md"], before, after), true);
 });
 
 test("manifest descriptions can be added, edited, or removed without a release", () => {
-  for (const path of [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"]) {
+  for (const path of [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".cursor-plugin/plugin.json"]) {
     const manifest = { name: "fixture" };
     if (path.endsWith("marketplace.json")) manifest.plugins = [{ name: "fixture", source: "./" }];
     const bare = JSON.stringify(manifest);
@@ -207,7 +210,7 @@ test("preparation repairs copies, versions all manifests, and can be re-entered 
   const result = run(f, "release:prepare", ["minor", "base"]);
   assert.equal(result.status, 0, result.output);
   assert.equal(readFileSync(join(f.root, COPY), "utf8"), RULE + "Updated.\n");
-  for (const path of ["package.json", "package-lock.json", ".claude-plugin/plugin.json"]) assert.equal(readJson(f.root, path).version, "0.2.0");
+  for (const path of ["package.json", "package-lock.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) assert.equal(readJson(f.root, path).version, "0.2.0");
   assert.equal(readJson(f.root, "package-lock.json").packages[""].version, "0.2.0");
   commit(f.root, "chore(version): 0.2.0");
   const again = run(f, "release:prepare", ["minor", "base"]);
@@ -239,7 +242,7 @@ test("development-only PRs need no bump and reject a version-only bump", (t) => 
   commit(f.root);
   assert.equal(run(f, "release:prepare", ["minor", "base"]).status, 0);
   assert.equal(run(f, "release:check", ["base"]).status, 0);
-  for (const path of ["package.json", "package-lock.json", ".claude-plugin/plugin.json"]) {
+  for (const path of ["package.json", "package-lock.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) {
     const manifest = readJson(f.root, path);
     manifest.version = "0.2.0";
     if (path === "package-lock.json") manifest.packages[""].version = "0.2.0";

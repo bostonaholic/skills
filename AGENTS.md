@@ -16,9 +16,9 @@ Read repository files after cloning or downloading the public repository; the ca
 A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` frontmatter carries a `name` and a `description` with a `Use when` clause; the body is the procedure.
 
 - **Model-invoked skills** load when a request matches their description.
-- **Explicit-invocation skills**, marked "Explicit invocation only" in the README, run only when the user names them: `/<name>` in Claude Code (`/bostonaholic:<name>` when installed as the plugin), `$<name>` in Codex.
+- **Explicit-invocation skills**, marked "Explicit invocation only" in the README, run only when the user names them: `/<name>` in Claude Code (`/bostonaholic:<name>` when installed as the plugin) and Cursor, `$<name>` in Codex.
 - **Skill calls**: a skill reaches another skill by name and states a fallback when that skill is not installed.
-- **Subagents** in `agents/` (`oracle`, `clean-code-architect`) ship only with the Claude Code plugin. `npx skills` installs skills without them.
+- **Subagents** in `agents/` (`oracle`, `clean-code-architect`) ship only with the Claude Code and Cursor plugins. `npx skills` installs skills without them.
 
 ## Repository map
 
@@ -27,8 +27,8 @@ A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` 
 | Active skills | `skills/engineering/`, `skills/productivity/` | One skill per directory. Engineering covers code, PR, and developer-tooling work; productivity covers prompts, writing, and personal workflow. |
 | Archived skills | `skills/deprecated/` | Retired skills with `SKILL.md.disabled` entrypoints. Never installed or catalogued. |
 | Shared rules | `shared/` | Source for rules several skills use, copied into each skill's `shared/` by `npm run sync-shared`. |
-| Subagents | `agents/*.md` | Claude Code subagents registered in the plugin manifest. |
-| Plugin metadata | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` | Claude Code plugin and marketplace manifests. |
+| Subagents | `agents/*.md` | Subagents registered in the Claude Code and Cursor plugin manifests. |
+| Plugin metadata | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json` | Claude Code plugin and marketplace manifests, and the Cursor plugin manifest. |
 | Catalog and site | `README.md`, `scripts/catalog.mjs`, `scripts/build-site.mjs`, `docs/` | Generated README catalog, static site, and maintainer docs. |
 | Installation | `INSTALL.md` | Install and update steps for people and agents. |
 | Tooling | `scripts/`, `tests/`, `.github/workflows/` | Linting, shared-copy sync, releases, script tests, and CI. |
@@ -47,7 +47,7 @@ A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` 
 ## Rules for changes
 
 1. Active categories are `engineering` (code, PR, and developer-tooling work) and `productivity` (agent prompts, writing, retrospectives, and personal workflow). One active skill per `skills/<category>/<name>/`: `SKILL.md` with `name` equal to the directory, plus `agents/openai.yaml`. No symlinks and no nested `SKILL.md` inside a skill.
-2. The plugin `skills` array lists every active tracked skill, and its `agents` array lists every Claude Code subagent in `agents/*.md`. Run `claude plugin validate . --strict` and `claude plugin validate .claude-plugin/plugin.json --strict` after editing either manifest.
+2. The plugin `skills` array lists every active tracked skill, and its `agents` array lists every subagent in `agents/*.md`. `.cursor-plugin/plugin.json` carries the same `name`, `version`, `skills`, and `agents` as `.claude-plugin/plugin.json`. Run `claude plugin validate . --strict` and `claude plugin validate .claude-plugin/plugin.json --strict` after editing either manifest.
 3. Run `npm run readme` after adding, renaming, or re-describing a skill.
 4. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`.
 5. Every link, code-span path, and script path resolves inside the skill directory, from one base per file: a file in a skill's `shared/` links its siblings; every other file links from the skill directory (`shared/X.md`, `references/X.md`). `<skill-dir>`, or `<x-skill-dir>` where `x` is the skill's own name, names the skill's own directory; a placeholder for any other location must not end in `-dir` or `-root` (for example `<out>`). A skill reaches another skill only with "call the Skill tool with `<name>`" and a stated fallback for when it is missing.
@@ -57,7 +57,7 @@ A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` 
 9. Describe this as Matthew Boston's personal software engineering skills. Keep the introduction short, without a feature list. Keep extraction history out of the README and site. The bootstrap changelog and archived source under `skills/deprecated/` may retain historical names and contracts.
 10. New repo-level prose avoids em dashes.
 11. Tests: `npm test`. Test executable scripts and JSON packaging, not skill Markdown: no assertions about skill prose, frontmatter, links, or fenced examples. Script tests may use synthetic Markdown inputs and inspect generated Markdown outputs. Agent behavior belongs in the eval suite tracked in [#19](https://github.com/bostonaholic/skills/issues/19).
-12. Every skill follows [skill authoring](docs/skill-authoring.md): gerund names, third-person descriptions with a `Use when` clause, references linked directly from `SKILL.md`, and a `## Contents` section in files over 100 lines. Run `npm run lint:skills` after editing a skill. Subagents in `agents/` follow the same description form (A3 to A6), concision (B1), tier-alias models (E1), and output templates (E3). Their names are role nouns, since the gerund rule (A2) names skills, and they ship only with the Claude Code plugin.
+12. Every skill follows [skill authoring](docs/skill-authoring.md): gerund names, third-person descriptions with a `Use when` clause, references linked directly from `SKILL.md`, and a `## Contents` section in files over 100 lines. Run `npm run lint:skills` after editing a skill. Subagents in `agents/` follow the same description form (A3 to A6), concision (B1), tier-alias models (E1), and output templates (E3). Their names are role nouns, since the gerund rule (A2) names skills, and they ship only with the Claude Code and Cursor plugins. A read-only subagent sets `readonly: true` beside its `tools` list, since Cursor ignores `tools`.
 
 ## Verification
 
