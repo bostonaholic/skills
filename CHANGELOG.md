@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-06
+
 ### Added
 
 - Install the skills and subagents as a Cursor plugin. [#23](https://github.com/bostonaholic/skills/pull/23)
@@ -217,5 +219,7 @@
 
 [0.12.0]: https://github.com/bostonaholic/skills/compare/v0.11.0...v0.12.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.13.0...HEAD
 [0.13.0]: https://github.com/bostonaholic/skills/compare/v0.12.0...v0.13.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/bostonaholic/skills/compare/v0.13.0...v0.14.0
