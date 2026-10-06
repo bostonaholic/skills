@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add `explaining-code`, which explains a PR, diff, or piece of code briefly (`eli5`) or in full for a reviewer (`elie`). [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `explaining-code`, which explains a PR, diff, or piece of code briefly or in full for a reviewer (`elie`). [#24](https://github.com/bostonaholic/skills/pull/24)
 - Add `verifying-production-changes`, which gates on a deploy by revision ancestry and verifies migrations and backfills read-only. [#24](https://github.com/bostonaholic/skills/pull/24)
 - Add `writing-technical-design-docs`, which drafts directionally correct design docs. [#24](https://github.com/bostonaholic/skills/pull/24)
 - Add `auditing-rails-tech-debt`, which audits a Rails app for tech debt with cited findings and before/after code. [#24](https://github.com/bostonaholic/skills/pull/24)

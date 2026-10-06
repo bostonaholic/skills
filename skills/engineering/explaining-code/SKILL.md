@@ -1,7 +1,7 @@
 ---
 name: explaining-code
-description: Explains code or code changes in plain language, briefly by default or in full for a reviewer. Use when asked to explain, ELI5, ELIE, summarize, or break down a PR, diff, branch, file, function, or concept for someone new to the code. Not for how a whole subsystem works; use explaining-architecture.
-argument-hint: "[eli5|elie] <PR, file, function, branch, or concept>"
+description: Explains code or code changes in plain language, briefly by default or in full for a reviewer. Use when asked to explain, ELIE, summarize, or break down a PR, diff, branch, file, function, or concept for someone new to the code. Not for how a whole subsystem works; use explaining-architecture.
+argument-hint: "[elie] <PR, file, function, branch, or concept>"
 ---
 
 # Explaining code
@@ -24,15 +24,14 @@ clear. Ask once what to explain, and do no work until the user answers.
 
 ## Depth
 
-- **Brief** (ELI5, the default): follow the Brief section below.
+- **Brief** (the default): follow the Brief section below.
 - **Full** (ELIE): selected by a leading `elie` or `eliet` token, or by a
   request for ELIE, an explanation "for an engineer" or "for a reviewer", an
   "in depth" explanation, or the full explanation. After gathering context,
   read [full explanation](references/full-explanation.md) and follow it instead
   of the Brief section.
 
-A leading `eli5` token selects Brief. Drop the depth token before reading the
-subject.
+Drop the depth token before reading the subject.
 
 ## Gathering context
 
