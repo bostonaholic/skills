@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-06
+
 ### Changed
 
 - Rename the Claude Code marketplace to `skills`; reinstall with `claude plugin install bostonaholic@skills`. [#11](https://github.com/bostonaholic/skills/pull/11)
@@ -91,5 +93,7 @@
 
 [0.4.1]: https://github.com/bostonaholic/skills/compare/v0.4.0...v0.4.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/bostonaholic/skills/compare/v0.4.1...v0.5.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/bostonaholic/skills/compare/v0.5.0...v0.6.0
