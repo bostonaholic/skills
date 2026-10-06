@@ -12,13 +12,33 @@ passed with `-e` so grep does not read them as options.
 
 ## Contents
 
+- File inventory
 - Auto-run and install hooks
 - Network and exfiltration
 - File system access
 - Code execution
 - Obfuscation
 - Credentials and secrets
+- Containers, CI, and privileges
 - False positives
+
+## File inventory
+
+What the greps skip. These commands print paths and skip only `.git`, so they
+also list `node_modules`, `vendor`, and `dist`.
+
+```bash
+# Hidden files and directories.
+find . -mindepth 1 -path ./.git -prune -o -name '.*' -print
+# Executables.
+find . -path ./.git -prune -o -type f -perm -u+x -print
+# Binaries: files that grep -I skips.
+find . -path ./.git -prune -o -type f -size +0 -exec file --mime-encoding {} + | grep -E ':\s*binary$'
+# Minified or packed code: hand-written code rarely has a 500-character line.
+# awk, not grep: BSD grep rejects a repetition count over 255.
+find . -path ./.git -prune -o -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.py' -o -name '*.rb' -o -name '*.sh' \) \
+  -exec awk 'length > 500 { print FILENAME; nextfile }' {} +
+```
 
 ## Auto-run and install hooks
 
@@ -44,7 +64,7 @@ grep -rnIE -e '"(initializeCommand|onCreateCommand|updateContentCommand|postCrea
 ls -a .husky .githooks 2>/dev/null
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '(core\.hooksPath|husky install|simple-git-hooks)' .
 # CI that runs fork code with repository secrets.
-grep -rnIE -e 'pull_request_target' .github/workflows
+grep -rnIE -e '(pull_request_target|workflow_run)' .github/workflows
 # Build-time code execution.
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '(^//go:generate|\$\(shell )' .
 ```
@@ -160,6 +180,23 @@ grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
   -e '(\.\.\.\s*process\.env\b|Object\.assign\s*\([^)]*\bprocess\.env\s*[,)]|\*\*\s*os\.environ\b)' .
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
   -e '(navigator\.clipboard\.readText|\bpbpaste\b|\bxclip\b|security find-(generic|internet)-password|\bkeytar\b)' .
+```
+
+## Containers, CI, and privileges
+
+Containers that reach the host, CI that leaks secrets, and scripts that ask
+for root or set privilege bits. Worse when an auto-run entry or install hook
+reaches them.
+
+```bash
+# Privileged containers, added capabilities, the host's Docker socket, and host namespaces.
+grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
+  -e '(--privileged|privileged"?\s*:\s*true|--cap-add|cap_add|"capAdd"|docker\.sock|(network_mode|pid|ipc)"?\s*:\s*"?host|--(net|network|pid|ipc)[= ]host)' .
+# CI secrets printed or dumped whole, and workflow tokens granted every write permission.
+grep -rnIE -e '((echo|printf).*\$\{\{\s*secrets\.|toJSON\(\s*secrets\s*\)|permissions:\s*write-all)' .github/workflows
+# sudo, setuid or setgid bits, and file capabilities.
+grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
+  -e '(\bsudo\b|\bchmod\b.*(\+s\b|\b[2-7][0-7]{3}\b)|\bsetcap\b)' .
 ```
 
 ## False positives
