@@ -20,7 +20,7 @@
 - Refuse to force-push in `rebasing-branches` when the remote has commits the branch lacks. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Save binary changes and untracked files before `redoing-implementations` resets an attempt. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Never install dependencies during `auditing-repo-security`, and fix detection patterns that errored or never matched. [#18](https://github.com/bostonaholic/skills/pull/18)
-- Correct `using-jq`, `drawing-mermaid-diagrams`, and `using-dev-cli` examples that failed on current tool versions. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Correct `using-jq` and `drawing-mermaid-diagrams` examples that failed on current tool versions. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Enforce the upload refusals in `attaching-pr-screenshots` and resolve the current branch's PR when none is given. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Fix `grooming-backlogs` promotion mode, which read a board cache it never wrote. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Include untracked files and skip deleted ones in `removing-comments`. [#18](https://github.com/bostonaholic/skills/pull/18)
@@ -28,6 +28,7 @@
 
 ### Removed
 
+- Move `dev-cli` to the [bostonaholic/dev](https://github.com/bostonaholic/dev) repository, which ships it as a Claude Code plugin: `claude plugin marketplace add bostonaholic/dev`, then `claude plugin install dev@dev`. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Remove the unused `write-companion.sh` script from `attaching-pr-screenshots`. [#18](https://github.com/bostonaholic/skills/pull/18)
 
 ## [0.6.0] - 2026-10-06

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Using the dev CLI"
-  short_description: "Write dev.yml and run the dev CLI"
-  default_prompt: "Use $using-dev-cli to write, fix, or run this project's dev.yml."
