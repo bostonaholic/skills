@@ -17,8 +17,9 @@ the collection's extraction history.
 - `scripts/build-site.mjs` renders the catalog and 404 page. `docs/style.css`
   controls their appearance, and `docs/copy-code.js` adds the code-block copy
   buttons.
-- `package.json`, `.claude-plugin/plugin.json`, and
-  `.claude-plugin/marketplace.json` carry the package and plugin descriptions.
+- `package.json`, `.claude-plugin/plugin.json`,
+  `.claude-plugin/marketplace.json`, and `.cursor-plugin/plugin.json` carry the
+  package and plugin descriptions.
   Keep them consistent with the personal software engineering focus.
 
 ## Generate and check

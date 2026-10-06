@@ -2,6 +2,7 @@
 name: oracle
 description: Gives a read-only second opinion on a hard problem, an unexplained bug or a choice between implementation approaches. Use when the main agent is stuck on a diagnosis or design trade-off. Not for diff review, how code works, or why it was built; use reviewing-code, explaining-architecture, or investigating-design-rationale.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+readonly: true
 model: opus
 ---
 
