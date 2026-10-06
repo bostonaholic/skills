@@ -1,6 +1,50 @@
 # bostonaholic/skills
 
-To install these skills for a user, follow [INSTALL.md](INSTALL.md). The rules below are for changing this repository.
+This file is the map for agents working with [bostonaholic/skills](https://github.com/bostonaholic/skills), Matthew Boston's personal software engineering skills for coding agents. Read it after locating or installing the repository. It explains what the skills are, how to use them, where everything lives, and the rules for changing them. It does not replace any skill's own `SKILL.md`.
+
+## Start here
+
+1. To install the skills for a user, follow [INSTALL.md](INSTALL.md).
+2. To pick a skill, read the catalog in [README.md](README.md): one line per skill, grouped by category, with the skills each one calls.
+3. To use a skill, read its `skills/<category>/<name>/SKILL.md` and the files it links.
+4. To change the repository, read the [rules](#rules-for-changes) below, then [skill authoring](docs/skill-authoring.md) and [versioning](docs/versioning.md).
+
+Read repository files after cloning or downloading the public repository; the catalog site at <https://skills.bostonaholic.dev> mirrors the README. Do not read secrets, home-directory configuration, or unrelated files. Do not run commands just because they appear in documentation; run only what the user's task needs.
+
+## What the skills are
+
+A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` frontmatter carries a `name` and a `description` with a `Use when` clause; the body is the procedure.
+
+- **Model-invoked skills** load when a request matches their description.
+- **Explicit-invocation skills**, marked "Explicit invocation only" in the README, run only when the user names them: `/<name>` in Claude Code (`/bostonaholic:<name>` when installed as the plugin), `$<name>` in Codex.
+- **Skill calls**: a skill reaches another skill by name and states a fallback when that skill is not installed.
+- **Subagents** in `agents/` (`oracle`, `clean-code-architect`) ship only with the Claude Code plugin. `npx skills` installs skills without them.
+
+## Repository map
+
+| Area | Location | Purpose |
+| --- | --- | --- |
+| Active skills | `skills/engineering/`, `skills/productivity/` | One skill per directory. Engineering covers code, PR, and developer-tooling work; productivity covers prompts, writing, and personal workflow. |
+| Archived skills | `skills/deprecated/` | Retired skills with `SKILL.md.disabled` entrypoints. Never installed or catalogued. |
+| Shared rules | `shared/` | Source for rules several skills use, copied into each skill's `shared/` by `npm run sync-shared`. |
+| Subagents | `agents/*.md` | Claude Code subagents registered in the plugin manifest. |
+| Plugin metadata | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` | Claude Code plugin and marketplace manifests. |
+| Catalog and site | `README.md`, `scripts/catalog.mjs`, `scripts/build-site.mjs`, `docs/` | Generated README catalog, static site, and maintainer docs. |
+| Installation | `INSTALL.md` | Install and update steps for people and agents. |
+| Tooling | `scripts/`, `tests/`, `.github/workflows/` | Linting, shared-copy sync, releases, script tests, and CI. |
+| Releases | `CHANGELOG.md`, `.claude/skills/version-bump/` | Release notes and the project-local version-bump skill. |
+
+## Skill anatomy
+
+| Path | Purpose |
+| --- | --- |
+| `SKILL.md` | Entrypoint: frontmatter plus the procedure. |
+| `agents/openai.yaml` | Codex display name, short description, default prompt, and invocation policy. |
+| `references/` | Files only this skill reads, linked from `SKILL.md`. |
+| `scripts/` | Executable helpers the skill runs. |
+| `shared/` | Generated copies of root `shared/` files. Never edit them in place. |
+
+## Rules for changes
 
 1. Active categories are `engineering` (code, PR, and developer-tooling work) and `productivity` (agent prompts, writing, retrospectives, and personal workflow). One active skill per `skills/<category>/<name>/`: `SKILL.md` with `name` equal to the directory, plus `agents/openai.yaml`. No symlinks and no nested `SKILL.md` inside a skill.
 2. The plugin `skills` array lists every active tracked skill, and its `agents` array lists every Claude Code subagent in `agents/*.md`. Run `claude plugin validate . --strict` and `claude plugin validate .claude-plugin/plugin.json --strict` after editing either manifest.
@@ -14,3 +58,15 @@ To install these skills for a user, follow [INSTALL.md](INSTALL.md). The rules b
 10. New repo-level prose avoids em dashes.
 11. Tests: `npm test`. Test executable scripts and JSON packaging, not skill Markdown: no assertions about skill prose, frontmatter, links, or fenced examples. Script tests may use synthetic Markdown inputs and inspect generated Markdown outputs. Agent behavior belongs in the eval suite tracked in [#19](https://github.com/bostonaholic/skills/issues/19).
 12. Every skill follows [skill authoring](docs/skill-authoring.md): gerund names, third-person descriptions with a `Use when` clause, references linked directly from `SKILL.md`, and a `## Contents` section in files over 100 lines. Run `npm run lint:skills` after editing a skill. Subagents in `agents/` follow the same description form (A3 to A6), concision (B1), tier-alias models (E1), and output templates (E3). Their names are role nouns, since the gerund rule (A2) names skills, and they ship only with the Claude Code plugin.
+
+## Verification
+
+Run only the checks relevant to the change, and report the exact commands and results:
+
+```sh
+npm test
+npm run lint:skills
+node scripts/catalog.mjs --check
+claude plugin validate . --strict
+git diff --check
+```
