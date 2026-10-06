@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-06
+
 ### Changed
 
 - Rename every skill to a gerund name, for example `shipit` to `landing-prs` and `code-review` to `reviewing-code`; invoke skills by their new names. [#18](https://github.com/bostonaholic/skills/pull/18)
@@ -125,5 +127,7 @@
 
 [0.5.0]: https://github.com/bostonaholic/skills/compare/v0.4.1...v0.5.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.6.0...HEAD
 [0.6.0]: https://github.com/bostonaholic/skills/compare/v0.5.0...v0.6.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/bostonaholic/skills/compare/v0.6.0...v0.7.0
