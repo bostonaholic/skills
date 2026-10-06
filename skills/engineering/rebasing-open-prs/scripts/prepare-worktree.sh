@@ -6,10 +6,11 @@
 #   fetch: concurrent agents fetching one repository race on ref locks, and origin/<branch> must stay
 #   at the manifest baseline the orchestrator recorded.
 #
-# Reuse: an existing worktree or local branch for <branch> is reused only when it contains every
-# commit on origin/<branch>; a reused worktree must also have no changes and must not be the
-# caller's own checkout. Otherwise the script refuses, because rebasing a stale or dirty copy and
-# force-pushing it would overwrite the remote's commits or the user's work.
+# Reuse: an existing worktree or local branch for <branch> is reused only when it matches
+# origin/<branch>: it contains every commit there and none beyond it. A reused worktree must also
+# have no changes and must not be the caller's own checkout. Otherwise the script refuses, because
+# rebasing a stale, ahead, or dirty copy and force-pushing it would overwrite the remote's commits
+# or publish the user's unpushed work.
 #
 # Environment: PR_WORKTREE_ROOT overrides the parent directory for new worktrees
 #   (default: <parent of the checkout>/.rebasing-open-prs-worktrees).
@@ -43,9 +44,13 @@ remote_ref="refs/remotes/origin/$branch"
 git rev-parse --verify --quiet "$remote_ref^{commit}" >/dev/null ||
   die 3 "origin/$branch not found; run git fetch --prune origin first"
 
-contains_remote() {
+matches_remote() {
   git merge-base --is-ancestor "$remote_ref" "refs/heads/$branch" ||
     die 4 "local $branch lacks commits on origin/$branch; pull it or delete it, then re-run"
+  local ahead
+  ahead=$(git rev-list --count "$remote_ref..refs/heads/$branch")
+  [ "$ahead" -eq 0 ] ||
+    die 4 "local $branch has $ahead commit(s) not on origin/$branch; push or drop them, then re-run"
 }
 
 here=$(git rev-parse --show-toplevel)
@@ -60,7 +65,7 @@ if [ -n "$existing" ]; then
     die 4 "$branch is checked out in this checkout ($here); switch it away or rebase it separately"
   [ -z "$(git -C "$existing" status --porcelain)" ] ||
     die 4 "worktree $existing has uncommitted or untracked changes"
-  contains_remote
+  matches_remote
   echo "Reusing worktree for $branch at $existing" >&2
   emit "$existing" false false
   exit 0
@@ -75,7 +80,7 @@ target="$worktree_root/$encoded"
 mkdir -p "$worktree_root"
 
 if git show-ref --verify --quiet "refs/heads/$branch"; then
-  contains_remote
+  matches_remote
   git worktree add "$target" "$branch" >&2
   emit "$target" true false
 else

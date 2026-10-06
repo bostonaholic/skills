@@ -51,19 +51,37 @@ The optional `<pr-number>` argument selects the PR; without it, use the current
 branch's PR. Refuse an argument that is not all digits. Then:
 
 ```bash
-gh pr view <pr-number> --json number,state,title,headRefName
+gh pr view <pr-number> --json number,state,title,headRefName,baseRefName,isCrossRepository,url
 git branch --show-current
 ```
 
 Omit `<pr-number>` when no argument was given. Use the returned `number` as
-`<pr-number>` from here on.
+`<pr-number>` from here on, and split `url`
+(`https://<host>/<owner>/<repo>/pull/<n>`) into `<host>`, `<owner>`, and
+`<repo>` for step 5c.
 
 - **No PR found:** stop. This skill lands an existing PR; tell the user to open
   one first.
 - **`state` is `MERGED` or `CLOSED`:** stop before doing any work.
-- **`headRefName` is not the current branch:** stop and tell the user to run
-  `gh pr checkout <pr-number>` and re-run. Steps 3 and 4 act on the local
-  checkout.
+- **`isCrossRepository` is `true`:** stop. The head branch lives in a fork,
+  which step 4's push does not reach.
+- **`baseRefName` falls outside `^[A-Za-z0-9._/-]+$`:** stop and report it.
+  Step 5c puts it in a command.
+- **`headRefName` is not the current branch, or the current branch is
+  `baseRefName`:** stop and tell the user to run `gh pr checkout <pr-number>`
+  and re-run. Steps 3 and 4 act on the local checkout.
+
+Then confirm that a plain `git push` updates the PR's head branch:
+
+```bash
+remote=$(git for-each-ref --format='%(push:remotename)' "refs/heads/$(git branch --show-current)")
+echo "REMOTE=$remote PUSH=$(git rev-parse --abbrev-ref '@{push}') URL=$(git remote get-url "$remote")"
+```
+
+`PUSH` must be `<REMOTE>/<headRefName>`, and `URL` must end in
+`<owner>/<repo>` or `<owner>/<repo>.git`. Otherwise, or if either command
+fails, stop: step 4 would push somewhere other than the PR. Tell the user to
+run `gh pr checkout <pr-number>` and re-run.
 
 ## 2. Check that squash merging is allowed
 
@@ -90,8 +108,8 @@ git push
 
 If the push is rejected, stop and report git's message verbatim. Never
 force-push from this skill. When the branch was rebased locally, end with
-`Next: /rebasing-branches, then /landing-prs`; rebasing-branches publishes the
-rewrite with an explicit lease.
+`Next: /rebasing-branches <pr-number>, then /landing-prs <pr-number>`;
+rebasing-branches publishes the rewrite with an explicit lease.
 
 ## 5. Wait for CI: settle, watch, verify
 
@@ -158,14 +176,24 @@ writing that report.
 gh pr view <pr-number> --json mergeStateStatus,headRefOid --jq '.mergeStateStatus + " " + .headRefOid'
 ```
 
-- **`CLEAN` or `HAS_HOOKS`:** CI is green. Keep the printed `headRefOid` for
-  step 6 and merge.
+- **`CLEAN` or `HAS_HOOKS`:** CI is green. GitHub reports `BEHIND` only when
+  branch protection requires up-to-date branches, so check the base yourself
+  before merging. `<head-oid>` is the printed `headRefOid`, and the count is
+  the base's commits missing from it:
+
+  ```bash
+  gh api --hostname <host> 'repos/<owner>/<repo>/compare/<baseRefName>...<head-oid>' --jq .behind_by
+  ```
+
+  `0`: keep `<head-oid>` for step 6 and merge. Above `0`: stop as
+  for `BEHIND`. A failed call: stop and report gh's message.
+
 - **`UNSTABLE`:** a suite is still running, or a check failed. Repeat 5b once.
   A second `UNSTABLE` on the same head is a failure, not a race: print
   `gh pr checks <pr-number>` and stop.
 - **`BEHIND`:** the base moved. Stop and end with
-  `Next: /rebasing-branches, then /landing-prs`. rebasing-branches is
-  user-invoked only, so do not call it.
+  `Next: /rebasing-branches <pr-number>, then /landing-prs <pr-number>`.
+  rebasing-branches is user-invoked only, so do not call it.
 - **`UNKNOWN`:** GitHub is still computing mergeability. Re-read once; stop if
   it does not resolve.
 - **anything else** (`BLOCKED`, `DIRTY`, `DRAFT`, and others): stop and report
@@ -189,7 +217,8 @@ unless the user asks otherwise.
 
 - **Branch-protection rejection:** report GitHub's message verbatim. Never use
   `--admin` or any other bypass.
-- **Head mismatch:** the branch moved after verification. Return to 5a.
+- **Head mismatch:** the branch moved after verification. Return to 5a once. A
+  second mismatch stops the land: report that the branch keeps moving.
 
 ## 7. Re-query and report
 

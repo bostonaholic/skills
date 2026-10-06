@@ -19,14 +19,15 @@ Result file present:
 | `already-up-to-date`                                  | `REBASED=yes OID_CHANGED=no`  | `already-up-to-date`                                          |
 | `conflicts-flagged`/`push-rejected`/`error`/`skipped` | any                           | the file's status, plus `needs-review` when `OID_CHANGED=yes` |
 
-Result file missing (the agent stopped before persisting; use git alone):
+Result file missing (the agent stopped before persisting, or the
+[bounded wait](SKILL.md#6-reconcile-and-report) gave up on it; use git alone):
 
 | Reconcile signal              | Derived status                                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `REBASED=yes OID_CHANGED=yes` | `pushed` (the push is real; the agent stopped after it)                                                 |
 | `REBASED=yes OID_CHANGED=no`  | `already-up-to-date`                                                                                    |
 | `REBASED=no OID_CHANGED=yes`  | `needs-review` (pushed without containing the base: a stale base, or the base advanced after the fetch) |
-| `REBASED=no OID_CHANGED=no`   | still running or stopped: run the [bounded wait](SKILL.md#6-reconcile-and-report)                       |
+| `REBASED=no OID_CHANGED=no`   | `error` (agent stopped before pushing or persisting; verify manually)                                   |
 
 Regardless of the result file: `CURRENT_OID=missing` means `branch-gone`
 (merged or closed during the run), and `REBASED=base-missing` means

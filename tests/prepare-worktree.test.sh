@@ -37,7 +37,7 @@ git init -q -b main "$tmp/repo"
 cd "$tmp/repo"
 git commit -q --allow-empty -m init
 git remote add origin "$tmp/origin.git"
-git push -q origin main:main main:feature/x main:a/b main:a-b main:kept main:stale main:dirty
+git push -q origin main:main main:feature/x main:a/b main:a-b main:kept main:stale main:ahead main:dirty
 git fetch -q origin
 git clone -q "$tmp/origin.git" "$tmp/other"
 
@@ -91,6 +91,11 @@ git fetch -q origin
 prepare 4 stale
 case "$err" in *"lacks commits on origin/stale"*) ;; *) fail "stale refusal reason: $err" ;; esac
 echo "ok - refuses a local branch missing commits from origin"
+
+git branch -q ahead "$(git commit-tree -p origin/ahead -m unpushed 'origin/ahead^{tree}')"
+prepare 4 ahead
+case "$err" in *"1 commit(s) not on origin/ahead"*) ;; *) fail "ahead refusal reason: $err" ;; esac
+echo "ok - refuses a local branch with commits not on origin"
 
 prepare 0 dirty
 dirty_path=$(value WORKTREE_PATH)

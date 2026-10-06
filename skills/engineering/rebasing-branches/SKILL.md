@@ -80,21 +80,41 @@ No match: stop and report the repository and `git remote -v`. Call the match
 
 ## 3. Record the recovery point and lease
 
-Before any fetch, record where the branch is and what its remote copy was last
-seen as:
+Before any fetch, record where the branch is, where a plain `git push` sends
+it (`@{push}`), and what that remote copy was last seen as:
 
 ```bash
 branch=$(git branch --show-current)
-push_remote=$(git config --get "branch.$branch.remote" || echo origin)
-echo "RECOVERY=$(git rev-parse HEAD) PUSH_REMOTE=$push_remote"
-echo "LEASE=$(git rev-parse --verify --quiet "refs/remotes/$push_remote/$branch" || echo none)"
+push_remote=$(git for-each-ref --format='%(push:remotename)' "refs/heads/$branch")
+echo "RECOVERY=$(git rev-parse HEAD) PUSH_REMOTE=${push_remote:-origin}"
+if push_ref=$(git rev-parse --symbolic-full-name '@{push}' 2>/dev/null); then
+  echo "PUSH_BRANCH=${push_ref#"refs/remotes/$push_remote/"} LEASE=$(git rev-parse "$push_ref")"
+else
+  echo "PUSH_BRANCH=$branch LEASE=none"
+fi
 ```
 
-The lease must predate the fetch: a fetch moves the remote-tracking ref, so a
-lease taken after it would accept commits someone else pushed that this branch
-never saw. `LEASE=none` means the branch was never pushed. Whenever the run
-stops after this step, report `git rebase --abort` (if a rebase is in progress)
-and `git reset --hard <recovery>`.
+- **`LEASE=none`:** `@{push}` does not resolve, so this checkout tracks no
+  remote copy of the branch. If `gh pr view --json url` (no argument) finds a
+  PR for the branch, stop: the PR's branch lives somewhere this checkout does
+  not track. Tell the user to run `gh pr checkout <n>` or set the upstream,
+  then re-run. With no PR, step 7 makes a first push.
+- **`LEASE=<oid>`:** the branch must already contain it:
+
+  ```bash
+  git merge-base --is-ancestor <lease> HEAD
+  ```
+
+  A non-zero exit means the remote has commits this branch lacks. Stop and
+  report "remote has commits this branch lacks; integrate them first".
+
+Together these confine the step 7 force-push to commits the branch already
+contains: the ancestry check covers what the remote-tracking ref holds, and
+the lease rejects anything pushed after it. The lease must predate the fetch:
+a fetch moves the remote-tracking ref, so a lease taken after it would accept
+commits this branch never saw. Whenever the run stops after this step, report
+`git rebase --abort` (if a rebase is in progress) and
+`git reset --hard <recovery>`.
 
 ## 4. Run baseline checks
 
@@ -134,13 +154,15 @@ remote while either stands.
 With a recorded lease:
 
 ```bash
-git push --force-with-lease=<branch>:<lease> <push-remote> <branch>
+git push --force-with-lease=<push-branch>:<lease> <push-remote> <branch>:<push-branch>
 ```
 
-With `LEASE=none`, use `git push -u <push-remote> <branch>`. Never use a bare
-`--force`. A lease rejection means the remote moved since step 3: stop and
-report it without retrying. After a successful push, confirm
-`git ls-remote <push-remote> refs/heads/<branch>` prints the local `HEAD`.
+With `LEASE=none`, use `git push -u <push-remote> <branch>`, which git rejects
+unless it fast-forwards any remote branch of that name. Never use a bare
+`--force`. A lease rejection means the remote moved since step 3: stop
+and report it without retrying. After a successful push, confirm
+`git ls-remote <push-remote> refs/heads/<push-branch>` prints the local
+`HEAD`.
 
 ## 8. Report
 

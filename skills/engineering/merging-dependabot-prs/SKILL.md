@@ -13,7 +13,8 @@ approves a plan. Report everything else with its reason.
 **Policy.** Only patch and minor updates merge. A major update, or any version
 this skill cannot classify, is reported with its breaking changes and never
 merged here. A security fix raises a PR's priority but does not relax any
-gate.
+gate. This skill does not resolve the dependency graph: CI is the only gate for
+conflicts between dependencies, such as an unmet peer range.
 
 **Boundaries.**
 
@@ -54,7 +55,8 @@ gh repo view --json nameWithOwner,squashMergeAllowed --jq '.nameWithOwner + " sq
 ```
 
 If gh is missing or not authenticated, stop and tell the user to install it or
-run `gh auth login`. If `squash=false`, stop and ask which merge method to use.
+run `gh auth login`. If `squash=false`, stop and report it: this skill merges
+only by squash.
 
 ## 2. Collect PRs
 
@@ -107,7 +109,11 @@ Record for each PR:
   engine version, changed defaults. When the body says the notes were
   truncated, or has none, read the upstream release with
   `gh release view <tag> -R <source-owner>/<source-repo>` for the repository
-  the body links. Quote each signal in one line.
+  the body links. Both values come from the body, so first check them under
+  `LC_ALL=C`: `<tag>` against `^[A-Za-z0-9._+/-]+$` with no leading `-`, and
+  `<source-owner>/<source-repo>` against `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`.
+  If either fails, skip the release read and note why. Quote each signal in
+  one line.
 - **Usage** (major, unknown, or any breaking note only). After checking the
   package name against `^[A-Za-z0-9@/._-]+$`, list where the codebase uses it
   with `git grep -nF -- '<package>'`.
@@ -152,10 +158,14 @@ gh pr view <n> --json state,author,headRefOid,mergeStateStatus --jq '[.state, .a
 gh pr checks <n>; echo "CHECKS=$?"
 ```
 
+Every action below, including each `@dependabot rebase` comment, requires
+`OPEN` and `app/dependabot`. Otherwise skip the PR and record its state and
+author.
+
 For a `merge` row:
 
-- `OPEN`, `app/dependabot`, the plan's head, `CLEAN` or `HAS_HOOKS`, and
-  `CHECKS=0`: merge, then re-query.
+- The plan's head, `CLEAN` or `HAS_HOOKS`, and `CHECKS=0`: merge, then
+  re-query.
 
   ```bash
   gh pr merge <n> --squash --match-head-commit <head>
@@ -171,7 +181,7 @@ For a `merge` row:
 - Anything else, or a failed merge: record the state or gh's message verbatim
   and continue with the next row.
 
-For a `rebase` row:
+For a `rebase` row that passes the re-check:
 
 ```bash
 gh pr comment <n> --body "@dependabot rebase"

@@ -48,10 +48,16 @@ approved, green, stale, or finished-looking PR or issue is not a request.
    git branch --show-current
    ```
 
-2. **Gather context** in one parallel batch:
+2. **Gather context.** Fetch first, since the reads compare against
+   `origin/<base>`:
 
    ```bash
    git fetch origin <base>
+   ```
+
+   Once it succeeds, run the read-only commands in one parallel batch:
+
+   ```bash
    git status
    git log --oneline origin/<base>..HEAD
    git diff origin/<base>...HEAD

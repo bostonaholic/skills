@@ -63,8 +63,9 @@ From the target repo's main checkout:
 git fetch --prune origin
 ```
 
-This is the only fetch before dispatch. Agents do not fetch, so they never race
-on ref locks and every agent sees the remote state the manifest records.
+This is the only fetch until every agent has finished (step 6). Agents do not
+fetch, so they never race on ref locks and every agent sees the remote state
+the manifest records.
 
 ## 2. Discover open PRs
 
@@ -119,8 +120,20 @@ stops on a conflict.
 
 ## 6. Reconcile and report
 
-Reconciliation is mandatory and independent of notifications. Run it after
-each batch; it is read-only apart from the fetch and safe to repeat:
+`reconcile.sh` fetches, so run it only after every dispatched agent has
+finished: it returned its summary, or the bounded wait below gave up on it. A
+fetch while an agent still works breaks step 1's guarantee. A result file alone
+does not mean the agent is done, since cleanup runs after it is written.
+
+**Bounded wait.** For an agent that has not returned and has gone quiet, probe
+up to 3 times, 2 minutes apart. In Claude Code, the probe is `SendMessage` to
+that agent; a reply that it had no active task means it has stopped. On other
+hosts, the probe is the wait itself. Once the agent has stopped, or after the
+third probe, stop waiting on it. A probe reply never sets a status: git and the
+result file do.
+
+Then reconcile. It is mandatory and independent of notifications, read-only
+apart from the fetch, and safe to repeat:
 
 ```bash
 "<skill-dir>/scripts/reconcile.sh" "<run>/manifest.tsv"
@@ -129,13 +142,6 @@ each batch; it is read-only apart from the fetch and safe to repeat:
 `FETCH=failed` on the first line means the per-PR lines come from stale refs;
 re-run before trusting them. Derive each PR's status from its reconcile line and
 `<run>/<n>.json` with the [reconcile status rules](references/reconcile-status.md).
-
-**Bounded wait.** For a PR with no result file and no remote change, probe up
-to 3 times, 2 minutes apart, re-running reconcile after each probe. In Claude
-Code, the probe is `SendMessage` to that agent; a reply that it had no active
-task means it has stopped. On other hosts, the probe is the wait itself. Git
-and result-file state always outrank a probe reply. After the third probe,
-record `error` (agent unresponsive; verify manually) and move on.
 
 Report every PR, including skipped, flagged, and failed ones:
 
