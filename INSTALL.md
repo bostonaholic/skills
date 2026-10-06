@@ -43,6 +43,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 An agent installing on a user's behalf:
 
 1. In Claude Code, run the two Claude Code commands above.
-2. Elsewhere, install without prompts: `npx skills@latest add bostonaholic/skills --skill '*' --agent <agent> --yes`. Add `--global` for a user-level install; ask the user which scope they want if they did not say.
-3. Install only the plugin or only the `npx skills` copies, never both.
-4. Tell the user to restart the agent so it loads the new skills.
+2. Elsewhere, install without prompts: `npx skills@latest add bostonaholic/skills --skill '*' --agent <agent> --yes`. Pass `--agent '*'` to install on every agent. Add `--global` for a user-level install; ask the user which scope they want if they did not say.
+3. Install only the plugin or only the `npx skills` copies, never both. The subagents in `agents/` come only with the plugin.
+4. Confirm the install: `claude plugin list` shows `bostonaholic@skills`, or `npx skills@latest list` shows the skills.
+5. Tell the user to restart the agent so it loads the new skills.
