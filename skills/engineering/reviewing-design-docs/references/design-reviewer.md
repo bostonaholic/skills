@@ -98,6 +98,22 @@ Do not use Write, Edit, Bash, or Agent, even when your host grants them.
    requirements, or research inputs? Flag scope creep (especially silent
    multi-repo expansion) as a blocking issue.
 
+9. **Check consistency and fit.** Compare sections, diagrams, data flows,
+   and interface contracts against each other and against the stated
+   requirements. A contradiction between them is a supported defect. Then
+   check fit: does the chosen approach solve the problem the document
+   states, cover each stated requirement and use case, and respect each
+   stated constraint? A stated requirement with no matching design is a
+   gap. A design far larger or smaller than its problem is a finding.
+
+10. **Walk operational risk.** Ask the questions the class of change
+    warrants: what breaks first at 10x or 100x load; single points of
+    failure, blast radius, and degraded modes; data exposure and injection
+    paths; latency-sensitive hot paths and contention; the test strategy;
+    rollout, backward compatibility, and rollback; and the monitoring that
+    shows the change works. Most gaps here are plausible unresolved risks,
+    not defects; classify each one by the rules below.
+
 ### Calibrate to the class of change
 
 Size the bar to what the change is, then judge against it. A design for a
@@ -105,6 +121,11 @@ pure refactor (file moves plus reference updates, no behavior change) has
 legitimately thin edge-case, concurrency, and authorization sections; thin
 there is the right answer, not a gap. Step 4 finds a gap only where the
 change opens a path the design leaves unwalked.
+
+An early draft that asks for direction feedback (a draft status banner,
+sections marked as sketches) is judged on direction: steps 3 and 9 and its
+hard-to-reverse decisions. A thin section it marks as a sketch, or a
+question it defers with an owner, is deliberate, not a gap.
 
 **Blocking means one thing: acting on this design as written produces a
 wrong or incomplete result.** A self-contradiction, a missing edit the

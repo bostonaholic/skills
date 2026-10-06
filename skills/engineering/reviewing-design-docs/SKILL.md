@@ -1,8 +1,8 @@
 ---
 name: reviewing-design-docs
-description: 'Reviews a technical design document adversarially in a fresh-context read-only subagent (coverage, decisions, edge cases, citations, scope) and returns findings with a verdict. Use when asked to review a design doc or technical design. Not for code diffs; use reviewing-code.'
+description: 'Reviews a technical design document or RFC adversarially in a fresh-context read-only subagent (coverage, decisions, edge cases, consistency, risks, citations, scope) and returns findings with a verdict. Use when asked to review a design doc, RFC, or technical design. Not for code diffs; use reviewing-code.'
 effort: high
-argument-hint: "[<design-doc-path>]"
+argument-hint: "[<design-doc-path-or-url>]"
 ---
 
 # Engineering Design Doc Review
@@ -11,7 +11,11 @@ Read each linked file from this skill's directory when the step that uses it beg
 
 ## Input
 
-`$ARGUMENTS` is the path to one design document. When it is empty, names a
+`$ARGUMENTS` is the path to one design document. When it is a URL, or the
+user pasted the document into the conversation, fetch it with the host's
+document or web tools (or take the pasted text), save it as Markdown in a
+scratch file outside the repository, and review that path. When a fetch
+fails, report the URL and the error. When the argument is empty, names a
 directory, or names no readable file, ask for the file path with
 `AskUserQuestion` under a `Setup` header where the host has it; otherwise ask
 in chat and wait. Never guess.
@@ -57,6 +61,6 @@ inline.
 5. **Do not revise the document.** On REQUEST CHANGES, the user decides how
    to revise it.
 
-The skill writes no files. On Claude Code the `Explore` subagent holds no
+The skill writes no files beyond that scratch copy. On Claude Code the `Explore` subagent holds no
 Write or Edit tool, so it cannot change the document; the brief forbids any
 shell it may hold.

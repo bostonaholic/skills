@@ -1,7 +1,7 @@
 ---
 name: reviewing-rails-code
 argument-hint: "[file paths, directory paths, branch name, or focus area]"
-description: Reviews Rails code (services, models, concerns, helpers, or a branch diff) for over-engineering such as stateless service objects and behaviorless value objects, reporting file:line findings with before/after code. Use when the user asks to review, audit, or simplify a Rails app. For non-Rails Ruby use reviewing-ruby-code.
+description: Reviews Rails code (services, models, concerns, helpers, or a branch diff) for over-engineering such as stateless service objects and behaviorless value objects, reporting file:line findings with before/after code. Use when the user asks to review or simplify a Rails app. For non-Rails Ruby use reviewing-ruby-code; for a broad tech-debt audit use auditing-rails-tech-debt.
 ---
 
 # Rails Simplicity Review

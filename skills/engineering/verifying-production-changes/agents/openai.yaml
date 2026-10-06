@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verifying Production Changes"
+  short_description: "Confirm a merged change took effect in production"
+  default_prompt: "Use $verifying-production-changes to confirm the merged change took effect in production."

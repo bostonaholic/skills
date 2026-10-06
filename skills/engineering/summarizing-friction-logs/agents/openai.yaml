@@ -1,0 +1,4 @@
+interface:
+  display_name: "Summarizing Friction Logs"
+  short_description: "Prioritize frog friction logs across a workspace"
+  default_prompt: "Use $summarizing-friction-logs to aggregate frog friction logs across every repository in the workspace into one prioritized dashboard."

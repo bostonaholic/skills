@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-06
+
+### Added
+
+- Add `explaining-code`, which explains a PR, diff, or piece of code briefly or in full for a reviewer (`elie`). [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `verifying-production-changes`, which gates on a deploy by revision ancestry and verifies migrations and backfills read-only. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `writing-technical-design-docs`, which drafts directionally correct design docs. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `auditing-rails-tech-debt`, which audits a Rails app for tech debt with cited findings and before/after code. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `auditing-agent-token-usage`, which audits Claude Code and Codex session logs for token and context cost. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `summarizing-friction-logs`, which renders frog friction logs across a workspace as one prioritized dashboard. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `conducting-deep-research`, which pairs a scholarly evidence review with an institution and funding map. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `freeing-disk-space`, which finds what fills a developer machine's disk and clears regenerable caches and build outputs after approval. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `summarizing-shipped-work`, which turns merged PRs into a shipped-work report and offers a brag document update. [#24](https://github.com/bostonaholic/skills/pull/24)
+
+### Changed
+
+- Let `reviewing-design-docs` review a URL or pasted document, check consistency, problem fit, and operational risk, and judge early drafts on direction. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Route broad Rails tech-debt audits from `reviewing-rails-code` to `auditing-rails-tech-debt`, and PR or diff explanations from `explaining-architecture` to `explaining-code`. [#24](https://github.com/bostonaholic/skills/pull/24)
+
 ## [0.14.0] - 2026-10-06
 
 ### Added
@@ -221,5 +240,7 @@
 
 [0.13.0]: https://github.com/bostonaholic/skills/compare/v0.12.0...v0.13.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.14.0...HEAD
 [0.14.0]: https://github.com/bostonaholic/skills/compare/v0.13.0...v0.14.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/bostonaholic/skills/compare/v0.14.0...v0.15.0
