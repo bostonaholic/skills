@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `pricing-creativity`, which applies Blair Enns's _Pricing Creativity_ frameworks to value-based pricing, options, retainers, and price negotiation. [#21](https://github.com/bostonaholic/skills/pull/21)
+
 ## [0.9.0] - 2026-10-06
 
 ### Added

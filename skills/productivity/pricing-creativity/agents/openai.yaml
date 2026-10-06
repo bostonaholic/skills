@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pricing Creativity"
+  short_description: "Price creative work by value with Blair Enns's frameworks"
+  default_prompt: "Use $pricing-creativity to price this engagement by value."
