@@ -54,8 +54,7 @@ state real uncertainty or scope, never to hedge against criticism.
 
 1. **No em dashes (house style).** Search the text: `grep -n '—' <file>`, or
    the draft itself when it is not in a file. Rewrite each hit with a comma,
-   period, colon, semicolon, or parentheses. Repeat until the search finds
-   nothing.
+   period, colon, or parentheses. Repeat until the search finds nothing.
 2. **Sentence checklist.** For each sentence:
    - [ ] Would I say this to a friend?
    - [ ] Can I cut any words?

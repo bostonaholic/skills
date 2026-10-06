@@ -5,6 +5,7 @@
 ### Changed
 
 - Point `learning-from-mistakes` to `running-retros` for lessons from a whole session. [#16](https://github.com/bostonaholic/skills/pull/16)
+- Stop `writing-prose` from suggesting semicolons as an em dash replacement. [#16](https://github.com/bostonaholic/skills/pull/16)
 
 ## [0.11.0] - 2026-10-06
 
