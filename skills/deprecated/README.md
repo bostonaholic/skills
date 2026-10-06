@@ -7,5 +7,7 @@ Their shared files are frozen copies and are not updated by `sync-shared`.
 - [bd-go](bd-go/SKILL.md.disabled): retired Beads task execution.
 - [bd-scan](bd-scan/SKILL.md.disabled): retired Beads branch scanning.
 - [pr-cleanup](pr-cleanup/SKILL.md.disabled): retired standalone post-PR cleanup. Its original teardown declaration and variables are preserved in the archive.
+- [review-rails](review-rails/SKILL.md.disabled): retired Rails code review, merged into `review-ruby`.
+- [simplifying-ruby-code](simplifying-ruby-code/SKILL.md.disabled): retired Ruby simplification patterns, merged into `review-ruby`.
 
 To reactivate a skill, move it to `skills/engineering/<name>/` or `skills/productivity/<name>/`, rename `SKILL.md.disabled` to `SKILL.md`, update the plugin manifest, and regenerate shared copies and the catalog.

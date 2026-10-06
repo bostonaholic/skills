@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Review Rails apps with `review-ruby`, which defaults to `app/` when the `Gemfile` declares `rails` and to `lib/` otherwise. [#13](https://github.com/bostonaholic/skills/pull/13)
+- Flag deep inheritance in `review-ruby` at three or more app-defined classes in one chain, not counting framework bases such as `ApplicationRecord`. [#13](https://github.com/bostonaholic/skills/pull/13)
+
+### Removed
+
+- Remove `review-rails` and `simplifying-ruby-code`; use `review-ruby`, which now covers both. [#13](https://github.com/bostonaholic/skills/pull/13)
+
 ## [0.6.0] - 2026-10-06
 
 ### Changed

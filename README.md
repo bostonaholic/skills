@@ -70,11 +70,9 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[react-doctor](./skills/engineering/react-doctor/SKILL.md)**: Diagnose React codebase issues.
 - **[rebase-dependabots](./skills/engineering/rebase-dependabots/SKILL.md)**: Rebase selected Dependabot pull requests. Explicit invocation only.
 - **[rebase-open-prs](./skills/engineering/rebase-open-prs/SKILL.md)**: Rebase all open pull requests. Explicit invocation only.
-- **[review-rails](./skills/engineering/review-rails/SKILL.md)**: Review Rails code for unnecessary complexity.
-- **[review-ruby](./skills/engineering/review-ruby/SKILL.md)**: Review Ruby code for unnecessary complexity.
+- **[review-ruby](./skills/engineering/review-ruby/SKILL.md)**: Review Ruby and Rails code for over-engineering.
 - **[safely-merge-dependabots](./skills/engineering/safely-merge-dependabots/SKILL.md)**: Review and merge safe Dependabot updates. Explicit invocation only.
 - **[shipit](./skills/engineering/shipit/SKILL.md)**: Land a reviewed pull request.
-- **[simplifying-ruby-code](./skills/engineering/simplifying-ruby-code/SKILL.md)**: Simplify overengineered Ruby code.
 - **[why](./skills/engineering/why/SKILL.md)**: Investigate the design rationale behind code.
 - **[zsh-config](./skills/engineering/zsh-config/SKILL.md)**: Edit zsh configuration in dotfiles.
 
