@@ -1,7 +1,7 @@
 // Fails when the README skill catalog or the generated site drifts from the tracked skills: a
-// skill added or re-described without `npm run readme`, a site that drops a skill, an install
-// command, or the extraction note, or a site that prints an argument hint without escaping it.
-// The note and every install command come from scripts/catalog.mjs; this file holds no copy of
+// skill added or re-described without `npm run readme`, a site that drops a skill, the install
+// prompt, or the extraction note, or a site that prints an argument hint without escaping it.
+// The note and the install prompt come from scripts/catalog.mjs; this file holds no copy of
 // them. The fixture cases run the real CLIs in a temporary repository built with `git init` plus
 // `git add`, never a commit.
 import assert from "node:assert/strict";
@@ -17,15 +17,6 @@ const CATALOG = resolve("scripts/catalog.mjs");
 const BUILD_SITE = resolve("scripts/build-site.mjs");
 const START = "<!-- generated:start -->";
 const END = "<!-- generated:end -->";
-const COMMAND_EXPORTS = [
-  "CLAUDE_MARKETPLACE_ADD",
-  "CLAUDE_PLUGIN_INSTALL",
-  "CLAUDE_MARKETPLACE_UPDATE",
-  "CLAUDE_PLUGIN_UPDATE",
-  "NPX_ADD_ALL",
-  "NPX_ADD_SKILL",
-  "NPX_UPDATE_SKILL",
-];
 const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
 
 async function catalogModule() {
@@ -148,11 +139,13 @@ test("the site has one section per tracked skill, keyed by the skill name", (t) 
   assert.deepEqual(sections, skills);
 });
 
-test("the site shows every install and update command exported by the catalog", async (t) => {
-  const catalog = await catalogModule();
-  assert.deepEqual(COMMAND_EXPORTS.filter((name) => typeof catalog[name] !== "string" || !catalog[name]), []);
+test("the site shows the install prompt and links an installation doc that exists", async (t) => {
+  const { INSTALL_DOC, INSTALL_PROMPT, INSTALL_PROMPT_LABEL } = await catalogModule();
+  assert.ok(existsSync(join(REPO, INSTALL_DOC)), `missing ${INSTALL_DOC}`);
   const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
-  assert.deepEqual(COMMAND_EXPORTS.filter((name) => !html.includes(escaped(catalog[name]))), []);
+  for (const text of [INSTALL_PROMPT_LABEL, INSTALL_PROMPT, `/blob/main/${INSTALL_DOC}`]) {
+    assert.ok(html.includes(escaped(text)), `index.html lacks ${text}`);
+  }
 });
 
 test("the site shows the subtitle exported by the catalog", async (t) => {
