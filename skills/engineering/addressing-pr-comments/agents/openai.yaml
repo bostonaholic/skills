@@ -1,0 +1,4 @@
+interface:
+  display_name: "Addressing PR Comments"
+  short_description: "Triage and address open PR feedback"
+  default_prompt: "Use $addressing-pr-comments to triage and address open feedback on this PR."

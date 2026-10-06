@@ -1,0 +1,4 @@
+interface:
+  display_name: "Investigating Design Rationale"
+  short_description: "Investigate why code is shaped as it is"
+  default_prompt: "Use $investigating-design-rationale to investigate why this code is shaped as it is, with evidence-rated claims."

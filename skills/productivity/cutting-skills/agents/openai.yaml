@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cutting Skills"
+  short_description: "Audit or trim an agent skill to its behavioral core"
+  default_prompt: "Use $cutting-skills to audit or trim the requested skill without changing its intended behavior."

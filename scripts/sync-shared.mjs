@@ -9,9 +9,11 @@
 // resolves elsewhere, or an entry in either shared/ is a symlink.
 // Acts on the git repository at the working directory. Skills and their files come from
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
+// Importing this module runs nothing; scripts/lint-skills.mjs imports `references`.
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const SKILL_LINK = /^shared\/([a-z0-9-]+\.md)$/;
 const SIBLING_LINK = /^([a-z0-9-]+\.md)(?:#.*)?$/;
@@ -21,7 +23,7 @@ function lsFiles(...pathspecs) {
 }
 
 // Yields { line, target } for every link target and code-span path outside fenced code.
-function* references(text, { spans }) {
+export function* references(text, { spans }) {
   let fence = null;
   let openTicks = null;
   const lines = text.split(/\r?\n/);
@@ -149,22 +151,26 @@ function write(copies) {
   }
 }
 
-const args = process.argv.slice(2);
-if (args.length > 1 || (args.length === 1 && args[0] !== "--check")) {
-  console.error("usage: node scripts/sync-shared.mjs [--check]");
-  process.exit(1);
-}
-const { errors, copies } = plan();
-if (errors.length) {
-  console.error(errors.join("\n"));
-  process.exit(1);
-}
-if (args[0] === "--check") {
-  const problems = check(copies);
-  if (problems.length) {
-    console.error(`${problems.join("\n")}\nRun npm run sync-shared.`);
+function main(args) {
+  if (args.length > 1 || (args.length === 1 && args[0] !== "--check")) {
+    console.error("usage: node scripts/sync-shared.mjs [--check]");
     process.exit(1);
   }
-} else {
-  write(copies);
+  const { errors, copies } = plan();
+  if (errors.length) {
+    console.error(errors.join("\n"));
+    process.exit(1);
+  }
+  if (args[0] === "--check") {
+    const problems = check(copies);
+    if (problems.length) {
+      console.error(`${problems.join("\n")}\nRun npm run sync-shared.`);
+      process.exit(1);
+    }
+  } else {
+    write(copies);
+  }
 }
+
+// Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) main(process.argv.slice(2));

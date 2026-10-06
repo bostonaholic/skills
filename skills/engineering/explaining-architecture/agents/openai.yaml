@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explaining Architecture"
+  short_description: "Explain how a subsystem or runtime flow works"
+  default_prompt: "Use $explaining-architecture to explain how this subsystem or runtime flow works."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Composing Agent Prompts"
+  short_description: "Compose a source-cited task prompt for another agent"
+  default_prompt: "Use $composing-agent-prompts to compose a self-contained task prompt for another agent, without running the task."

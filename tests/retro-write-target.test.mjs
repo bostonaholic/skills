@@ -1,15 +1,15 @@
 // Fails when the retro write-target guard cannot locate a skill nested one
-// category level down, guesses between same-named skills, or lets a nested
-// target escape the repository.
+// category level down, guesses between same-named skills, lets a nested
+// target escape the repository, or misses a copy under the other skills root.
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { resolveEditTarget } from "../skills/productivity/retro/resources/write-target.mjs";
+import { resolveEditTarget, shadowedCopies } from "../skills/productivity/running-retros/scripts/write-target.mjs";
 
-const SCRIPT = resolve("skills/productivity/retro/resources/write-target.mjs");
+const SCRIPT = resolve("skills/productivity/running-retros/scripts/write-target.mjs");
 
 function scratchDir(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "write-target-")));
@@ -124,4 +124,46 @@ test("CLI refuses a nested target reached through a category symlinked outside t
   const result = run(repo, "alpha");
   assert.equal(result.status, 1);
   assert.match(result.stderr, /^refusing: edit target resolves outside the repository$/m);
+});
+
+test("shadowedCopies finds a plugin skill's copy under .claude/skills", (t) => {
+  const repo = pluginRepo(t);
+  addSkill(join(repo, "skills", "engineering", "alpha"));
+  addSkill(join(repo, ".claude", "skills", "alpha"));
+  assert.deepEqual(shadowedCopies({ repoRoot: repo, editRoot: join(repo, "skills"), name: "alpha" }), [
+    join(repo, ".claude", "skills", "alpha", "SKILL.md"),
+  ]);
+});
+
+test("shadowedCopies finds a project skill's copy under skills/", (t) => {
+  const repo = join(scratchDir(t), "repo");
+  addSkill(join(repo, ".claude", "skills", "alpha"));
+  addSkill(join(repo, "skills", "tools", "alpha"));
+  assert.deepEqual(shadowedCopies({ repoRoot: repo, editRoot: join(repo, ".claude", "skills"), name: "alpha" }), [
+    join(repo, "skills", "tools", "alpha", "SKILL.md"),
+  ]);
+});
+
+test("shadowedCopies is empty when only the edit root holds the skill", (t) => {
+  const repo = pluginRepo(t);
+  addSkill(join(repo, "skills", "engineering", "alpha"));
+  assert.deepEqual(shadowedCopies({ repoRoot: repo, editRoot: join(repo, "skills"), name: "alpha" }), []);
+});
+
+test("CLI names a shadowed copy under the other skills root", (t) => {
+  const repo = pluginRepo(t);
+  addSkill(join(repo, "skills", "engineering", "alpha"));
+  addSkill(join(repo, ".claude", "skills", "alpha"));
+  const result = run(repo, "alpha");
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(`^edit target: ${join(repo, "skills", "engineering", "alpha", "SKILL.md")}$`, "m"));
+  assert.match(result.stdout, new RegExp(`^shadowed copy: ${join(repo, ".claude", "skills", "alpha", "SKILL.md")}$`, "m"));
+});
+
+test("CLI prints no shadowed copy when one root holds the skill", (t) => {
+  const repo = pluginRepo(t);
+  addSkill(join(repo, "skills", "engineering", "alpha"));
+  const result = run(repo, "alpha");
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /^shadowed copy:/m);
 });

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Drawing Mermaid Diagrams"
+  short_description: "Write, render, and debug Mermaid diagrams"
+  default_prompt: "Use $drawing-mermaid-diagrams to write or fix a Mermaid diagram and check that it renders."

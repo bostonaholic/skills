@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improving Prompts"
+  short_description: "Compress and clarify an existing prompt"
+  default_prompt: "Use $improving-prompts to compress and clarify the supplied prompt without losing any instruction."

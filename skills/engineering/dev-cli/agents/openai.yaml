@@ -1,4 +1,0 @@
-interface:
-  display_name: "Dev CLI"
-  short_description: "Set up and use the dev CLI"
-  default_prompt: "Use $dev-cli to set up or troubleshoot the dev CLI."

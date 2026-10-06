@@ -1,4 +1,0 @@
-interface:
-  display_name: "Be Extremely Brief"
-  short_description: "Keep responses extremely brief"
-  default_prompt: "Use $be-extremely-fucking-brief to respond extremely briefly."

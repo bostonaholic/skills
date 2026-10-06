@@ -1,0 +1,4 @@
+interface:
+  display_name: "Auditing Tests"
+  short_description: "Audit a test suite for low-value tests"
+  default_prompt: "Use $auditing-tests to audit a test suite for low-value tests with verified removal evidence."

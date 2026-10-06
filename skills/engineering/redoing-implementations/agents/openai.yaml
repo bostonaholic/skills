@@ -1,0 +1,6 @@
+interface:
+  display_name: "Redoing Implementations"
+  short_description: "Rebuild the current work as a simpler design"
+  default_prompt: "Use $redoing-implementations to rebuild the current work as the simplest design that fits what was learned."
+policy:
+  allow_implicit_invocation: false

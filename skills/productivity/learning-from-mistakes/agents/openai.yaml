@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learning From Mistakes"
+  short_description: "Turn a correction into an approved instructions-file rule"
+  default_prompt: "Use $learning-from-mistakes to turn the latest correction into a rule in the right instructions file."

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Removing Comments"
+  short_description: "Remove low-value source comments, encoding constraints with approval"
+  default_prompt: "Use $removing-comments to remove low-value source comments and, with approval, encode enforceable constraints."
+policy:
+  allow_implicit_invocation: false

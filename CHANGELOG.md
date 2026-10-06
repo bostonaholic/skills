@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-06
+
+### Changed
+
+- Rename every skill to a gerund name, for example `shipit` to `landing-prs` and `code-review` to `reviewing-code`; invoke skills by their new names. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Rewrite every skill description to say what the skill does and when to use it. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Trim every skill to its behavioral core and link each reference directly from its `SKILL.md`. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Move `redoing-implementations` to the engineering category. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Rename the `auditing-tests` report key `seams` to `testOnlyCode`. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Rewrite `merging-dependabot-prs` as a self-contained, approval-gated procedure that merges only patch and minor updates. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Confirm the drafted rule before `learning-from-mistakes` writes it. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Make `configuring-zsh` discover the dotfiles layout instead of assuming one. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Pin the react-doctor version in `diagnosing-react-code` and ask before its first networked run. [#18](https://github.com/bostonaholic/skills/pull/18)
+
+### Fixed
+
+- Stop `rebasing-open-prs` from force-pushing over remote commits or deleting branches it did not create. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Hand behind branches from `landing-prs` to `rebasing-branches` instead of force-pushing inline, and honor the PR argument. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Refuse to force-push in `rebasing-branches` when the remote has commits the branch lacks. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Save binary changes and untracked files before `redoing-implementations` resets an attempt. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Never install dependencies during `auditing-repo-security`, and fix detection patterns that errored or never matched. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Correct `using-jq` and `drawing-mermaid-diagrams` examples that failed on current tool versions. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Enforce the upload refusals in `attaching-pr-screenshots` and resolve the current branch's PR when none is given. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Fix `grooming-backlogs` promotion mode, which read a board cache it never wrote. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Include untracked files and skip deleted ones in `removing-comments`. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Support GitHub Enterprise hosts in the PR watch and comment skills. [#18](https://github.com/bostonaholic/skills/pull/18)
+
+### Removed
+
+- Move `dev-cli` to the [bostonaholic/dev](https://github.com/bostonaholic/dev) repository, which ships it as a Claude Code plugin: `claude plugin marketplace add bostonaholic/dev`, then `claude plugin install dev@dev`. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Remove the unused `write-companion.sh` script from `attaching-pr-screenshots`. [#18](https://github.com/bostonaholic/skills/pull/18)
+
 ## [0.6.0] - 2026-10-06
 
 ### Changed
@@ -95,5 +127,7 @@
 
 [0.5.0]: https://github.com/bostonaholic/skills/compare/v0.4.1...v0.5.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.6.0...HEAD
 [0.6.0]: https://github.com/bostonaholic/skills/compare/v0.5.0...v0.6.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/bostonaholic/skills/compare/v0.6.0...v0.7.0

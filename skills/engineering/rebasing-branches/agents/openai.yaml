@@ -1,0 +1,7 @@
+interface:
+  display_name: "Rebasing Branches"
+  short_description: "Rebase the current branch onto its base and force-push with a lease"
+  default_prompt: "Use $rebasing-branches to rebase the current branch onto its base."
+
+policy:
+  allow_implicit_invocation: false

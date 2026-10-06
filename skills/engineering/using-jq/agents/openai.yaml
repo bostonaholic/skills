@@ -1,0 +1,4 @@
+interface:
+  display_name: "Using jq"
+  short_description: "Write and debug jq programs for JSON"
+  default_prompt: "Use $using-jq to write, explain, or debug a jq command for this JSON task."

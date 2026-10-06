@@ -7,11 +7,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { deflateSync } from "node:zlib";
-import { MAX_BYTES, decodePng, inspect } from "../skills/engineering/paparazzi/scripts/png-check.mjs";
-import { DEFAULT_CONTEXT, InputError, planFrames } from "../skills/engineering/paparazzi/scripts/shoot.mjs";
+import { MAX_BYTES, decodePng, inspect } from "../skills/engineering/capturing-screenshots/scripts/png-check.mjs";
+import { DEFAULT_CONTEXT, InputError, MESSAGE_LENGTH, MESSAGE_LIMIT, note, planFrames } from "../skills/engineering/capturing-screenshots/scripts/shoot.mjs";
 
-const PNG_CHECK = resolve("skills/engineering/paparazzi/scripts/png-check.mjs");
-const SHOOT = resolve("skills/engineering/paparazzi/scripts/shoot.mjs");
+const PNG_CHECK = resolve("skills/engineering/capturing-screenshots/scripts/png-check.mjs");
+const SHOOT = resolve("skills/engineering/capturing-screenshots/scripts/shoot.mjs");
 
 function crc32(buffer) {
   let crc = ~0;
@@ -193,6 +193,30 @@ test("planFrames refuses an unusable shot list before anything launches", () => 
   }
 });
 
+test("note keeps the first line of each message up to the limit and counts the rest as omitted", () => {
+  const result = { consoleErrors: [], pageErrors: [], failedRequests: [], omitted: { consoleErrors: 0, pageErrors: 0, failedRequests: 0 } };
+  for (let index = 0; index < MESSAGE_LIMIT + 2; index++) note(result, "consoleErrors", `error ${index}\n    at stack`);
+  note(result, "pageErrors", "x".repeat(MESSAGE_LENGTH + 50));
+
+  assert.equal(result.consoleErrors.length, MESSAGE_LIMIT);
+  assert.equal(result.consoleErrors[0], "error 0");
+  assert.deepEqual(result.omitted, { consoleErrors: 2, pageErrors: 0, failedRequests: 0 });
+  assert.equal(result.pageErrors[0].length, MESSAGE_LENGTH);
+});
+
+test("shoot exits 2 when the output directory cannot be created, before looking for Playwright", (t) => {
+  const dir = scratch(t);
+  const env = { ...process.env, PAPARAZZI_TOOLS: "" };
+  const list = join(dir, "shots.json");
+  const blocker = join(dir, "blocker");
+  writeFileSync(list, JSON.stringify({ origin: "http://127.0.0.1:9", shots: [{ name: "01-home-populated", path: "/" }] }));
+  writeFileSync(blocker, "a file where the output directory's parent should be");
+
+  const blocked = run(SHOOT, [list, join(blocker, "out")], { cwd: dir, env });
+  assert.equal(blocked.status, 2);
+  assert.match(blocked.stderr, /^shoot\.mjs: cannot create output directory /);
+});
+
 test("shoot exits 2 on an unusable list and 3 when no Playwright resolves", (t) => {
   const dir = scratch(t);
   const env = { ...process.env, PAPARAZZI_TOOLS: "" };
@@ -275,4 +299,5 @@ test("shoot captures viewport, element, and full-page frames and fails an error 
   assert.equal(frames["04-missing-error"].ok, false);
   assert.equal(frames["04-missing-error"].file, null);
   assert.match(frames["04-missing-error"].reason, /HTTP 404/);
+  assert.deepEqual(frames["01-settings-populated"].omitted, { consoleErrors: 0, pageErrors: 0, failedRequests: 0 });
 });

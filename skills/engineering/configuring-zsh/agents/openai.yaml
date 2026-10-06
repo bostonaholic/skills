@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configuring Zsh"
+  short_description: "Place zsh config in the right startup file"
+  default_prompt: "Use $configuring-zsh to put this zsh change in the right startup file of the dotfiles repo and verify it."

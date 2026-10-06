@@ -1,0 +1,6 @@
+interface:
+  display_name: "Merging Dependabot PRs"
+  short_description: "Plan, approve, and merge safe Dependabot updates one at a time"
+  default_prompt: "Use $merging-dependabot-prs to plan and merge the safe Dependabot updates."
+policy:
+  allow_implicit_invocation: false

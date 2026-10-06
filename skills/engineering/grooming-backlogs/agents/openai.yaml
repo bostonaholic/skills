@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grooming Backlogs"
+  short_description: "Plan backlog grooming changes for approval"
+  default_prompt: "Use $grooming-backlogs to groom this project backlog, proposing each tracker change for approval."

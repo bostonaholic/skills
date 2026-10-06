@@ -1,0 +1,4 @@
+interface:
+  display_name: "Using the GitHub CLI"
+  short_description: "Open PRs, check CI, and handle issues through gh, verifying each result"
+  default_prompt: "Use $using-gh-cli to handle the GitHub task through gh and verify the result."

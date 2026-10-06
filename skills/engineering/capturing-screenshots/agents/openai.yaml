@@ -1,0 +1,4 @@
+interface:
+  display_name: "Capturing Screenshots"
+  short_description: "Capture verified screenshots of an app"
+  default_prompt: "Use $capturing-screenshots to capture verified screenshots of the named screens of an app."

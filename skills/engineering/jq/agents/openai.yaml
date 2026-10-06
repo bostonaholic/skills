@@ -1,4 +1,0 @@
-interface:
-  display_name: "jq"
-  short_description: "Transform JSON with jq"
-  default_prompt: "Use $jq to write or explain a jq command for the task."

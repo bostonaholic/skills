@@ -1,4 +1,4 @@
-// Acceptance tests for skills/engineering/audit-complexity. No test creates a commit:
+// Acceptance tests for skills/engineering/auditing-complexity. No test creates a commit:
 // the real-git cases only read this checkout, and each new repository is a `git init` with no commit.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -6,12 +6,12 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
-import { buildGitArgs, classifyStatus, listDirty } from "../skills/engineering/audit-complexity/scripts/inventory.mjs";
-import { renderReport, validateReport } from "../skills/engineering/audit-complexity/scripts/render-report.mjs";
+import { buildGitArgs, classifyStatus, listDirty } from "../skills/engineering/auditing-complexity/scripts/inventory.mjs";
+import { renderReport, validateReport } from "../skills/engineering/auditing-complexity/scripts/render-report.mjs";
 
 const TOP = resolve(".");
-const INVENTORY = resolve("skills/engineering/audit-complexity/scripts/inventory.mjs");
-const RENDER = resolve("skills/engineering/audit-complexity/scripts/render-report.mjs");
+const INVENTORY = resolve("skills/engineering/auditing-complexity/scripts/inventory.mjs");
+const RENDER = resolve("skills/engineering/auditing-complexity/scripts/render-report.mjs");
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const COVERAGE = "coverage/lines.txt";
 
@@ -27,7 +27,7 @@ function tempDir(t) {
 function report(overrides = {}) {
   return {
     version: 1,
-    skill: "audit-complexity",
+    skill: "auditing-complexity",
     scope: {
       root: "demo",
       pathspecs: ["src"],
@@ -256,7 +256,7 @@ const afterDashes = (argv) => (argv.includes("--") ? argv.slice(argv.indexOf("--
 function auditRequest(pathspecs, extraScope = {}) {
   return JSON.stringify({
     version: 1,
-    skill: "audit-complexity",
+    skill: "auditing-complexity",
     scope: { root: "skills", pathspecs, exclude: [], date: "2026-09-30", ...extraScope },
   });
 }
@@ -279,7 +279,7 @@ function runRender(reportPath) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// /audit-complexity ranks where complexity concentrates
+// /auditing-complexity ranks where complexity concentrates
 
 test("inventory.json is identical from the top level and from docs/", (t) => {
   const dir = tempDir(t);
@@ -314,7 +314,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
   });
 
   await t.test("a wrong skill", () => {
-    const errors = validateReport(report({ skill: "audit-tests" }), inventory());
+    const errors = validateReport(report({ skill: "auditing-tests" }), inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /skill/);
   });
@@ -454,7 +454,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
 
   await t.test("the CLI exits 1, lists each error on its own line, and writes no report.md", (st) => {
     const dir = tempDir(st);
-    writeFileSync(join(dir, "report.json"), JSON.stringify(report({ skill: "audit-tests", version: 2 })));
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report({ skill: "auditing-tests", version: 2 })));
     writeFileSync(join(dir, "inventory.json"), JSON.stringify(inventory()));
     const run = runRender(join(dir, "report.json"));
     assert.equal(run.status, 1, run.stderr);
@@ -665,8 +665,8 @@ test("renderReport ranks hot functions", async (t) => {
     assert.match(lineMatching(functions, /omitted/i), /\b1\b/);
   });
 
-  await t.test("the heading warns that a file's fourth-ranked function or lower can be missing", () => {
-    assert.match(section(renderReport(report(), inventory()), "Functions"), /fourth or lower/i);
+  await t.test("the heading warns that a function below its file's top 3 can be missing", () => {
+    assert.match(section(renderReport(report(), inventory()), "Functions"), /below the top 3 in its own file can be missing/i);
   });
 
   await t.test("file maxima skip <module> for length and parameters only", () => {
@@ -1364,6 +1364,26 @@ test("both CLIs exit 1 and write nothing", async (t) => {
     assert.equal(run.status, 1, run.stderr);
     assert.match(run.stderr, /^inventory\.mjs: .*inventory\.json/);
     assert.equal(readFileSync(join(dir, "victim.json"), "utf8"), "original\n");
+  });
+
+  await t.test("inventory.mjs names an inventory.json it cannot write", (st) => {
+    const dir = tempDir(st);
+    writeFileSync(join(dir, "report.json"), auditRequest(["docs/style.css"]));
+    writeFileSync(join(dir, "empty.gitconfig"), "");
+    mkdirSync(join(dir, "inventory.json"));
+    const run = runInventory(join(dir, "report.json"), { cwd: TOP, env: isolatedGitEnv(join(dir, "empty.gitconfig")) });
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /^inventory\.mjs: cannot write .*inventory\.json/);
+  });
+
+  await t.test("render-report.mjs names a report.md it cannot write", (st) => {
+    const dir = tempDir(st);
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report()));
+    writeFileSync(join(dir, "inventory.json"), JSON.stringify(inventory()));
+    mkdirSync(join(dir, "report.md"));
+    const run = runRender(join(dir, "report.json"));
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /^render-report\.mjs: cannot write .*report\.md/);
   });
 
   await t.test("render-report.mjs at a symlinked report.md", (st) => {

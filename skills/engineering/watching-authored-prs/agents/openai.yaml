@@ -1,0 +1,4 @@
+interface:
+  display_name: "Watching Authored PRs"
+  short_description: "Watch your own PR for review feedback and CI"
+  default_prompt: "Use $watching-authored-prs to watch your own PR for review feedback and CI."
