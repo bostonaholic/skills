@@ -10,8 +10,9 @@ the collection's extraction history.
 
 ## Edit the source
 
-- `scripts/catalog.mjs` owns the subtitle (`LEDE`), installation copy, and
-  generated README content. Edit it instead of the block between the README's
+- `scripts/catalog.mjs` owns the subtitle (`LEDE`), the copy/paste install
+  prompt, and generated README content. Detailed installation steps live in
+  `INSTALL.md`, which `AGENTS.md` links for agents following the prompt. Edit it instead of the block between the README's
   `generated:start` and `generated:end` markers.
 - `scripts/build-site.mjs` renders the catalog and 404 page. `docs/style.css`
   controls their appearance, and `docs/copy-code.js` adds the code-block copy

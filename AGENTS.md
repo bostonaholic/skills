@@ -1,5 +1,7 @@
 # bostonaholic/skills
 
+To install these skills for a user, follow [INSTALL.md](INSTALL.md). The rules below are for changing this repository.
+
 1. Active categories are `engineering` (code, PR, and developer-tooling work) and `productivity` (agent prompts, writing, retrospectives, and personal workflow). One active skill per `skills/<category>/<name>/`: `SKILL.md` with `name` equal to the directory, plus `agents/openai.yaml`. No symlinks and no nested `SKILL.md` inside a skill.
 2. The plugin `skills` array lists every active tracked skill, and its `agents` array lists every Claude Code subagent in `agents/*.md`. Run `claude plugin validate . --strict` and `claude plugin validate .claude-plugin/plugin.json --strict` after editing either manifest.
 3. Run `npm run readme` after adding, renaming, or re-describing a skill.

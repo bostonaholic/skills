@@ -11,17 +11,17 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   CatalogError,
-  INSTALL_INTRO,
-  INSTALL_OUTRO,
-  INSTALL_ROUTES,
+  INSTALL_DOC,
+  INSTALL_PROMPT,
+  INSTALL_PROMPT_LABEL,
   LEDE,
   NPX_ADD_SKILL,
+  REPO_URL,
   loadCatalog,
   skillGroups,
 } from "./catalog.mjs";
 
 const TITLE = "bostonaholic/skills";
-const REPO_URL = "https://github.com/bostonaholic/skills";
 const STATIC_FILES = ["style.css", "copy-code.js", "CNAME"];
 
 export function escapeHtml(text) {
@@ -51,15 +51,12 @@ function page(title, stylesheet, body) {
 }
 
 function installHtml() {
-  const lines = ['<h2 id="install">Install</h2>', `<p>${inlineHtml(INSTALL_INTRO)}</p>`];
-  for (const route of INSTALL_ROUTES) {
-    lines.push(`<h3>${escapeHtml(route.heading)}</h3>`);
-    for (const block of route.blocks) {
-      lines.push(block.commands ? `<pre><code>${escapeHtml(block.commands.join("\n"))}</code></pre>` : `<p>${inlineHtml(block.text)}</p>`);
-    }
-  }
-  lines.push(`<p>${inlineHtml(INSTALL_OUTRO)}</p>`);
-  return lines;
+  return [
+    '<h2 id="install">Install</h2>',
+    `<p>${escapeHtml(INSTALL_PROMPT_LABEL)}</p>`,
+    `<pre><code>${escapeHtml(INSTALL_PROMPT)}</code></pre>`,
+    `<p>Or follow the <a href="${REPO_URL}/blob/main/${INSTALL_DOC}">installation instructions</a>.</p>`,
+  ];
 }
 
 function sectionHtml(skill) {

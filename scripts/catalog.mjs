@@ -12,38 +12,13 @@ import { pathToFileURL } from "node:url";
 
 export const LEDE = "The skills I use to build software with coding agents.";
 
-export const CLAUDE_MARKETPLACE_ADD = "claude plugin marketplace add bostonaholic/skills";
-export const CLAUDE_PLUGIN_INSTALL = "claude plugin install bostonaholic@skills";
-export const CLAUDE_MARKETPLACE_UPDATE = "claude plugin marketplace update skills";
-export const CLAUDE_PLUGIN_UPDATE = "claude plugin update bostonaholic@skills";
-export const NPX_ADD_ALL = "npx skills@latest add bostonaholic/skills";
+export const REPO_URL = "https://github.com/bostonaholic/skills";
 export const NPX_ADD_SKILL = "npx skills@latest add bostonaholic/skills --skill <name>";
-export const NPX_UPDATE_SKILL = "npx skills@latest update <name>";
 
-export const INSTALL_INTRO =
-  "Two ways in. The Claude Code plugin installs every skill as one managed bundle that updates when a new version ships. `npx skills` copies the skills you pick into your project or home directory, for Claude Code, Codex, and other agents; you own and edit the copies. Pick one: installing both gives you every skill twice.";
-
-// Each block is either a run of shell commands or one line of text.
-export const INSTALL_ROUTES = [
-  {
-    heading: "Claude Code",
-    blocks: [
-      { commands: [CLAUDE_MARKETPLACE_ADD, CLAUDE_PLUGIN_INSTALL] },
-      { text: "Update the marketplace first, then the plugin:" },
-      { commands: [CLAUDE_MARKETPLACE_UPDATE, CLAUDE_PLUGIN_UPDATE] },
-    ],
-  },
-  {
-    heading: "Any agent, whole set",
-    blocks: [{ commands: [NPX_ADD_ALL] }, { text: "Pick the skills you want, and which agents to install them on." }],
-  },
-  {
-    heading: "One skill",
-    blocks: [{ commands: [NPX_ADD_SKILL] }, { text: "To update it:" }, { commands: [NPX_UPDATE_SKILL] }],
-  },
-];
-
-export const INSTALL_OUTRO = "A skill that calls another skill names it, and stops or falls back when that skill is missing.";
+// The one-line install path. The pasted prompt sends the agent to AGENTS.md, which links INSTALL.md.
+export const INSTALL_PROMPT_LABEL = "Copy/paste into your CLI prompt:";
+export const INSTALL_PROMPT = `Install the skills from ${REPO_URL}, refer to the repo's AGENTS.md for instructions.`;
+export const INSTALL_DOC = "INSTALL.md";
 
 export const README_START = "<!-- generated:start -->";
 export const README_END = "<!-- generated:end -->";
@@ -142,14 +117,8 @@ function readmeEntry(skill) {
 
 // Returns the text strictly between README_START and README_END.
 export function renderReadme(catalog) {
-  const lines = [LEDE, "", "## Install", "", INSTALL_INTRO, ""];
-  for (const route of INSTALL_ROUTES) {
-    lines.push(`### ${route.heading}`, "");
-    for (const block of route.blocks) {
-      lines.push(...(block.commands ? ["```sh", ...block.commands, "```"] : [block.text]), "");
-    }
-  }
-  lines.push(INSTALL_OUTRO, "", "## Skills", "");
+  const lines = [LEDE, "", "## Install", "", INSTALL_PROMPT_LABEL, "", "```text", INSTALL_PROMPT, "```", ""];
+  lines.push(`Or follow the [installation instructions](${INSTALL_DOC}).`, "", "## Skills", "");
   for (const group of skillGroups(catalog)) {
     lines.push(`### ${group.heading}`, "", ...group.skills.map(readmeEntry), "");
   }

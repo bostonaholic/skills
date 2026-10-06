@@ -6,43 +6,13 @@ The skills I use to build software with coding agents.
 
 ## Install
 
-Two ways in. The Claude Code plugin installs every skill as one managed bundle that updates when a new version ships. `npx skills` copies the skills you pick into your project or home directory, for Claude Code, Codex, and other agents; you own and edit the copies. Pick one: installing both gives you every skill twice.
+Copy/paste into your CLI prompt:
 
-### Claude Code
-
-```sh
-claude plugin marketplace add bostonaholic/skills
-claude plugin install bostonaholic@skills
+```text
+Install the skills from https://github.com/bostonaholic/skills, refer to the repo's AGENTS.md for instructions.
 ```
 
-Update the marketplace first, then the plugin:
-
-```sh
-claude plugin marketplace update skills
-claude plugin update bostonaholic@skills
-```
-
-### Any agent, whole set
-
-```sh
-npx skills@latest add bostonaholic/skills
-```
-
-Pick the skills you want, and which agents to install them on.
-
-### One skill
-
-```sh
-npx skills@latest add bostonaholic/skills --skill <name>
-```
-
-To update it:
-
-```sh
-npx skills@latest update <name>
-```
-
-A skill that calls another skill names it, and stops or falls back when that skill is missing.
+Or follow the [installation instructions](INSTALL.md).
 
 ## Skills
 
