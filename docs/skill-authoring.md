@@ -72,13 +72,13 @@ with it.
 
 ## E. Content
 
-| ID  | Rule                                                                                           |
-| --- | ---------------------------------------------------------------------------------------------- |
-| E1  | No time-sensitive or machine-specific facts. Keep history in a collapsed "Old patterns" block. |
-| E2  | One term per concept across a skill and its references.                                        |
-| E3  | Output templates state their strictness: exact, or a default to adapt.                         |
-| E4  | Concrete input and output examples where style matters.                                        |
-| E5  | Offer one default with an escape hatch, not a menu of options.                                 |
+| ID  | Rule                                                                                                                                                                                      |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | No time-sensitive or machine-specific facts. Keep history in a collapsed "Old patterns" block. Pin a subagent model by tier alias (`opus`, `sonnet`, `haiku`), never by a dated model ID. |
+| E2  | One term per concept across a skill and its references.                                                                                                                                   |
+| E3  | Output templates state their strictness: exact, or a default to adapt.                                                                                                                    |
+| E4  | Concrete input and output examples where style matters.                                                                                                                                   |
+| E5  | Offer one default with an escape hatch, not a menu of options.                                                                                                                            |
 
 ## F. Scripts and tools
 
