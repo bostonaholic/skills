@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Builds the static docs site from the skill catalog: <out>/index.html, <out>/404.html, and
-// copies of docs/style.css and docs/CNAME. The pages carry no JavaScript and no external assets.
+// copies of docs/style.css, docs/copy-code.js, and docs/CNAME. The pages carry no external assets;
+// the index page loads copy-code.js for its code-block copy buttons.
 // A static file that is missing, a symlink, or resolves outside the repository (for example
 // through a symlinked docs/) exits 1 before anything is written.
 //   node scripts/build-site.mjs <out>
@@ -21,7 +22,7 @@ import {
 
 const TITLE = "bostonaholic/skills";
 const REPO_URL = "https://github.com/bostonaholic/skills";
-const STATIC_FILES = ["style.css", "CNAME"];
+const STATIC_FILES = ["style.css", "copy-code.js", "CNAME"];
 
 export function escapeHtml(text) {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
@@ -100,6 +101,7 @@ export function renderIndex(catalog) {
     ...skillsHtml(catalog),
     "</main>",
     FOOTER,
+    '<script src="copy-code.js" defer></script>',
   ]);
 }
 
