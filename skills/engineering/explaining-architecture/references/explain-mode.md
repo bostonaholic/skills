@@ -14,11 +14,10 @@
 3. **Complex: fan out explorers.** Split the question into 2–4
    non-overlapping angles. Dispatch one explorer per angle, all **in one
    message**, through the `Agent` tool with `subagent_type: Explore` (the
-   built-in read-only type). Explorers only gather facts, so a smaller, faster
-   model is enough. Each prompt carries the Explorer brief
-   below, the question, and its assigned angle. If the `Agent` tool or the
-   `Explore` type is unavailable, explore every angle yourself inline. Never
-   substitute a full-tool agent silently.
+   built-in read-only type) and `model: sonnet`. Each prompt carries the
+   Explorer brief below, the question, and its assigned angle. If the `Agent`
+   tool or the `Explore` type is unavailable, explore every angle yourself
+   inline. Never substitute a full-tool agent silently.
 
 4. **Synthesize.** Resolve contradictions by checking the code yourself.
    Claims about code carry a `file:line` citation. Acknowledge any

@@ -31,10 +31,10 @@
 3. **Dispatch investigators.** One investigator per available category,
    at most four at once: launch the first four **in one message**, then the
    rest as a second batch after the first returns. Use the `Agent` tool with
-   `subagent_type: Explore` (the built-in read-only type); investigators only
-   gather evidence, so a smaller, faster model is enough. Each prompt carries
-   the Investigator brief below, its assigned category and the tools that
-   serve it, the code anchor from step 1, and the user's question
+   `subagent_type: Explore` (the built-in read-only type) and
+   `model: sonnet`. Each prompt carries the Investigator brief below, its
+   assigned category and the tools that serve it, the code anchor from
+   step 1, and the user's question
    **verbatim: never your hypothesis, the user's embedded guess, or a wanted
    answer**.
 

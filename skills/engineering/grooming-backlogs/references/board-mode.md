@@ -44,8 +44,10 @@ Execute turn, after the user answers:
 Create the [run cache](SKILL.md#run-cache). Then run three
 queries, cached and worked from, never from recalled context. The board loads
 first, because `$REPO` is derived from it. Pass an explicit `--limit` or
-`per_page` on every paginated call. The limits below sit above any board this
-skill expects; each one has a check that fails loudly when it is reached.
+`per_page` on every paginated call. The board and issue limits sit above any
+board this skill expects, and each has a check that fails loudly when it is
+reached. The comment and link caps can be reached on an ordinary board, so
+each records the issues that reach it instead.
 
 ```bash
 # 1. The board, then its milestones. No default: a missing key must fail.
@@ -78,11 +80,11 @@ for n in $(jq -r '.[].number' "$RUN_DIR/issues.json"); do
 done
 ```
 
-A shortfall fails loudly and stops the run, so raise the limit and reload.
-Never groom a partial board. Every issue that hit the comment cap lands in
-`$RUN_DIR/unloaded-threads.txt`, and every issue that hit a link cap lands in
-`$RUN_DIR/unloaded-links.txt`. The report names both rather than truncating
-silently.
+A board or issue shortfall fails loudly and stops the run, so raise the limit
+and reload. Never groom a partial board. Every issue that hit the comment cap
+lands in `$RUN_DIR/unloaded-threads.txt`, and every issue that hit a link cap
+lands in `$RUN_DIR/unloaded-links.txt`. The report names both rather than
+truncating silently.
 
 Each link node carries `number`, `title`, `url`, `state`, and
 `repository.nameWithOwner`, so the cache decides whether a blocker is still

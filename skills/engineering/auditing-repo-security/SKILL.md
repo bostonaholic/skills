@@ -72,8 +72,8 @@ review the lockfile by hand for known-bad or typosquatted names.
 
    Never run `yarn`, `pnpm`, `poetry`, `uv`, `go`, `bundle install`,
    `pip install`, `npm install`, or `npm ci` in the clone: a `.yarnrc.yml`
-   `yarnPath`, a build backend, or a lifecycle script runs repo code. `yarn
-audit` and `yarn npm audit` are therefore out too. `safety check` is
+   `yarnPath`, a build backend, or a lifecycle script runs repo code.
+   `yarn audit` and `yarn npm audit` are therefore out too. `safety check` is
    deprecated, and `safety scan` needs an account; prefer the scanners above.
    Before trusting a scanner's silence, check the clone for config that
    ignores advisories (`osv-scanner.toml`, `.bundler-audit.yml`) and a

@@ -3,6 +3,16 @@
 Promotion mode brings one named issue to the ready-to-work standard and moves
 its card into the Ready column. It runs none of the board-mode steps.
 
+## Contents
+
+- Checklist
+- Inputs
+- The standard
+- Column rules
+- The stopping point
+
+## Checklist
+
 Copy this checklist and check off each step:
 
 ```text
@@ -19,11 +29,31 @@ Execute turn, after the user answers:
 
 ## Inputs
 
-One issue identified by number, on a named board. Create the
-[run cache](SKILL.md#run-cache), then load narrowly into it, and nothing else:
-the issue with its body and every comment on it, its declared dependency and
-decomposition links, the milestone it belongs to, and the current contents of
-the Ready column, which that column's work-in-progress limit needs. Resolve
+One issue identified by number, on a named board; `$N` is the `--promote`
+value. Create the [run cache](SKILL.md#run-cache), then load narrowly into it,
+and nothing else. The board loads first: it holds the issue's repository, the
+item id the card move needs, and the current contents of the Ready column,
+which that column's work-in-progress limit needs.
+
+```bash
+# No default: a missing key must fail.
+gh project item-list "$PROJECT" --owner "$OWNER" --format json --limit 10000 \
+  > "$RUN_DIR/board.json"
+jq -e '.totalCount == (.items | length)' "$RUN_DIR/board.json"
+# The repositories holding an issue numbered $N on this board.
+jq -r --argjson n "$N" '.items[] | select(.content.type == "Issue"
+  and .content.number == $n) | .content.repository' "$RUN_DIR/board.json"
+```
+
+A board shortfall stops the run, as in board mode. The last query must print
+exactly one `<owner>/<name>`. None means the issue is not on the board, which
+stops non-zero. More than one means the number exists in several repositories:
+stop, name them, and ask which. An owner that differs from `$OWNER` stops the
+same way board mode does. Otherwise `$REPO` is the name, and every repository
+call is scoped to `"$OWNER/$REPO"`.
+
+Then load the issue with its body and every comment on it, its declared
+dependency and decomposition links, and the milestone it belongs to. Resolve
 the [board settings](SKILL.md#board-settings) the issue touches. Cache the
 issue's current body to `original-body-<n>.md` before any rewrite is
 composed, so the pre-image of the most destructive write here survives.

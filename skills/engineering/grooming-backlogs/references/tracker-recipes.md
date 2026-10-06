@@ -5,14 +5,14 @@
 - Issues, milestones, and closures
 - Dependency links
 - Board column
-- Other trackers: check `--help` first
+- Other trackers (unverified): check `--help` first
 
 ## Issues, milestones, and closures
 
 GitHub Projects, the worked example. Every prose value travels by file, per
-[hard rule 2](references/hard-rules.md). Labels come from the
-[board settings](SKILL.md#board-settings). Milestones live on the repository,
-not the project:
+[hard rule 2](references/hard-rules.md). Labels and columns come from the
+[board settings](SKILL.md#board-settings), in the variables its table names.
+Milestones live on the repository, not the project:
 
 ```bash
 # Create one. Re-describing an existing one is the same shape: build a JSON body
@@ -59,8 +59,10 @@ so a number passed as an id resolves to some unrelated issue rather than fail:
 ```bash
 # $N is blocked by $BLOCKER. An undeclared blocker's number comes out of tracker
 # text, so match it against the loaded board before it reaches a path: a value
-# like `7/../../..` would re-target the request.
-jq -e --argjson b "$BLOCKER" 'any(.[].number; . == $b)' "$RUN_DIR/issues.json" \
+# like `7/../../..` would re-target the request. Both modes cache board.json.
+jq -e --argjson b "$BLOCKER" --arg repo "$OWNER/$REPO" 'any(.items[];
+  .content.type == "Issue" and .content.number == $b
+  and .content.repository == $repo)' "$RUN_DIR/board.json" \
   || { echo "blocker #$BLOCKER is not on the loaded board — stopping" >&2; exit 1; }
 # Resolve the blocker's database id — not its number, and not the `id` on the
 # cached link nodes, which is a GraphQL node id.
@@ -87,15 +89,17 @@ its value, so an all-digit id would fail the `String!` variable.
 
 ```bash
 # Ids: the project from `gh project view`, the Status field and its option from
-# `gh project field-list`, and the item from the cached board.
+# `gh project field-list`, and the item from the cached board. $COLUMN is the
+# target column: $READY_COLUMN for a promotion, $BACKLOG_COLUMN for a displaced card.
 PROJECT_ID=$(gh project view "$PROJECT" --owner "$OWNER" --format json --jq .id)
 gh project field-list "$PROJECT" --owner "$OWNER" --format json --limit 100 \
   > "$RUN_DIR/fields.json"
 FIELD_ID=$(jq -r '.fields[] | select(.name == "Status") | .id' "$RUN_DIR/fields.json")
-OPTION_ID=$(jq -r --arg column "$READY_COLUMN" '.fields[] | select(.name == "Status")
+OPTION_ID=$(jq -r --arg column "$COLUMN" '.fields[] | select(.name == "Status")
   | .options[] | select(.name == $column) | .id' "$RUN_DIR/fields.json")
-ITEM_ID=$(jq -r --argjson n "$N" '.items[] | select(.content.number == $n) | .id' \
-  "$RUN_DIR/board.json")
+ITEM_ID=$(jq -r --argjson n "$N" --arg repo "$OWNER/$REPO" '.items[]
+  | select(.content.type == "Issue" and .content.number == $n
+    and .content.repository == $repo) | .id' "$RUN_DIR/board.json")
 gh api graphql -f query='mutation($project: ID!, $item: ID!, $field: ID!,
   $option: String!) { updateProjectV2ItemFieldValue(input: { projectId: $project,
   itemId: $item, fieldId: $field, value: { singleSelectOptionId: $option } })
@@ -104,7 +108,7 @@ gh api graphql -f query='mutation($project: ID!, $item: ID!, $field: ID!,
   -f option="$OPTION_ID"
 ```
 
-## Other trackers: check `--help` first
+## Other trackers (unverified): check `--help` first
 
 Every non-GitHub tracker runs a `--help` preflight before its first mutation. One that does
 not show the expected flag stops before the mutation and reports the gap. The preflight must

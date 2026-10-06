@@ -3,7 +3,8 @@
 Start from the finished explanation.
 
 1. **Dispatch critics.** Three fresh-context critics, all **in one
-   message**, through the `Agent` tool with `subagent_type: Explore`, one lens each:
+   message**, through the `Agent` tool with `subagent_type: Explore` and
+   `model: sonnet`, one lens each:
    - _Abstraction fit and boundary discipline_ — does each abstraction
      earn its place; do boundaries sit where things change
      independently; is validation at entry points; is it testable in

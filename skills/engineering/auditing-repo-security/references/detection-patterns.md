@@ -84,6 +84,9 @@ writes. Ordinary reads of the project's own files are not findings.
 ```bash
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
   -e '(\.ssh/|\.aws/|\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.docker/config\.json|\.kube/config|\.gnupg|id_(rsa|ed25519|ecdsa))' .
+# .env files named in a string or path. The leading quote or slash skips process.env.
+grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
+  -e "['\"\`/]\.env(\.[[:alnum:]_-]+)?\b" .
 # Browser cookie, password, and storage files.
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
   -e '(Login Data|Cookies\.binarycookies|key4\.db|logins\.json|Local Storage/leveldb|Local State)' .
@@ -106,9 +109,10 @@ grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.py' \
   -e '(^|[^.[:alnum:]_])(eval|exec|compile|__import__)\s*\(' .
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.rb' \
   -e '\b(eval|instance_eval|class_eval|module_eval)\b' .
-# Shell spawning: importing child_process is the signal, not RegExp#exec.
+# Shell spawning: loading child_process (require, import from, or a dynamic
+# import()) is the signal, not RegExp#exec.
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.'{js,mjs,cjs,jsx,ts,tsx} \
-  -e "(require\s*\(\s*|from\s+)['\"](node:)?child_process['\"]|\b(execSync|execFileSync|spawnSync)\s*\(" .
+  -e "((require|import)\s*\(\s*|from\s+)['\"\`](node:)?child_process['\"\`]|\b(execSync|execFileSync|spawnSync)\s*\(" .
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.py' \
   -e '(subprocess\.|os\.(system|popen|exec[lv]p?e?)\s*\(|commands\.getoutput|pty\.spawn)' .
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.rb' \
@@ -150,6 +154,10 @@ grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '-----BEGIN ([A-Z]+ 
 # The whole environment serialized or copied, the usual first step of env exfiltration.
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
   -e '(JSON\.stringify\s*\(\s*process\.env\b|Object\.(keys|values|entries)\s*\(\s*process\.env\b|os\.environ\.copy\s*\(|dict\s*\(\s*os\.environ\s*\)|ENV\.to_h)' .
+# The whole environment spread or merged into another object. A copy passed as a
+# child process's env is common; it matters when the copy reaches a request or a file.
+grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
+  -e '(\.\.\.\s*process\.env\b|Object\.assign\s*\([^)]*\bprocess\.env\s*[,)]|\*\*\s*os\.environ\b)' .
 grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
   -e '(navigator\.clipboard\.readText|\bpbpaste\b|\bxclip\b|security find-(generic|internet)-password|\bkeytar\b)' .
 ```

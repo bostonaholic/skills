@@ -28,13 +28,18 @@ choice, not this skill's.
 
 ## Requirements
 
-Check with `command -v node npm jq`. `node` runs the scripts, `npm` installs
-Playwright when needed, and `jq` writes the shot list. A missing tool is
-`status: skipped-no-tool`, reported with the tool's name. When no Playwright
-resolves, [stage and shoot](references/shoot.md) step 1 installs `playwright@1`
-and Chromium from the network into a user cache; say so before it runs, and
-name the install in the report. A native project needs `adb` or `xcrun simctl`
-instead.
+Check only the tools of each path the run takes; the
+[capture brief](references/capture-brief.md) detects browser or native.
+
+- **Browser:** `command -v node npm jq`. `node` runs the scripts, `npm`
+  installs Playwright when needed, and `jq` writes the shot list.
+- **Native:** `command -v node` for `scripts/png-check.mjs`, plus `adb` for
+  Android or `xcrun` for iOS.
+
+A missing tool is `status: skipped-no-tool`, reported with the tool's name.
+When no Playwright resolves, [stage and shoot](references/shoot.md) step 1
+installs `playwright@1` and Chromium from the network into a user cache; say
+so before it runs, and name the install in the report.
 
 ## Bounds
 
