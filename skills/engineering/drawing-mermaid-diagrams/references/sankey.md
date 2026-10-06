@@ -3,6 +3,16 @@
 Sankey diagrams visualize flow quantities between nodes, where link width
 represents magnitude.
 
+## Contents
+
+- Basic Syntax
+- Format
+- Special Characters
+- Complete Examples
+- Configuration
+- Styling
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -200,12 +210,14 @@ Dashboards,Operations,100
 ### Via Init Directive
 
 ```mermaid
-%%{init: {'sankey': {
-    'width': 800,
-    'height': 400,
-    'linkColor': 'gradient',
-    'nodeAlignment': 'justify'
-}}}%%
+---
+config:
+  sankey:
+    width: 800
+    height: 400
+    linkColor: gradient
+    nodeAlignment: justify
+---
 sankey-beta
 
 A,B,100
@@ -230,7 +242,11 @@ B,D,20
 - `'#hexcode'` - Specific hex color
 
 ```mermaid
-%%{init: {'sankey': {'linkColor': 'gradient'}}}%%
+---
+config:
+  sankey:
+    linkColor: gradient
+---
 sankey-beta
 
 Input,Process,100
@@ -250,7 +266,10 @@ Process,Waste,20
 ### Theme Configuration
 
 ```mermaid
-%%{init: {'theme': 'base'}}%%
+---
+config:
+  theme: base
+---
 sankey-beta
 
 A,B,50
@@ -259,40 +278,11 @@ B,D,40
 C,D,20
 ```
 
-## Best Practices
-
-1. Order flows logically (left to right, top to bottom)
-2. Use meaningful node labels
-3. Keep node names concise
-4. Use gradient colors to show flow direction
-5. Group related flows together
-6. Add empty lines between logical sections
-7. Ensure values are proportionally accurate
-8. Limit complexity - split large diagrams
-
 ## Limitations
 
-- Experimental feature (v10.3.0+)
+- Beta keyword (`sankey-beta`); older renderers do not support it
 - CSV format only (no inline styling per node)
 - No custom node colors
 - No click events or interactivity
 - Cannot control node order explicitly
 - Limited annotation options
-
-## When to Use Sankey Diagrams
-
-Good for:
-
-- Energy or resource flows
-- Budget allocation visualization
-- Website user flow analysis
-- Process material flows
-- Conversion funnels
-- Supply chain visualization
-
-Avoid when:
-
-- Showing hierarchical data (use mind map)
-- Simple comparisons (use bar chart)
-- Time-based data (use line chart)
-- Bidirectional flows are important

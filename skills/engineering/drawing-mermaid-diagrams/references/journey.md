@@ -3,6 +3,13 @@
 User journey diagrams illustrate the steps users take to complete tasks,
 showing satisfaction levels and actors involved.
 
+## Contents
+
+- Basic Syntax
+- Structure
+- Complete Examples
+- Styling
+
 ## Basic Syntax
 
 ```mermaid
@@ -219,48 +226,16 @@ journey
 ### Theme Configuration
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'primaryColor': '#326ce5',
-    'primaryTextColor': '#fff'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#326ce5"
+    primaryTextColor: "#fff"
+---
 journey
     title Styled Journey
     section Phase 1
         Task A: 5: User
         Task B: 3: User
 ```
-
-## Best Practices
-
-1. Use descriptive task names
-2. Be honest with satisfaction scores
-3. Include all relevant actors
-4. Group logical steps into sections
-5. Keep journeys focused on one persona/goal
-6. Use consistent scoring criteria
-7. Include both positive and negative moments
-8. Identify pain points (low scores) for improvement
-
-## Interpreting Results
-
-- **Consecutive low scores** - Major pain point requiring attention
-- **Score drops** - Friction points in the journey
-- **Multiple actors** - Handoff points (often problematic)
-- **Long sections** - May need to be broken down
-
-## When to Use User Journeys
-
-Good for:
-
-- Mapping customer experiences
-- Identifying pain points
-- Planning service improvements
-- Onboarding documentation
-- Stakeholder communication
-- UX research visualization
-
-Avoid when:
-
-- Need to show system architecture (use architecture diagram)
-- Mapping complex workflows (use flowchart)
-- Showing data flow (use sequence diagram)

@@ -2,6 +2,20 @@
 
 Flowcharts are composed of nodes (geometric shapes) and edges (arrows or lines).
 
+## Contents
+
+- Basic Syntax
+- Graph Direction
+- Node Shapes
+- Links/Edges
+- Subgraphs
+- Special Characters
+- Comments
+- Styling
+- Click Events
+- Multiple Nodes Declaration
+- Icon Support
+
 ## Basic Syntax
 
 ```mermaid
@@ -51,15 +65,24 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A --> B           %% Arrow
-    C --- D           %% Open link (no arrow)
-    E -.- F           %% Dotted link
-    G -.-> H          %% Dotted arrow
-    I ==> J           %% Thick arrow
-    K ~~~ L           %% Invisible link
-    M <--> N          %% Multi-directional
-    O o--o P          %% Circle endpoints
-    Q x--x R          %% Cross endpoints
+    %% Arrow
+    A --> B
+    %% Open link (no arrow)
+    C --- D
+    %% Dotted link
+    E -.- F
+    %% Dotted arrow
+    G -.-> H
+    %% Thick arrow
+    I ==> J
+    %% Invisible link
+    K ~~~ L
+    %% Multi-directional
+    M <--> N
+    %% Circle endpoints
+    O o--o P
+    %% Cross endpoints
+    Q x--x R
 ```
 
 ### Link Text
@@ -78,9 +101,9 @@ Add extra dashes/dots to make links longer:
 
 ```mermaid
 flowchart TD
-    A ---> B          %% Longer
-    C ----> D         %% Even longer
-    E -.....-> F      %% Long dotted
+    A ---> B
+    C ----> D
+    E -.....-> F
 ```
 
 ## Subgraphs
@@ -142,6 +165,9 @@ flowchart LR
     %% This is a comment
     A --> B
 ```
+
+A `%%` comment must sit on its own line. A trailing comment after a statement
+(`A --> B %% note`) is a parse error.
 
 ## Styling
 
@@ -219,11 +245,3 @@ Icon options:
 - `label` - Text label
 - `pos` - Label position: t, b, l, r
 - `h` - Height in pixels
-
-## Best Practices
-
-1. Use meaningful node IDs (e.g., `start`, `validateInput` instead of `A`, `B`)
-2. Keep flowcharts readable - split complex diagrams into subgraphs
-3. Use consistent direction within subgraphs
-4. Add labels to edges when the relationship isn't obvious
-5. Use appropriate node shapes (diamonds for decisions, cylinders for databases)

@@ -2,6 +2,19 @@
 
 Advanced jq techniques for complex data transformations.
 
+## Contents
+
+- Variable Binding and Destructuring
+- Reduce
+- Foreach
+- Custom Functions
+- Recursive Processing
+- Streaming
+- Looping Constructs
+- Complex Data Transformations
+- Error Handling Patterns
+- Performance Tips
+
 ## Variable Binding and Destructuring
 
 ```bash
@@ -31,7 +44,7 @@ reduce .[] as $x (0; . + $x)
 # Build object from array
 reduce .[] as $item ({}; . + {($item.key): $item.value})
 
-# Running total
+# Collect into an array
 reduce range(5) as $i ([]; . + [$i * $i])
 # [0, 1, 4, 9, 16]
 
@@ -56,8 +69,9 @@ Iterate with state, optionally extracting intermediate values.
 # Running average
 [foreach .[] as $x ({n:0,sum:0}; .n += 1 | .sum += $x; .sum / .n)]
 
-# Windowed pairs
-[foreach .[] as $x (null; $x) | if . != null then . else empty end]
+# Sliding pairs
+[foreach .[] as $x ([]; .[-1:] + [$x]; select(length == 2))]
+# Input: [1,2,3,4] → Output: [[1,2],[2,3],[3,4]]
 ```
 
 ## Custom Functions
@@ -91,8 +105,9 @@ def leaves: if type == "array" then .[] | leaves
 # recurse — apply filter recursively
 {"a":{"b":{"c":1}}} | recurse | numbers  # 1
 
-# recurse with filter
-{"a":{"b":1}} | [recurse(.a?, .b?)]
+# recurse with filter (stops when the filter produces nothing)
+{"name":"root","children":[{"name":"a","children":[]}]} | [recurse(.children[]?) | .name]
+# ["root","a"]
 
 # recurse with condition
 2 | recurse(. * 2; . < 100)  # 2,4,8,16,32,64
@@ -110,20 +125,17 @@ def leaves: if type == "array" then .[] | leaves
 Process large JSON without loading entirely into memory.
 
 ```bash
-# tostream — convert to path-value pairs
+# tostream: convert to [path, leaf] events plus [path] closing events
 {"a":1,"b":2} | tostream
 # [["a"],1]
 # [["b"],2]
-# [["b"],{"truncated":true}]
+# [["b"]]
 
-# fromstream — reconstruct from stream
-fromstream(tostream | select(.[0][0] != "metadata"))
+# Emit each element of a huge top-level array without loading the whole file
+jq -cn --stream 'fromstream(1 | truncate_stream(inputs))' huge.json
 
-# truncate_stream — limit depth
-{"a":{"b":1}} | [tostream] | map(select(length == 2))
-
-# Command-line streaming
-jq --stream 'select(.[0][-1] == "name") | .[1]' huge.json
+# Pick leaf values by key; length == 2 skips closing events, which would emit null
+jq --stream 'select(length == 2 and .[0][-1] == "name") | .[1]' huge.json
 ```
 
 ## Looping Constructs
@@ -135,11 +147,11 @@ jq --stream 'select(.[0][-1] == "name") | .[1]' huge.json
 # until — loop until condition met
 1 | until(. > 100; . * 2)    # 128
 
-# repeat — infinite loop (use with limit or try)
-1 | limit(5; repeat(. * 2))  # 2,4,8,16,32
+# recurse(f): apply f to its own output; bound it with limit
+1 | limit(5; recurse(. * 2))  # 1,2,4,8,16
 
 # label-break — break out of nested iteration
-label $out | foreach range(3) as $i (
+label $out | foreach range(10) as $i (
   0; . + $i;
   if . > 3 then ., break $out else . end
 )
@@ -159,8 +171,8 @@ group_by(.date) | map({
 
 # Wide to long (unpivot)
 # Input: {"date":"2024-01","sales":100,"returns":5}
-to_entries | map(select(.key != "date")) | map({
-  date: $input.date,
+. as $row | to_entries | map(select(.key != "date") | {
+  date: $row.date,
   metric: .key,
   value: .value
 })
@@ -169,16 +181,16 @@ to_entries | map(select(.key != "date")) | map({
 ### Join / merge datasets
 
 ```bash
-# Inner join two arrays on a key
+# Attach each order's user by key (user is null when no match)
 jq -n --slurpfile users users.json --slurpfile orders orders.json '
   ($users[0] | INDEX(.[]; .id)) as $idx |
   [$orders[0][] | . + {user: $idx[.user_id | tostring]}]
 '
 
-# Left join with default
-[$users[] | . + {
-  orders: [$orders[] | select(.user_id == $user.id)] // []
-}] as $user
+# Attach each user's orders (empty array when none)
+jq -n --slurpfile users users.json --slurpfile orders orders.json '
+  [$users[0][] as $u | $u + {orders: [$orders[0][] | select(.user_id == $u.id)]}]
+'
 
 # Merge objects from two files
 jq -s '.[0] * .[1]' base.json overlay.json
@@ -193,7 +205,7 @@ def tree_paths:
   {path: ($p | join(".")), value: getpath($p)};
 [tree_paths]
 
-# Transform all leaf values
+# Transform all leaf values (trim: 1.8+)
 walk(if type == "string" then gsub("\\s+"; " ") | trim else . end)
 
 # Collect all values at any depth matching a key
@@ -234,7 +246,7 @@ if (.version | type) != "string" then
 else . end
 
 # Collect errors
-[.[] | {input: ., result: (try (. | process) catch {error: .})}]
+[.[] | {input: ., result: (try tonumber catch {error: .})}]
 
 # Exit with status code
 if .errors | length > 0 then
@@ -244,10 +256,6 @@ else .data end
 
 ## Performance Tips
 
-- Prefer `select` over `if-then-else-empty-end` for filtering
 - Use `INDEX` to build lookup tables instead of nested `select` loops
 - Use `--stream` for files too large to fit in memory
-- Use `first(expr)` instead of `[expr][0]` to short-circuit evaluation
-- Use `limit(n; expr)` to stop after n results
-- Avoid `.. | .field?` when the path is known — use direct access instead
-- Use `@csv` / `@tsv` directly rather than manual string building
+- Use `first(expr)` or `limit(n; expr)` instead of `[expr][0]` to stop early

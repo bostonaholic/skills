@@ -3,6 +3,20 @@
 Class diagrams model object-oriented structures showing classes, attributes,
 methods, and relationships.
 
+## Contents
+
+- Basic Syntax
+- Class Definition
+- Relationships
+- Cardinality/Multiplicity
+- Labels
+- Namespaces
+- Notes
+- Direction
+- Styling
+- Complete Example
+- Common Patterns
+
 ## Basic Syntax
 
 ```mermaid
@@ -288,16 +302,6 @@ classDiagram
 
     Owner "1" --> "*" Pet : owns
 ```
-
-## Best Practices
-
-1. Use meaningful class and method names
-2. Show only relevant attributes and methods
-3. Use proper visibility modifiers
-4. Group related classes with namespaces
-5. Add cardinality to clarify relationships
-6. Use notes to explain complex logic
-7. Keep diagrams focused on one aspect of the system
 
 ## Common Patterns
 

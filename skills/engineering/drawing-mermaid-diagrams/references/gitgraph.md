@@ -3,6 +3,19 @@
 Git graphs visualize Git repository history showing branches, commits,
 merges, and tags.
 
+## Contents
+
+- Basic Syntax
+- Orientation
+- Commits
+- Branches
+- Checkout/Switch
+- Merge
+- Cherry-pick
+- Configuration
+- Complete Examples
+- Styling
+
 ## Basic Syntax
 
 ```mermaid
@@ -215,7 +228,12 @@ gitGraph
 ### Via Init Directive
 
 ```mermaid
-%%{init: {'gitGraph': {'showBranches': true, 'showCommitLabel': true}}}%%
+---
+config:
+  gitGraph:
+    showBranches: true
+    showCommitLabel: true
+---
 gitGraph
     commit
     commit
@@ -311,7 +329,11 @@ gitGraph
 ### Parallel Development
 
 ```mermaid
-%%{init: {'gitGraph': {'parallelCommits': true}}}%%
+---
+config:
+  gitGraph:
+    parallelCommits: true
+---
 gitGraph
     commit
     branch team-a order: 1
@@ -337,16 +359,19 @@ gitGraph
 ### Theme Variables
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'git0': '#ff6b6b',
-    'git1': '#4ecdc4',
-    'git2': '#45b7d1',
-    'git3': '#96ceb4',
-    'gitBranchLabel0': '#ffffff',
-    'gitBranchLabel1': '#ffffff',
-    'commitLabelColor': '#ffffff',
-    'commitLabelBackground': '#333333'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    git0: "#ff6b6b"
+    git1: "#4ecdc4"
+    git2: "#45b7d1"
+    git3: "#96ceb4"
+    gitBranchLabel0: "#ffffff"
+    gitBranchLabel1: "#ffffff"
+    commitLabelColor: "#ffffff"
+    commitLabelBackground: "#333333"
+---
 gitGraph
     commit
     branch develop
@@ -364,13 +389,3 @@ Available variables:
 - `tagLabelColor` - Tag text color
 - `tagLabelBackground` - Tag background
 - `tagLabelBorder` - Tag border color
-
-## Best Practices
-
-1. Use meaningful commit IDs that reference tickets or features
-2. Add tags for releases and important milestones
-3. Use HIGHLIGHT type for significant commits
-4. Order branches logically (main first, then develop, then features)
-5. Keep diagrams focused - show relevant history, not every commit
-6. Use parallel commits mode when showing concurrent work
-7. Name branches descriptively

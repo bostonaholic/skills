@@ -2,6 +2,15 @@
 
 Timeline diagrams show events arranged chronologically.
 
+## Contents
+
+- Basic Syntax
+- Title and Sections
+- Multiple Events Per Period
+- Complete Examples
+- Styling
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -166,11 +175,14 @@ timeline
 ### Theme Configuration
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'cScale0': '#ff6b6b',
-    'cScale1': '#4ecdc4',
-    'cScale2': '#45b7d1'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    cScale0: "#ff6b6b"
+    cScale1: "#4ecdc4"
+    cScale2: "#45b7d1"
+---
 timeline
     title Styled Timeline
     2020 : Event 1
@@ -184,16 +196,6 @@ timeline
 - `cScaleLabel0` through `cScaleLabel11` - Section label colors
 - `cScalePeer1` - Alternative color scheme
 
-## Best Practices
-
-1. Use clear, concise event descriptions
-2. Group related events into sections
-3. Maintain chronological order
-4. Use consistent time period formats
-5. Keep the timeline focused on one topic
-6. Limit events per period for readability
-7. Use descriptive section titles
-
 ## Limitations
 
 - Limited styling per event
@@ -201,21 +203,3 @@ timeline
 - Cannot show overlapping events
 - No duration visualization
 - Simple vertical layout only
-
-## When to Use Timeline Diagrams
-
-Good for:
-
-- Historical events
-- Project milestones
-- Release history
-- Roadmaps
-- Process phases
-- Sprint planning
-
-Avoid when:
-
-- Showing complex dependencies (use Gantt)
-- Overlapping time periods
-- Detailed task scheduling
-- Resource allocation

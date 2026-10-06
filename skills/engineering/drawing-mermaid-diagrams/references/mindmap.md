@@ -2,6 +2,17 @@
 
 Mind maps visualize hierarchical information radiating from a central concept.
 
+## Contents
+
+- Basic Syntax
+- Node Shapes
+- Hierarchy
+- Icons
+- Markdown in Nodes
+- Complete Examples
+- Styling
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -236,27 +247,23 @@ mindmap
 
 ### Theme Configuration
 
+Mindmap nodes take their colors from `cScale0`, `cScale1`, and so on, not from
+`primaryColor`.
+
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'primaryColor': '#ff6b6b',
-    'primaryTextColor': '#fff',
-    'primaryBorderColor': '#ff5252'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    cScale0: "#ff6b6b"
+    cScale1: "#4ecdc4"
+    cScale2: "#45b7d1"
+---
 mindmap
     root((Styled))
         Branch 1
         Branch 2
 ```
-
-## Best Practices
-
-1. Keep the central idea concise and clear
-2. Use consistent indentation (2 or 4 spaces)
-3. Limit depth to 3-4 levels for readability
-4. Use shapes strategically to highlight important nodes
-5. Add icons for visual recognition
-6. Group related concepts together
-7. Keep node text brief
 
 ## Limitations
 
@@ -265,19 +272,3 @@ mindmap
 - No connection lines between non-adjacent nodes
 - Icons require Font Awesome
 - Cannot control layout direction
-
-## When to Use Mind Maps
-
-Good for:
-
-- Brainstorming and ideation
-- Organizing hierarchical information
-- Note-taking and summarization
-- Planning and outlining
-- Visualizing relationships
-
-Avoid when:
-
-- Showing sequential processes (use flowchart)
-- Precise relationships matter (use class diagram)
-- Data has many cross-connections (use flowchart with links)

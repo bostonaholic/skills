@@ -2,6 +2,21 @@
 
 State diagrams describe system behavior by showing states and transitions.
 
+## Contents
+
+- Basic Syntax
+- States
+- Transitions
+- Composite States
+- Choice (Branching)
+- Forks and Joins
+- Notes
+- Concurrency
+- Direction
+- Styling
+- Complete Examples
+- v1 vs v2 Syntax
+
 ## Basic Syntax
 
 ```mermaid
@@ -277,16 +292,6 @@ stateDiagram-v2
     Published --> Draft : revise
     Archived --> [*]
 ```
-
-## Best Practices
-
-1. Always include start `[*]` and end `[*]` states where appropriate
-2. Use descriptive state names
-3. Label transitions with trigger events
-4. Use composite states to group related states
-5. Use choice nodes for conditional branching
-6. Add notes to explain complex states
-7. Keep diagrams focused on one aspect of the system
 
 ## v1 vs v2 Syntax
 

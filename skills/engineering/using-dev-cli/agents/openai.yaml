@@ -1,4 +1,4 @@
 interface:
-  display_name: "Dev CLI"
-  short_description: "Set up and use the dev CLI"
-  default_prompt: "Use $using-dev-cli to set up or troubleshoot the dev CLI."
+  display_name: "Using the dev CLI"
+  short_description: "Write dev.yml and run the dev CLI"
+  default_prompt: "Use $using-dev-cli to write, fix, or run this project's dev.yml."

@@ -3,6 +3,18 @@
 Architecture diagrams visualize system components, their relationships,
 and infrastructure layout.
 
+## Contents
+
+- Basic Syntax
+- Groups
+- Services
+- Built-in Icons
+- Custom Icons (Iconify)
+- Junctions
+- Edges (Connections)
+- Complete Examples
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -297,17 +309,6 @@ architecture-beta
     warehouse:B --> T:bi
     lake:B --> T:ml
 ```
-
-## Best Practices
-
-1. Use groups to organize related components
-2. Choose appropriate icons for service types
-3. Use consistent edge directions (usually top-to-bottom or left-to-right)
-4. Label services with clear, concise names
-5. Use junctions to simplify complex connections
-6. Keep diagrams focused on one aspect of architecture
-7. Use nested groups for complex systems
-8. Add directional arrows to show data flow
 
 ## Limitations
 

@@ -3,6 +3,18 @@
 Block diagrams provide precise control over layout and positioning,
 unlike flowcharts which use automatic layout.
 
+## Contents
+
+- Basic Syntax
+- Columns
+- Block Definitions
+- Block Shapes
+- Space Blocks
+- Composite Blocks
+- Connections
+- Complete Examples
+- Styling
+
 ## Basic Syntax
 
 ```mermaid
@@ -164,8 +176,9 @@ block-beta
     a["A"] --> b["B"]
     c["C"] --- d["D"]
     e["E"] -.-> f["F"]
-    g["G"] ==> h["H"]
 ```
+
+Thick `==>` arrows are flowchart-only; block diagrams reject them.
 
 ### Labels on Connections
 
@@ -328,11 +341,15 @@ block-beta
 ```mermaid
 block-beta
     columns 2
-    a["Success"]:::success
-    b["Warning"]:::warning
-    c["Error"]:::error
-    d["Info"]:::info
+    a["Success"]
+    b["Warning"]
+    c["Error"]
+    d["Info"]
 
+    class a success
+    class b warning
+    class c error
+    class d info
     classDef success fill:#d4edda,stroke:#28a745
     classDef warning fill:#fff3cd,stroke:#ffc107
     classDef error fill:#f8d7da,stroke:#dc3545
@@ -350,40 +367,3 @@ block-beta
     style a fill:#ff6b6b,stroke:#333
     style b fill:#4ecdc4,stroke:#333
 ```
-
-## Best Practices
-
-1. Plan your column count based on layout needs
-2. Use spanning for headers and footers
-3. Use space blocks for alignment
-4. Group related elements in composite blocks
-5. Keep nesting to 2-3 levels maximum
-6. Use consistent shapes for similar elements
-7. Add labels to connections when needed
-8. Style blocks to indicate status or type
-
-## Comparison: Block vs Flowchart
-
-| Feature         | Block Diagram    | Flowchart        |
-| --------------- | ---------------- | ---------------- |
-| Layout          | Manual (columns) | Automatic        |
-| Positioning     | Precise control  | Algorithm-driven |
-| Complex layouts | Better           | Limited          |
-| Quick diagrams  | More verbose     | Simpler          |
-| Responsiveness  | Fixed            | Adapts           |
-
-## When to Use Block Diagrams
-
-Good for:
-
-- Dashboard/UI mockups
-- Fixed-layout documentation
-- Org charts with specific positioning
-- System architecture with precise layout
-- Grid-based visualizations
-
-Avoid when:
-
-- Simple flowcharts suffice
-- Layout flexibility is needed
-- Automatic arrangement is preferred

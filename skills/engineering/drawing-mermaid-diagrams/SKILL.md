@@ -1,245 +1,107 @@
 ---
 name: drawing-mermaid-diagrams
-description: This skill should be used when creating, editing, or debugging Mermaid diagrams. It provides comprehensive syntax references for all 20+ Mermaid diagram types including flowcharts, sequence diagrams, class diagrams, ER diagrams, Gantt charts, and more. Use this skill when users ask for diagrams, visualizations, flowcharts, or any Mermaid-related assistance.
+description: Writes, edits, and debugs Mermaid diagrams (flowchart, sequence, class, state, ER, Gantt, pie, mindmap, timeline, quadrant, git graph, XY, Sankey, architecture, journey, kanban, block). Use when the user asks for a diagram, flowchart, ERD, or Mermaid code, or when a Mermaid diagram fails to parse or render.
 ---
 
 # Mermaid Diagrams
 
-## Overview
+## Choose the type
 
-This skill enables creation and editing of Mermaid diagrams - text-based
-diagram definitions that render as visual diagrams. Mermaid supports 20+
-diagram types for visualizing processes, data structures, timelines,
-architectures, and more.
+Pick the row that matches the need, then read its reference before drafting.
 
-## When to Use This Skill
+| Need                                 | Keyword             | Reference                                                |
+| ------------------------------------ | ------------------- | -------------------------------------------------------- |
+| Process steps, decision trees        | `flowchart`         | [flowcharts](references/flowcharts.md)                   |
+| Messages between services or actors  | `sequenceDiagram`   | [sequence](references/sequence.md)                       |
+| Classes, interfaces, relationships   | `classDiagram`      | [class](references/class.md)                             |
+| State machines, lifecycles           | `stateDiagram-v2`   | [state](references/state.md)                             |
+| Database tables and keys             | `erDiagram`         | [entity-relationship](references/entity-relationship.md) |
+| Project schedule, dependencies       | `gantt`             | [gantt](references/gantt.md)                             |
+| Proportions                          | `pie`               | [pie](references/pie.md)                                 |
+| Idea hierarchy                       | `mindmap`           | [mindmap](references/mindmap.md)                         |
+| Dated events                         | `timeline`          | [timeline](references/timeline.md)                       |
+| Two-axis prioritization              | `quadrantChart`     | [quadrant](references/quadrant.md)                       |
+| Branches, merges, tags               | `gitGraph`          | [gitgraph](references/gitgraph.md)                       |
+| Bar or line chart                    | `xychart-beta`      | [xychart](references/xychart.md)                         |
+| Quantities flowing between nodes     | `sankey-beta`       | [sankey](references/sankey.md)                           |
+| Cloud or service topology with icons | `architecture-beta` | [architecture](references/architecture.md)               |
+| User experience steps with scores    | `journey`           | [journey](references/journey.md)                         |
+| Task board columns                   | `kanban`            | [kanban](references/kanban.md)                           |
+| Fixed grid layout placed by hand     | `block-beta`        | [block](references/block.md)                             |
 
-- Creating flowcharts, sequence diagrams, or any visual diagrams
-- Debugging or fixing broken Mermaid syntax
-- Converting descriptions into diagram code
-- Explaining or documenting systems visually
-- Any request involving "diagram", "flowchart", "chart", "visualization"
+Read [styling](references/styling.md) when setting a theme, colors, fonts, or
+diagram configuration.
 
-## Supported Diagram Types
+Read each linked file from this skill's directory when the step that uses it
+begins. If a read fails, stop that step and report the exact path.
 
-| Type         | Keyword             | Use Case                        |
-| ------------ | ------------------- | ------------------------------- |
-| Flowchart    | `flowchart`         | Process flows, decision trees   |
-| Sequence     | `sequenceDiagram`   | API interactions, message flows |
-| Class        | `classDiagram`      | OOP structures, relationships   |
-| State        | `stateDiagram-v2`   | State machines, lifecycles      |
-| ER           | `erDiagram`         | Database schemas                |
-| Gantt        | `gantt`             | Project timelines, schedules    |
-| Pie          | `pie`               | Proportional data               |
-| Mindmap      | `mindmap`           | Hierarchical concepts           |
-| Timeline     | `timeline`          | Chronological events            |
-| Quadrant     | `quadrantChart`     | Priority matrices               |
-| Git          | `gitGraph`          | Branch/merge visualization      |
-| XY Chart     | `xychart-beta`      | Bar and line charts             |
-| Sankey       | `sankey-beta`       | Flow quantities                 |
-| Architecture | `architecture-beta` | System components               |
-| User Journey | `journey`           | User experience mapping         |
-| Kanban       | `kanban`            | Task boards                     |
-| Block        | `block-beta`        | Precise layout diagrams         |
+### Renderer support
 
-## Quick Reference
+Each host (GitHub, GitLab, a docs site, an IDE preview) bundles its own Mermaid
+release, often older than the one in these references. `-beta` keywords and
+recently added types such as `kanban` and `architecture-beta` may fail there.
+When the target renderer is unknown, prefer a core type, or ask which renderer
+will display the diagram.
 
-### Flowchart Basics
+## Configuration
 
-```mermaid
-flowchart TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Action]
-    B -->|No| D[Other Action]
-    C --> E[End]
-    D --> E
-```
-
-### Sequence Diagram Basics
-
-```mermaid
-sequenceDiagram
-    Client->>+Server: Request
-    Server->>+Database: Query
-    Database-->>-Server: Results
-    Server-->>-Client: Response
-```
-
-### Class Diagram Basics
-
-```mermaid
-classDiagram
-    class Animal {
-        +String name
-        +makeSound()
-    }
-    Animal <|-- Dog
-    Animal <|-- Cat
-```
+Default to a frontmatter `config:` block before the diagram keyword. Fall back
+to a first-line `%%{init: {...}}%%` directive only for a renderer too old to
+read frontmatter config. [styling](references/styling.md) shows both.
 
 ## Workflow
 
-### Creating a New Diagram
+1. Choose the type and read its reference.
+2. Write the diagram to `<out>/diagram.mmd`, where `<out>` is a scratch
+   directory.
+3. Render it:
 
-1. **Identify diagram type** - Match the user's need to the appropriate type
-2. **Consult reference** - Read the relevant reference file in `references/`
-3. **Draft diagram** - Write the Mermaid code following syntax rules
-4. **Validate** - Check for common issues (proper indentation, valid connections)
-5. **Refine** - Add styling or improve layout as needed
+   ```sh
+   npx -y @mermaid-js/mermaid-cli -i <out>/diagram.mmd -o <out>/diagram.png
+   ```
 
-### Debugging Diagrams
+   For a Markdown file, `-i doc.md -o <out>/doc.md` renders every mermaid
+   block.
 
-Common issues to check:
+4. On `Parse error on line N` or `Lexical error`, fix that line using the
+   debugging checklist below and render again. Repeat until the render
+   succeeds.
+5. When layout matters, open the PNG and check direction, overlaps, and label
+   text. Adjust and re-render.
+6. Put the validated code in its destination.
 
-- Missing or extra brackets in node definitions
-- Incorrect arrow syntax (`-->` vs `->` vs `--`)
-- Unmatched quotes in labels
-- Invalid characters (use entity codes: `#quot;`, `#lt;`, `#gt;`)
-- Incorrect indentation (critical for mindmaps, Gantt)
-- Missing diagram type declaration
+If `mmdc` reports that it could not find Chrome, write
+`{"executablePath": "<path to an installed Chrome or Chromium>"}` to
+`<out>/puppeteer.json` and add `-p <out>/puppeteer.json`. If Node, network, or
+a browser is unavailable, do not install one without asking; check the diagram
+against the debugging checklist instead and tell the user it was not rendered.
 
-### Choosing the Right Diagram Type
+A successful render uses the Mermaid release bundled with the CLI, so it does
+not prove an older host renders the diagram (see Renderer support).
 
-| User Intent                 | Recommended Diagram  |
-| --------------------------- | -------------------- |
-| "Show process steps"        | Flowchart            |
-| "Show API calls"            | Sequence diagram     |
-| "Show database tables"      | ER diagram           |
-| "Show class hierarchy"      | Class diagram        |
-| "Show project timeline"     | Gantt chart          |
-| "Show state transitions"    | State diagram        |
-| "Show proportions"          | Pie chart            |
-| "Brainstorm/organize ideas" | Mindmap              |
-| "Show system architecture"  | Architecture diagram |
-| "Show user experience"      | User journey         |
-| "Show task status"          | Kanban               |
-| "Show data flow"            | Sankey diagram       |
-| "Prioritize items"          | Quadrant chart       |
-| "Show trends over time"     | XY chart             |
-| "Show git history"          | Git graph            |
+## Debugging checklist
 
-## Reference Documentation
+- The first line, after any frontmatter, is the diagram keyword.
+- Brackets and quotes balance in every node definition.
+- Arrows match the type: flowchart `-->`, sequence `->>`, class `<|--`, ER
+  `||--o{`. Block diagrams have no `==>` or `:::` shorthand.
+- Labels containing `()`, `[]`, `{}`, `:`, `;`, or `#` are wrapped in
+  `"..."`; inner quotes are written `#quot;`, `<` and `>` as `#lt;` and `#gt;`.
+- A lowercase `end` as a flowchart node ID or bare label breaks the parse; use
+  `End` or `["end"]`.
+- A node ID beginning with `o` or `x` right after a link (`A---oB`) silently
+  becomes a circle or cross edge; add a space or capitalize.
+- `%%` comments sit on their own line; a trailing comment is a parse error.
+- Indentation is significant in `mindmap` and `kanban`.
+- Styling not applying: the config block must come first, `themeVariables`
+  need `theme: base`, and hex colors in frontmatter must be quoted (an unquoted
+  `#` is a YAML comment and the color is silently dropped).
+- Renders in the CLI but not on the host: the host's Mermaid is older; replace
+  a `-beta` or recent type, or switch frontmatter config to `%%{init}`.
 
-Detailed syntax documentation is available in `references/`:
+## Find syntax in the references
 
-### Core Diagrams
-
-- `flowcharts.md` - Nodes, edges, subgraphs, styling
-- `sequence.md` - Participants, messages, loops, notes
-- `class.md` - Classes, relationships, cardinality
-- `state.md` - States, transitions, composite states
-- `entity-relationship.md` - Entities, attributes, relationships
-
-### Charts and Data
-
-- `gantt.md` - Tasks, milestones, dependencies
-- `pie.md` - Slices, labels, showData
-- `xychart.md` - Bar charts, line charts, axes
-- `quadrant.md` - Axes, quadrants, data points
-- `sankey.md` - Flow diagrams, nodes, links
-
-### Specialized Diagrams
-
-- `mindmap.md` - Hierarchical concepts, icons
-- `timeline.md` - Chronological events, sections
-- `gitgraph.md` - Commits, branches, merges
-- `architecture.md` - Services, groups, edges
-- `journey.md` - User experiences, satisfaction scores
-- `kanban.md` - Columns, tasks, metadata
-- `block.md` - Precise layout control, columns
-
-### Configuration
-
-- `styling.md` - Themes, colors, fonts, configuration
-
-## Grep Patterns for References
-
-To find specific syntax, use these patterns:
-
-```bash
-# Find all node shape syntax
-grep -r "shape\|rectangle\|circle\|diamond" references/
-
-# Find arrow/edge syntax
-grep -r "-->\\|--\\|-.->\\|==>" references/
-
-# Find styling examples
-grep -r "classDef\\|style\\|theme" references/
-
-# Find configuration options
-grep -r "init:\\|config:" references/
+```sh
+grep -rn -e '-->' -e '==>' -e '-\.->' <skill-dir>/references/
+grep -rn -e 'classDef' -e 'themeVariables' -e 'config:' <skill-dir>/references/
 ```
-
-## Best Practices
-
-1. **Start simple** - Begin with basic syntax, add complexity gradually
-2. **Use meaningful IDs** - `userAuth` is better than `A` for node IDs
-3. **Label edges** - Add text to arrows when relationships aren't obvious
-4. **Group related items** - Use subgraphs, sections, or groups
-5. **Consider direction** - `TD` for hierarchies, `LR` for processes
-6. **Apply consistent styling** - Use classes for repeated styles
-7. **Test incrementally** - Add a few elements at a time to catch errors early
-
-## Common Syntax Patterns
-
-### Special Characters in Labels
-
-```mermaid
-flowchart LR
-    A["Text with (parentheses)"]
-    B["Text with #quot;quotes#quot;"]
-```
-
-### Adding Notes
-
-```mermaid
-sequenceDiagram
-    Alice->>Bob: Hello
-    Note right of Bob: Bob thinks
-    Bob-->>Alice: Hi!
-```
-
-### Styling Nodes
-
-```mermaid
-flowchart LR
-    A:::highlight --> B
-    classDef highlight fill:#ff0,stroke:#f00,stroke-width:4px
-```
-
-### Conditional Branches
-
-```mermaid
-flowchart TD
-    A{Is valid?}
-    A -->|Yes| B[Process]
-    A -->|No| C[Error]
-```
-
-## Known Limitations
-
-- No inline images (except icons in some diagram types)
-- Limited interactive features in static renders
-- Some diagram types are in beta (`-beta` suffix)
-- Complex layouts may require manual adjustment
-- Cross-browser rendering may vary slightly
-
-## Troubleshooting
-
-### "Parse error" or diagram not rendering
-
-- Check diagram type declaration is first line
-- Verify all brackets/quotes are matched
-- Look for unsupported characters
-
-### Diagram looks wrong
-
-- Check direction (`TD`, `LR`, etc.)
-- Verify edge syntax matches diagram type
-- Review indentation (especially for Gantt, mindmap)
-
-### Styling not applying
-
-- Ensure `%%{init:` is at very start of diagram
-- Check for JSON syntax errors (no trailing commas)
-- Verify variable names are correct for diagram type

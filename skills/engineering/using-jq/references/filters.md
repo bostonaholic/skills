@@ -1,6 +1,20 @@
 # jq Built-in Function Reference
 
-Complete reference for jq 1.8 built-in functions organized by category.
+Built-in functions by category. A marker such as `(1.7+)` names the first jq
+release that has the builtin; check `jq --version` before relying on one.
+
+## Contents
+
+- String Functions
+- Array Functions
+- Object Functions
+- Type Functions
+- Math Functions
+- Date and Time Functions
+- Path Functions
+- Format Strings
+- I/O Functions
+- SQL-Style Operators
 
 ## String Functions
 
@@ -9,7 +23,7 @@ Complete reference for jq 1.8 built-in functions organized by category.
 ```bash
 # test — returns true/false
 .name | test("pattern")
-.name | test("pattern"; "flags")   # flags: x (extended), i (case-insensitive), g (global), m (multiline), s (dotall), n (named captures)
+.name | test("pattern"; "flags")   # flags: g (global), i (case-insensitive), x (extended), n (ignore empty matches); see man jq
 
 # match — returns match object {offset, length, string, captures}
 .text | match("(\\w+)@(\\w+)")
@@ -34,7 +48,7 @@ Complete reference for jq 1.8 built-in functions organized by category.
 "a,b,c" | split(",")                    # ["a","b","c"]
 ["a","b","c"] | join(",")               # "a,b,c"
 
-# Trim
+# Trim (trim, ltrim, rtrim: 1.8+)
 "  hello  " | trim                      # "hello"
 "  hello  " | ltrim                     # "hello  "
 "  hello  " | rtrim                     # "  hello"
@@ -193,7 +207,7 @@ limit(3; .[] | select(.score > 50))
 [{"key":"a","value":1}] | from_entries  # {"a":1}
 {"a":1} | with_entries(.value |= . + 10)  # {"a":11}
 
-# pick — project specific paths
+# pick — project specific paths (1.7+)
 {"a":1,"b":{"c":2,"d":3}} | pick(.a, .b.c)  # {"a":1,"b":{"c":2}}
 
 # del — delete key
@@ -234,7 +248,7 @@ true | type       # "boolean"
 3.2 | ceil         # 4
 3.5 | round        # 4
 
-# Absolute value
+# Absolute value (abs: 1.7+)
 -5 | abs           # 5
 -5.5 | fabs        # 5.5
 
@@ -297,7 +311,6 @@ now | gmtime | mktime                    # back to Unix timestamp
 # paths — enumerate all paths
 {"a":{"b":1},"c":2} | [paths]           # [["a"],["a","b"],["c"]]
 {"a":{"b":1},"c":2} | [paths(scalars)]  # [["a","b"],["c"]]
-{"a":{"b":1},"c":2} | [leaf_paths]      # [["a","b"],["c"]]
 
 # getpath / setpath / delpaths
 {"a":{"b":1}} | getpath(["a","b"])       # 1
@@ -320,7 +333,7 @@ now | gmtime | mktime                    # back to Unix timestamp
 # @html — HTML entity escape
 "<script>" | @html                       # "&lt;script&gt;"
 
-# @uri / @urid — percent encoding
+# @uri / @urid — percent encoding (@urid: 1.8+)
 "hello world" | @uri                     # "hello%20world"
 "hello%20world" | @urid                  # "hello world"
 
@@ -347,13 +360,13 @@ jq -n '[inputs | .name]' file1.json file2.json
 
 # debug — print to stderr, pass value through
 .data | debug | .field
-.data | debug("label") | .field
+.data | debug("label") | .field         # 1.7+
 
 # stderr — write to stderr
 .warning | stderr | empty
 
 # env / $ENV — environment variables
-env.HOME                                 # "/Users/matthew"
+env.HOME                                 # home directory
 $ENV.PATH                                # path string
 
 # halt / halt_error
@@ -371,12 +384,8 @@ if .critical then halt_error(1) else . end
 2 | IN(1, 2, 3)              # true
 .[] | select(IN(.id; 1, 2))  # items with id 1 or 2
 
-# GROUP_BY
-[{"t":"a","v":1},{"t":"b","v":2},{"t":"a","v":3}] | GROUP_BY(.t)
-
-# UNIQUE_BY
-[{"a":1,"b":1},{"a":1,"b":2}] | UNIQUE_BY(.a)
-
-# JOIN
-JOIN(INDEX(.[]; .id); .[]; .dept_id)
+# JOIN: pair each row with its match from an INDEX (null when none).
+# INDEX keys are strings, so convert numeric join keys with tostring.
+jq --slurpfile depts depts.json '[JOIN(INDEX($depts[0][]; .id); .[]; .dept_id | tostring)]' employees.json
+# [[{"name":"ada","dept_id":1},{"id":1,"name":"eng"}], ...]
 ```

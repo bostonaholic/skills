@@ -2,6 +2,17 @@
 
 ER diagrams model database schemas showing entities, attributes, and relationships.
 
+## Contents
+
+- Basic Syntax
+- Entities
+- Attributes
+- Relationships
+- Relationship Labels
+- Complete Examples
+- Styling
+- Common Patterns
+
 ## Basic Syntax
 
 ```mermaid
@@ -296,22 +307,15 @@ erDiagram
 ### Entity Styling
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ff0000'}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#ff0000"
+---
 erDiagram
     CUSTOMER ||--o{ ORDER : places
 ```
-
-## Best Practices
-
-1. Use singular nouns for entity names (CUSTOMER, not CUSTOMERS)
-2. Use SCREAMING_SNAKE_CASE for entity names
-3. Include appropriate data types for attributes
-4. Mark primary keys (PK), foreign keys (FK), and unique keys (UK)
-5. Use meaningful relationship labels
-6. Group related entities together visually
-7. Keep diagrams focused - split large schemas into domains
-8. Use identifying relationships when appropriate
-9. Add comments to complex attributes
 
 ## Common Patterns
 

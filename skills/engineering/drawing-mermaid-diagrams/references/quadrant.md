@@ -3,6 +3,15 @@
 Quadrant charts divide data into four sections using two axes, useful for
 prioritization matrices and analysis.
 
+## Contents
+
+- Basic Syntax
+- Configuration
+- Data Points
+- Complete Examples
+- Theme Configuration
+- Configuration Options
+
 ## Basic Syntax
 
 ```mermaid
@@ -66,7 +75,7 @@ quadrantChart
 
 ### Basic Points
 
-```mermaid
+```text
 quadrantChart
     Point Name: [x, y]
 ```
@@ -209,18 +218,21 @@ quadrantChart
 ## Theme Configuration
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'quadrant1Fill': '#e8f5e9',
-    'quadrant2Fill': '#fff3e0',
-    'quadrant3Fill': '#ffebee',
-    'quadrant4Fill': '#e3f2fd',
-    'quadrant1TextFill': '#2e7d32',
-    'quadrant2TextFill': '#ef6c00',
-    'quadrant3TextFill': '#c62828',
-    'quadrant4TextFill': '#1565c0',
-    'quadrantPointFill': '#333333',
-    'quadrantPointTextFill': '#333333'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    quadrant1Fill: "#e8f5e9"
+    quadrant2Fill: "#fff3e0"
+    quadrant3Fill: "#ffebee"
+    quadrant4Fill: "#e3f2fd"
+    quadrant1TextFill: "#2e7d32"
+    quadrant2TextFill: "#ef6c00"
+    quadrant3TextFill: "#c62828"
+    quadrant4TextFill: "#1565c0"
+    quadrantPointFill: "#333333"
+    quadrantPointTextFill: "#333333"
+---
 quadrantChart
     title Custom Theme
     x-axis Low --> High
@@ -247,40 +259,23 @@ quadrantChart
 ## Configuration Options
 
 ```mermaid
-%%{init: {'quadrantChart': {
-    'chartWidth': 500,
-    'chartHeight': 500,
-    'titlePadding': 10,
-    'titleFontSize': 20,
-    'quadrantPadding': 5,
-    'pointRadius': 5,
-    'pointTextPadding': 3,
-    'pointLabelFontSize': 12,
-    'xAxisLabelPadding': 5,
-    'xAxisLabelFontSize': 16,
-    'yAxisLabelPadding': 5,
-    'yAxisLabelFontSize': 16
-}}}%%
+---
+config:
+  quadrantChart:
+    chartWidth: 500
+    chartHeight: 500
+    titlePadding: 10
+    titleFontSize: 20
+    quadrantPadding: 5
+    pointRadius: 5
+    pointTextPadding: 3
+    pointLabelFontSize: 12
+    xAxisLabelPadding: 5
+    xAxisLabelFontSize: 16
+    yAxisLabelPadding: 5
+    yAxisLabelFontSize: 16
+---
 quadrantChart
     title Configured Chart
     Point: [0.5, 0.5]
 ```
-
-## Best Practices
-
-1. Use clear, descriptive axis labels
-2. Name quadrants to indicate the action or category
-3. Position points accurately based on data
-4. Use styling to highlight important points
-5. Keep point labels concise
-6. Use color coding consistently
-7. Consider your audience when choosing quadrant names
-
-## Common Use Cases
-
-- **Eisenhower Matrix** - Task prioritization (Urgent/Important)
-- **Value/Effort Matrix** - Feature prioritization
-- **Risk Matrix** - Impact/Likelihood assessment
-- **Skill Matrix** - Proficiency/Interest mapping
-- **BCG Matrix** - Market share/Growth analysis
-- **SWOT Positioning** - Strength/Opportunity mapping

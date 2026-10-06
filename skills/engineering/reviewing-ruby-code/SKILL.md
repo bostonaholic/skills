@@ -1,75 +1,127 @@
 ---
 name: reviewing-ruby-code
 argument-hint: "[file paths, directory paths, branch name, or focus area]"
-description: This skill should be used when the user asks to "review ruby code", "audit ruby codebase", "find over-engineering in ruby", "simplify ruby classes", "review lib/", or wants to analyze Ruby code (libraries, gems, CLI tools) for unnecessary abstractions with actionable refactoring steps.
+description: Reviews plain Ruby code (gems, libraries, CLI tools, lib/, or a branch diff) for over-engineering such as single-method classes, behaviorless data objects, and needless metaprogramming, reporting file:line findings with before/after code. Use when the user asks to review, audit, or simplify non-Rails Ruby. For Rails apps use reviewing-rails-code.
 ---
 
-# Ruby Code Review & Refactoring Guide
+# Ruby Simplicity Review
 
-Analyze Ruby code for unnecessary custom objects, class bloat, and insufficient usage of Ruby's generic data structures. Provide specific refactoring steps with before/after code examples for libraries, gems, CLI tools, and Ruby applications.
+Find unnecessary classes and abstractions in plain Ruby (gems, libraries, CLI
+tools) and report each
+with a concrete refactoring. Report only; edit code only if the user asks.
 
-## Scope Determination
+Copy this checklist and check off each step:
 
-Determine scope from the user's request:
+```text
+- [ ] 1. Resolve the scope and list the files
+- [ ] 2. Load simplifying-ruby-code (or use the fallback patterns)
+- [ ] 3. Scan each file for the anti-patterns
+- [ ] 4. Grep callers for every removal or inlining candidate
+- [ ] 5. Classify each finding by severity and complexity
+- [ ] 6. Write the report from the template
+```
 
-- **File paths** (e.g., `lib/parser.rb`): analyze only those files
-- **Directory paths** (e.g., `lib/services/`): analyze all Ruby files in that directory
-- **Branch name**: compare current branch against it to review only changed files
-- **No scope specified**: perform full codebase audit of `lib/` directory
-- **Focus area** (e.g., "command objects", "data structures"): prioritize that aspect
+## 1. Resolve the scope
 
-## Required Skill
+| Request                        | Files                                                              |
+| ------------------------------ | ------------------------------------------------------------------ |
+| File paths                     | Those files                                                        |
+| Directory                      | `git ls-files -- '<dir>/*.rb'` (the `*` also matches nested paths) |
+| Branch name                    | `git diff --name-only <branch>...HEAD -- '*.rb'`                   |
+| Nothing specified              | `git ls-files -- 'lib/*.rb'`; if empty, `git ls-files -- '*.rb'`   |
+| Focus area ("command objects") | The full-audit list, examining that pattern first                  |
 
-**MANDATORY: Load the `simplifying-ruby-code` skill** and apply its principles throughout the analysis. Reference specific patterns explicitly (e.g., "Pattern 1: Command Objects -> Module Functions").
+## 2. Load the patterns
 
-## Anti-Patterns to Scan
+Call the Skill tool with `simplifying-ruby-code` and cite its pattern numbers
+in findings. If it is missing, use these patterns and tell the user to install
+it with `npx skills add bostonaholic/skills --skill simplifying-ruby-code`:
 
-### Unnecessary Class Hierarchies
+1. Command objects to module functions
+2. Value objects to Data, Struct, or Hash
+3. Class-method-only classes to modules
+4. Deep inheritance to composition: more than 2 levels of the project's own
+   classes (framework and stdlib bases such as `ApplicationRecord` or
+   `StandardError` do not count), or an abstract base with one subclass
+5. Missing Ruby protocols (`each` with Enumerable, `to_h`, `<=>` with
+   Comparable)
+6. Mixed decisions and effects (tests need heavy mocking)
 
-- Deep inheritance trees (>2 levels) for simple behavior
-- Abstract base classes with single implementations
-- Classes that could be modules or simple functions
-- Template method pattern where blocks would suffice
+## 3. Ruby anti-patterns
 
-### Over-Engineered Data Objects
+- **Template methods:** a base class with hook methods where passing a block
+  would do.
+- **Builders:** builder classes for objects that keyword arguments or
+  `Data.define` construct directly.
+- **Wrappers:** classes that wrap Array, Hash, Set, or another stdlib type and
+  forward most calls.
+- **Metaprogramming:** `method_missing`, `define_method`, or `instance_eval`
+  DSLs where plain methods would work.
+- **Dependencies:** gems pulled in for a few lines of stdlib code.
 
-- Custom classes for simple data pairs (coordinates, ranges, tuples)
-- Value objects without behavior, validation, or transformation
-- Missing Ruby protocol implementations (`each`, `to_h`, `to_a`, `to_json`, `to_s`)
-- Data objects that should be Struct, Data, or Hash
+## 4. Check callers
 
-### Stateful Objects Where Functions Would Work
+Before reporting that a class can be removed or inlined, run
+`rg -n '\bClassName\b'` and check string references (`"ClassName"`,
+`const_get`, `send`, gemspec and executable files). For a gem, treat every
+public constant as API that other projects may call. Drop or downgrade a
+finding whose callers you cannot account for.
 
-- Classes with only class methods (should be modules)
-- Single-method classes (`call`, `run`, `execute`, `perform`)
-- Builder patterns for simple object construction
-- Stateful service objects that could be pure functions
+## 5. Classify
 
-### Complexity That Could Be Simplified
+- **Critical:** causes or hides bugs, blocks testing (needs heavy mocking), or
+  is a pattern copied across many files.
+- **Improvement:** any other finding.
+- **Complexity:** S changes one file with no caller changes; M touches several
+  files or call sites but keeps the public API; L changes a public API, many
+  callers, or persisted data or jobs.
 
-- Custom DSLs that reinvent Ruby syntax
-- Wrapper classes around standard library
-- Complex metaprogramming where simple code would work
-- Unnecessary dependencies (pulling in gems for simple tasks)
+## 6. Report template
 
-## Output Format
+Use this template exactly: keep the section order and field labels, and write
+"None" under an empty section.
 
-For each issue found, provide:
+````markdown
+# Simplicity review: <scope>
 
-1. **File and location** with line numbers
-2. **Problem** — why it violates simplicity principles
-3. **Before code** — current implementation
-4. **After code** — refactored version
-5. **Migration steps** — how to safely refactor
-6. **Test considerations** — what tests need updating
+## Critical issues
 
-Structure findings into: Critical Issues (fix first), Improvements (consider for refactoring), Good Patterns Found, and Summary with recommended refactoring order and estimated complexity.
+### 1. Pattern <N>: <pattern name> in `<path>:<line>`
 
-## Best Practices
+**Problem:** <why it adds complexity; name its callers>
+**Complexity:** <S | M | L>
 
-1. Prefer data over objects — use Hashes, Arrays, Structs, and Data for simple data
-2. Prefer functions over classes — use modules with `module_function` for stateless operations
-3. Implement Ruby protocols — make objects work with Ruby's built-in methods and Enumerable
-4. Use blocks effectively — blocks are Ruby's lambdas; use them instead of callback objects
-5. Keep inheritance shallow — prefer composition and modules over deep inheritance
-6. Leverage standard library — Ruby's stdlib is rich; do not reinvent Array, Hash, Set, etc.
+Before:
+
+```ruby
+<current code>
+```
+
+After:
+
+```ruby
+<refactored code>
+```
+
+**Migration:**
+
+1. <step>; run the test suite
+2. <step>; run the test suite
+
+**Tests:** <tests to update, delete, or add>
+
+## Improvements
+
+<same fields as Critical issues, numbering continued>
+
+## Good patterns found
+
+- `<path>:<line>`: <what it does well>
+
+## Summary
+
+| #   | Finding | Severity | Complexity |
+| --- | ------- | -------- | ---------- |
+
+Recommended order: <finding numbers, critical first, then lowest complexity>
+````

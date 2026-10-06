@@ -1,247 +1,77 @@
 ---
 name: using-jq
-description: This skill should be used when the user asks to "parse JSON", "filter JSON", "transform JSON", "extract fields from JSON", "query JSON data", "format JSON output", "convert JSON to CSV", "reshape JSON", "merge JSON files", or when working with JSON data on the command line. Covers jq filters, built-in functions, and advanced patterns.
+description: Writes, explains, and debugs jq programs that filter, reshape, aggregate, merge, and convert JSON. Use when the user asks to parse, filter, transform, query, or merge JSON, convert JSON to CSV or TSV, edit a JSON file in place, or process JSON output from curl, gh, or another CLI.
 ---
 
-# using-jq — Command-Line JSON Processor
+# jq
 
-jq reads JSON from stdin or files, applies filters, and outputs transformed JSON. Prefer jq over
-writing custom scripts for JSON manipulation in shell pipelines.
+Prefer jq over an ad hoc script for JSON in shell pipelines. Standard jq syntax
+is assumed; this skill covers the mistakes that produce wrong output silently.
 
-## Core Concepts
+## Check the version first
 
-### Filters and Pipes
+Run `jq --version` before using a builtin from a recent release. Distribution
+and OS builds often lag. When a builtin fails with `<name>/<arity> is not
+defined`, use the fallback:
 
-Every jq program is a filter. Filters connect with `|` (pipe) and produce
-zero or more outputs. The `.` filter is identity (passes input through).
+- Needs 1.7: `pick(.a, .b.c)`; fallback
+  `. as $in | reduce path(.a, .b.c) as $p (null; setpath($p; $in | getpath($p)))`
+- Needs 1.7: `abs`; fallback `if . < 0 then -. else . end`
+- Needs 1.7: `if` without `else`; fallback: add `else . end`
+- Needs 1.8: `trim`, `ltrim`, `rtrim`; fallbacks `gsub("^\\s+|\\s+$"; "")`,
+  `sub("^\\s+"; "")`, `sub("\\s+$"; "")`
+- Needs 1.8: `add(f)`; fallback `[f] | add`
+- Needs 1.8: `skip(n; f)`; fallback `[f][n:][]`
+- Needs 1.8: `@urid`; no jq fallback, decode outside jq
 
-```bash
-# Field access
-echo '{"name":"Ada"}' | jq '.name'
+`leaf_paths` was removed in 1.7; use `paths(scalars)` on every version.
+`gh --jq` runs a built-in jq implementation, not the installed `jq`, so this
+list does not apply there.
 
-# Nested access
-echo '{"user":{"id":1}}' | jq '.user.id'
+## Gotchas
 
-# Pipe filters together
-echo '{"items":[1,2,3]}' | jq '.items | add'
+- **Shell values:** pass them with `--arg name "$v"` (always a string) or
+  `--argjson name "$v"` (numbers, booleans, JSON). Never splice shell variables
+  into the program. jq orders every string above every number, so with
+  `--arg n 1`, `$n > 3` is silently `true`.
+- **Defaults:** `.x // d` replaces `false` as well as `null`, so
+  `.enabled // true` turns an explicit `false` into `true`. Use
+  `if .enabled == null then true else .enabled end` when `false` is meaningful.
+- **Flattening:** `flatten(1)` removes one level and keeps scalars;
+  `[.[][]]` errors on any scalar element; bare `flatten` removes every level.
+- **CSV and TSV:** `@csv` and `@tsv` accept only arrays of scalars. Convert
+  nested values with `tojson` first. Use `-r` so the row is not re-quoted.
+- **Shell consumption:** use `-r` for strings fed to other commands, `-c` for
+  one JSON value per line, and `-e` in conditionals (exit 1 when the last output
+  is `false` or `null`, 4 when there is no output).
+- **Many documents:** `-s` loads every input into one array in memory. For
+  large or streamed input use `-n` with `inputs`, or `reduce inputs as $x`.
+- **Big integers:** integers above 2^53 lose precision in arithmetic, and
+  before jq 1.7 on output too. Keep IDs as strings.
+
+## Edit a file in place
+
+`jq '...' f.json > f.json` truncates `f.json` before jq reads it. Write to a
+temporary file, check that it holds exactly one valid JSON value, then replace
+the original:
+
+```sh
+jq '.version = "2.0"' package.json > package.json.tmp &&
+  [ "$(jq -s length package.json.tmp)" = 1 ] &&
+  mv package.json.tmp package.json
 ```
 
-### Array Operations
+If any step fails, delete `package.json.tmp` and leave the original untouched.
+The length check catches a filter that emits a stream (for example a stray
+`.[]`), which `jq empty` alone accepts.
 
-```bash
-# Index and slice
-echo '[10,20,30]' | jq '.[1]'        # 20
-echo '[10,20,30]' | jq '.[1:3]'      # [20,30]
+## References
 
-# Iterate all elements
-echo '[1,2,3]' | jq '.[]'            # 1 2 3 (separate outputs)
+- [Built-in functions](references/filters.md): read when you need a builtin's
+  exact signature, regex flags, date formats, or format strings.
+- [Advanced patterns](references/advanced.md): read for `reduce`, `foreach`,
+  streaming large files with `--stream`, recursive walks, joins across files,
+  or custom functions.
 
-# Map and select
-echo '[1,2,3,4]' | jq 'map(select(. > 2))'  # [3,4]
-```
-
-### Object Construction
-
-```bash
-# Build new objects
-echo '{"first":"Ada","last":"Lovelace","age":36}' | jq '{name: .first, surname: .last}'
-
-# Shorthand (key = field name)
-echo '{"name":"Ada","age":36}' | jq '{name, age}'
-
-# Computed keys
-echo '{"key":"color","val":"blue"}' | jq '{(.key): .val}'
-```
-
-## Essential Command-Line Flags
-
-| Flag              | Purpose                                          |
-| ----------------- | ------------------------------------------------ |
-| `-r`              | Raw string output (no quotes)                    |
-| `-R`              | Raw input (treat each line as string)            |
-| `-s`              | Slurp all inputs into one array                  |
-| `-n`              | Null input (use with `input`/`inputs`)           |
-| `-c`              | Compact output (one line)                        |
-| `-S`              | Sort object keys                                 |
-| `-e`              | Set exit status based on output (false/null = 1) |
-| `--arg k v`       | Bind string variable `$k`                        |
-| `--argjson k v`   | Bind JSON variable `$k`                          |
-| `--slurpfile k f` | Load file into `$k` as array                     |
-| `--rawfile k f`   | Load file into `$k` as string                    |
-| `--tab`           | Indent with tabs                                 |
-| `--indent n`      | Set indentation level                            |
-
-## Common Patterns
-
-### Extract and reshape
-
-```bash
-# Extract nested field from array of objects
-cat data.json | jq '.[].user.email'
-
-# Reshape array of objects
-cat data.json | jq '[.[] | {id: .id, name: .name}]'
-
-# Flatten nested arrays
-cat data.json | jq '[.[][] ]'
-# or
-cat data.json | jq 'flatten'
-```
-
-### Filter and search
-
-```bash
-# Filter by condition
-jq '[.[] | select(.status == "active")]' users.json
-
-# Filter with regex
-jq '[.[] | select(.name | test("^A"))]' users.json
-
-# Check key existence
-jq '[.[] | select(has("email"))]' users.json
-```
-
-### Aggregate and summarize
-
-```bash
-# Count elements
-jq 'length' data.json
-
-# Sum a field
-jq '[.[].price] | add' orders.json
-
-# Group and count
-jq 'group_by(.category) | map({key: .[0].category, count: length})' items.json
-
-# Min/max by field
-jq 'min_by(.age)' people.json
-```
-
-### Transform and update
-
-```bash
-# Update a field
-jq '.version = "2.0"' package.json
-
-# Update nested with |=
-jq '.config.timeout |= . + 10' settings.json
-
-# Add field to all array elements
-jq '[.[] | . + {processed: true}]' items.json
-
-# Delete a field
-jq 'del(.metadata)' data.json
-```
-
-### Format conversion
-
-```bash
-# JSON to CSV
-jq -r '.[] | [.name, .age, .email] | @csv' users.json
-
-# JSON to TSV
-jq -r '.[] | [.id, .status] | @tsv' records.json
-
-# URL-encode a value
-jq -r '.query | @uri' params.json
-
-# Shell-safe escaping
-jq -r '.filename | @sh' config.json
-
-# Base64 encode/decode
-jq -r '.data | @base64' payload.json
-jq -r '.encoded | @base64d' payload.json
-```
-
-### Multi-file and variable operations
-
-```bash
-# Pass shell variables into jq
-jq --arg name "$USER" '.users[] | select(.name == $name)' db.json
-
-# Pass JSON values
-jq --argjson threshold 100 '[.[] | select(.count > $threshold)]' data.json
-
-# Merge two JSON files
-jq -s '.[0] * .[1]' defaults.json overrides.json
-
-# Process multiple inputs with reduce
-jq -n '[inputs]' file1.json file2.json
-```
-
-### String operations
-
-```bash
-# String interpolation
-jq -r '"User: \(.name) (age \(.age))"' user.json
-
-# Split and join
-jq '.path | split("/") | last' config.json
-
-# Replace with regex
-jq '.text | gsub("old"; "new")' doc.json
-
-# Trim whitespace
-jq '.value | trim' data.json
-```
-
-## Quick Reference — Key Built-in Functions
-
-| Category      | Functions                                                                                                                                                                            |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Array**     | `map`, `select`, `empty`, `add`, `sort_by`, `group_by`, `unique_by`, `flatten`, `reverse`, `first`, `last`, `range`, `limit`, `nth`, `transpose`, `combinations`                     |
-| **Object**    | `keys`, `values`, `has`, `in`, `to_entries`, `from_entries`, `with_entries`, `del`, `pick`                                                                                           |
-| **String**    | `test`, `match`, `capture`, `scan`, `split`, `join`, `sub`, `gsub`, `ltrimstr`, `rtrimstr`, `trim`, `ascii_downcase`, `ascii_upcase`, `startswith`, `endswith`, `explode`, `implode` |
-| **Type**      | `type`, `length`, `utf8bytelength`, `tostring`, `tonumber`, `arrays`, `objects`, `strings`, `numbers`, `booleans`, `nulls`, `scalars`, `iterables`, `values`                         |
-| **Math**      | `floor`, `ceil`, `round`, `sqrt`, `pow`, `log`, `exp`, `fabs`, `abs`, `sin`, `cos`, `atan`, `nan`, `infinite`, `isinfinite`, `isnan`                                                 |
-| **Date**      | `now`, `todate`, `fromdate`, `todateiso8601`, `fromdateiso8601`, `strftime`, `strptime`, `gmtime`, `mktime`                                                                          |
-| **Path**      | `path`, `paths`, `leaf_paths`, `getpath`, `setpath`, `delpaths`                                                                                                                      |
-| **Format**    | `@csv`, `@tsv`, `@json`, `@html`, `@uri`, `@urid`, `@sh`, `@base64`, `@base64d`, `@text`                                                                                             |
-| **I/O**       | `input`, `inputs`, `debug`, `stderr`, `halt`, `halt_error`, `error`, `env`, `$ENV`                                                                                                   |
-| **SQL-style** | `INDEX`, `IN`, `GROUP_BY`, `UNIQUE_BY`, `JOIN`                                                                                                                                       |
-
-## Operator Reference
-
-| Operator                       | Purpose                              |
-| ------------------------------ | ------------------------------------ |
-| `\|`                           | Pipe (chain filters)                 |
-| `,`                            | Multiple outputs                     |
-| `?`                            | Suppress errors (try)                |
-| `//`                           | Alternative (default for null/false) |
-| `\|=`                          | Update in place                      |
-| `+=` `-=` `*=` `/=` `%=` `//=` | Arithmetic update                    |
-| `as $var`                      | Variable binding                     |
-| `..`                           | Recursive descent                    |
-
-## Error Handling
-
-```bash
-# Suppress errors with ?
-jq '.foo.bar?' data.json
-
-# Try-catch
-jq 'try .foo.bar catch "default"' data.json
-
-# Exit status for scripting
-if jq -e '.enabled' config.json > /dev/null 2>&1; then
-  echo "Feature is enabled"
-fi
-```
-
-## Agent-Specific Notes
-
-- Always use `-r` when output feeds into other shell commands (avoids quoted strings)
-- Use `-e` in conditionals to leverage jq's exit status
-- Use `--arg` / `--argjson` to pass shell variables — never interpolate variables into jq programs directly (injection risk)
-- Use `-c` for compact output when piping JSON between commands
-- Use `-s` (slurp) to process multiple JSON objects as a single array
-- Combine with `curl -s` for API response processing: `curl -s url | jq '.data'`
-
-## Additional Resources
-
-### Reference Files
-
-For detailed function signatures and advanced patterns, consult:
-
-- **`references/filters.md`** — Complete built-in function reference organized by category with signatures and examples
-- **`references/advanced.md`** — Advanced patterns: `reduce`, `foreach`, streaming, recursive processing, custom functions, and complex data transformations
+Read each linked file from this skill's directory when the step that uses it
+begins. If a read fails, stop that step and report the exact path.

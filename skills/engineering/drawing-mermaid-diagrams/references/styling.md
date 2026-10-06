@@ -1,22 +1,31 @@
 # Styling and Configuration
 
-Comprehensive guide to styling and configuring Mermaid diagrams.
+Themes, colors, fonts, and configuration for Mermaid diagrams.
+
+## Contents
+
+- Configuration Methods
+- Themes
+- Flowchart-Specific Styling
+- Sequence Diagram Styling
+- Class Diagram Styling
+- State Diagram Styling
+- Pie Chart Styling
+- Git Graph Styling
+- Gantt Chart Styling
+- Flowchart Configuration
+- Font Configuration
+- Security Configuration
+- Accessibility
+- Common Issues
 
 ## Configuration Methods
 
-### 1. Init Directive
+### Frontmatter (default)
 
-Inline configuration at the start of a diagram:
-
-```mermaid
-%%{init: {'theme': 'forest'}}%%
-flowchart LR
-    A --> B
-```
-
-### 2. Frontmatter (YAML)
-
-YAML block at the start:
+Put a YAML block with a `config:` key before the diagram keyword. It must be the
+first thing in the diagram. Quote hex colors: an unquoted `#` starts a YAML
+comment.
 
 ```mermaid
 ---
@@ -29,9 +38,21 @@ flowchart LR
     A --> B
 ```
 
-### 3. JavaScript Configuration
+### Init directive (fallback)
 
-For programmatic use:
+Use `%%{init: ...}%%` only when the target renderer bundles a Mermaid release
+too old to read frontmatter `config:`. It takes the same keys as JSON, on the
+first line of the diagram:
+
+```mermaid
+%%{init: {"theme": "forest", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    A --> B
+```
+
+### JavaScript
+
+When you control the page that loads Mermaid, set site-wide defaults:
 
 ```javascript
 mermaid.initialize({
@@ -46,11 +67,7 @@ mermaid.initialize({
 
 ### Built-in Themes
 
-```mermaid
-%%{init: {'theme': 'default'}}%%
-```
-
-Available themes:
+Set `theme:` under `config:` to one of:
 
 - `default` - Standard theme
 - `dark` - Dark mode
@@ -60,17 +77,21 @@ Available themes:
 
 ### Theme Variables
 
-Customize with `themeVariables`:
+Customize with `themeVariables`. Only the `base` theme can be modified, so set
+`theme: base` alongside them:
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'primaryColor': '#ff6b6b',
-    'primaryTextColor': '#fff',
-    'primaryBorderColor': '#ff5252',
-    'lineColor': '#333',
-    'secondaryColor': '#4ecdc4',
-    'tertiaryColor': '#f9f9f9'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#ff6b6b"
+    primaryTextColor: "#fff"
+    primaryBorderColor: "#ff5252"
+    lineColor: "#333"
+    secondaryColor: "#4ecdc4"
+    tertiaryColor: "#f9f9f9"
+---
 flowchart LR
     A[Primary] --> B[Secondary]
     B --> C[Tertiary]
@@ -162,24 +183,27 @@ flowchart TB
 ## Sequence Diagram Styling
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'actorBkg': '#326ce5',
-    'actorBorder': '#1a3d7c',
-    'actorTextColor': '#fff',
-    'actorLineColor': '#333',
-    'signalColor': '#333',
-    'signalTextColor': '#333',
-    'labelBoxBkgColor': '#f9f9f9',
-    'labelBoxBorderColor': '#333',
-    'labelTextColor': '#333',
-    'loopTextColor': '#333',
-    'noteBkgColor': '#fff5ad',
-    'noteBorderColor': '#aaaa33',
-    'noteTextColor': '#333',
-    'activationBkgColor': '#f4f4f4',
-    'activationBorderColor': '#666',
-    'sequenceNumberColor': '#fff'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    actorBkg: "#326ce5"
+    actorBorder: "#1a3d7c"
+    actorTextColor: "#fff"
+    actorLineColor: "#333"
+    signalColor: "#333"
+    signalTextColor: "#333"
+    labelBoxBkgColor: "#f9f9f9"
+    labelBoxBorderColor: "#333"
+    labelTextColor: "#333"
+    loopTextColor: "#333"
+    noteBkgColor: "#fff5ad"
+    noteBorderColor: "#aaaa33"
+    noteTextColor: "#333"
+    activationBkgColor: "#f4f4f4"
+    activationBorderColor: "#666"
+    sequenceNumberColor: "#fff"
+---
 sequenceDiagram
     Alice->>Bob: Hello
     Bob-->>Alice: Hi
@@ -188,9 +212,12 @@ sequenceDiagram
 ## Class Diagram Styling
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'classText': '#333'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    classText: "#333"
+---
 classDiagram
     class Animal {
         +name: string
@@ -218,20 +245,23 @@ stateDiagram-v2
 ## Pie Chart Styling
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'pie1': '#ff6b6b',
-    'pie2': '#4ecdc4',
-    'pie3': '#45b7d1',
-    'pie4': '#96ceb4',
-    'pieStrokeColor': '#333',
-    'pieStrokeWidth': '2px',
-    'pieTitleTextSize': '20px',
-    'pieTitleTextColor': '#333',
-    'pieSectionTextSize': '14px',
-    'pieSectionTextColor': '#fff',
-    'pieLegendTextSize': '14px',
-    'pieLegendTextColor': '#333'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    pie1: "#ff6b6b"
+    pie2: "#4ecdc4"
+    pie3: "#45b7d1"
+    pie4: "#96ceb4"
+    pieStrokeColor: "#333"
+    pieStrokeWidth: 2px
+    pieTitleTextSize: 20px
+    pieTitleTextColor: "#333"
+    pieSectionTextSize: 14px
+    pieSectionTextColor: "#fff"
+    pieLegendTextSize: 14px
+    pieLegendTextColor: "#333"
+---
 pie
     title Distribution
     "A" : 40
@@ -243,16 +273,19 @@ pie
 ## Git Graph Styling
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'git0': '#ff6b6b',
-    'git1': '#4ecdc4',
-    'git2': '#45b7d1',
-    'git3': '#96ceb4',
-    'gitBranchLabel0': '#fff',
-    'gitBranchLabel1': '#fff',
-    'commitLabelColor': '#fff',
-    'commitLabelBackground': '#333'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    git0: "#ff6b6b"
+    git1: "#4ecdc4"
+    git2: "#45b7d1"
+    git3: "#96ceb4"
+    gitBranchLabel0: "#fff"
+    gitBranchLabel1: "#fff"
+    commitLabelColor: "#fff"
+    commitLabelBackground: "#333"
+---
 gitGraph
     commit
     branch develop
@@ -264,21 +297,24 @@ gitGraph
 ## Gantt Chart Styling
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'todayLineColor': '#f00',
-    'taskBkgColor': '#4ecdc4',
-    'taskBorderColor': '#333',
-    'taskTextColor': '#fff',
-    'taskTextDarkColor': '#333',
-    'taskTextLightColor': '#fff',
-    'sectionBkgColor': '#f9f9f9',
-    'sectionBkgColor2': '#eee',
-    'gridColor': '#ddd',
-    'doneTaskBkgColor': '#96ceb4',
-    'activeTaskBkgColor': '#ff6b6b',
-    'critBkgColor': '#f00',
-    'critBorderColor': '#a00'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    todayLineColor: "#f00"
+    taskBkgColor: "#4ecdc4"
+    taskBorderColor: "#333"
+    taskTextColor: "#fff"
+    taskTextDarkColor: "#333"
+    taskTextLightColor: "#fff"
+    sectionBkgColor: "#f9f9f9"
+    sectionBkgColor2: "#eee"
+    gridColor: "#ddd"
+    doneTaskBkgColor: "#96ceb4"
+    activeTaskBkgColor: "#ff6b6b"
+    critBkgColor: "#f00"
+    critBorderColor: "#a00"
+---
 gantt
     title Styled Gantt
     dateFormat YYYY-MM-DD
@@ -291,14 +327,16 @@ gantt
 ## Flowchart Configuration
 
 ```mermaid
-%%{init: {'flowchart': {
-    'curve': 'basis',
-    'padding': 15,
-    'nodeSpacing': 50,
-    'rankSpacing': 50,
-    'htmlLabels': true,
-    'useMaxWidth': true
-}}}%%
+---
+config:
+  flowchart:
+    curve: basis
+    padding: 15
+    nodeSpacing: 50
+    rankSpacing: 50
+    htmlLabels: true
+    useMaxWidth: true
+---
 flowchart LR
     A --> B --> C
 ```
@@ -318,12 +356,12 @@ flowchart LR
 ## Font Configuration
 
 ```mermaid
-%%{init: {
-    'themeVariables': {
-        'fontFamily': 'arial',
-        'fontSize': '16px'
-    }
-}}%%
+---
+config:
+  themeVariables:
+    fontFamily: arial
+    fontSize: 16px
+---
 flowchart LR
     A[Custom Font] --> B[Example]
 ```
@@ -368,21 +406,14 @@ flowchart LR
     A --> B
 ```
 
-## Best Practices
-
-1. **Consistency** - Use the same theme across related diagrams
-2. **Contrast** - Ensure sufficient contrast for readability
-3. **Semantics** - Use colors meaningfully (red for errors, green for success)
-4. **Simplicity** - Don't over-style; clarity comes first
-5. **Accessibility** - Test with colorblind-friendly palettes
-6. **Documentation** - Comment your style choices
-
 ## Common Issues
 
 ### Styles Not Applying
 
-- Check syntax (no trailing commas in JSON)
-- Ensure `%%{init:` is at the very start
+- The frontmatter block (or `%%{init: ...}%%` line) must come first, before the
+  diagram keyword
+- `themeVariables` need `theme: base`
+- Quote hex colors in frontmatter; avoid trailing commas in `%%{init}` JSON
 - Verify theme variable names are correct
 
 ### Colors Not Showing

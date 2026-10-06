@@ -2,6 +2,24 @@
 
 Sequence diagrams show interactions between participants over time.
 
+## Contents
+
+- Basic Syntax
+- Participants
+- Message Types
+- Activations
+- Notes
+- Loops
+- Alternatives (Alt/Else)
+- Parallel (Par)
+- Critical Region
+- Break
+- Grouping with Rect
+- Links
+- Comments
+- Styling
+- Common Patterns
+
 ## Basic Syntax
 
 ```mermaid
@@ -202,14 +220,14 @@ sequenceDiagram
 ### Actor Styles
 
 ```mermaid
-%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'actorBkg': '#ff0000',
-    'actorBorder': '#000000',
-    'actorTextColor': '#ffffff'
-  }
-}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    actorBkg: "#ff0000"
+    actorBorder: "#000000"
+    actorTextColor: "#ffffff"
+---
 sequenceDiagram
     Alice->>Bob: Hello
 ```
@@ -222,16 +240,6 @@ sequenceDiagram
     participant B as Bob
     A->>B: Message
 ```
-
-## Best Practices
-
-1. List participants explicitly for control over order
-2. Use meaningful participant aliases
-3. Group related messages with rect backgrounds
-4. Use activation bars to show processing time
-5. Add notes to explain complex logic
-6. Use autonumber for reference in documentation
-7. Keep diagrams focused - split complex flows into multiple diagrams
 
 ## Common Patterns
 

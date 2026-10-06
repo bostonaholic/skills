@@ -1,467 +1,180 @@
 ---
 name: using-dev-cli
-description: How to use the dev CLI and configure dev.yml for any project. Covers all commands, aliases, built-in tasks, dev.yml schema, and common project configurations. Use when helping users set up, configure, or troubleshoot dev CLI usage in their projects.
+description: Configures and runs the dev CLI, writing and troubleshooting dev.yml (up tasks, build, server, test, console, check, open, custom commands). Use when a project has or needs a dev.yml, or the user mentions dev up, dev test, dev check, dev reset, dev CLI setup, or dev.yml errors.
 ---
 
-# dev CLI User Guide
+# dev CLI
 
-`dev` is a CLI tool for development environment management. It automates project setup, runs dev servers, test suites, linters, and manages project lifecycle through a single unified interface.
+`dev` provisions a project from its `dev.yml` and runs its server, tests,
+linters, and custom commands through one interface.
 
-## Quick Start
+## Requirements
 
-```bash
-cd my-project
-dev init          # Generate a dev.yml (interactive, detects your project)
-dev up            # Provision the development environment
-dev server        # Start the dev server
-dev test          # Run the test suite
-```
+Run `command -v dev && dev --version`. If `dev` is missing, ask the user how
+they install it; do not install it yourself. The `ruby`, `node`, `mysql`,
+`redis`, `postgresql`, and `yarn` tasks install missing Homebrew formulas
+(rbenv, nodenv, services) with `brew install`; `claude` and `claude-code` are
+macOS-only casks; `docker-compose` needs a running Docker. When the installed
+`dev` disagrees with this skill, trust `dev help` and its error messages.
 
 ## Commands
 
-| Command                        | Alias    | Description                                    |
-| ------------------------------ | -------- | ---------------------------------------------- |
-| `dev init`                     | `dev i`  | Generate a dev.yml for the current project     |
-| `dev up [TASK]`                | `dev u`  | Provision the project (all tasks, or just one) |
-| `dev build [NAME] [ARGS...]`   | `dev b`  | Build the project                              |
-| `dev server [NAME] [ARGS...]`  | `dev s`  | Start the dev server                           |
-| `dev test [NAME] [ARGS...]`    | `dev t`  | Run the test suite                             |
-| `dev check [NAME] [ARGS...]`   | `dev k`  | Run linters and static checks                  |
-| `dev console [NAME] [ARGS...]` | `dev c`  | Start an interactive console                   |
-| `dev open [TARGET]`            | `dev o`  | Open a project URL in the browser              |
-| `dev reset`                    | `dev r`  | Delete local dev state and dependencies        |
-| `dev --version`                | `dev -v` | Print version                                  |
+| Command                        | Alias    | Effect                                                     |
+| ------------------------------ | -------- | ---------------------------------------------------------- |
+| `dev init`                     | `dev i`  | Generate `dev.yml` by shelling out to the `claude` CLI     |
+| `dev up [TASK]`                | `dev u`  | Run every `up:` task, or only `TASK`                       |
+| `dev build [NAME] [ARGS...]`   | `dev b`  | Run `build:`                                               |
+| `dev server [NAME] [ARGS...]`  | `dev s`  | Run `server:`                                              |
+| `dev test [NAME] [ARGS...]`    | `dev t`  | Run `test:`                                                |
+| `dev check [NAME] [ARGS...]`   | `dev k`  | Run every `check:` entry (all run; failures reported last) |
+| `dev console [NAME] [ARGS...]` | `dev c`  | Run `console:`                                             |
+| `dev open [TARGET]`            | `dev o`  | List `open:` links, or open one; `github` is built in      |
+| `dev reset`                    | `dev r`  | Delete local dev state and dependencies                    |
+| `dev --version`                | `dev -v` | Print the version                                          |
 
-### Subcommands
+- `NAME` selects a subcommand or a single `check:` entry (`dev test e2e`,
+  `dev check rubocop`, `dev up bundler`); extra `ARGS` are appended to the
+  command.
+- `build`, `server`, `test`, `console`, and custom commands refuse to run until
+  `dev up` has created `.dev/`.
+- `DEBUG=1 dev up` prints debug logging to stderr. Exit code 1 is an expected
+  error (bad config, failed command); 2 is a bug in `dev`.
 
-Every command that has multiple entries supports subcommands — pass the entry name as the first argument:
+### dev reset is destructive
 
-```bash
-dev up bundler          # Run just the bundler task
-dev check rubocop       # Run just the rubocop check
-dev test e2e            # Run the e2e test subcommand
-dev open github         # Open just the github URL
+`dev reset` runs each custom task's `reset:` command (in reverse `up:` order),
+then deletes `.dev/`, `vendor/bundle/`, `.bundle/`, `node_modules/`, and Docker
+volumes labelled `dev.project=<project directory>`. It does not re-provision.
+Show the user what it will remove, including any `reset:` commands in
+`dev.yml`, and run it only after they confirm. Run `dev up` afterward.
+
+## Set up a project
+
+Do not run `dev init` from an agent session: it launches a nested `claude`
+process and refuses to overwrite an existing `dev.yml`. Write the file from
+the schema below instead.
+
+Copy this checklist and check off each step:
+
+```text
+- [ ] 1. Confirm `dev --version` works (see Requirements)
+- [ ] 2. Detect the stack: Gemfile, package.json, yarn.lock, package-lock.json, bun.lock or bun.lockb, .ruby-version, .node-version, compose.yml or docker-compose.yml, bin/rails, config/database.yml
+- [ ] 3. Write dev.yml, starting from the closest example config
+- [ ] 4. Parse it: ruby -ryaml -e 'YAML.load_file("dev.yml")'
+- [ ] 5. Add `.dev/` to .gitignore if it is missing
+- [ ] 6. Run `dev up`; fix the failing task, rerun `dev up <task>`, repeat until `dev up` passes
+- [ ] 7. Run `dev test` and `dev check`; fix the config (not the project) when a command is misconfigured
 ```
 
-### Gating
+Read [example configurations](references/example-configs.md) at step 3 when
+writing a new `dev.yml` for a Rails, Node, Bun, full-stack, or monorepo
+project. Read each linked file from this skill's directory when the step that
+uses it begins. If a read fails, stop that step and report the exact path.
 
-`dev build`, `dev server`, `dev test`, `dev console`, and custom commands require `dev up` to have been run first. They check for the `.dev/` directory and abort with "Run `dev up` first" if missing.
+## dev.yml schema
 
-### Reset
+`dev.yml` lives at the project root; `dev` finds it by walking up from the
+working directory.
 
-`dev reset` removes `.dev/`, `vendor/bundle/`, `.bundle/`, and `node_modules/`. It does NOT re-provision — run `dev up` afterward when ready.
+| Key        | Type                      | Used by                    |
+| ---------- | ------------------------- | -------------------------- |
+| `name`     | String                    | Output and help headings   |
+| `up`       | Array of tasks            | `dev up`                   |
+| `build`    | Runnable                  | `dev build`                |
+| `server`   | Runnable                  | `dev server`               |
+| `test`     | Runnable                  | `dev test`                 |
+| `console`  | Runnable                  | `dev console`              |
+| `check`    | Flat Hash[String, String] | `dev check` (linters only) |
+| `open`     | Flat Hash[String, URL]    | `dev open`                 |
+| `commands` | Hash[String, Runnable]    | `dev <name>`               |
 
-## dev.yml Schema
+Any other top-level key is silently ignored, so a top-level `deploy:` does
+nothing.
 
-Place a `dev.yml` file in your project root.
+### Runnables
+
+A runnable is a string, or a hash with these keys (others are silently
+ignored):
 
 ```yaml
-name: my-project                # Project name (used in output)
+test:
+  build_first: true # run `build:` first; requires a build: key; list it first
+  run: "bun run test:unit" # required in the hash form
+  env:
+    NODE_ENV: test # $VAR and ${VAR} expand from the current environment
+  desc: "Run unit tests"
+  subcommands:
+    watch: "bun run test" # dev test watch
+    e2e: "bun run test:e2e" # dev test e2e
+```
 
-up:                              # Array of setup tasks (run by dev up)
-  - ruby: "3.4.2"               # Install Ruby via rbenv
-  - node: "22.0.0"              # Install Node via nodenv
-  - bundler                      # Run bundle install (project-local)
-  - yarn                         # Run yarn install
-  - bun                          # Run bun install
-  - env                          # Copy env files from main worktree (worktrees only)
-  - mysql                        # Ensure MySQL is running
-  - redis                        # Ensure Redis is running
-  - docker-compose               # Ensure docker compose services are running
-  - claude                       # Ensure Claude desktop app is installed
-  - claude-code                  # Ensure Claude Code CLI is installed
-  - database                      # Run bin/rails db:prepare (or custom bootstrap/migrate)
-  - database:                      # With explicit bootstrap/migrate commands
-      bootstrap: "bin/rails db:create db:schema:load db:seed"
-      migrate: "bin/rails db:migrate"
-  - custom:                      # Shell-based custom task
-      name: "copy .env"
-      met?: "test -f .env"
-      meet: "cp .env.example .env"
+Subcommands must sit under `subcommands:`; a bare key beside `run:` is ignored
+and `dev test e2e` would append `e2e` to the base command. Subcommands take the
+string or hash form but do not nest further. To declare that a project has no
+server, test, or console command, leave the key out; an empty or partial hash
+is an error.
 
-build: "bun run build"           # Command for dev build
-server: "bin/rails server"       # Command for dev server
-test: "bin/rails test"           # Command for dev test
-console: "bin/rails console"     # Command for dev console
+### Custom commands
 
-check:                           # Named linter commands for dev check
-  rubocop: "bundle exec rubocop"
-  eslint: "yarn eslint ."
+Every project command that is not a setup step, linter, or URL goes under
+`commands:` and runs as `dev <name>`:
 
-open:                            # Named URLs for dev open (github is built-in — no config needed)
-  app: "http://127.0.0.1:3000"
-  ci: "https://github.com/org/repo/actions"
-
-commands:                        # Custom commands (dev <name>)
-  deploy: "scripts/deploy.sh"
+```yaml
+commands:
   seed: "bin/rails db:seed"
-```
-
-### Top-Level Keys
-
-| Key        | Type                   | Required | Description                                                   |
-| ---------- | ---------------------- | -------- | ------------------------------------------------------------- |
-| `name`     | String                 | no       | Project name                                                  |
-| `up`       | Array                  | no       | Tasks for `dev up`                                            |
-| `build`    | Runnable               | no       | `dev build` config                                            |
-| `server`   | Runnable               | no       | `dev server` config                                           |
-| `test`     | Runnable               | no       | `dev test` config                                             |
-| `console`  | Runnable               | no       | `dev console` config                                          |
-| `check`    | Hash[String, String]   | no       | Name to shell command mapping                                 |
-| `open`     | Hash[String, String]   | no       | Name to URL mapping (`github` is built-in — no config needed) |
-| `commands` | Hash[String, Runnable] | no       | Custom commands (`dev <name>`)                                |
-
-### Custom Commands
-
-To add a custom command, use the **`commands:` top-level key** in `dev.yml`. This is the only place custom commands belong — do NOT add them under `up:`, `check:`, or any other key.
-
-```yaml
-# CORRECT — custom commands go under commands:
-commands:
-  deploy: "scripts/deploy.sh"
-
-# WRONG — these are NOT custom commands
-up:
-  - deploy: "scripts/deploy.sh"     # up: is for setup tasks only
-check:
-  deploy: "scripts/deploy.sh"       # check: is for linters only
-
-# WRONG — custom commands are NOT their own top-level key
-deploy: "scripts/deploy.sh"         # this defines a built-in override, not a custom command
-seed: "bin/rails db:seed"           # unknown top-level keys are ignored
-```
-
-Each entry under `commands:` becomes invocable as `dev <name>`.
-
-**String shorthand** — for simple one-liner commands:
-
-```yaml
-commands:
-  deploy: "scripts/deploy.sh"                   # dev deploy
-  seed: "bin/rails db:seed"                      # dev seed
-  lint-fix: "bundle exec rubocop -A"             # dev lint-fix
-  storybook: "yarn storybook"                    # dev storybook
-  db-dump: "pg_dump mydb > dump.sql"             # dev db-dump
-```
-
-**Hash form** — when you need env vars, a description, or subcommands:
-
-```yaml
-commands:
-  migrate:
-    run: "bin/rails db:migrate"
-    desc: "Run database migrations"
-    env:
-      RAILS_ENV: development
-    subcommands:
-      rollback: "bin/rails db:rollback"          # dev migrate rollback
-      status: "bin/rails db:migrate:status"      # dev migrate status
-      redo: "bin/rails db:migrate:redo"          # dev migrate redo
   deploy:
     run: "scripts/deploy.sh production"
     desc: "Deploy to production"
     subcommands:
-      staging: "scripts/deploy.sh staging"       # dev deploy staging
-      canary: "scripts/deploy.sh canary"         # dev deploy canary
+      staging: "scripts/deploy.sh staging" # dev deploy staging
 ```
 
-**When to use `commands:` vs other keys:**
+Setup steps go in `up:`, linters in `check:`, URLs in `open:`. A command named
+after a built-in command or alias (`server`, `s`) is shadowed by the built-in.
 
-| Want to...                    | Use                                |
-| ----------------------------- | ---------------------------------- |
-| Add a setup/provisioning step | `up:` (custom task with met?/meet) |
-| Add a linter or static check  | `check:`                           |
-| Add a URL to open             | `open:`                            |
-| Add any other project command | **`commands:`**                    |
+### up tasks
 
-Custom commands use the same Runnable schema as `build`/`server`/`test`/`console` — they support `run`, `env`, `build_first`, `desc`, and subcommands. They also require `dev up` to have been run first (gated on `.dev/` directory).
+Tasks run in the order listed. Each entry is a bare name or a one-key hash;
+unknown names and multi-key hashes are errors.
 
-### Runnable Schema (build/server/test/console/commands)
+| Task             | Arguments                                  | Effect                                                                                     |
+| ---------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `ruby`           | version, else `.ruby-version`              | `rbenv install`                                                                            |
+| `node`           | version, else `.node-version`              | `nodenv install`                                                                           |
+| `bundler`        | none                                       | `bundle install` into `vendor/bundle`                                                      |
+| `yarn`           | none                                       | `yarn install`                                                                             |
+| `npm`            | none                                       | `npm install`                                                                              |
+| `bun`            | none                                       | `bun install`                                                                              |
+| `env`            | none                                       | Copy missing `.env*` files from the main worktree, then from `.env*.example`; no overwrite |
+| `mysql`          | none                                       | `brew services start mysql`                                                                |
+| `redis`          | none                                       | `brew services start redis`                                                                |
+| `postgresql`     | none                                       | `brew services start postgresql`                                                           |
+| `docker-compose` | none                                       | `docker compose up -d --wait`                                                              |
+| `claude`         | none                                       | Install the Claude desktop app cask (macOS)                                                |
+| `claude-code`    | none                                       | Install the Claude Code cask (macOS)                                                       |
+| `database`       | `bootstrap`, `migrate` (optional)          | Bare: `bin/rails db:prepare`. With args: `migrate`, falling back to `bootstrap`            |
+| `custom`         | `name`, `met?`, `meet` (required), `reset` | Shell-based idempotent task                                                                |
 
-A runnable is either a **string shorthand** or a **hash with subcommands**.
-
-**String shorthand:**
-
-```yaml
-test: "bin/rails test"
-```
-
-**Hash form with subcommands:**
-
-```yaml
-test:
-  build_first: true                   # Run dev build first (default: false) — list first since it runs first
-  run: "bun run test:unit"           # Base command (dev test)
-  env:                                # Optional env vars
-    NODE_ENV: test
-  desc: "Run unit tests"             # Optional description
-  subcommands:
-    watch: "bun run test"            # Subcommand: dev test watch
-    coverage: "bun run test:coverage"  # Subcommand: dev test coverage
-    e2e: "bun run test:e2e"          # Subcommand: dev test e2e
-```
-
-**Key ordering rule:** Always list `build_first` before `run` — it executes before the command, so placing it first makes the execution order obvious at a glance.
-
-**Known keys:** `build_first`, `run`, `env`, `desc`, `implemented`, `subcommands`.
-
-Set `implemented: false` to disable a command (`dev console` will say "not configured").
-
-### Built-in Tasks (for `up:`)
-
-| Task             | Arguments                                         | What it does                                                                                                                                                                                                                                              |
-| ---------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ruby`           | version (optional, falls back to `.ruby-version`) | Installs Ruby via `rbenv install`                                                                                                                                                                                                                         |
-| `node`           | version (optional, falls back to `.node-version`) | Installs Node via `nodenv install`                                                                                                                                                                                                                        |
-| `bundler`        | none                                              | `bundle config set --local path vendor/bundle` then `bundle install`                                                                                                                                                                                      |
-| `yarn`           | none                                              | `yarn install`                                                                                                                                                                                                                                            |
-| `bun`            | none                                              | `bun install`                                                                                                                                                                                                                                             |
-| `env`            | none                                              | Copies missing env files (`.env`, `.env.local`, `.envrc`, `.env.keys`) from the main git worktree when running inside a git worktree                                                                                                                      |
-| `npm`            | none                                              | `npm install`                                                                                                                                                                                                                                             |
-| `mysql`          | none                                              | Starts MySQL via `brew services start mysql`                                                                                                                                                                                                              |
-| `redis`          | none                                              | Starts Redis via `brew services start redis`                                                                                                                                                                                                              |
-| `docker-compose` | none                                              | Runs `docker compose up -d --wait` to start all services defined in `docker-compose.yml` / `compose.yml`. Pre-checks that Docker is running and a compose file exists. No Homebrew dependency — Docker Desktop (or equivalent) must already be installed. |
-| `claude`         | none                                              | Installs Claude desktop app via `brew install --cask claude`                                                                                                                                                                                              |
-| `claude-code`    | none                                              | Installs Claude Code CLI via `brew install --cask claude-code`                                                                                                                                                                                            |
-| `database`       | `bootstrap`, `migrate` (both optional)            | Bare: runs `bin/rails db:prepare`. With args: tries `migrate` first, falls back to `bootstrap`                                                                                                                                                            |
-| `custom`         | `name`, `met?`, `meet` (all required)             | Shell-based idempotent task                                                                                                                                                                                                                               |
-
-Tasks with version arguments accept both forms:
-
-```yaml
-- ruby: "3.4.2"     # Explicit version
-- ruby               # Reads .ruby-version from project root
-```
-
-### Task Ordering
-
-Tasks run in the order listed in `up:`. Homebrew packages required by tasks (rbenv, nodenv, mysql, redis, yarn) are automatically aggregated and installed before any user tasks run.
-
-### Custom Tasks
-
-Custom tasks provide shell-based idempotency. All three fields are required:
-
-- `name` — display label during `dev up`
-- `met?` — shell command that exits 0 if already satisfied
-- `meet` — shell command to satisfy the dependency
+A custom task runs `met?`; on a nonzero exit it runs `meet`, then `met?` again
+and fails if it still fails. `reset` is an idempotent undo that `dev reset`
+runs, for state outside the project directory such as a local database:
 
 ```yaml
 up:
   - custom:
-      name: "create database config"
-      met?: "test -f config/database.yml"
-      meet: "cp config/database.yml.example config/database.yml"
-  - custom:
-      name: "install pre-commit hooks"
-      met?: "test -f .git/hooks/pre-commit"
-      meet: "cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
+      name: "create database"
+      met?: "psql -lqt | cut -d '|' -f 1 | grep -qw myapp_dev"
+      meet: "createdb myapp_dev"
+      reset: "dropdb --if-exists myapp_dev"
 ```
 
-## Typical Workflow
+## Troubleshooting
 
-```bash
-# First time setting up a project
-cd my-project
-dev init              # Generate dev.yml (or create manually)
-dev up                # Install everything
-
-# Daily development
-dev server            # Start dev server
-dev test              # Run tests
-dev check             # Run linters
-
-# Run a single task or check
-dev up bundler        # Re-run just bundler
-dev check rubocop     # Run just rubocop
-dev test e2e          # Run the e2e subcommand
-
-# Start fresh
-dev reset             # Wipe local state
-dev up                # Re-provision from scratch
-```
-
-## Example Configurations
-
-### Ruby on Rails
-
-```yaml
-name: my-rails-app
-
-up:
-  - ruby: "3.4.2"
-  - bundler
-  - mysql
-  - redis
-  - database
-  - custom:
-      name: "copy .env"
-      met?: "test -f .env"
-      meet: "cp .env.example .env"
-
-server: "bin/rails server"
-test: "bin/rails test"
-console: "bin/rails console"
-
-check:
-  rubocop: "bundle exec rubocop"
-
-open:
-  app: "http://127.0.0.1:3000"
-```
-
-### Node.js / TypeScript
-
-```yaml
-name: my-node-app
-
-up:
-  - node: "22.0.0"
-  - yarn
-
-server: "yarn dev"
-test: "yarn test"
-build: "yarn build"
-
-check:
-  eslint: "yarn eslint ."
-  tsc: "yarn tsc --noEmit"
-```
-
-### Bun Project
-
-```yaml
-name: my-bun-app
-
-up:
-  - node: "22.0.0"
-  - bun
-
-server: "bun run dev"
-test: "bun run test"
-build: "bun run build"
-
-check:
-  lint: "bun run lint"
-  typecheck: "bun run typecheck"
-```
-
-### Full-Stack (Ruby + Node)
-
-```yaml
-name: my-fullstack-app
-
-up:
-  - ruby
-  - node
-  - bundler
-  - yarn
-  - mysql
-  - redis
-  - database
-
-server:
-  run: "bin/dev"
-  desc: "Foreman (Rails + Vite)"
-
-test:
-  run: "bin/rails test"
-  e2e: "yarn cypress run"
-
-console: "bin/rails console"
-
-check:
-  rubocop: "bundle exec rubocop"
-  eslint: "yarn eslint ."
-
-open:
-  app: "http://127.0.0.1:3000"
-  # Note: github is built-in — no open: entry needed for dev open github
-
-commands:
-  deploy: "scripts/deploy.sh"
-  seed: "bin/rails db:seed"
-  migrate:
-    run: "bin/rails db:migrate"
-    rollback: "bin/rails db:rollback"
-    status: "bin/rails db:migrate:status"
-```
-
-### AI/ML Project
-
-```yaml
-name: my-ai-project
-
-up:
-  - node: "22.0.0"
-  - bun
-  - claude-code
-  - custom:
-      name: "pull env vars"
-      met?: "test -f .env.local"
-      meet: "vercel env pull .env.local"
-
-server: "bun run dev"
-test: "bun run test"
-build: "bun run build"
-
-check:
-  lint: "bun run lint"
-  typecheck: "bun run typecheck"
-
-open:
-  app: "http://127.0.0.1:3000"
-  vercel: "https://vercel.com/team/project"
-```
-
-### Monorepo with Subcommands
-
-```yaml
-name: my-monorepo
-
-up:
-  - node: "22.0.0"
-  - bun
-
-server:
-  run: "bun run dev"
-  web: "bun run dev:web"
-  api: "bun run dev:api"
-  docs: "bun run dev:docs"
-
-test:
-  run: "bun run test"
-  unit: "bun run test:unit"
-  integration: "bun run test:integration"
-  e2e: "bun run test:e2e"
-  env:
-    NODE_ENV: test
-
-build:
-  run: "bun run build"
-  web: "bun run build:web"
-  api: "bun run build:api"
-
-check:
-  lint: "bun run lint"
-  typecheck: "bun run typecheck"
-  format: "bun run format:check"
-
-open:
-  app: "http://127.0.0.1:3000"
-  api: "http://127.0.0.1:4000"
-  docs: "http://127.0.0.1:3001"
-```
-
-## Key Concepts
-
-### Idempotent Setup
-
-Every `dev up` task uses a met?/meet pattern: check if already satisfied before taking action. Running `dev up` twice produces the same result. This makes it safe to run anytime.
-
-### Runtime Isolation
-
-The dev CLI runs under the global Ruby but spawns child processes under the project's Ruby/Node version. Environment variables like `RBENV_VERSION` and `PATH` are set correctly so project tools use the right runtime.
-
-### Project-Local Dependencies
-
-`bundler` installs gems to `vendor/bundle` (not system-wide). This ensures `dev reset` can cleanly remove all installed dependencies and `dev up` can re-provision from scratch.
+- A command uses the wrong Ruby or Node: `dev` sets `RBENV_VERSION`,
+  `NODENV_VERSION`, shims-first `PATH`, and `BUNDLE_PATH=vendor/bundle` from
+  `up:` or the version files. Check the `ruby`/`node` entries and version files
+  before changing the command.
+- A subcommand runs the base command: it is a bare key; move it under
+  `subcommands:`.
+- A key seems to do nothing: it is an unknown top-level or runnable key, which
+  `dev` ignores.

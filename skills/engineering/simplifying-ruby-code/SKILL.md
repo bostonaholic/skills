@@ -1,140 +1,92 @@
 ---
 name: simplifying-ruby-code
-description: Identify over-engineering in Ruby - prefer simple data structures (Hash, Struct, Data) and pure functions over unnecessary classes
+description: Identifies over-engineered Ruby (stateless command objects, behaviorless value objects, class-method-only classes, deep inheritance, missing protocols) and rewrites it with Hash, Struct, Data, modules, and pure functions. Use when writing, refactoring, or reviewing Ruby classes or service objects, or when tests need heavy mocking.
 ---
 
 # Simplifying Ruby Code
 
-## Core Principle
+Prefer plain data (Hash, Array, Struct, Data) and pure functions over classes
+that add no state or behavior. Separate decisions from effects: a decision
+takes data and returns data; an effect does I/O (database, network, files,
+time). Keep them in separate methods or modules so decisions test without
+mocks.
 
-Prefer simple data structures (Hash, Array, Struct, Data) and pure functions over unnecessary classes and abstractions.
+Cite patterns by number ("Pattern 1") in reviews.
 
-**MANDATORY:** Identify whether code is a decision (pure logic) or effect (I/O). Keep them separate. See `writing-code` skill.
+## Pattern 1: Command objects to module functions
 
-## When to Use
-
-- Command objects with single `call` method and no state
-- Value objects that just wrap data without behavior
-- Service classes that could be module functions
-- Custom classes for simple data (coordinates, ranges, tuples)
-- Deep inheritance where composition would work
-- Missing Ruby protocols (`to_h`, `to_a`, `each`)
-- Tests require extensive mocking (indicates mixed concerns)
-
-## Over-Engineering Patterns
-
-### Command Objects → Module Functions
+Detect: a class whose only public method is `call`, `perform`, `run`, or
+`execute`, with no state beyond its constructor arguments, or a service that
+wraps a single operation.
 
 ```ruby
-# ❌ Over-engineered
+# Before
 class UserCreator
   def initialize(params); @params = params; end
   def call; User.create(@params); end
 end
 
-# ✅ Simple
-User.create(params)  # or module function if logic needed
+# After
+User.create(params)
 ```
 
-**Keep command object when:** Has state, multi-step algorithm, needs queuing.
+Keep the object when it holds state across calls, runs a multi-step algorithm
+worth naming, or must be serialized (a background job).
 
-### Value Objects → Struct/Data/Hash
+## Pattern 2: Value objects to Data, Struct, or Hash
+
+Detect: a class that only stores attributes, with hand-written `initialize`,
+readers, or `==`, and no behavior or validation.
 
 ```ruby
-# ❌ Manual value object
-class Point
-  attr_reader :x, :y
-  def initialize(x, y); @x, @y = x, y; end
-  def ==(other); x == other.x && y == other.y; end
-end
-
-# ✅ Simple
-Point = Data.define(:x, :y)  # Ruby 3.2+, immutable
-Point = Struct.new(:x, :y, keyword_init: true)  # mutable
-point = {x: 10, y: 20}  # simplest
+Point = Data.define(:x, :y)   # immutable, value equality; Ruby 3.2+
+Point = Struct.new(:x, :y)    # mutable
+point = { x: 10, y: 20 }      # transient data or a JSON boundary
 ```
 
-### Utility Classes → Modules
+| Use          | When                                                 |
+| ------------ | ---------------------------------------------------- |
+| Hash         | Transient data, varying keys, JSON in or out         |
+| Struct       | Fixed attributes, mutation acceptable                |
+| Data         | Fixed attributes, immutable (check `ruby -v` >= 3.2) |
+| Custom class | Validation, invariants, or real domain behavior      |
 
-```ruby
-# ❌ Class with only class methods
-class DateFormatter
-  def self.format_for_display(date); date.strftime("%B %d, %Y"); end
-end
+## Pattern 3: Class-method-only classes to modules
 
-# ✅ Module
-module DateFormatter
-  module_function
-  def format_for_display(date); date.strftime("%B %d, %Y"); end
-end
-```
+Detect: a class that is never instantiated and defines only `self.` methods.
+Replace it with a module using `module_function`.
 
-### Deep Inheritance → Composition
+## Pattern 4: Deep inheritance to composition
 
-```ruby
-# ❌ Deep hierarchy
-class Animal; end
-class Mammal < Animal; end
-class Dog < Mammal; end
+Detect: an inheritance chain more than 2 levels deep counting only the
+project's own classes (framework and stdlib bases such as `ApplicationRecord`
+or `StandardError` do not count), or an abstract base class with a single
+subclass. Share behavior through modules, or collapse the single-subclass
+hierarchy.
 
-# ✅ Composition
-module WarmBlooded
-  def warm_blooded?; true; end
-end
+## Pattern 5: Missing Ruby protocols
 
-class Dog
-  include WarmBlooded
-end
-```
+Detect: collection-like or value-like classes that callers unpack by hand.
+Implement the protocol instead:
 
-## Data Structure Selection
+- `each` plus `include Enumerable` for collections
+- `to_h`, `to_a`, `to_s`, `to_json` for conversion
+- `<=>` plus `include Comparable` for ordering
+- `hash` and `eql?` for use as Hash keys
 
-| Use          | When                                               |
-| ------------ | -------------------------------------------------- |
-| Hash         | Temporary data, varying keys, JSON interface       |
-| Struct       | Fixed attributes, need methods, mutable OK         |
-| Data         | Fixed attributes, immutable (Ruby 3.2+)            |
-| Custom Class | Complex validation, rich behavior, domain concepts |
+## Pattern 6: Mixed decisions and effects
 
-## Ruby Protocols
+Detect: tests that need extensive mocks or stubs, or methods that compute and
+write in the same body. Extract the computation into a pure function that
+takes data and returns data, and leave a thin method that performs the I/O.
 
-Implement for interoperability with standard library:
+## Refactor safely
 
-```ruby
-class Collection
-  include Enumerable
-
-  def each(&block); @items.each(&block); end  # Enables map, select, etc.
-  def to_a; @items.dup; end
-  def to_h; @items.to_h; end
-  def to_json(*args); @items.to_json(*args); end
-end
-```
-
-Key protocols: `to_h`, `to_a`, `to_json`, `to_s`, `each`, `<=>`, `hash`/`eql?`
-
-## Refactoring Steps
-
-1. **Identify decisions vs effects** - Mark pure logic vs I/O
-2. **Extract pure functions** - Create module functions with data parameters
-3. **Test pure functions** - No mocks needed
-4. **Simplify data structures** - Replace classes with Struct/Data/Hash
-5. **Remove unnecessary layers** - Inline wrappers that add no value
-
-## Detection Checklist
-
-- [ ] Command object with single method, no state → Module function
-- [ ] Value object with no behavior → Struct/Data/Hash
-- [ ] Class with only class methods → Module
-- [ ] Service wrapping single operation → Direct call
-- [ ] Deep inheritance for behavior sharing → Modules/composition
-- [ ] Missing `to_h`, `to_a`, `to_json` → Add protocols
-- [ ] Tests need heavy mocking → Separate decisions from effects
-
-## Key Takeaways
-
-1. **Hash/Struct/Data over custom classes** for simple data
-2. **Module functions over command objects** unless state needed
-3. **Composition over inheritance** for behavior sharing
-4. **Implement Ruby protocols** for interoperability
-5. **OOP for domain models, functional for calculations** - Use both appropriately
+1. Find every caller before inlining or deleting a class:
+   `rg -n '\bClassName\b'`, plus string references (`"ClassName"`,
+   `constantize`, job and YAML config).
+2. Run the test suite for a green baseline.
+3. Apply one pattern at a time. Run the suite after each step; on failure, fix
+   or revert that step before continuing.
+4. Update tests that mocked the removed layer to call the pure function or the
+   direct API instead.

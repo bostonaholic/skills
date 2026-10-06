@@ -2,6 +2,19 @@
 
 XY charts visualize data using x and y axes, supporting bar charts and line charts.
 
+## Contents
+
+- Basic Syntax
+- Orientation
+- Title
+- Axes
+- Chart Types
+- Data Values
+- Complete Examples
+- Configuration
+- Styling
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -189,12 +202,14 @@ xychart-beta
 ### Via Init Directive
 
 ```mermaid
-%%{init: {'xyChart': {
-    'width': 800,
-    'height': 500,
-    'titleFontSize': 20,
-    'showTitle': true
-}}}%%
+---
+config:
+  xyChart:
+    width: 800
+    height: 500
+    titleFontSize: 20
+    showTitle: true
+---
 xychart-beta
     title "Configured Chart"
     x-axis [A, B, C]
@@ -222,19 +237,21 @@ xychart-beta
 ### Theme Variables
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'xyChart': {
-        'backgroundColor': '#ffffff',
-        'titleColor': '#333333',
-        'xAxisLabelColor': '#666666',
-        'yAxisLabelColor': '#666666',
-        'xAxisTitleColor': '#333333',
-        'yAxisTitleColor': '#333333',
-        'xAxisLineColor': '#cccccc',
-        'yAxisLineColor': '#cccccc',
-        'plotColorPalette': '#4ecdc4, #ff6b6b, #45b7d1, #96ceb4'
-    }
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    xyChart:
+      backgroundColor: "#ffffff"
+      titleColor: "#333333"
+      xAxisLabelColor: "#666666"
+      yAxisLabelColor: "#666666"
+      xAxisTitleColor: "#333333"
+      yAxisTitleColor: "#333333"
+      xAxisLineColor: "#cccccc"
+      yAxisLineColor: "#cccccc"
+      plotColorPalette: "#4ecdc4, #ff6b6b, #45b7d1, #96ceb4"
+---
 xychart-beta
     x-axis [A, B, C, D]
     bar [10, 20, 15, 25]
@@ -251,17 +268,6 @@ xychart-beta
 - `xAxisLineColor`, `yAxisLineColor` - Axis line colors
 - `xAxisTickColor`, `yAxisTickColor` - Tick mark colors
 - `plotColorPalette` - Comma-separated colors for data series
-
-## Best Practices
-
-1. Use clear, descriptive titles
-2. Label axes with units where applicable
-3. Set appropriate y-axis ranges
-4. Use bar charts for categorical comparisons
-5. Use line charts for trends over time
-6. Combine bar and line when showing actuals vs. targets
-7. Keep data series to 3-4 maximum for readability
-8. Use horizontal orientation for long category names
 
 ## Limitations
 

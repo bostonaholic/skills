@@ -2,6 +2,16 @@
 
 Gantt charts illustrate project schedules, showing tasks, durations, and dependencies.
 
+## Contents
+
+- Basic Syntax
+- Configuration
+- Sections
+- Tasks
+- Complete Examples
+- Styling
+- Common Issues
+
 ## Basic Syntax
 
 ```mermaid
@@ -299,32 +309,23 @@ gantt
 ### Theme Configuration
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'primaryColor': '#ff6b6b',
-    'primaryTextColor': '#fff',
-    'primaryBorderColor': '#ff5252',
-    'sectionBkgColor': '#ffeaa7',
-    'taskBkgColor': '#74b9ff',
-    'taskTextLightColor': '#fff'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#ff6b6b"
+    primaryTextColor: "#fff"
+    primaryBorderColor: "#ff5252"
+    sectionBkgColor: "#ffeaa7"
+    taskBkgColor: "#74b9ff"
+    taskTextLightColor: "#fff"
+---
 gantt
     title Styled Gantt
     section Section
     Task 1 :a1, 2024-01-01, 30d
     Task 2 :a2, after a1, 20d
 ```
-
-## Best Practices
-
-1. Use meaningful task IDs for dependencies
-2. Group related tasks into sections
-3. Mark completed tasks as `done`
-4. Highlight critical path with `crit`
-5. Use milestones for key dates
-6. Exclude weekends for realistic schedules
-7. Keep task names concise
-8. Use consistent date format
-9. Add a clear title
 
 ## Common Issues
 
@@ -335,17 +336,19 @@ Ensure dateFormat matches your dates:
 ```mermaid
 gantt
     dateFormat YYYY-MM-DD
-    Task 1 :2024-01-01, 10d   %% Correct
-    Task 2 :01-01-2024, 10d   %% Wrong format
+    Task 1 :2024-01-01, 10d
 ```
+
+Every task date must match `dateFormat`; Mermaid misreads a date such as
+`01-01-2024` under `YYYY-MM-DD` instead of reporting an error.
 
 ### Dependencies Not Working
 
-Use `after` keyword correctly:
+Reference another task with `after <id>`. Writing `Task B :b, a, 10d` (no
+`after`) fails with `Invalid date`.
 
 ```mermaid
 gantt
     Task A :a, 2024-01-01, 10d
-    Task B :b, after a, 10d      %% Correct
-    Task C :c, a, 10d            %% Wrong - missing 'after'
+    Task B :b, after a, 10d
 ```

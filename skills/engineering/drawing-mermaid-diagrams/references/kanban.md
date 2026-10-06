@@ -2,6 +2,16 @@
 
 Kanban diagrams visualize workflow with columns and task cards.
 
+## Contents
+
+- Basic Syntax
+- Columns
+- Tasks
+- Task Metadata
+- Configuration
+- Complete Examples
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -232,17 +242,6 @@ kanban
         c9[Monthly newsletter]
 ```
 
-## Best Practices
-
-1. Use clear, descriptive task names
-2. Limit WIP (Work In Progress) in middle columns
-3. Keep columns consistent across the team
-4. Use metadata for filtering and searching
-5. Link tickets to your issue tracker
-6. Assign owners to active tasks
-7. Use priority for critical items
-8. Keep Done column for visibility (archive periodically)
-
 ## Limitations
 
 - No drag-and-drop interactivity
@@ -251,20 +250,3 @@ kanban
 - Limited styling options
 - No custom fields beyond built-in metadata
 - Static representation only
-
-## When to Use Kanban Diagrams
-
-Good for:
-
-- Sprint/project status visualization
-- Task tracking documentation
-- Team workflow overview
-- Status reports
-- Process documentation
-
-Avoid when:
-
-- Need interactive board (use Trello, Jira)
-- Complex workflows with automation
-- Real-time collaboration required
-- Detailed time tracking needed

@@ -2,6 +2,15 @@
 
 Pie charts show proportional data as slices of a circle.
 
+## Contents
+
+- Basic Syntax
+- Configuration
+- Data Format
+- Complete Examples
+- Styling
+- Limitations
+
 ## Basic Syntax
 
 ```mermaid
@@ -110,17 +119,20 @@ pie
 ### Theme Configuration
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {
-    'pie1': '#ff6b6b',
-    'pie2': '#4ecdc4',
-    'pie3': '#45b7d1',
-    'pie4': '#96ceb4',
-    'pie5': '#ffeaa7',
-    'pie6': '#dfe6e9',
-    'pie7': '#74b9ff',
-    'pieStrokeWidth': '2px',
-    'pieLegendTextSize': '14px'
-}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    pie1: "#ff6b6b"
+    pie2: "#4ecdc4"
+    pie3: "#45b7d1"
+    pie4: "#96ceb4"
+    pie5: "#ffeaa7"
+    pie6: "#dfe6e9"
+    pie7: "#74b9ff"
+    pieStrokeWidth: 2px
+    pieLegendTextSize: 14px
+---
 pie
     title Custom Colors
     "Red" : 20
@@ -144,16 +156,6 @@ pie
 - `pieSectionTextSize` - Label font size
 - `pieSectionTextColor` - Label color
 
-## Best Practices
-
-1. Limit to 5-7 slices for readability
-2. Use meaningful labels
-3. Order slices by size (largest first) or logically
-4. Use `showData` when exact values matter
-5. Consider using a bar chart for many categories
-6. Use contrasting colors for adjacent slices
-7. Include a descriptive title
-
 ## Limitations
 
 - No interactive features
@@ -161,18 +163,3 @@ pie
 - No doughnut chart variant
 - Labels may overlap with many slices
 - Percentages auto-calculated (cannot override display)
-
-## When to Use Pie Charts
-
-Good for:
-
-- Showing parts of a whole
-- Comparing proportions at a glance
-- Simple distributions with few categories
-
-Avoid when:
-
-- Comparing values precisely
-- Showing changes over time
-- Many categories (use bar chart)
-- Values don't sum to a meaningful total

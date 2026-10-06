@@ -1,4 +1,4 @@
 interface:
-  display_name: "Review Rails"
-  short_description: "Review Rails code for unnecessary complexity"
-  default_prompt: "Use $reviewing-rails-code to review the Rails code for unnecessary complexity."
+  display_name: "Reviewing Rails Code"
+  short_description: "Review Rails code for unnecessary abstractions"
+  default_prompt: "Use $reviewing-rails-code to review this Rails code for unnecessary abstractions and report refactorings."

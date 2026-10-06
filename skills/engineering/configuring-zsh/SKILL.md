@@ -1,6 +1,6 @@
 ---
 name: configuring-zsh
-description: Knows which zsh dotfile to place shell configuration changes into. Use when adding environment variables, aliases, PATH entries, shell options, completions, or any other zsh configuration to the user's dotfiles.
+description: Chooses the zsh startup file (.zshenv, .zprofile, .zshrc, .zlogin, or a custom plugin under ZSH_CUSTOM) for a configuration change and edits the dotfiles repo source behind the symlink. Use when adding or moving environment variables, PATH entries, aliases, functions, setopt or zstyle options, or completions in zsh config.
 metadata:
   filePattern:
     - "zsh/*"
@@ -9,136 +9,93 @@ metadata:
     - "**/zshenv"
     - "**/zlogin"
     - "**/zlogout"
+    - "**/.zshrc"
+    - "**/.zprofile"
+    - "**/.zshenv"
+    - "**/.zlogin"
     - "**/*.plugin.zsh"
   bashPattern:
-    - "source.*zsh"
-    - "export\\s+(PATH|EDITOR|PAGER|SHELL)"
-    - "alias\\s+"
-    - "setopt|unsetopt"
+    - "source\\s+\\S*\\.?z(shrc|shenv|profile|login)"
+    - "\\b(un)?setopt\\b"
 ---
 
-# Zsh Configuration File Placement
+# Zsh Configuration Placement
 
-This project's zsh files live in `zsh/` and are symlinked to `$HOME` via
-`dotfiles.yaml`. Always edit the repo source files, never the symlink targets.
+## 1. Find the file to edit
 
-## File Map
+Startup files usually live in a dotfiles repo and are symlinked into `$HOME`.
+Write to the repo file, not the link: many editors and write tools replace a
+symlink with a regular file.
 
-| Repo file                     | Symlinked to                                                       | Sourced when                                                       |
-| ----------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `zsh/zprofile`                | `~/.zprofile`                                                      | Login shells (once, at login)                                      |
-| `zsh/zshrc`                   | `~/.zshrc`                                                         | Interactive shells (every new terminal)                            |
-| `zsh/bostonaholic.plugin.zsh` | `~/.oh-my-zsh/custom/plugins/bostonaholic/bostonaholic.plugin.zsh` | Interactive shells (loaded by oh-my-zsh via `plugins=()` in zshrc) |
-| `zsh/zshenv`                  | `~/.zshenv`                                                        | Every shell, including scripts and agent shells                    |
-
-Note: This project does not currently have `.zlogin` or `.zlogout` files.
-Create them only if a change genuinely requires that execution context.
-
-## Source Order
-
-Zsh sources files in this order:
-
-1. **`.zshenv`** -- Every shell (login, interactive, script, non-interactive). Always first.
-2. **`.zprofile`** -- Login shells only, before `.zshrc`.
-3. **`.zshrc`** -- Interactive shells only, after `.zprofile`.
-4. **`.zlogin`** -- Login shells only, after `.zshrc`.
-5. **`.zlogout`** -- Login shells only, on exit.
-
-## Where to Put What
-
-### `zsh/zprofile` (login shells)
-
-Put here:
-
-- **Exported environment variables** needed by non-interactive programs (`$PATH`, `$EDITOR`, `$PAGER`, `$XDG_*`, `$RUBY_CONFIGURE_OPTS`)
-- **PATH modifications** (Homebrew, language version managers, toolchain bins)
-- **Tool initialization that sets environment** (`brew shellenv`, `pyenv init --path`)
-- **Variables consumed by GUI apps** or other processes spawned from the login session
-
-Current contents: XDG dirs, Homebrew shellenv, PATH entries (PostgreSQL, pyenv, pipx, cargo, Obsidian), Ruby build config, zoxide override.
-
-### `zsh/zshrc` (interactive shells)
-
-Put here:
-
-- **Oh-my-zsh configuration** (theme, plugins list, sourcing)
-- **Shell options** (`setopt`, `unsetopt`, `zstyle`)
-- **Completion setup** (`compinit`, `FPATH` additions)
-- **Plugin loading** and framework config
-- **Interactive-only variables** that non-interactive shells don't need
-- **Prompt configuration** (Starship is active, ZSH_THEME is disabled)
-
-Current contents: oh-my-zsh setup, plugin list, editor config, zsh-completions FPATH, 1Password SSH agent, dev CLI PATH.
-
-### `zsh/bostonaholic.plugin.zsh` (custom oh-my-zsh plugin)
-
-Put here:
-
-- **Aliases** (CLI shortcuts, modern tool replacements, git aliases)
-- **Shell functions** (wt wrapper, bundle_close, cljs)
-- **Completion definitions** for custom functions (`compdef`)
-- **Interactive environment variables** tied to CLI behavior (`$LESS`, `$LS_COLORS`)
-
-Current contents: aliases (cat/bat, ls/eza, grep/rg, etc.), wt() git worktree wrapper + completions, utility functions.
-
-### `zsh/zshenv` (every shell)
-
-Put here:
-
-- Variables that **must** be available in non-interactive, non-login script contexts
-- `$ZDOTDIR` to relocate zsh config files
-- Rarely needed -- most exported variables belong in `.zprofile`
-
-Current contents: `_ZO_DOCTOR` (silences zoxide's banner) and
-`ZSH_INTERACTIVE_ALIASES` (the guard described below).
-
-### `.zlogin` / `.zlogout` (create only if needed)
-
-- `.zlogin`: Commands to run at login after everything else loads (e.g., `startx`, motd)
-- `.zlogout`: Cleanup on shell exit (e.g., `clear`, `reset`)
-
-## Decision Flowchart
-
-```text
-Is it an exported variable or PATH entry?
-├── Yes → Is it needed by non-interactive processes or GUI apps?
-│   ├── Yes → zsh/zprofile
-│   └── No → Is it interactive shell behavior ($LESS)?
-│       ├── Yes → zsh/bostonaholic.plugin.zsh
-│       └── No → zsh/zprofile (default for exports)
-├── No → Is it an alias or shell function?
-│   └── Yes → zsh/bostonaholic.plugin.zsh
-├── No → Is it oh-my-zsh config, plugins, or completion setup?
-│   └── Yes → zsh/zshrc
-├── No → Is it a shell option (setopt/unsetopt/zstyle)?
-│   └── Yes → zsh/zshrc
-└── No → Is it needed in ALL shells including scripts?
-    ├── Yes → Create zsh/zshenv (rare)
-    └── No → zsh/zshrc (safe default for interactive config)
+```sh
+zsh -c 'print -r -- ${ZDOTDIR:-$HOME}'
+for f in ~/.zshenv ~/.zprofile ~/.zshrc ~/.zlogin ~/.zlogout; do
+  [ -e "$f" ] && printf '%s -> %s\n' "$f" "$(readlink "$f" || echo 'regular file')"
+done
 ```
 
-## Important Rules
+If `ZDOTDIR` is set, the files other than `.zshenv` live there. When the links
+point into a repo, find how the repo creates them (a symlink manifest, an
+install script, or a stow layout) before adding a new startup file; register
+the new file there and ask before running the repo's installer.
 
-1. **Edit repo files, not symlink targets.** Change `zsh/zprofile`, not `~/.zprofile`.
-2. **Add new files to `dotfiles.yaml`.** If creating `zsh/zshenv`, add a symlink entry under `symlinks:` and run `./install.sh --only symlinks`.
-3. **Don't duplicate oh-my-zsh built-ins.** Check if a plugin already provides the alias or function before adding one.
-4. **Keep `zshrc` focused on framework/plugin config.** User aliases and functions go in the plugin file, not zshrc.
-5. **PATH in zprofile, not zshrc.** PATH entries set in zshrc won't be available to programs started outside an interactive shell.
-6. **Guard anything that shadows a standard command.** An alias like `ls=eza` or `rm='rm -i'` breaks anything that shells out through this config. Wrap it in `if (( ZSH_INTERACTIVE_ALIASES )); then ... fi` (the flag is set in `zsh/zshenv`) and cover it in `tests/test_shell_guard.sh`.
+If the repo links a `<name>.plugin.zsh` into
+`${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/<name>/`, read
+[oh-my-zsh plugin layout](references/oh-my-zsh-plugin-layout.md) and follow its
+placement for aliases, functions, and completions.
 
-## Interactive Alias Guard
+Read each linked file from this skill's directory when the step that uses it
+begins. If a read fails, stop that step and report the exact path.
 
-`zsh/zshenv` sets `ZSH_INTERACTIVE_ALIASES` to 1 only for an interactive shell
-with no coding-agent marker (`CLAUDECODE`, `AI_AGENT`, `CURSOR_AGENT`, ...) in
-the environment. Interactivity alone is not enough -- agents capture this
-config from an interactive shell and replay it into non-interactive ones.
+## 2. Choose the startup file
 
-Already behind the guard:
+Zsh reads `.zshenv` (every shell, including scripts and most agent shells),
+then `.zprofile` (login shells), then `.zshrc` (interactive shells), then
+`.zlogin` (login shells); `.zlogout` runs when a login shell exits. macOS
+terminal apps open login shells; most Linux terminals open non-login
+interactive shells.
 
-| Where                         | What                                                                                    |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| `zsh/bostonaholic.plugin.zsh` | `cat`, `df`, `du`, `find`, `grep`, `ls`, `man`, `ping`, `top`, `ip`, `claude`/`cc`/`cw` |
-| `zsh/zshrc`                   | the `common-aliases` oh-my-zsh plugin, zoxide's `cd`                                    |
+| Change                                                                  | File                                                                         |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `PATH` entries and exported variables for programs (`EDITOR`, `XDG_*`)  | `.zprofile`                                                                  |
+| Variables every shell needs, including scripts (`ZDOTDIR`, guard flags) | `.zshenv`                                                                    |
+| `setopt`, `unsetopt`, `zstyle`, prompt, framework and plugin list       | `.zshrc`                                                                     |
+| `FPATH` additions                                                       | `.zshrc`, before `compinit` (with oh-my-zsh, before sourcing `oh-my-zsh.sh`) |
+| Aliases, functions, `compdef` for them, interactive variables (`LESS`)  | `.zshrc` after `compinit`, or the custom plugin file                         |
+| Commands to run after login completes                                   | `.zlogin`                                                                    |
+| Cleanup on logout                                                       | `.zlogout`                                                                   |
 
-Aliases that invent a new name (`lg`, `gti`, `rgrep`) shadow nothing and need
-no guard.
+- Put `PATH` in `.zprofile`, not `.zshenv` or `.zshrc`: macOS `/etc/zprofile`
+  runs `path_helper`, which moves entries set in `.zshenv` behind the system
+  paths, and `.zshrc` never runs for programs started outside an interactive
+  shell.
+- Keep `.zshenv` fast and silent; it runs for every script.
+- Edit an existing file when it is there; create a new startup file only when
+  no existing one runs in the needed context.
+- Before adding an alias or function, check that an enabled plugin does not
+  already define it: `zsh -ic 'whence -v <name>'`.
+
+### Aliases that shadow commands
+
+An alias that replaces a standard command (`ls`, `cat`, `grep`, `rm`, `cd`)
+breaks scripts and agents that shell out through this config. Agent harnesses
+may capture aliases from an interactive shell and replay them, so a check for
+interactivity alone does not protect them. If the config already has a guard
+for shadowing aliases, put the new alias behind it. Otherwise ask the user
+before adding one, and suggest a guard that also checks agent markers such as
+`CLAUDECODE`. Aliases with new names (`lg`, `gti`) need no guard.
+
+## 3. Validate
+
+Run until every check passes:
+
+1. `zsh -n <file>` for each edited file; fix any syntax error and rerun.
+2. Confirm the change in the shell type it targets:
+   - `.zshenv`: `zsh -c 'print -r -- $VAR'`
+   - `.zprofile`: `zsh -lc 'print -r -- $VAR; print -r -- $PATH'`
+   - `.zshrc` or plugin: `zsh -ic 'alias <name>; whence -v <function>'`
+   - All together: `zsh -lic '...'`
+3. For a guarded alias, rerun the check with a marker the guard tests (for
+   example `CLAUDECODE=1 zsh -ic 'alias <name>'`) and confirm it prints
+   nothing.
+4. Tell the user to open a new terminal; running shells keep the old config.
