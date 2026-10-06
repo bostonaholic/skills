@@ -7,6 +7,7 @@
 - Rename every skill to a gerund name, for example `shipit` to `landing-prs` and `code-review` to `reviewing-code`; invoke skills by their new names. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Rewrite every skill description to say what the skill does and when to use it. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Trim every skill to its behavioral core and link each reference directly from its `SKILL.md`. [#18](https://github.com/bostonaholic/skills/pull/18)
+- Move `redoing-implementations` to the engineering category. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Rename the `auditing-tests` report key `seams` to `testOnlyCode`. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Rewrite `merging-dependabot-prs` as a self-contained, approval-gated procedure that merges only patch and minor updates. [#18](https://github.com/bostonaholic/skills/pull/18)
 - Confirm the drafted rule before `learning-from-mistakes` writes it. [#18](https://github.com/bostonaholic/skills/pull/18)

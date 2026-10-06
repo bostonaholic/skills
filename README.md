@@ -66,6 +66,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[rebasing-branches](./skills/engineering/rebasing-branches/SKILL.md)**: Rebase the current branch onto its base and force-push with a lease. Explicit invocation only.
 - **[rebasing-dependabot-prs](./skills/engineering/rebasing-dependabot-prs/SKILL.md)**: Ask Dependabot to rebase its open pull requests after confirmation. Explicit invocation only.
 - **[rebasing-open-prs](./skills/engineering/rebasing-open-prs/SKILL.md)**: Rebase all open pull requests onto their bases after confirmation. Explicit invocation only.
+- **[redoing-implementations](./skills/engineering/redoing-implementations/SKILL.md)**: Rebuild the current work as a simpler design. Explicit invocation only.
 - **[removing-comments](./skills/engineering/removing-comments/SKILL.md)**: Remove low-value source comments, encoding constraints with approval. Explicit invocation only.
 - **[reviewing-code](./skills/engineering/reviewing-code/SKILL.md)**: Review a diff in a fresh-context read-only subagent.
 - **[reviewing-design-docs](./skills/engineering/reviewing-design-docs/SKILL.md)**: Adversarially review a technical design document.
@@ -84,7 +85,6 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core.
 - **[improving-prompts](./skills/productivity/improving-prompts/SKILL.md)**: Compress and clarify an existing prompt.
 - **[learning-from-mistakes](./skills/productivity/learning-from-mistakes/SKILL.md)**: Turn a correction into an approved instructions-file rule.
-- **[redoing-implementations](./skills/productivity/redoing-implementations/SKILL.md)**: Rebuild the current work as a simpler design. Explicit invocation only.
 - **[running-retros](./skills/productivity/running-retros/SKILL.md)**: Mine a session or named sources for durable learnings. Explicit invocation only.
 - **[writing-prose](./skills/productivity/writing-prose/SKILL.md)**: Write plain, short prose for people.
 - **[writing-system-prompts](./skills/productivity/writing-system-prompts/SKILL.md)**: Write or review a system prompt.

@@ -34,6 +34,7 @@
     "./skills/engineering/rebasing-branches",
     "./skills/engineering/rebasing-dependabot-prs",
     "./skills/engineering/rebasing-open-prs",
+    "./skills/engineering/redoing-implementations",
     "./skills/engineering/removing-comments",
     "./skills/engineering/reviewing-code",
     "./skills/engineering/reviewing-design-docs",
@@ -49,7 +50,6 @@
     "./skills/productivity/cutting-skills",
     "./skills/productivity/improving-prompts",
     "./skills/productivity/learning-from-mistakes",
-    "./skills/productivity/redoing-implementations",
     "./skills/productivity/running-retros",
     "./skills/productivity/writing-prose",
     "./skills/productivity/writing-system-prompts"

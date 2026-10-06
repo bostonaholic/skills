@@ -1,6 +1,6 @@
 # bostonaholic/skills
 
-1. Active categories are `engineering` (code and PR work) and `productivity` (agent prompts and retrospectives). One active skill per `skills/<category>/<name>/`: `SKILL.md` with `name` equal to the directory, plus `agents/openai.yaml`. No symlinks and no nested `SKILL.md` inside a skill.
+1. Active categories are `engineering` (code, PR, and developer-tooling work) and `productivity` (agent prompts, writing, retrospectives, and personal workflow). One active skill per `skills/<category>/<name>/`: `SKILL.md` with `name` equal to the directory, plus `agents/openai.yaml`. No symlinks and no nested `SKILL.md` inside a skill.
 2. The plugin `skills` array lists every active tracked skill. Run `claude plugin validate . --strict` and `claude plugin validate .claude-plugin/plugin.json --strict` after editing either manifest.
 3. Run `npm run readme` after adding, renaming, or re-describing a skill.
 4. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`.
