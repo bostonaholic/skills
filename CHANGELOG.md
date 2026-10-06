@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-06
+
 ### Added
 
 - Let `grooming-backlogs` ready the top issues in one run with `--promote-top [<count>]` (default 4) and an optional `--focus <area>`, each issue behind its own approval and stopping at the Ready column's limit. [#15](https://github.com/bostonaholic/skills/pull/15)
@@ -169,5 +171,7 @@
 
 [0.9.0]: https://github.com/bostonaholic/skills/compare/v0.8.0...v0.9.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.10.0...HEAD
 [0.10.0]: https://github.com/bostonaholic/skills/compare/v0.9.0...v0.10.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/bostonaholic/skills/compare/v0.10.0...v0.11.0
