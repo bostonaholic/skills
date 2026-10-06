@@ -48,7 +48,7 @@ export const INSTALL_OUTRO = "A skill that calls another skill names it, and sto
 export const README_START = "<!-- generated:start -->";
 export const README_END = "<!-- generated:end -->";
 
-const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
+export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
 const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
 
@@ -65,7 +65,7 @@ function unquote(value) {
   return value;
 }
 
-function scalar(text, key) {
+export function scalar(text, key) {
   const value = text.match(new RegExp(`^[ \\t]*${key}:[ \\t]*(.*)$`, "m"))?.[1].trim();
   return value ? unquote(value) : undefined;
 }
