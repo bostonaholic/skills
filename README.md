@@ -73,7 +73,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 - **[reviewing-rails-code](./skills/engineering/reviewing-rails-code/SKILL.md)**: Review Rails code for unnecessary abstractions. Calls: `simplifying-ruby-code`.
 - **[reviewing-ruby-code](./skills/engineering/reviewing-ruby-code/SKILL.md)**: Review plain Ruby code for unnecessary abstractions. Calls: `simplifying-ruby-code`.
 - **[simplifying-ruby-code](./skills/engineering/simplifying-ruby-code/SKILL.md)**: Replace over-engineered Ruby classes with data and functions.
-- **[using-gh-cli](./skills/engineering/using-gh-cli/SKILL.md)**: Open PRs, check CI, and handle issues through gh, verifying each result.
+- **[using-gh-cli](./skills/engineering/using-gh-cli/SKILL.md)**: Open PRs, check CI, and handle issues through gh, verifying each result. Calls: `landing-prs`.
 - **[using-jq](./skills/engineering/using-jq/SKILL.md)**: Write and debug jq programs for JSON.
 - **[watching-authored-prs](./skills/engineering/watching-authored-prs/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `addressing-pr-comments`.
 - **[watching-reviewed-prs](./skills/engineering/watching-reviewed-prs/SKILL.md)**: Watch a PR you reviewed and approve once feedback settles. Explicit invocation only.

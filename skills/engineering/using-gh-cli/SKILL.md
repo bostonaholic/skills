@@ -105,4 +105,6 @@ approved, green, stale, or finished-looking PR or issue is not a request.
 
 - Failing job logs: `gh run view <run-id> --log-failed`.
 - Mergeability: `gh pr view <n> --json mergeable,mergeStateStatus`.
-- Before any approved merge, `gh pr checks <n>` must exit 0.
+- To merge on request, call the Skill tool with `landing-prs`. If it is not
+  installed, run `gh pr merge <n> --squash` only after `gh pr checks <n>` exits
+  0 and `mergeStateStatus` is `CLEAN`.

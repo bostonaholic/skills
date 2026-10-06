@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-06
+
+### Changed
+
+- Point `learning-from-mistakes` to `running-retros` for lessons from a whole session. [#16](https://github.com/bostonaholic/skills/pull/16)
+- Stop `writing-prose` from suggesting semicolons as an em dash replacement. [#16](https://github.com/bostonaholic/skills/pull/16)
+
+### Fixed
+
+- Hand a requested merge in `using-gh-cli` to `landing-prs`, and without it squash-merge only after checks pass and the merge state is `CLEAN`. [#16](https://github.com/bostonaholic/skills/pull/16)
+- Skip Dependabot PRs in `rebasing-open-prs` and point them to `rebasing-dependabot-prs`, since a push by anyone else stops Dependabot updating the PR. [#16](https://github.com/bostonaholic/skills/pull/16)
+
 ## [0.11.0] - 2026-10-06
 
 ### Added
@@ -173,5 +185,7 @@
 
 [0.10.0]: https://github.com/bostonaholic/skills/compare/v0.9.0...v0.10.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.11.0...HEAD
 [0.11.0]: https://github.com/bostonaholic/skills/compare/v0.10.0...v0.11.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/bostonaholic/skills/compare/v0.11.0...v0.12.0
