@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Install the skills and subagents as a Cursor plugin. [#23](https://github.com/bostonaholic/skills/pull/23)
+
+### Fixed
+
+- Keep the `oracle` subagent read-only in Cursor, which ignores its tool list. [#23](https://github.com/bostonaholic/skills/pull/23)
+- Ask in chat when `reviewing-design-docs` or `removing-comments` runs on a host without `AskUserQuestion`. [#23](https://github.com/bostonaholic/skills/pull/23)
+
 ## [0.13.0] - 2026-10-06
 
 ### Added
