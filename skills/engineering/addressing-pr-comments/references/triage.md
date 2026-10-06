@@ -103,7 +103,12 @@ Do this for each item before any classification or recommendation:
      as bare text).
    - `STALE`: the code was removed or rewritten, so the comment no longer
      applies as written.
-   - `INACCURATE`: the claim does not hold against the code.
+   - `INACCURATE`: the claim does not hold against the code. Rate the
+     concern, not the premise: a comment can cite the wrong version, line, or
+     symbol and still name a real defect, so disproving the citation settles
+     only the citation. Say which of the two is inaccurate. When the premise
+     is wrong and the concern survives, the verdict is `STILL RELEVANT` and
+     the reply corrects the citation.
 5. **Rate confidence** against the auto-apply bar in `SKILL.md` hard rule 2.
 
 Post nothing during verification. A reaction waits for the decision that

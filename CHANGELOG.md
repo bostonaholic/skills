@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Make `addressing-pr-comments` rate a comment's concern rather than its citation, so a wrong premise no longer declines a real defect. [#17](https://github.com/bostonaholic/skills/pull/17)
+
 ## [0.12.0] - 2026-10-06
 
 ### Changed
