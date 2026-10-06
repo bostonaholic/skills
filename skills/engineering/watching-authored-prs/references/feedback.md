@@ -81,4 +81,5 @@ exclusions and stop as `Feedback exclusion`.
 
 Every batch report names both grants, lists each auto-applied item with its
 confidence and landing commit SHA, names the reaction each item received, and,
-for a presented item, the reaction each of its options would place.
+for a presented item, the reaction each of its options would place. It also
+carries the `Review re-request` line group from the delegated pass.

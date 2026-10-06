@@ -107,15 +107,21 @@ Copy this checklist and check off each step:
 - [ ] 5. Classify each item
 - [ ] 6. Auto-apply items that clear the bar
 - [ ] 7. Present the report and punch list
-- [ ] 8. Stop and hand off
+- [ ] 8. Re-request review
+- [ ] 9. Stop and hand off
 ```
 
-Steps 1-5, 7, and 8 are in [triage](references/triage.md). Step 2 runs the
+Steps 1-5, 7, and 9 are in [triage](references/triage.md). Step 2 runs the
 [pull-request comment retrieval](shared/pull-request-comments.md). Step 6, and
 every action the user picks in a later turn, follows
 [authorized execution](references/authorized-execution.md). Place reactions
 with the [reaction mechanics](shared/reaction-mechanics.md) when an action
 lands.
+
+Step 8, and the end of each later turn that acts on items from an earlier
+report, follows [review re-request](references/review-re-request.md). When no
+feedback awaits a response, it re-requests review from each reviewer whose
+latest review requested changes, and GitHub notifies that reviewer.
 
 For an item with two or more viable responses, apply the
 [decision method](shared/decisions.md) with the user as the decision owner and

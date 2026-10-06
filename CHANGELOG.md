@@ -6,6 +6,7 @@
 
 - Add a testing rule that proves a claimed race with a test driving each side on its own connection and detecting blocking by timeout. [#17](https://github.com/bostonaholic/skills/pull/17)
 - Add a testing rule that proves a coverage gap by deleting the behavior's code and showing the suite stays green. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Re-request review from each reviewer whose latest review requested changes once an `addressing-pr-comments` or `watching-authored-prs` pass leaves no feedback awaiting a response. [#17](https://github.com/bostonaholic/skills/pull/17)
 
 ### Changed
 

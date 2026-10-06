@@ -119,3 +119,14 @@ test("importing auditing-complexity/render-report.mjs through a symlinked direct
   const run = importModule(t, join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "render-report.mjs"));
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+test("re-request-review.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(join(symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"), "re-request-review.mjs"));
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^re-request-review\.mjs: usage: re-request-review\.mjs /);
+});
+
+test("importing re-request-review.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(t, join(symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"), "re-request-review.mjs"));
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
