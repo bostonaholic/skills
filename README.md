@@ -20,7 +20,9 @@ Or follow the [installation instructions](INSTALL.md).
 
 - **[addressing-pr-comments](./skills/engineering/addressing-pr-comments/SKILL.md)**: Triage and address open PR feedback. Calls: `attaching-pr-screenshots`.
 - **[attaching-pr-screenshots](./skills/engineering/attaching-pr-screenshots/SKILL.md)**: Attach local images to a PR body.
+- **[auditing-agent-token-usage](./skills/engineering/auditing-agent-token-usage/SKILL.md)**: Audit Claude Code and Codex token and context costs.
 - **[auditing-complexity](./skills/engineering/auditing-complexity/SKILL.md)**: Rank code complexity hotspots and CRAP change risk.
+- **[auditing-rails-tech-debt](./skills/engineering/auditing-rails-tech-debt/SKILL.md)**: Audit a Rails app for cited tech debt findings. Calls: `simplifying-ruby-code`.
 - **[auditing-repo-security](./skills/engineering/auditing-repo-security/SKILL.md)**: Audit a third-party repo before running it.
 - **[auditing-tests](./skills/engineering/auditing-tests/SKILL.md)**: Audit a test suite for low-value tests.
 - **[capturing-screenshots](./skills/engineering/capturing-screenshots/SKILL.md)**: Capture verified screenshots of an app.
@@ -28,6 +30,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[diagnosing-react-code](./skills/engineering/diagnosing-react-code/SKILL.md)**: Scan a React package and fix its errors.
 - **[drawing-mermaid-diagrams](./skills/engineering/drawing-mermaid-diagrams/SKILL.md)**: Write, render, and debug Mermaid diagrams.
 - **[explaining-architecture](./skills/engineering/explaining-architecture/SKILL.md)**: Explain how a subsystem or runtime flow works. Calls: `investigating-design-rationale`.
+- **[explaining-code](./skills/engineering/explaining-code/SKILL.md)**: Explain a PR, diff, or code briefly or in full. Calls: `explaining-architecture`.
 - **[grooming-backlogs](./skills/engineering/grooming-backlogs/SKILL.md)**: Plan backlog grooming changes for approval.
 - **[investigating-design-rationale](./skills/engineering/investigating-design-rationale/SKILL.md)**: Investigate why code is shaped as it is. Calls: `explaining-architecture`.
 - **[landing-prs](./skills/engineering/landing-prs/SKILL.md)**: Land a reviewed pull request on explicit request.
@@ -43,20 +46,25 @@ Or follow the [installation instructions](INSTALL.md).
 - **[reviewing-rails-code](./skills/engineering/reviewing-rails-code/SKILL.md)**: Review Rails code for unnecessary abstractions. Calls: `simplifying-ruby-code`.
 - **[reviewing-ruby-code](./skills/engineering/reviewing-ruby-code/SKILL.md)**: Review plain Ruby code for unnecessary abstractions. Calls: `simplifying-ruby-code`.
 - **[simplifying-ruby-code](./skills/engineering/simplifying-ruby-code/SKILL.md)**: Replace over-engineered Ruby classes with data and functions.
+- **[summarizing-friction-logs](./skills/engineering/summarizing-friction-logs/SKILL.md)**: Prioritize frog friction logs across a workspace.
 - **[using-gh-cli](./skills/engineering/using-gh-cli/SKILL.md)**: Open PRs, check CI, and handle issues through gh, verifying each result. Calls: `landing-prs`.
 - **[using-jq](./skills/engineering/using-jq/SKILL.md)**: Write and debug jq programs for JSON.
+- **[verifying-production-changes](./skills/engineering/verifying-production-changes/SKILL.md)**: Confirm a merged change took effect in production.
 - **[watching-authored-prs](./skills/engineering/watching-authored-prs/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `addressing-pr-comments`.
 - **[watching-reviewed-prs](./skills/engineering/watching-reviewed-prs/SKILL.md)**: Watch a PR you reviewed and approve once feedback settles. Explicit invocation only.
+- **[writing-technical-design-docs](./skills/engineering/writing-technical-design-docs/SKILL.md)**: Draft a directionally correct technical design doc. Calls: `reviewing-design-docs`.
 
 ### Productivity
 
 - **[being-extremely-fucking-brief](./skills/productivity/being-extremely-fucking-brief/SKILL.md)**: Keep every response extremely brief.
 - **[composing-agent-prompts](./skills/productivity/composing-agent-prompts/SKILL.md)**: Compose a source-cited task prompt for another agent.
+- **[conducting-deep-research](./skills/productivity/conducting-deep-research/SKILL.md)**: Research an evidence review plus a funding map.
 - **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core.
 - **[improving-prompts](./skills/productivity/improving-prompts/SKILL.md)**: Compress and clarify an existing prompt.
 - **[learning-from-mistakes](./skills/productivity/learning-from-mistakes/SKILL.md)**: Turn a correction into an approved instructions-file rule.
 - **[pricing-creativity](./skills/productivity/pricing-creativity/SKILL.md)**: Price creative work by value with Blair Enns's frameworks.
 - **[running-retros](./skills/productivity/running-retros/SKILL.md)**: Mine a session or named sources for durable learnings. Explicit invocation only.
+- **[summarizing-shipped-work](./skills/productivity/summarizing-shipped-work/SKILL.md)**: Summarize merged PRs into a shipped-work report.
 - **[writing-prose](./skills/productivity/writing-prose/SKILL.md)**: Write plain, short prose for people.
 - **[writing-system-prompts](./skills/productivity/writing-system-prompts/SKILL.md)**: Write or review a system prompt.
 

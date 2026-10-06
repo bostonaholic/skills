@@ -1,0 +1,4 @@
+interface:
+  display_name: "Conducting Deep Research"
+  short_description: "Research an evidence review plus a funding map"
+  default_prompt: "Use $conducting-deep-research to review the evidence on recent advances in solid-state batteries and map who performs and funds that research."

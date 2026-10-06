@@ -1,0 +1,4 @@
+interface:
+  display_name: "Auditing Rails Tech Debt"
+  short_description: "Audit a Rails app for cited tech debt findings"
+  default_prompt: "Use $auditing-rails-tech-debt to audit this Rails app for anti-patterns and tech debt, citing each finding with file:line evidence and before/after code."

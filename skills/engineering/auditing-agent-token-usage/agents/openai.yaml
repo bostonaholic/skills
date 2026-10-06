@@ -1,0 +1,4 @@
+interface:
+  display_name: "Auditing Agent Token Usage"
+  short_description: "Audit Claude Code and Codex token and context costs"
+  default_prompt: "Use $auditing-agent-token-usage to audit the last seven days of agent token and context costs."

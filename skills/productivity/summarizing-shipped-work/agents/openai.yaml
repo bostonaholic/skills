@@ -1,0 +1,4 @@
+interface:
+  display_name: "Summarizing Shipped Work"
+  short_description: "Summarize merged PRs into a shipped-work report"
+  default_prompt: "Use $summarizing-shipped-work to summarize the PRs I merged this week into a grouped, linked report with highlights."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explaining Code"
+  short_description: "Explain a PR, diff, or code briefly or in full"
+  default_prompt: "Use $explaining-code to explain this PR, diff, or code in plain language, briefly by default or in full for a reviewer."

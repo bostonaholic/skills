@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Technical Design Docs"
+  short_description: "Draft a directionally correct technical design doc"
+  default_prompt: "Use $writing-technical-design-docs to draft a directionally correct technical design doc, RFC, or tech spec."
