@@ -307,6 +307,6 @@ risk, and priority mismatches on other people's in-flight work. Also report:
 - that the run cache is disposable, with its absolute path.
 
 Close by naming the one item most worth promoting: the highest-ranked
-Backlog-column item the pass leaves behind, outside the excluded label,
-ranked by step 4. Print `Next: /grooming-backlogs --promote <n>` ready to
-paste.
+Backlog-column item the pass leaves behind, outside the excluded label, with
+no open blocker and no unresolved design decision, ranked by step 4. Print
+`Next: /grooming-backlogs --promote <n>` ready to paste.

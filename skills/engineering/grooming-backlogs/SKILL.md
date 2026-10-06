@@ -125,7 +125,7 @@ The actions, in the order a run performs them:
 - **Place**: put a cluster under the milestone whose description covers its
   outcome.
 - **Refine**: rewrite an issue body to the ready-to-work standard: problem,
-  verifiable outcome, acceptance criteria.
+  verifiable outcome, acceptance criteria, Decisions, and Verification Steps.
 - **Triage**: give an unsorted issue its first classification: priority,
   labels, and state. Priority comes after the refine.
 - **File**: create a new issue, only against its own explicitly answered
@@ -188,7 +188,8 @@ tie names both candidates and recommends one.
 - [Human control rules](shared/human-control.md): before writing the plan and
   asking the questions.
 - [Decision rules](shared/decisions.md): when picking each question's one
-  recommendation.
+  recommendation, and when settling an issue's open design questions for its
+  Decisions section.
 - [Durable state rules](shared/durable-state.md): before any destructive
   write, for pre-images and plan checkpoints.
 - [Verified results rules](shared/verified-results.md): when verifying writes

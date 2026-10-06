@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Require a Decisions section and numbered Verification Steps before `grooming-backlogs` promotes an issue; an issue with an unresolved design question is reported, not promoted. [#15](https://github.com/bostonaholic/skills/pull/15)
+- Name only an unblocked, decided issue in the `grooming-backlogs` board-mode `Next:` recommendation. [#15](https://github.com/bostonaholic/skills/pull/15)
+
 ## [0.10.0] - 2026-10-06
 
 ### Added
