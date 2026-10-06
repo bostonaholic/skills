@@ -1,5 +1,6 @@
 <!-- Canonical file: shared/reaction-mechanics.md at the repository root. Edit it there, then run npm run sync-shared. -->
-## Reaction mechanics
+
+# Reaction mechanics
 
 `addReaction` takes a GraphQL node id, so one mutation covers every
 feedback shape — an inline review comment, a plain PR comment, and a review
@@ -19,10 +20,10 @@ reference and coerces typed values. The content values are `THUMBS_UP`
 and `THUMBS_DOWN`.
 
 To capture what the mutation needs, select `id` and
-`reactionGroups { content viewerHasReacted }` on the comment nodes in
-the comment retrieval query. Skip any subject whose `viewerHasReacted` is already
+`reactionGroups { content viewerHasReacted }` on the comment nodes; the
+[comment retrieval query](pull-request-comments.md) selects both. Skip any subject whose `viewerHasReacted` is already
 true for the reaction you would add — a second run over the same PR must
 not double-react.
 
-A reaction failure is never fatal and never a exclusion. Warn, note it
+A reaction failure is never fatal and never an exclusion. Warn, note it
 on the item's report line, and carry on with the triage.

@@ -1,7 +1,33 @@
 <!-- Canonical file: shared/testing.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Test quality policy
 
 These rules govern every acceptance test and are the bar reviewers hold changed test files to. Each rule catches a different class of test-suite decay.
+
+## Contents
+
+- Value bar
+- Authoring gate
+- Junk patterns
+- Retention bar
+- Removal evidence
+- Regression tests
+- Test behavior, not implementation
+- No tautological tests
+- Tests are DAMP, not DRY
+- Narrow assertions
+- Test failures must be actionable
+- Wait for the condition. Never sleep
+- Assert outcomes, not interleavings
+- Control the clock
+- Seed all randomness
+- Tests own their state — any order, any host
+- Impose order before asserting it
+- Hermetic boundaries
+- Fidelity ladder: real > fake > mock
+- Audit checklist
+- Value red flags (reviewer checklist)
+- Flaky-test red flags (reviewer checklist)
 
 ## Value bar
 
@@ -18,7 +44,7 @@ Before you add a test or change one, write an answer to each question below:
 
 A question with no answer stops the test. When all four have answers, compare the test with each [junk pattern](#junk-patterns). A test that fits a pattern fails the gate. The one exception is a test that guards a contract listed in the [retention bar](#retention-bar). Then imagine a refactor that keeps all behavior the same. If that refactor turns the test red, the test pins the implementation. Move its assertions to the owner boundary.
 
-The bar never removes a test that the task explicitly asks for. Keep that test, and record the conflict as "task-required, fails <class>", where `<class>` names the junk class it matches.
+The bar never removes a test that the task explicitly asks for. Keep that test, and record the conflict as `task-required, fails <class>`, where `<class>` names the junk class it matches.
 
 ## Junk patterns
 
@@ -77,14 +103,14 @@ When a kept test goes red, suspect the product first. Reproduce the failure, rep
 
 Some changes delete or weaken a test that exists on the base branch but keep the behavior that the test covers. Before such a change, fill in all seven fields:
 
-| Field | What to record |
-|---|---|
-| Location | The test name and the file that holds it. |
-| Origin | The commit or issue that added the test, and why the test exists. |
-| Caught bug | The failure that the test can detect today. |
-| Callers | Each non-test caller of the code that the test covers. |
-| Remaining proof | The stronger owner-boundary test that still catches that bug, or why no test needs to. |
-| Freed code | The code that the removal lets you delete, or "none". |
+| Field            | What to record                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Location         | The test name and the file that holds it.                                                  |
+| Origin           | The commit or issue that added the test, and why the test exists.                          |
+| Caught bug       | The failure that the test can detect today.                                                |
+| Callers          | Each non-test caller of the code that the test covers.                                     |
+| Remaining proof  | The stronger owner-boundary test that still catches that bug, or why no test needs to.     |
+| Freed code       | The code that the removal lets you delete, or "none".                                      |
 | Risk and command | What can go wrong, and the focused command whose green run shows that the removal is safe. |
 
 Keep the test while any field is empty. Put the record in the body of the commit that removes the test. When a plan step orders the removal, the step supplies the fields and the commit body carries them. A deleted test is exempt only when the same change deletes the behavior that it covers.
@@ -127,10 +153,14 @@ Never depend on scheduler order. `join()`/`await` every concurrent task before a
 
 Freeze or inject time. Never feed real `new Date()`, `Date.now()`, naive calendar math, future expiry literals, or timezone-naive dates into assertions.
 
+Bad: the test depends on the real clock and breaks after 2030.
+
 ```js
 const token = { expiresAt: "2030-01-01" };
 expect(isValid(token, new Date())).toBe(true);
 ```
+
+Good: the test injects a fixed instant.
 
 ```js
 const now = new Date("2024-06-15T12:00:00Z");
@@ -162,19 +192,19 @@ Prefer real, then fake, then mock. Wrap vendor types behind owned interfaces. E2
 
 ## Audit checklist
 
-| Check | Pass criterion |
-|---|---|
-| Behavior-named | Name behavior, not a method. |
-| Independently derived expectation | The expected result does not depend on the implementation being tested and rejects a plausible incorrect implementation. |
-| Narrow assertion | Assert the specific contract. |
-| Actionable failure | Output names the failed condition. |
-| No sleeps | Use condition waits. |
-| Deterministic inputs | Freeze clocks, seed RNGs, own state, order results, stub networks, allocate ports, close resources, pin environment, tolerate floats. |
-| No test logic | No branches, loops, or string building. |
-| One scenario per test | One independent behavior. |
-| DAMP setup | Keep assertion-relevant setup visible. |
-| Fidelity ladder | Real > fake > mock; wrap unowned types. |
-| Earns its cost | The test answers every `Authoring gate` question and matches no junk class, unless the `Retention bar` names the contract it guards. |
+| Check                             | Pass criterion                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Behavior-named                    | Name behavior, not a method.                                                                                                          |
+| Independently derived expectation | The expected result does not depend on the implementation being tested and rejects a plausible incorrect implementation.              |
+| Narrow assertion                  | Assert the specific contract.                                                                                                         |
+| Actionable failure                | Output names the failed condition.                                                                                                    |
+| No sleeps                         | Use condition waits.                                                                                                                  |
+| Deterministic inputs              | Freeze clocks, seed RNGs, own state, order results, stub networks, allocate ports, close resources, pin environment, tolerate floats. |
+| No test logic                     | No branches, loops, or string building.                                                                                               |
+| One scenario per test             | One independent behavior.                                                                                                             |
+| DAMP setup                        | Keep assertion-relevant setup visible.                                                                                                |
+| Fidelity ladder                   | Real > fake > mock; wrap unowned types.                                                                                               |
+| Earns its cost                    | The test answers every `Authoring gate` question and matches no junk class, unless the `Retention bar` names the contract it guards.  |
 
 ## Value red flags (reviewer checklist)
 

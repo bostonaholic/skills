@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/durable-state.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Durable state
 
 Pass durable work and gate results through self-declaring files. Consumers read the artifact path, not a producer's summary.

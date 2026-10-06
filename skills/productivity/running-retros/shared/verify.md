@@ -1,8 +1,21 @@
 <!-- Canonical file: shared/verify.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Verify playbook
 
-Before each consuming step, read its linked shared rules. Resolve links from this file's own directory.
-If a required read fails, stop that step with the exact path. Never use checkout fallback or recursive loading.
+Read a linked rule from this file's own directory when a step uses it. If a read fails, stop that step and report the exact path.
+
+## Contents
+
+- Two roles, two verdicts
+- Pick the surface, then the recipe
+- Reuse the project's own tools
+- Maintain the capability index
+- Detect available checks
+- Run checks in speed order
+- Record evidence
+- Verdict logic
+- Rules
+- Separate three failures
 
 ## Two roles, two verdicts
 
@@ -16,12 +29,12 @@ build is not evidence for a behavior nobody drove.
 Match the check to the acceptance claim's surface. No screenshot requirement
 applies to nonvisual work.
 
-| Claim surface | Exercise it with | Expected observable evidence |
-| --- | --- | --- |
-| Library | a real consumer program that imports it | compile/run output, returned values, files written |
-| CLI | invocation + filesystem/stdio | exit code, stdout/stderr, files created or changed |
-| Service | requests + resulting state | HTTP status, response body, persisted or queried state |
-| UI interaction | drive the app as a user | rendered routes, interaction outcomes, error states |
+| Claim surface  | Exercise it with                        | Expected observable evidence                           |
+| -------------- | --------------------------------------- | ------------------------------------------------------ |
+| Library        | a real consumer program that imports it | compile/run output, returned values, files written     |
+| CLI            | invocation + filesystem/stdio           | exit code, stdout/stderr, files created or changed     |
+| Service        | requests + resulting state              | HTTP status, response body, persisted or queried state |
+| UI interaction | drive the app as a user                 | rendered routes, interaction outcomes, error states    |
 
 A plan step must name the behavior it proves and the surface it exercises.
 
@@ -107,7 +120,8 @@ Distinguish tests, runtime observations, and unavailable checks.
   not a detected check.
 - Do NOT fix failures. Report them exactly as they occur.
 - Do NOT interpret results beyond pass/fail. No suggestions, no opinions.
-- If a check hangs for more than 120 seconds, kill it and report TIMEOUT.
+- If a check prints no output for 120 seconds, kill it and report TIMEOUT. A
+  suite that is slow but still printing is not hung; wait for it in the background.
 - **Do NOT retry to mask intermittent failures.** Each check runs once. If
   a test or check fails, report it. If you happen to know the same test
   passed in a previous run (for example, a rerun after a code fix), note the

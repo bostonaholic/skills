@@ -1,9 +1,25 @@
 <!-- Canonical file: shared/writing.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Writing Standards
 
 The authoring procedure and prose bar for every artifact and finding. Read this
 file before finalizing any prose you author. Apply exact-text and meaning
 protection before prose style.
+
+## Contents
+
+- Protect exact text first
+- Preserve meaning
+- Compose prose methods in this order
+- Self-audit (meaning)
+- Rules
+- One busy reader
+- Plain language
+- Two modes
+- Simplified Technical English (ASD-STE100)
+- Self-lint
+- Assessing documentation quality
+- Sources
 
 ## Protect exact text first
 
@@ -127,10 +143,8 @@ text stays byte-identical.
 
 The rules that follow govern sentences. This one governs the whole document.
 
-Kenneth Roman and Joel Raphaelson wrote *Writing That Works: How to Communicate
-Effectively in Business* about memos and proposals. A pull request description
-is the same job: one busy reader, one decision, no time. So are a design
-summary, a changelog entry, a review comment, and a status report. Apply these
+A pull request description, design summary, changelog entry, review comment,
+or status report has one busy reader, one decision, and no time. Apply these
 rules to any text that asks a reader to decide or act. A consuming skill's
 format contract outranks them: when a brief requires the verdict or decision as
 the terminal line, keep the supporting detail above it.
@@ -198,12 +212,6 @@ STE removes ambiguity for every reader, including readers whose first language
 is not English. Plain language above is the foundation; STE adds mechanical
 rules.
 
-The delete-list idea, the two-mode split, and the self-lint structure come
-from the "cure for AI slop" writing kit at
-<https://github.com/woosal1337/blog/tree/main/videos/ep01-the-cure-for-ai-slop>.
-The kit carries the MIT License, © 2026 Ege Çelebi. This file restates the
-ideas in its own words.
-
 ### The mechanical rules
 
 - **Use simple verb tenses only** — simple present, simple past, simple future,
@@ -234,48 +242,49 @@ ideas in its own words.
 ### STE word substitutions
 
 STE approves about 900 general words, each with one meaning. These cover the
-non-approved words that appear most often in software documentation:
+non-approved words that appear most often in software documentation. The table
+never rewrites exact text, including template labels such as `Verified:`:
 
-| Instead of | Write |
-|------------|-------|
-| utilize | use |
-| ensure, verify, confirm | make sure that |
-| perform, execute, carry out, implement | do |
-| initiate, begin, commence | start |
-| terminate | stop |
-| prior to | before |
-| via | through |
-| however | but |
-| therefore | thus, as a result |
-| enable X to | let X |
-| appropriate, suitable | applicable, correct |
-| required | necessary |
-| provide | give, supply |
-| additional | more |
-| the following steps | these steps, the steps that follow |
-| whether | if |
-| various | different |
-| significant | important |
-| maintain (a state) | keep, hold |
-| trigger | cause, start |
-| persist (of an error) | continue |
-| modify | change |
-| obtain, acquire | get |
-| leverage | use |
-| facilitate | help |
-| demonstrate | show |
-| additionally, furthermore, moreover | also |
-| comprehensive | complete |
-| numerous, myriad | many |
-| regarding, concerning | about |
-| whilst | while |
-| amongst | among |
-| spin up | start |
-| reach out | contact |
-| dive into | examine |
-| kick off | start |
-| tear down | remove |
-| ramp up | increase |
+| Instead of                             | Write                              |
+| -------------------------------------- | ---------------------------------- |
+| utilize                                | use                                |
+| ensure, verify, confirm                | make sure that                     |
+| perform, execute, carry out, implement | do                                 |
+| initiate, begin, commence              | start                              |
+| terminate                              | stop                               |
+| prior to                               | before                             |
+| via                                    | through                            |
+| however                                | but                                |
+| therefore                              | thus, as a result                  |
+| enable X to                            | let X                              |
+| appropriate, suitable                  | applicable, correct                |
+| required                               | necessary                          |
+| provide                                | give, supply                       |
+| additional                             | more                               |
+| the following steps                    | these steps, the steps that follow |
+| whether                                | if                                 |
+| various                                | different                          |
+| significant                            | important                          |
+| maintain (a state)                     | keep, hold                         |
+| trigger                                | cause, start                       |
+| persist (of an error)                  | continue                           |
+| modify                                 | change                             |
+| obtain, acquire                        | get                                |
+| leverage                               | use                                |
+| facilitate                             | help                               |
+| demonstrate                            | show                               |
+| additionally, furthermore, moreover    | also                               |
+| comprehensive                          | complete                           |
+| numerous, myriad                       | many                               |
+| regarding, concerning                  | about                              |
+| whilst                                 | while                              |
+| amongst                                | among                              |
+| spin up                                | start                              |
+| reach out                              | contact                            |
+| dive into                              | examine                            |
+| kick off                               | start                              |
+| tear down                              | remove                             |
+| ramp up                                | increase                           |
 
 Modals are not substitutions: `must`, `shall`, `should`, `may`, `might`, and
 `could` are governed by [Preserve meaning](#preserve-meaning), never by this
@@ -283,14 +292,14 @@ table. Keep the modal the sentence requires.
 
 Restricted meanings writers commonly get wrong:
 
-- *check* is approved only as a noun: "do a check of the logs", never "check
+- _check_ is approved only as a noun: "do a check of the logs", never "check
   the logs".
-- *follow* means only "come after": "obey the instructions".
-- *select* means choose from alternatives; *set* means put a control in a
+- _follow_ means only "come after": "obey the instructions".
+- _select_ means choose from alternatives; _set_ means put a control in a
   state ("set the flag to TEST").
-- *since* is approved for time only; for causation write *because*.
-- *or* never means "otherwise". Write a separate sentence.
-- *monitor* means to check something over a period of time for change.
+- _since_ is approved for time only; for causation write _because_.
+- _or_ never means "otherwise". Write a separate sentence.
+- _monitor_ means to check something over a period of time for change.
 
 ### Words and phrases to delete
 
@@ -355,6 +364,12 @@ When reviewing documentation, evaluate three dimensions:
   one concept carries one name throughout, and that a reader can locate the
   answer to a specific question in under 30 seconds.
 
-The detection categories above are inspired by Lauren Tan's [Cursor pstack
-unslop
-skill](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md).
+## Sources
+
+- "One busy reader" follows Kenneth Roman and Joel Raphaelson, _Writing That
+  Works_.
+- The delete list, the two-mode split, and the self-lint structure restate the
+  [cure for AI slop](https://github.com/woosal1337/blog/tree/main/videos/ep01-the-cure-for-ai-slop)
+  writing kit (MIT License, Ege Çelebi) in this file's own words.
+- The detection categories follow Lauren Tan's [Cursor pstack unslop
+  skill](https://github.com/cursor/plugins/blob/main/pstack/skills/unslop/SKILL.md).

@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/focused-work.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Focused work
 
 Give each agent one job, declared predecessor inputs, and one bounded artifact or text report.

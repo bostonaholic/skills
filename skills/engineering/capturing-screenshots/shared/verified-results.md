@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/verified-results.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Verified results
 
 Support verdicts with observed command results, `file:line` evidence, or a fresh query of the authoritative state.

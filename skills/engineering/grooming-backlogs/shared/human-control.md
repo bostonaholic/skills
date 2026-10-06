@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/human-control.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Human control
 
 The user decides what to build and what to ship. Accepted intent authorizes the steps it names. If blocked, stop and report the blocker.

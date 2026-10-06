@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/code-standards.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Code Standards
 
 The design and implementation bar for planning, implementing, and reviewing production code.
@@ -18,19 +19,14 @@ Apply Rule of Three: tolerate the second duplication; extract on the third.
 
 ## SOLID design principles
 
-Apply when writing new code and reviewing diffs.
+Apply SOLID when writing new code and reviewing diffs. These points are where
+this bar is stricter than the usual reading:
 
-- **Single Responsibility** — one actor or stakeholder is the one reason to
-  change. A function you cannot name without "and" has too many jobs.
-- **Open/Closed** — open for extension, closed for modification. Define an
-  interface for varying behavior; add implementations instead of branches.
-- **Liskov Substitution** — subtypes substitute for base types. Keep every
-  advertised contract; prefer composition when "is-a" fails.
-- **Interface Segregation** — no client depends on unused methods. Split
-  interfaces; compose small contracts.
-- **Dependency Inversion** — high- and low-level modules depend on
-  abstractions. Business logic never imports database, HTTP, or filesystem
-  APIs directly.
+- **Single Responsibility:** a function you cannot name without "and" has too
+  many jobs.
+- **Open/Closed:** add implementations behind an interface instead of branches.
+- **Dependency Inversion:** business logic never imports database, HTTP, or
+  filesystem APIs directly.
 
 ## Code Comments
 
@@ -78,7 +74,7 @@ Every item gates progress: **Single Responsibility**; **Clear Naming**; **No Mag
 
 ## When Reviewing
 
-- Apply every Quality Checklist item to every changed file and cite its name in findings, e.g. `issue: Clear Naming — the variable d does not reveal intent`.
+- Apply every Quality Checklist item to every changed file and cite its name in findings, e.g. `**issue (blocking):** Clear Naming: the variable d does not reveal intent`.
 - Check for Design-First evidence in interfaces and boundaries.
 - Rank failure isolation (Armstrong) and interface contracts (Liskov) above formatting (Knuth).
 - Name the SOLID principle, cite `file:line`, and state the current consequence. A finding that names no principle and no consequence is not actionable.

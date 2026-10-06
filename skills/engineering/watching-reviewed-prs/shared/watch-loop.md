@@ -1,18 +1,18 @@
 <!-- Canonical file: shared/watch-loop.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # PR watch mechanics
 
-Before each consuming step, read its linked shared rules from this file's own directory.
-If a required read fails, stop that step with the exact path. Never use checkout fallback or recursive loading.
+Read a linked rule from this file's own directory when a step uses it. If a read fails, stop that step and report the exact path.
 
-A consuming skill owns what each cycle *does*; this reference owns how the
+A consuming skill owns what each cycle _does_; this reference owns how the
 loop is paced, bounded, and ended. A consumer binds three slots and nothing
 else:
 
-| Slot | What the consumer supplies |
-| --- | --- |
-| Poll command | The command its own poll step runs. |
+| Slot            | What the consumer supplies                                    |
+| --------------- | ------------------------------------------------------------- |
+| Poll command    | The command its own poll step runs.                           |
 | Cycle-0 subject | What an already-satisfied condition at arm time means for it. |
-| Handoff state | The fields its handoff prints. |
+| Handoff state   | The fields its handoff prints.                                |
 
 ## The loop is bounded, never infinite
 
@@ -29,6 +29,7 @@ else:
   [execution rules](execution.md), a foreground wait is
   killed at the harness ceiling (600 s in Claude Code) and spends a turn
   per fragment.
+
 - **Soft cap: 3 cycles** (~90 minutes). At cycle 3, if nothing has
   stopped the loop already, end the interactive session — do not sleep
   again. Print a handoff: the consumer's handoff state and the exact

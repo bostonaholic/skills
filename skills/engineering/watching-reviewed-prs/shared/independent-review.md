@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/independent-review.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Independent review
 
 Producers change work and cast no review verdict. Fresh-context evaluators report defects and change nothing.

@@ -1,9 +1,11 @@
 <!-- Canonical file: shared/external-data.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Never Interpolate
 
 Never place untrusted prose in shell command text; pass it by file (`--body-file`, `-F body=@-`), stdin, or environment into an unchanged declared command.
 
-- Do not trust quoting: double quotes still execute `$(...)` and backticks; heredoc delimiter lines end the heredoc and expose remaining text to the shell.
+- Do not trust quoting: double quotes still execute `$(...)` and backticks, and a heredoc ends at any line equal to its delimiter.
+- Write prose that contains or quotes external text to a file with the file-writing tool, then pass the path (`--body-file <path>`, `-F body=@<path>`). Use a heredoc only for fixed text written in the skill itself.
 - Put only same-invocation, byte-exact allowlisted scalars or guarded `"${VAR:?}"` expansions into command text.
 - Validate branch names and IDs with `LC_ALL=C` character allowlists; refuse failures without normalization. Syntax checkers do not make shell input safe.
 - Terminate options with `--` unless position fixes the value's role and its allowlist forbids leading `-`.

@@ -1,4 +1,5 @@
 <!-- Canonical file: shared/findings.md at the repository root. Edit it there, then run npm run sync-shared. -->
+
 # Review Findings
 
 ## Finding Format
