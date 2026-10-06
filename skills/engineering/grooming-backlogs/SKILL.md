@@ -1,47 +1,181 @@
 ---
 name: grooming-backlogs
-description: 'Use for backlog grooming. Proposes tracker changes; each requires approval.'
+description: 'Grooms a GitHub Projects backlog: verifies issues against the code, ranks and clusters them, and plans milestone, link, and closure changes, or promotes one issue to Ready. Proposes tracker changes; each requires approval. Use when asked to groom, triage, or prioritize a backlog, or to promote an issue to Ready.'
 effort: high
 argument-hint: "[<project-number-or-url>] [--promote <issue-number>]"
 ---
 
-Before this operation, read [external-data rules](shared/external-data.md).
-Before each consuming step, read its linked shared rules. Resolve links from this installed `SKILL.md` directory.
-If a required read fails, stop that step and report its resolved path. Never use checkout fallback or recursive loading.
-
 # grooming-backlogs — plan, ask, wait, then execute
 
-This skill plans, asks the consequential questions, and waits. It acts only on approval. The
-user's answer stays this skill's one gate until a loop-driven controller replaces it.
+This skill plans, asks the consequential questions, and waits. It changes the
+tracker only on the user's answer, per
+[human control rules](shared/human-control.md): plan the mutations to a file,
+present each consequential choice with one recommendation, and execute only
+the answered subset in a later turn.
 
-The shape is [human control rules](shared/human-control.md): plan the mutations to a file,
-present each consequential choice with one recommendation, and execute only the answered
-subset.
+Before the first tracker read, read [hard rules](references/hard-rules.md) and
+[external data rules](shared/external-data.md). They bind every mode and every
+step.
 
-## Procedure references
+Read each linked file from this skill's directory when the step that uses it
+begins. If a read fails, stop that step and report the exact path.
 
-Read each reference completely when reaching that stage. Follow them in order; later stages depend on state and gates established earlier.
+## Preflight
 
-1. [Vocabulary](references/01-vocabulary.md)
-2. [Input](references/02-input.md)
-3. [The board-level pass](references/03-the-board-level-pass.md)
-4. [Step 1 — Load once, in bulk](references/04-step-1-load-once-in-bulk.md)
-5. [Step 2 — Compute the gap inventory, do not eyeball it](references/05-step-2-compute-the-gap-inventory-do-not-eyeball-it.md)
-6. [Step 3 — Verify claims against the code](references/06-step-3-verify-claims-against-the-code.md)
-7. [Step 4 — Rank the verified candidates](references/07-step-4-rank-the-verified-candidates.md)
-8. [Step 5 — Cluster by outcome, not by component](references/08-step-5-cluster-by-outcome-not-by-component.md)
-9. [Step 6 — Find the dependencies, then propose the links](references/09-step-6-find-the-dependencies-then-propose-the-links.md)
-10. [Step 7 — Write the plan to a file](references/10-step-7-write-the-plan-to-a-file.md)
-11. [Step 8 — Present the consequential choices and wait](references/11-step-8-present-the-consequential-choices-and-wait.md)
-12. [Step 9 — Execute in dependency order](references/12-step-9-execute-in-dependency-order.md)
-13. [Step 10 — Verify by re-querying, never by memory](references/13-step-10-verify-by-re-querying-never-by-memory.md)
-14. [Step 11 — Report, including what you did not change](references/14-step-11-report-including-what-you-did-not-change.md)
-15. [The promotion standard](references/15-the-promotion-standard.md)
-16. [Tracker recipes](references/16-tracker-recipes.md)
-17. [Hard rules](references/17-hard-rules.md)
+Run `command -v gh jq` and `gh auth status`. Stop before any load, naming what
+is missing, when either tool is absent, `gh` is not authenticated, or the
+token lacks the `project` scope (`gh auth refresh -s project` adds it). This
+check never proves write authority on the board.
 
-## Applied principles
+## Input
 
-Read and apply: [verified results rules](shared/verified-results.md),
-[human control rules](shared/human-control.md), and
-[durable state rules](shared/durable-state.md).
+`$ARGUMENTS` carries an optional board reference and an optional mode flag:
+
+- A project number (`5`), or a full project URL
+  (`https://github.com/users/<owner>/projects/5`).
+- Neither: discover the visible projects with
+  `gh project list --owner "@me" --format json`. Exactly one means use it.
+  More than one means stop and list them rather than guess which board to
+  groom.
+- `--promote <issue-number>`: selects promotion mode.
+
+This section is the only place `$ARGUMENTS` is read. A malformed, non-numeric,
+or unresolvable project reference stops before any read: report what was
+passed, name the discovery command, and do not guess. One board per run. A
+`--promote` value that is missing, non-numeric, or repeated also stops before
+any read. An issue number that is not on the board stops non-zero.
+
+The board reference resolves `$PROJECT` and `$OWNER`, the project's owner. The
+repository is never passed. Board mode derives it from the loaded board: each
+item carries its repository URL
+(`jq -r '[.items[].content.repository // empty] | unique'`), and `$REPO` is
+that URL's last segment. Scope every repository call to `"$OWNER/$REPO"`. A
+board whose items span more than one repository, or whose repository owner
+differs from the project's, stops before the issue load, names what it found,
+and asks which to groom.
+
+## Choose the mode
+
+- **`--promote` present: promotion mode**, whatever else was passed. A
+  positional board reference then only scopes which board the issue must be
+  on. Follow [promotion mode](references/promotion-mode.md). Promotion mode
+  takes its repository from the issue, creates no milestone, and runs no
+  board-mode step.
+- **`--promote` absent: board mode.** Follow
+  [board mode](references/board-mode.md) and its checklist.
+
+## Board settings
+
+Values that differ per board come from the board. Resolve each during the
+load from the Status field's options
+(`gh project field-list "$PROJECT" --owner "$OWNER" --format json --limit 100`), the
+project's README and description
+(`gh project view "$PROJECT" --owner "$OWNER" --format json`), and the
+repository's contributing docs. Use the default only when none of those states
+a value. Name every resolved value and its source in the plan.
+
+| Setting                                                                | Default                           |
+| ---------------------------------------------------------------------- | --------------------------------- |
+| Ready column, where ready-to-work items wait                           | `Ready`                           |
+| Backlog column                                                         | `Backlog`                         |
+| In-flight states                                                       | `In progress`, `In review`        |
+| Ready column work-in-progress limit                                    | 5                                 |
+| Excluded label, never promoted to the Ready column, and its own column | `bug`, column `Bugs`              |
+| Label on a new issue                                                   | `enhancement`                     |
+| Resolution labels for a closure                                        | `duplicate`, `invalid`, `wontfix` |
+
+## Vocabulary
+
+The method is tracker-agnostic; GitHub Projects is the worked example. This
+skill calls the grouping construct a **milestone** on every tracker.
+
+| Concept            | GitHub Projects               | Linear              | Jira                 |
+| ------------------ | ----------------------------- | ------------------- | -------------------- |
+| Milestone          | milestone                     | project milestone   | epic / fix version   |
+| Column / state     | Status field                  | workflow state      | status               |
+| Priority           | Priority field                | priority 0–4        | Priority field       |
+| Iteration          | iteration field               | cycle               | sprint               |
+| Dependency link    | issue `blocked by` / `blocks` | blocked-by relation | "is blocked by" link |
+| Decomposition link | sub-issue / parent            | sub-issue / parent  | subtask / parent     |
+
+A **dependency link** orders two pieces of work in time. A **decomposition
+link** says one is part of the other. They are not interchangeable, and no
+tracker infers either.
+
+The actions, in the order a run performs them:
+
+- **Verify**, then **Rank**, then **Cluster**.
+- **Describe**: create a milestone, or write or extend its description: one
+  or two present-tense sentences stating a property of the system that is
+  either true or false, not a list of work.
+- **Retarget**: move a milestone's date out of the past, into the project
+  window and the remaining iterations.
+- **Place**: put a cluster under the milestone whose description covers its
+  outcome.
+- **Refine**: rewrite an issue body to the ready-to-work standard: problem,
+  verifiable outcome, acceptance criteria.
+- **Triage**: give an unsorted issue its first classification: priority,
+  labels, and state. Priority comes after the refine.
+- **File**: create a new issue, only against its own explicitly answered
+  question, never as a side effect of another answer.
+- **Close**: end an issue whose premise evaporated, with dated evidence,
+  behind its own approval.
+- **Link**: record a dependency or decomposition relationship. Links go last
+  among the writes; one that touches a just-closed endpoint dies at the
+  endpoint re-read.
+- **Promote**: bring one item to the ready-to-work standard, then move its
+  card into the Ready column. Board mode recommends one; only promotion mode
+  performs one.
+
+## Run cache
+
+Both modes create the run's cache directory first and print its absolute path:
+
+```bash
+RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/grooming-backlogs.XXXXXXXX")" \
+  || { echo "cannot create the run cache — stopping" >&2; exit 1; }
+echo "run cache: $RUN_DIR"
+```
+
+A cache that cannot be created stops the run rather than fall back to memory.
+A **run** is one invocation plus every later turn that answers its approval
+question, named by the one directory whose absolute path this conversation
+printed. Never read a plan file from a directory this conversation did not
+print. If the user asks to run a plan and no path was printed here, stop and
+ask for the absolute plan path, then re-read every affected item from the
+tracker. The cache is disposable and is never deleted.
+
+## Ranking tiers
+
+Board ranking and promotion priority use four tiers, highest first:
+
+1. **Shipped-behavior contradictions**: shipped behavior that contradicts
+   itself, especially docs and config that give conflicting instructions.
+2. **Harness reliability**: the project's own verification harness.
+3. **High-leverage improvements**: well-specified work, preferring open
+   questions resolvable during grooming.
+4. **Strategic unblockers**: strategic or research items that unblock several
+   others.
+
+Tiebreaker: smaller verified scope beats bigger promised impact. A residual
+tie names both candidates and recommends one.
+
+## Conditional references
+
+- [Verifying claims](references/verifying-claims.md): when checking an issue's
+  claims, in either mode.
+- [Closures](references/closures.md): when a verdict is premise evaporated,
+  from the proposal to the verified close.
+- [Tracker recipes](references/tracker-recipes.md): before the first tracker
+  write, and for the id resolution in board mode's load.
+- [Run file templates](references/templates.md): when writing `plan.md`,
+  `gap-inventory.md`, `verification.md`, or `closure-evidence-<n>.md`.
+
+## Shared rules
+
+- [Decision rules](shared/decisions.md): when picking each question's one
+  recommendation.
+- [Durable state rules](shared/durable-state.md): before any destructive
+  write, for pre-images and plan checkpoints.
+- [Verified results rules](shared/verified-results.md): when verifying writes
+  and writing the report.

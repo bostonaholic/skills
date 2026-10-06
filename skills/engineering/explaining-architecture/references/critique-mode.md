@@ -1,21 +1,17 @@
-Before dispatch, resolve [independent review](shared/independent-review.md). Pass their absolute installed paths with the retained brief.
-The receiver reads them before work. Missing resources stop that step with the exact path, without source fallback.
+# Critique mode
 
-## Critique mode
-
-Explain first — run `## Explain mode` in full.
+Start from the finished explanation.
 
 1. **Dispatch critics.** Three fresh-context critics, all **in one
-   message**, through the `Agent` tool with `subagent_type: Explore` and
-   `model: sonnet`, one lens each:
-   - *Abstraction fit and boundary discipline* — does each abstraction
+   message**, through the `Agent` tool with `subagent_type: Explore`, one lens each:
+   - _Abstraction fit and boundary discipline_ — does each abstraction
      earn its place; do boundaries sit where things change
      independently; is validation at entry points; is it testable in
      isolation?
-   - *Data model and complexity spend* — do structures fit access
+   - _Data model and complexity spend_ — do structures fit access
      patterns; are types honest about runtime shapes; is complexity where
      the domain needs it or leaked into accidental places?
-   - *Evolution readiness and consistency* — how much moves when the
+   - _Evolution readiness and consistency_ — how much moves when the
      likely next requirement lands; which hardcoded assumptions would
      need relaxing; does the area follow the codebase's established
      patterns, and is any divergence explained?

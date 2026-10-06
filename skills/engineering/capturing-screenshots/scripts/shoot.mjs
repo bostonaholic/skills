@@ -8,7 +8,11 @@
  *
  * Writes `<out-dir>/<name>.png` for each frame that passes its gates and prints
  * one JSON report. Exit 0: every frame passed. 1: a frame failed, named in the report.
- * 2: the shot list is unusable; nothing was launched. 3: no Playwright or no browser.
+ * 2: the shot list or the output directory is unusable; nothing was launched.
+ * 3: no Playwright or no browser.
+ *
+ * Each frame keeps at most MESSAGE_LIMIT console errors, page errors, and failed
+ * requests; `omitted` counts the ones dropped past that limit.
  *
  * Playwright resolves from `$PAPARAZZI_TOOLS`, then from the working directory.
  */
@@ -19,11 +23,25 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { inspect } from "./png-check.mjs";
 
+/** Per page operation (navigation, locator, screenshot) in one shot; a slower step fails the frame instead of hanging the run. */
 export const SHOT_TIMEOUT_MS = 30_000;
+/** How long to wait for network idle before shooting anyway; the frame then reports `networkIdle: false`. */
 const NETWORK_IDLE_MS = 5_000;
+/** How long to wait for in-view images to load; a slower image is shot as is and caught by the visual check. */
+const IMAGE_LOAD_MS = 5_000;
+/** CSS px of context kept around a `target` crop, so focus rings and shadows outside the box survive. */
 const TARGET_PADDING = 16;
-const MESSAGE_LIMIT = 5;
-const MESSAGE_LENGTH = 200;
+/** Messages kept per kind per frame: enough to diagnose, small enough to keep the report readable. */
+export const MESSAGE_LIMIT = 5;
+/** Characters kept from each message's first line. */
+export const MESSAGE_LENGTH = 200;
+/** Largest viewport side accepted: beyond any real screen, so a typo such as 12800 fails validation instead of asking Chromium for a huge surface. */
+const MAX_VIEWPORT_PX = 4096;
+/** deviceScaleFactor range: 1 is CSS pixels, 3 matches the densest phone screens. */
+const MIN_SCALE_FACTOR = 1;
+const MAX_SCALE_FACTOR = 3;
+/** Mid gray (Tailwind gray-400) that reads as a deliberate mask on light and dark pages alike. */
+const MASK_COLOR = "#9ca3af";
 
 export const DEFAULT_CONTEXT = {
   viewport: { width: 1280, height: 800 },
@@ -61,9 +79,11 @@ function checkLocator(spec, where) {
 
 function checkContext(context, where) {
   const { viewport, deviceScaleFactor, colorScheme, locale, timezoneId } = context;
-  const dimension = (value) => Number.isInteger(value) && value > 0 && value <= 4096;
-  if (!isObject(viewport) || !dimension(viewport.width) || !dimension(viewport.height)) fail(where, "viewport needs integer width and height in 1-4096");
-  if (typeof deviceScaleFactor !== "number" || deviceScaleFactor < 1 || deviceScaleFactor > 3) fail(where, "deviceScaleFactor must be a number in 1-3");
+  const dimension = (value) => Number.isInteger(value) && value > 0 && value <= MAX_VIEWPORT_PX;
+  if (!isObject(viewport) || !dimension(viewport.width) || !dimension(viewport.height)) fail(where, `viewport needs integer width and height in 1-${MAX_VIEWPORT_PX}`);
+  if (typeof deviceScaleFactor !== "number" || deviceScaleFactor < MIN_SCALE_FACTOR || deviceScaleFactor > MAX_SCALE_FACTOR) {
+    fail(where, `deviceScaleFactor must be a number in ${MIN_SCALE_FACTOR}-${MAX_SCALE_FACTOR}`);
+  }
   if (!["light", "dark"].includes(colorScheme)) fail(where, "colorScheme must be light or dark");
   if (typeof locale !== "string" || !locale) fail(where, "locale must be a non-empty string");
   if (typeof timezoneId !== "string" || !timezoneId) fail(where, "timezoneId must be a non-empty string");
@@ -224,7 +244,7 @@ async function settle(page) {
     );
     await Promise.race([loaded, new Promise((done) => setTimeout(done, budget))]);
     await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  }, NETWORK_IDLE_MS);
+  }, IMAGE_LOAD_MS);
   return networkIdle;
 }
 
@@ -242,21 +262,35 @@ async function clipTo(page, spec, viewport) {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
-function note(list, text) {
-  if (list.length < MESSAGE_LIMIT) list.push(String(text).split("\n")[0].slice(0, MESSAGE_LENGTH));
+/** Records one page message under `result[kind]`, or counts it in `result.omitted[kind]` once MESSAGE_LIMIT are kept. */
+export function note(result, kind, text) {
+  if (result[kind].length < MESSAGE_LIMIT) result[kind].push(String(text).split("\n")[0].slice(0, MESSAGE_LENGTH));
+  else result.omitted[kind] += 1;
 }
 
 async function capture(browser, frame) {
   const { shot, context: settings } = frame;
-  const result = { name: frame.name, url: frame.url, file: null, ok: false, status: null, networkIdle: null, consoleErrors: [], pageErrors: [], failedRequests: [], reason: null };
+  const result = {
+    name: frame.name,
+    url: frame.url,
+    file: null,
+    ok: false,
+    status: null,
+    networkIdle: null,
+    consoleErrors: [],
+    pageErrors: [],
+    failedRequests: [],
+    omitted: { consoleErrors: 0, pageErrors: 0, failedRequests: 0 },
+    reason: null,
+  };
   const context = await browser.newContext({ ...settings, reducedMotion: "reduce" });
   try {
     const page = await context.newPage();
     page.setDefaultTimeout(SHOT_TIMEOUT_MS);
-    page.on("console", (message) => message.type() === "error" && note(result.consoleErrors, message.text()));
-    page.on("pageerror", (error) => note(result.pageErrors, error.message));
-    page.on("requestfailed", (request) => note(result.failedRequests, `failed ${request.url()}`));
-    page.on("response", (response) => response.status() >= 400 && note(result.failedRequests, `${response.status()} ${response.url()}`));
+    page.on("console", (message) => message.type() === "error" && note(result, "consoleErrors", message.text()));
+    page.on("pageerror", (error) => note(result, "pageErrors", error.message));
+    page.on("requestfailed", (request) => note(result, "failedRequests", `failed ${request.url()}`));
+    page.on("response", (response) => response.status() >= 400 && note(result, "failedRequests", `${response.status()} ${response.url()}`));
 
     const response = await page.goto(frame.url, { waitUntil: "load", timeout: SHOT_TIMEOUT_MS });
     result.status = response?.status() ?? null;
@@ -284,7 +318,7 @@ async function capture(browser, frame) {
       animations: "disabled",
       caret: "hide",
       mask: (shot.mask ?? []).map((spec) => locate(page, spec)),
-      maskColor: "#9ca3af",
+      maskColor: MASK_COLOR,
       timeout: SHOT_TIMEOUT_MS,
     });
 
@@ -320,6 +354,13 @@ async function main(argv) {
     return 2;
   }
 
+  try {
+    mkdirSync(resolve(outDir), { recursive: true });
+  } catch (error) {
+    process.stderr.write(`shoot.mjs: cannot create output directory ${resolve(outDir)}: ${firstLine(error)}\n`);
+    return 2;
+  }
+
   const loaded = loadPlaywright();
   if (!loaded) {
     process.stderr.write("shoot.mjs: no playwright package in $PAPARAZZI_TOOLS or the working directory\n");
@@ -333,7 +374,6 @@ async function main(argv) {
     return 3;
   }
 
-  mkdirSync(resolve(outDir), { recursive: true });
   const frames = [];
   try {
     for (const frame of planned) frames.push(await capture(launched.browser, frame));

@@ -1,4 +1,4 @@
 interface:
-  display_name: "React Doctor"
-  short_description: "Diagnose React codebase issues"
-  default_prompt: "Use $diagnosing-react-code to run React Doctor and assess its findings."
+  display_name: "Diagnosing React Code"
+  short_description: "Scan a React package and fix its errors"
+  default_prompt: "Use $diagnosing-react-code to run react-doctor on this React package, fix its error diagnostics, and re-run until none remain."

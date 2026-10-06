@@ -1,8 +1,18 @@
-## Tracker recipes
+# Tracker recipes
 
-GitHub Projects v2, the worked example. **Every prose value travels by file** — no
-description, body, or comment text is ever typed into a command line. Grouping constructs
-live on the repository, not the project:
+## Contents
+
+- Issues, milestones, and closures
+- Dependency links
+- Board column
+- Other trackers: check `--help` first
+
+## Issues, milestones, and closures
+
+GitHub Projects, the worked example. Every prose value travels by file, per
+[hard rule 2](references/hard-rules.md). Labels come from the
+[board settings](SKILL.md#board-settings). Milestones live on the repository,
+not the project:
 
 ```bash
 # Create one. Re-describing an existing one is the same shape: build a JSON body
@@ -23,13 +33,11 @@ gh issue view "$N" --repo "$OWNER/$REPO" --json body --jq .body \
 gh issue edit "$N" --repo "$OWNER/$REPO" --body-file "$RUN_DIR/body-$N.md"
 # A new issue — only against a question the user answered explicitly.
 gh issue create --repo "$OWNER/$REPO" --title "$NEW_ISSUE_TITLE" \
-  --body-file "$RUN_DIR/new-issue-1.md" --label enhancement
+  --body-file "$RUN_DIR/new-issue-1.md" --label "$NEW_ISSUE_LABEL"
 # A comment. `-F body=@<path>` reads the file and `-F body=@-` the same flag's stdin.
-# Never a heredoc — a line of the text equal to the delimiter ends it, and the rest
-# of the text runs as shell.
 gh api --method POST "repos/$OWNER/$REPO/issues/$N/comments" \
   -F body=@"$RUN_DIR/comment-$N.md"
-gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "enhancement"  # additive only
+gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "$LABEL"  # additive only
 # An approved closure. Pre-close re-read first — no pre-image, no close.
 gh issue view "$N" --repo "$OWNER/$REPO" --json state,body,labels,updatedAt \
   > "$RUN_DIR/pre-close-$N.json"
@@ -37,11 +45,13 @@ gh issue view "$N" --repo "$OWNER/$REPO" --json state,body,labels,updatedAt \
 # before re-posting.
 gh api --method POST "repos/$OWNER/$REPO/issues/$N/comments" \
   -F body=@"$RUN_DIR/closure-evidence-$N.md"
-# The fitting resolution label — duplicate, invalid, or wontfix — added additively.
-gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "wontfix"
+# The fitting resolution label from the board settings, added additively.
+gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "$RESOLUTION_LABEL"
 # "not planned", never "completed": the premise died, no work was delivered.
 gh issue close "$N" --repo "$OWNER/$REPO" --reason "not planned"
 ```
+
+## Dependency links
 
 Dependency links are REST, keyed by **database id, not issue number**. Both are integers,
 so a number passed as an id resolves to some unrelated issue rather than fail:
@@ -69,11 +79,23 @@ gh api --method DELETE \
   "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by/$BLOCKER_ID"
 ```
 
+## Board column
+
 The board column is a single-select field, so it needs GraphQL. Resolve the item, field, and
 option ids, write, then re-read. Every id goes over `-f`, which sends a string. `-F` types
 its value, so an all-digit id would fail the `String!` variable.
 
 ```bash
+# Ids: the project from `gh project view`, the Status field and its option from
+# `gh project field-list`, and the item from the cached board.
+PROJECT_ID=$(gh project view "$PROJECT" --owner "$OWNER" --format json --jq .id)
+gh project field-list "$PROJECT" --owner "$OWNER" --format json --limit 100 \
+  > "$RUN_DIR/fields.json"
+FIELD_ID=$(jq -r '.fields[] | select(.name == "Status") | .id' "$RUN_DIR/fields.json")
+OPTION_ID=$(jq -r --arg column "$READY_COLUMN" '.fields[] | select(.name == "Status")
+  | .options[] | select(.name == $column) | .id' "$RUN_DIR/fields.json")
+ITEM_ID=$(jq -r --argjson n "$N" '.items[] | select(.content.number == $n) | .id' \
+  "$RUN_DIR/board.json")
 gh api graphql -f query='mutation($project: ID!, $item: ID!, $field: ID!,
   $option: String!) { updateProjectV2ItemFieldValue(input: { projectId: $project,
   itemId: $item, fieldId: $field, value: { singleSelectOptionId: $option } })
@@ -82,7 +104,7 @@ gh api graphql -f query='mutation($project: ID!, $item: ID!, $field: ID!,
   -f option="$OPTION_ID"
 ```
 
-### Unverified — make sure with `--help` first
+## Other trackers: check `--help` first
 
 Every non-GitHub tracker runs a `--help` preflight before its first mutation. One that does
 not show the expected flag stops before the mutation and reports the gap. The preflight must
@@ -90,12 +112,10 @@ also find the CLI's file-or-stdin route for prose, such as a `--body-file`,
 `--description-file`, or `--input` equivalent. A CLI that offers none takes its bodies
 through a file that the API accepts, never an interpolated argument.
 
-On **Linear**, `sq agent-tools linear` covers issues, states, priority, and labels
-(`save-issue`, `add-comment`, …). It exposes no milestone flag, so milestone-shaped work goes
-through its `execute-graphql` subcommand against `projectMilestone`. Priority `0` means unset
-rather than urgent. Linear models dependencies as typed issue relations, so a link goes
-through `execute-graphql` as well (`issueRelationCreate`, type `blocks`). Which issue is the
-relation's source carries the direction. No **Jira** CLI is named for this repo, so work Jira
-at capability level. Set status through a transition rather than by a write to the field. The
-REST API (`/rest/api/3/issue/{key}`) is the escape hatch. Jira dependency links are
-`/rest/api/3/issueLink`, whose `inwardIssue`/`outwardIssue` pair encodes the direction.
+On **Linear**, use the team's Linear CLI or the GraphQL API. Milestones are
+`projectMilestone`. Priority `0` means unset rather than urgent. Dependencies are typed issue
+relations (`issueRelationCreate`, type `blocks`), and which issue is the relation's source
+carries the direction. On **Jira**, set status through a transition rather than by a write
+to the field. The REST API (`/rest/api/3/issue/{key}`) is the escape hatch. Jira dependency
+links are `/rest/api/3/issueLink`, whose `inwardIssue`/`outwardIssue` pair encodes the
+direction.

@@ -1,4 +1,4 @@
-## Output format
+# Output format
 
 Adapt to the question — not every section is needed every time. Omit
 incidentals: no account of how you explored, no background the question did

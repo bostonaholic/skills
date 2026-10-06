@@ -1,6 +1,4 @@
-Resolve these links from the installed `SKILL.md` directory. If a read fails, stop and report its resolved path.
-
-## Stage and shoot
+# Stage and shoot
 
 Every command below expands its variables as quoted `"$VAR"` words. A route, a
 label, or a fill value reaches the shot list through `jq --arg`, never through
@@ -8,7 +6,8 @@ shell source ([external-data rules](shared/external-data.md)).
 
 1. **Resolve the tools.** First bind `RUN_DIR="$(mktemp -d)"`, which holds
    every temporary this run writes. `shoot.mjs` loads Playwright from
-   `$PAPARAZZI_TOOLS`, then from the project. When neither resolves, install it
+   `$PAPARAZZI_TOOLS`, then from the project. When neither resolves, tell the
+   user that Playwright and Chromium will be downloaded, then install them
    into a cache, never into the project:
 
    ```bash
@@ -18,8 +17,10 @@ shell source ([external-data rules](shared/external-data.md)).
    ```
 
    A failed browser download is not fatal, because `shoot.mjs` falls back to an
-   installed Google Chrome and reports which browser it used. A native project
-   needs `adb` or `xcrun simctl` instead, per the brief.
+   installed Google Chrome and reports which browser it used. A failed
+   `npm install` leaves no Playwright, so `shoot.mjs` exits 3. Name the install
+   and its outcome in the report. A native project needs `adb` or
+   `xcrun simctl` instead, per the brief.
 
 2. **Start the app** unless `--url` names it. Find the start command and its
    readiness signal with the brief's
@@ -60,19 +61,19 @@ shell source ([external-data rules](shared/external-data.md)).
    node "<skill-dir>/scripts/shoot.mjs" "$RUN_DIR/shots.json" "$OUT" >"$RUN_DIR/shoot.json"
    ```
 
-   | Exit | Means | Do |
-   | --- | --- | --- |
-   | 0 | Every frame passed its gates | Verify |
-   | 1 | A frame failed, named in the report | Verify. The failures are handled there |
-   | 2 | The shot list is unusable, and nothing launched | Fix the list from the stderr message and rerun. This is not a retake |
-   | 3 | No Playwright and no browser | Record `status: skipped-no-tool`, tear down, and report |
+   | Exit | Means                                                                 | Do                                                             |
+   | ---- | --------------------------------------------------------------------- | -------------------------------------------------------------- |
+   | 0    | Every frame passed its gates                                          | Verify                                                         |
+   | 1    | A frame failed, named in the report                                   | Verify. The failures are handled there                         |
+   | 2    | The shot list or `$OUT` is unusable, and nothing launched             | Fix it from the stderr message and rerun. This is not a retake |
+   | 3    | No Playwright, or neither bundled Chromium nor Google Chrome launches | Record `status: skipped-no-tool`, tear down, and report        |
 
    `shoot.json` stays in `$RUN_DIR`, never in `$OUT`, which ends up holding only
    what the manifest lists.
 
 6. **Native screens.** Build, launch, and capture with the brief's
    [native path](references/capture-brief.md#ui-project-verification)
-   and its capture commands, one PNG per frame named `<name>.png`. Gate each
+   and its capture commands, one frame per shot named `<name>.png`. Gate each
    frame with `node "<skill-dir>/scripts/png-check.mjs" <png>`, which exits 0
    on a pass, 1 on a failed gate named in `failures`, and 2 on an unreadable
    file.

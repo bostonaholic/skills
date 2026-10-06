@@ -16,13 +16,18 @@ import { readFileSync, realpathSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { pathToFileURL } from "node:url";
 
-/** GitHub's attachment bound; a larger frame cannot reach a PR body. */
-export const MAX_BYTES = 10 * 1024 * 1024;
+/**
+ * GitHub's image attachment limit is 10 MB (docs.github.com, "Attaching files"),
+ * so a larger frame cannot be attached to a PR or issue body.
+ */
+const GITHUB_IMAGE_LIMIT_MB = 10;
+export const MAX_BYTES = GITHUB_IMAGE_LIMIT_MB * 1024 * 1024;
 
 /** A frame this close to one color is flagged for a hard look, never failed: an empty state can be this sparse. */
 export const SPARSE_SHARE = 0.995;
 
 const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+/** PNG color type (IHDR) to channels per pixel: gray, RGB, palette, gray+alpha, RGBA. */
 const CHANNELS = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
 
 export class PngError extends Error {}

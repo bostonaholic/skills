@@ -1,4 +1,4 @@
 interface:
-  display_name: "Groom Backlog"
-  short_description: "Groom a project backlog end to end"
-  default_prompt: "Use $grooming-backlogs to groom a project backlog end to end."
+  display_name: "Grooming Backlogs"
+  short_description: "Plan backlog grooming changes for approval"
+  default_prompt: "Use $grooming-backlogs to groom this project backlog, proposing each tracker change for approval."

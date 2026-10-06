@@ -1,34 +1,31 @@
-Before dispatch, resolve [focused work](shared/focused-work.md). Pass their absolute installed paths with the retained brief.
-The receiver reads them before work. Missing resources stop that step with the exact path, without source fallback.
-
-## Explain mode
+# Explain mode
 
 1. **Assess complexity.** A single module, one utility, or a narrow
    "how does function X work" is **simple**. A subsystem spanning many
    files or services, a cross-cutting feature flow, or a full
-   architectural overview is **complex**. When in doubt, lean simple —
+   architectural overview is **complex**. When in doubt, lean simple;
    you can still fan out later if you hit a wall.
 
 2. **Simple: explore inline.** Trace the code yourself with Read, Grep,
-   and Glob, then write the explanation per `## Output format`. Read the
-   actual implementation; never guess from file names.
+   and Glob, then write the explanation in the
+   [output format](references/output-format.md). Read the actual implementation; never
+   guess from file names.
 
 3. **Complex: fan out explorers.** Split the question into 2–4
    non-overlapping angles. Dispatch one explorer per angle, all **in one
-   message**, through the `Agent` tool with `subagent_type: Explore` —
-   the built-in read-only type — and `model: sonnet`. Each prompt carries
-   the `### Explorer brief` below, the question, and its assigned angle.
-   If the `Agent` tool or the `Explore` type is unavailable, explore
-   every angle yourself inline — the fan-out is an optimization, never a
-   dependency ([focused work rules](shared/focused-work.md)).
-   Never substitute a full-tool agent silently.
+   message**, through the `Agent` tool with `subagent_type: Explore` (the
+   built-in read-only type). Explorers only gather facts, so a smaller, faster
+   model is enough. Each prompt carries the Explorer brief
+   below, the question, and its assigned angle. If the `Agent` tool or the
+   `Explore` type is unavailable, explore every angle yourself inline. Never
+   substitute a full-tool agent silently.
 
 4. **Synthesize.** Resolve contradictions by checking the code yourself.
    Claims about code carry a `file:line` citation. Acknowledge any
    gap an explorer flagged instead of papering over it. Then write the
-   `## Output format`.
+   answer in the [output format](references/output-format.md).
 
-### Explorer brief
+## Explorer brief
 
 > Pass everything in this section to each explorer as part of its prompt.
 
