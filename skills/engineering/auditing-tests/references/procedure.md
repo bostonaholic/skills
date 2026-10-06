@@ -42,14 +42,14 @@ Copy this checklist and check off each step:
 
 4. **Build each lane's ledger.** Dispatch one auditor per lane with the
    [lane auditor brief](references/lane-auditor.md), through the `Agent`
-   tool with `subagent_type: Explore`. Keep at most 4 in flight, so a large
-   suite does not exhaust the host's concurrent-agent and rate limits, and
-   batch the rest. Each prompt carries the brief, the lane name, its owner
-   paths, its file list, its baseline failures, and the absolute path of
-   the testing rules. Retry a return that is not the brief's JSON once,
-   with the parse error. On a second failure, or on a host with no `Agent`
-   tool or `Explore` type, audit that lane inline with the same brief.
-   Never substitute a full-tool agent.
+   tool with `subagent_type: Explore` and `model: sonnet`. Keep at most 4
+   in flight, so a large suite does not exhaust the host's concurrent-agent
+   and rate limits, and batch the rest. Each prompt carries the brief, the
+   lane name, its owner paths, its file list, its baseline failures, and
+   the absolute path of the testing rules. Retry a return that is not the
+   brief's JSON once, with the parse error. On a second failure, or on a
+   host with no `Agent` tool or `Explore` type, audit that lane inline with
+   the same brief. Never substitute a full-tool agent.
 
 5. **Find the redundant layers.** Read the ledgers across lanes. Where
    several suites guard one contract, name the **keeper**: the suite at the
@@ -59,10 +59,10 @@ Copy this checklist and check off each step:
    such as an **R** that a keeper now covers becoming a **C**.
 
 6. **Verify every C and D.** For each, dispatch one fresh read-only
-   **verifier** (`Explore`, at most 4 in flight) with a neutral claim and no
-   verdict: "`<remainingProof>` fails when `<caughtBug>` happens, so
-   `<test>` at `<file:line>` is not the only guard." Ask it to refute the
-   claim from the code. **CONFIRMED** sets `verified: true`. **REFUTED** or
+   **verifier** (`Explore`, `model: sonnet`, at most 4 in flight) with a
+   neutral claim and no verdict: "`<remainingProof>` fails when
+   `<caughtBug>` happens, so `<test>` at `<file:line>` is not the only
+   guard." Ask it to refute the claim from the code. **CONFIRMED** sets `verified: true`. **REFUTED** or
    an inconclusive result downgrades the test to **R** and records it under
    `downgraded`, with the mark it had (`C` or `D`) and the verifier's
    reason. With no `Agent` tool, check each claim inline by reading the

@@ -46,12 +46,13 @@ Track these steps per the [execution rules](shared/execution.md).
    [comment reviewer brief](references/reviewer.md).
 3. **Dispatch.** Run the reviewer under the
    [independent review rules](shared/independent-review.md): call the
-   `Agent` tool with `subagent_type: Explore`. Pass only the resolved scope
-   and the absolute paths of the brief, the code standards, and the files
-   the code standards link ([finding format](shared/findings.md) and
-   [focused work rules](shared/focused-work.md)). Never pass author
-   discussion or a proposed verdict. If read-only `Explore` is unavailable,
-   report and stop.
+   `Agent` tool with `subagent_type: Explore` and `model: opus`. Pass only
+   the resolved scope and the absolute paths of the brief, the independent
+   review rules, the code standards, and the files the code standards link
+   ([finding format](shared/findings.md) and
+   [focused work rules](shared/focused-work.md)), and instruct it to read
+   them before work. Never pass author discussion or a proposed verdict.
+   If read-only `Explore` is unavailable, report and stop.
 4. **Validate the report.** Reject scope escapes, unsupported
    classifications, findings without `file:line` evidence, a missing or
    malformed verdict line, and any reviewer mutation. **Retry limit: 1.**

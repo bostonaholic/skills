@@ -100,12 +100,13 @@ Copy this checklist and check off each step:
 
 4. **Measure each lane.** Dispatch one analyst per lane with the
    [lane analyst brief](references/lane-analyst.md), through the `Agent`
-   tool with `subagent_type: Explore`. Keep at most 4 in flight, so a large
-   scope does not exhaust the host's concurrent-agent and rate limits, and
-   batch the rest. Each prompt carries the brief, the lane name, its owner
-   paths, and its file list with each file's `lines`. When `scope.coverage`
-   is set, each prompt also carries the coverage path and `<top>`, the path
-   that `git rev-parse --show-toplevel` printed in step 1.
+   tool with `subagent_type: Explore` and `model: sonnet`. Keep at most 4
+   in flight, so a large scope does not exhaust the host's concurrent-agent
+   and rate limits, and batch the rest. Each prompt carries the brief, the
+   lane name, its owner paths, and its file list with each file's `lines`.
+   When `scope.coverage` is set, each prompt also carries the coverage path
+   and `<top>`, the path that `git rev-parse --show-toplevel` printed in
+   step 1.
    - Retry a return that is not the brief's JSON once, with the parse error.
    - On a second failure, or on a host with no `Agent` tool or `Explore`
      type, measure that lane inline with the same brief.

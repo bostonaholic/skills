@@ -36,10 +36,11 @@ const REQUIRED_BY_MARK = {
 
 const filled = (value) => typeof value === "string" && value.trim() !== "";
 const list = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
 export function validateReport(report) {
   const errors = [];
-  if (report === null || typeof report !== "object" || Array.isArray(report)) return ["report is not a JSON object"];
+  if (!isObject(report)) return ["report is not a JSON object"];
   if (report.version !== 1) errors.push("version must be 1");
 
   const scope = report.scope ?? {};
@@ -64,14 +65,23 @@ export function validateReport(report) {
     else placements.set(file, placements.get(file) + 1);
   };
 
+  const lanes = list(report.lanes).filter((lane, index) => {
+    if (!isObject(lane)) errors.push(`lanes[${index}] is not an object`);
+    return isObject(lane);
+  });
   const tests = new Map();
-  for (const lane of list(report.lanes)) {
+  for (const lane of lanes) {
     const laneName = filled(lane.name) ? lane.name : "(unnamed lane)";
     if (!filled(lane.name)) errors.push("every lane needs a name");
+    if ("seams" in lane) errors.push(`lane ${laneName} has a seams field; rename it to testOnlyCode`);
     const laneFiles = new Set(list(lane.files));
     for (const file of laneFiles) place(file, `lane ${laneName}`);
 
-    for (const test of list(lane.tests)) {
+    for (const [index, test] of list(lane.tests).entries()) {
+      if (!isObject(test)) {
+        errors.push(`lane ${laneName} tests[${index}] is not an object`);
+        continue;
+      }
       const id = test.id;
       if (!filled(id)) {
         errors.push(`lane ${laneName} has a test with no id`);
@@ -112,7 +122,7 @@ export function validateReport(report) {
     if (count > 1) errors.push(`${file} is placed ${count} times; place it exactly once`);
   }
 
-  for (const lane of list(report.lanes)) {
+  for (const lane of lanes) {
     for (const code of list(lane.testOnlyCode)) {
       for (const id of list(code.freedBy)) {
         if (!tests.has(id)) errors.push(`testOnlyCode ${code.location} names unknown test ${id}`);

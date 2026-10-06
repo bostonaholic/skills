@@ -44,6 +44,8 @@ added to every `C` and `D` test that procedure step 6 confirmed.
 - `baseline.status` is `ran` with a `command`, or `not-run` with a `reason`.
 - Every `inventory` file sits in exactly one lane's `files` or in `gaps`,
   and every lane file is in `inventory`.
+- Every lane and every test is an object, and no lane carries the retired
+  `seams` field; it is now `testOnlyCode`.
 - Every test's `file` is in its lane's `files`, and every test `id` is
   unique.
 - Each mark carries the fields the lane auditor brief requires, and a

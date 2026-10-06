@@ -26,10 +26,11 @@ inline.
 2. **Dispatch.** Pass the brief's
    [Review brief](references/design-reviewer.md#review-brief) section as the
    prompt, with the document's absolute path in place of `$ARGUMENTS`. On
-   Claude Code, call the `Agent` tool with `subagent_type: Explore`. On a
-   host without `Explore`, spawn the host's general-purpose subagent with
-   read and search tools only, and state that restriction in its prompt. If
-   the host cannot spawn a subagent, report the dispatch failure and stop.
+   Claude Code, call the `Agent` tool with `subagent_type: Explore` and
+   `model: opus`. On a host without `Explore`, spawn the host's
+   general-purpose subagent with read and search tools only, and state that
+   restriction in its prompt. If the host cannot spawn a subagent, report
+   the dispatch failure and stop.
 
    Pass the absolute path of this skill's directory and of each file the
    reviewer reads before work; this session does not read them:

@@ -79,6 +79,25 @@ test("a JSON array is rejected as a report", () => {
   assert.deepEqual(validateReport([report()]), ["report is not a JSON object"]);
 });
 
+test("a lane that still carries the retired seams field is rejected with the replacement named", () => {
+  const broken = report();
+  broken.lanes[0].seams = broken.lanes[0].testOnlyCode;
+  delete broken.lanes[0].testOnlyCode;
+  assert.deepEqual(validateReport(broken), ["lane cache has a seams field; rename it to testOnlyCode"]);
+});
+
+test("a lane that is not an object is rejected by position", () => {
+  const broken = report();
+  broken.lanes.push(null);
+  assert.deepEqual(validateReport(broken), ["lanes[1] is not an object"]);
+});
+
+test("a test that is not an object is rejected by lane and position", () => {
+  const broken = report();
+  broken.lanes[0].tests.push(null);
+  assert.deepEqual(validateReport(broken), ["lane cache tests[2] is not an object"]);
+});
+
 test("test-only code freed by an unknown test is rejected with its location named", () => {
   const broken = report();
   broken.lanes[0].testOnlyCode[0].freedBy = ["tests/cache.test.js::no such test"];

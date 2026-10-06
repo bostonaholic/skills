@@ -118,7 +118,7 @@ commands _you_ propose is a defect in your review, not in the design.
 
 Never manufacture a blocking finding to justify another round. A round
 that turns up nothing blocking is the gate working, and a design a
-competent implementer can execute as written is approved.
+competent implementer can execute as written draws no blocking finding.
 
 ### Classify findings: defect, unresolved risk, or speculation
 
@@ -173,8 +173,11 @@ when there are none.>
 The verdict line holds exactly one token:
 
 - **APPROVE:** no findings.
-- **REQUEST CHANGES:** at least one blocking finding. Non-blocking findings
-  never reach this verdict, however many there are.
+- **REQUEST CHANGES:** at least one blocking finding, such as a missing
+  necessary section, an unjustified decision, an absent edge-case
+  enumeration, a false or unverifiable citation, a silent scope expansion,
+  or a rule that reaches one surface and not another with no reason given.
+  Non-blocking findings never reach this verdict, however many there are.
 - **COMMENT:** non-blocking findings only.
 
 Each finding uses a Conventional Comments label with its decoration from

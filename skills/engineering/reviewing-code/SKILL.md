@@ -27,12 +27,13 @@ inline.
    including its [report format](references/code-reviewer.md#report-format).
 2. **Dispatch.** Run the reviewer in a fresh-context subagent that holds no
    file-editing tool. On Claude Code, call the `Agent` tool with
-   `subagent_type: Explore`. On a host without `Explore`, spawn the host's
-   general-purpose subagent with the brief as its role instructions. Grant it
-   read and search tools and a shell, and state in its prompt that the shell
-   runs only the project's test command and read-only commands (`git diff`,
-   `git log`, `git show`, `git blame`), never a command that changes tracked
-   files, the index, refs, or remote state. When the host cannot give it a
+   `subagent_type: Explore` and `model: opus`. On a host without `Explore`,
+   spawn the host's general-purpose subagent with the brief as its role
+   instructions. Grant it read and search tools and a shell, and state in
+   its prompt that the shell runs only the project's test command and
+   read-only commands (`git diff`, `git log`, `git show`, `git blame`),
+   never a command that changes tracked files, the index, refs, or remote
+   state. When the host cannot give it a
    shell, grant read and search only and say so in its prompt. If the host
    cannot spawn a subagent, stop and report it.
 
@@ -47,9 +48,10 @@ inline.
    [writing standards](shared/writing.md), plus the independent review rules
    above.
 
-3. **Validate the verdict.** The report's first line must be exactly one of
-   `**Verdict: ✅ APPROVE**`, `**Verdict: ❌ REQUEST CHANGES**`, or
-   `**Verdict: 💬 COMMENT**`. When it is missing or holds another token,
+3. **Validate the verdict.** The report's first line must be a
+   `**Verdict: ...**` line whose word token is exactly one of `APPROVE`,
+   `REQUEST CHANGES`, or `COMMENT`, as in `**Verdict: ✅ APPROVE**`. Match
+   the word, not the emoji. When it is missing or holds another token,
    dispatch one new reviewer with the same inputs and name the failed
    contract. When the second report also fails, print it, name the failure,
    and stop. Never repair a verdict yourself.
