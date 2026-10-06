@@ -4,8 +4,11 @@
 #
 #   usage: resolve-pr.sh <arguments> <run-dir>
 #
-#   <arguments>  the whole invocation: "<pr-number-or-url> [--entries <path>]"
+#   <arguments>  the whole invocation: "[<pr-number-or-url>] [--entries <path>]".
+#                With no PR token, the current branch's PR is resolved.
 #   <run-dir>    an existing directory this run owns
+#
+# Requires `gh` on PATH, authenticated for the PR's host.
 #
 # Writes one value per file into <run-dir>, and nothing to stdout:
 #
@@ -19,9 +22,11 @@
 # Exit codes:
 #
 #   0  resolved
-#   1  refused — a malformed, repeated, or unresolvable argument. Nothing ran
-#      against the network that could change anything, and nothing is written
-#   2  usage fault — wrong argument count, or a run directory that is not one
+#   1  refused — a malformed, repeated, or unresolvable argument, or no PR for
+#      the current branch. Nothing ran against the network that could change
+#      anything, and nothing is written
+#   2  fault — wrong argument count, a run directory that is not one, or `gh`
+#      missing from PATH
 
 set -euo pipefail
 
@@ -33,6 +38,10 @@ ARGUMENTS="$1"
 RUN_DIR="$2"
 if [ ! -d "$RUN_DIR" ]; then
   printf 'run directory does not exist: %s\n' "$RUN_DIR" >&2
+  exit 2
+fi
+if ! command -v gh >/dev/null 2>&1; then
+  printf 'missing required tool: gh\n' >&2
   exit 2
 fi
 
@@ -101,6 +110,8 @@ fi
 # handles GitHub Enterprise in three later places, and an anchored-at-
 # github.com pattern refuses every Enterprise URL before they run. Never
 # `[^/]+` for an owner or repository — that admits `$`, backticks, and spaces.
+# Length bounds: 253 is the DNS hostname limit, 39 GitHub's owner-name limit,
+# and 100 GitHub's repository-name limit.
 
 PR_URL_PATTERN='^https://[A-Za-z0-9.-]{1,253}/[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}/pull/[0-9]+$'
 
@@ -108,18 +119,20 @@ ARG_HOST=''
 ARG_OWNER=''
 ARG_REPO=''
 case "$PR_ARG" in
-  ''|*[!0-9]*) ARG_NUMBER='' ;;     # not a bare PR number
-  *)           ARG_NUMBER="$PR_ARG" ;;
+  '' | *[!0-9]*) ARG_NUMBER='' ;; # not a bare PR number
+  *) ARG_NUMBER="$PR_ARG" ;;
 esac
 
-if [ -z "$ARG_NUMBER" ]; then
+if [ -z "$ARG_NUMBER" ] && [ -n "$PR_ARG" ]; then
   if [[ ! "$PR_ARG" =~ $PR_URL_PATTERN ]]; then
     printf 'malformed PR argument\n' >&2
     exit 1
   fi
   REST="${PR_ARG#https://}"
-  ARG_HOST="${REST%%/*}"  ; REST="${REST#*/}"
-  ARG_OWNER="${REST%%/*}" ; REST="${REST#*/}"
+  ARG_HOST="${REST%%/*}"
+  REST="${REST#*/}"
+  ARG_OWNER="${REST%%/*}"
+  REST="${REST#*/}"
   ARG_REPO="${REST%%/*}"
   ARG_NUMBER="${PR_ARG##*/}"
 fi
@@ -131,7 +144,13 @@ fi
 # DIRECTORY's default repository — so a full URL for one repository, run from
 # a checkout of another, silently resolves the other's PR of that number.
 
-if [ -n "$ARG_OWNER" ]; then
+if [ -z "$PR_ARG" ]; then
+  # No PR token: the current branch's PR, resolved against the checkout.
+  if ! PR_URL="$(gh pr view --json url --jq .url </dev/null)"; then
+    printf 'no PR for the current branch — pass a PR number or URL\n' >&2
+    exit 1
+  fi
+elif [ -n "$ARG_OWNER" ]; then
   if ! PR_URL="$(gh pr view "$ARG_NUMBER" --repo "$ARG_HOST/$ARG_OWNER/$ARG_REPO" --json url --jq .url </dev/null)"; then
     printf 'could not resolve the PR: %s\n' "$PR_ARG" >&2
     exit 1
@@ -156,8 +175,10 @@ case "$PR_URL" in
     ;;
 esac
 REST="${PR_URL#https://}"
-PR_HOST="${REST%%/*}" ; REST="${REST#*/}"
-OWNER="${REST%%/*}"   ; REST="${REST#*/}"
+PR_HOST="${REST%%/*}"
+REST="${REST#*/}"
+OWNER="${REST%%/*}"
+REST="${REST#*/}"
 REPO="${REST%%/*}"
 NUMBER="${PR_URL##*/}"
 case "$PR_HOST$OWNER$REPO" in
@@ -167,7 +188,7 @@ case "$PR_HOST$OWNER$REPO" in
     ;;
 esac
 case "$NUMBER" in
-  ""|*[!0-9]*)
+  "" | *[!0-9]*)
     printf 'resolved PR number is not a number: %s\n' "$PR_URL" >&2
     exit 1
     ;;
@@ -178,10 +199,10 @@ esac
 # against whichever host gh considers default.
 REPO_SPEC="$PR_HOST/$OWNER/$REPO"
 
-printf '%s\n' "$PR_URL"       >"$RUN_DIR/pr-url"
-printf '%s\n' "$PR_HOST"      >"$RUN_DIR/pr-host"
-printf '%s\n' "$OWNER"        >"$RUN_DIR/owner"
-printf '%s\n' "$REPO"         >"$RUN_DIR/repo"
-printf '%s\n' "$NUMBER"       >"$RUN_DIR/number"
-printf '%s\n' "$REPO_SPEC"    >"$RUN_DIR/repo-spec"
+printf '%s\n' "$PR_URL" >"$RUN_DIR/pr-url"
+printf '%s\n' "$PR_HOST" >"$RUN_DIR/pr-host"
+printf '%s\n' "$OWNER" >"$RUN_DIR/owner"
+printf '%s\n' "$REPO" >"$RUN_DIR/repo"
+printf '%s\n' "$NUMBER" >"$RUN_DIR/number"
+printf '%s\n' "$REPO_SPEC" >"$RUN_DIR/repo-spec"
 printf '%s\n' "$ENTRIES_FILE" >"$RUN_DIR/entries-file"

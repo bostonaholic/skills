@@ -13,12 +13,12 @@
  * `f(body, section, options) -> {body, changed, reason}`: no network, no `gh`,
  * no mutation of anything on disk. The document scan, the trailing-block split,
  * and the refusals are neither deterministic nor testable as prose, which is
- * why they are code (docs/testing.md, "L1: Pure unit"). `reason` is non-empty
- * whenever a rule refuses, and empty on a write.
+ * why they are code. `reason` is non-empty whenever a rule refuses, and empty
+ * on a write.
  *
  * `--check` runs `bodyRefusal` alone: every refusal computable from the body
  * by itself, with no section and no counts. It exists so the caller can run
- * those refusals in step A, against the pre-image, BEFORE the first
+ * those refusals in step 4, against the pre-image, BEFORE the first
  * `gh pr edit --attach` — "refuse before mutating, never after"
  * (`SKILL.md`). A refusal discovered only after the attach step leaves live
  * assets on a body this transform then declines to write.
@@ -46,11 +46,12 @@
  * sentence somebody else typed under the heading is a refusal rather than a
  * silent deletion.
  *
- * The CLI guard at the bottom follows resolve-transcript.mjs and
- * write-target.mjs: it runs only on direct execution, so a test import has no
- * side effects. Exit 0 writes the body on stdout, exit 1 is a clean refusal,
- * and exit 2 is a usage or environment fault — an unreadable input never
- * reaches the caller as a stack trace on the refusal code.
+ * The CLI guard at the bottom runs only on direct execution, so a test import
+ * has no side effects. Exit 0 writes the body on stdout (`--check` writes
+ * nothing), exit 1 is a clean refusal that prints `refused: <reason>` on
+ * stderr in both modes, and exit 2 is a usage or environment fault that
+ * prints `splice.mjs: <message>` — an unreadable input never reaches the
+ * caller as a stack trace on the refusal code.
  */
 
 import { readFileSync, realpathSync } from "node:fs";
@@ -62,7 +63,10 @@ const BODY_LIMIT = 65536;
 /**
  * Rule 1's trailing sections: lifted out of `content` with the closing line
  * and re-emitted byte-identical below the spliced section. `## Pre-merge` is
- * one of them, and `## Companion PRs` is the other.
+ * one of them, and `## Companion PRs` is the other. These, and `ANCHORS`
+ * below, are fixed PR-template headings rather than options; a body without
+ * them takes the default placement, and
+ * `references/upload-and-body-edit.md` documents the whole placement rule.
  */
 const FOOTER_SECTIONS = ["## Pre-merge", "## Companion PRs"];
 
@@ -176,7 +180,7 @@ const UNESCAPED = "(?<!\\\\)(?:\\\\\\\\)*";
  * matches, because the tag-name class takes `b` and the alternation accepts end
  * of line. That is the designed direction of error — a refusal leaves the body
  * byte-identical — but the recovery is not obvious from the reason alone, so
- * `references/02-upload-and-body-edit.md` names the class and the edit that
+ * `references/upload-and-body-edit.md` names the class and the edit that
  * clears it.
  */
 const HTML_TAG = new RegExp(`${UNESCAPED}<\\/?[A-Za-z][A-Za-z0-9-]*(?:[ \\t/>]|$)`);
@@ -212,7 +216,7 @@ const BARE_IMAGE_URL =
 /**
  * Raw HTML in the SECTION, in any position, escaped or not. The section is
  * assembled from caller strings the normalization in
- * `references/01-input-and-result.md` backslash-escapes; this is the code-side
+ * `references/input-and-result.md` backslash-escapes; this is the code-side
  * backstop for that rule, so a weakened or skipped escape cannot splice an
  * `<a href>` or an `<img src>` into a public body. An escaped `\<` is caller
  * text that renders as a literal and is left alone — `UNESCAPED` is what
@@ -237,7 +241,7 @@ const SECTION_LINK = new RegExp(`${UNESCAPED}\\]\\(`);
 /**
  * A `/` in the degraded tail — the basename half of the same backstop. The
  * degraded form renders each local path as its BASENAME
- * (`references/01-input-and-result.md`), because a PR body is public and an
+ * (`references/input-and-result.md`), because a PR body is public and an
  * absolute path leaks the operator's home directory and username. A basename
  * holds no `/`, so a `/` after `captured, not yet uploaded:` is a path that
  * skipped that rule, and the rule is a normalization a rewrite can drop just
@@ -257,11 +261,11 @@ const OWN_IMAGE = /^!\[screenshot-\d+\]\(\s*https?:\/\/[^\s)]+\s*\)$/;
  * The `(<state>)` parenthetical the renderer emits beside a caption, and
  * nothing else. One level of nesting is allowed as a backstop: `state` is
  * caller text whose normalization removes parentheses
- * (`references/01-input-and-result.md`), and a section rendered before a run
+ * (`references/input-and-result.md`), and a section rendered before a run
  * that did so is still a pre-image this transform has to recognize. With a
  * flat `[^)]*`, a state such as `mobile (dark)` makes the renderer's OWN
  * output unrecognizable — and since a caller can write the degraded section at
- * PR-open time, that section is the pre-image, so step A's `--check` refuses
+ * PR-open time, that section is the pre-image, so step 4's `--check` refuses
  * the whole run and nothing uploads.
  */
 const STATE = "(?:[ \\t]+\\((?:[^()]|\\([^()]*\\))*\\))?";
@@ -269,7 +273,7 @@ const STATE = "(?:[ \\t]+\\((?:[^()]|\\([^()]*\\))*\\))?";
 /**
  * The remaining line shapes this skill writes into its own section. Together
  * with `OWN_IMAGE` they are the whole emitted vocabulary of
- * `references/02-upload-and-body-edit.md`, "The section's markdown shape" —
+ * `references/upload-and-body-edit.md`, "The section's markdown shape" —
  * which is what lets a replace tell its own previous output apart from text a
  * reviewer typed there.
  *
@@ -629,7 +633,7 @@ function bodyLines(text) {
  * refuses. Every reason names the line it came from.
  *
  * It is a function of the pre-image and nothing else, which is the whole point:
- * `--check` runs it in step A, before the first `gh pr edit --attach`, so a
+ * `--check` runs it in step 4, before the first `gh pr edit --attach`, so a
  * refusal that this body was always going to produce is found while the body
  * is still untouched and the assets are still local. `splice` runs the same
  * function first, so the two can never disagree.
@@ -713,8 +717,8 @@ export function splice(body, section, options = {}) {
   const doc = scan(lines);
 
   // The pre-image refusals, in the one place the `--check` mode reads them
-  // from, so a body that step A cleared cannot refuse here for a body-only
-  // reason and a body that step A refused cannot pass here.
+  // from, so a body that step 4 cleared cannot refuse here for a body-only
+  // reason and a body that step 4 refused cannot pass here.
   const blocked = bodyRefusal(original);
   if (blocked) return refuse(blocked);
 
@@ -872,7 +876,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   const result = splice(slurp(bodyFile, "body file"), slurp(sectionFile, "section file"), { landed });
   if (!result.changed) {
-    process.stderr.write(`unchanged: ${result.reason}\n`);
+    process.stderr.write(`refused: ${result.reason}\n`);
     process.exit(1);
   }
   process.stdout.write(result.body);

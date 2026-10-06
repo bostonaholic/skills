@@ -1,7 +1,7 @@
 interface:
-  display_name: "PR Watch as Reviewer"
-  short_description: "Watch a PR you review, then approve once"
-  default_prompt: "Use $watching-reviewed-prs to watch a PR you review, then approve once."
+  display_name: "Watching Reviewed PRs"
+  short_description: "Watch a PR you reviewed and approve once feedback settles"
+  default_prompt: "Use $watching-reviewed-prs to watch a PR you reviewed and approve it once your feedback settles."
 
 policy:
   allow_implicit_invocation: false

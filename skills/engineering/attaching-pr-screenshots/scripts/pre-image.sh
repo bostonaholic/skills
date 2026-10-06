@@ -17,11 +17,13 @@
 #   assets.tsv     truncated: one line per landed entry, and none has landed
 #   failures.tsv   truncated: one line per failed entry
 #
+# Requires `gh` and `jq` on PATH.
+#
 # Exit codes:
 #
 #   0  the pre-image is on disk
-#   2  fault — the read failed, or the run directory is not one. Nothing has
-#      been decided, so this is not a refusal
+#   2  fault — the read failed, the run directory is not one, or a required
+#      tool is missing. Nothing has been decided, so this is not a refusal
 
 set -euo pipefail
 
@@ -30,6 +32,12 @@ if [ "$#" -ne 1 ]; then
   exit 2
 fi
 RUN_DIR="$1"
+for TOOL in gh jq; do
+  if ! command -v "$TOOL" >/dev/null 2>&1; then
+    printf 'missing required tool: %s\n' "$TOOL" >&2
+    exit 2
+  fi
+done
 for REQUIRED in number repo-spec; do
   if [ ! -r "$RUN_DIR/$REQUIRED" ]; then
     printf 'run directory has no %s — run resolve-pr.sh first\n' "$REQUIRED" >&2

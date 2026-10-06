@@ -1,89 +1,84 @@
 ---
 name: attaching-pr-screenshots
-description: 'Use for adding PR screenshots only on explicit request. Never infer from local images. Attaches them to the PR body.'
+description: Uploads local images through GitHub's attachment pipeline and writes one verified Screenshots section into a PR body. Use when the user explicitly asks to add or attach screenshots to a PR. Never infer from local images. Not for capturing screenshots; use capturing-screenshots.
 effort: medium
 argument-hint: "[<pr-number-or-url>] [--entries <path>]"
 ---
 
-Before this operation, read [external-data rules](shared/external-data.md).
-Before each consuming step, read its linked shared rules. Resolve links from this installed `SKILL.md` directory.
-If a required read fails, stop that step and report its resolved path. Never use checkout fallback or recursive loading.
-
-# attaching-pr-screenshots — inline images in any PR body
+# attaching-pr-screenshots
 
 Attach local image files to a pull request through GitHub's own attachment
 pipeline, harvest the URLs it resolves, and write one `## Screenshots` section
-into that PR's body.
+into that PR's body. A calling skill decides which entries qualify and passes
+them with `--entries`.
 
-The upload mechanics live here and nowhere else. A caller can decide whether to
-run, when, and which entries qualify, then call this skill with `--entries`.
+Every step with a loop, a branch, or a value a later step needs is a committed
+script under `scripts/`, run with its arguments and read by its exit code.
 
-**Every procedure with a loop, a branch, or a value a later step needs is a
-committed script under `scripts/`, run with its arguments and read by its exit
-code.** Each reference below names the script its stage runs; what stays inline
-is a single command.
+Read each linked file from this skill's directory when the step that uses it
+begins. If a read fails, stop that step and report the exact path.
 
 ## Hard rules
 
-- **Upload first, write second.** Never fuse an attach flag with a body flag in
-  one command: on a partial failure the host rewrites only the references that
-  landed, which leaves a local filesystem path inside a body that may already
-  be merged.
-- **One body write per PR**, computed from the pre-image taken before the first
-  attach and produced by `scripts/splice.mjs`. That single write also clears the tails
+- **Upload first, write second.** Never combine an attach flag and a body flag
+  in one command.
+- **One body write per PR**, computed by `scripts/splice.mjs` from the
+  pre-image taken before the first attach. That write also clears the tails
   the attach step appended.
-- **Refuse before mutating, never after.** Every check that can run against the
-  pre-image runs in step A, including `scripts/splice.mjs --check`, so a
-  refusal it finds means nothing changed ([verified results rules](shared/verified-results.md)).
-  What can only be computed after the upload is named, and lands on
-  `uploaded-not-written` rather than on `refused`.
-- **Every caller-supplied string is data, not source and not markup.** A path,
-  a caption, a note, and a failure reason each reach a command as one quoted
-  `"$VAR"` expansion, and each is normalized by the same function before it
-  renders into a body ([external-data rules](shared/external-data.md)).
+- **Refuse before mutating.** Every check that can run before the first attach
+  does, so a refusal means nothing changed. A check that can only run after
+  the upload lands on `uploaded-not-written`, never on `refused`.
+- **Caller strings are data.** Paths, captions, notes, and failure reasons are
+  normalized once
+  ([input and result](references/input-and-result.md)) and reach commands only
+  as quoted expansions or files, per the
+  [external data rules](shared/external-data.md).
 - **Nothing blocks, prompts, or retry-loops.** A capability gap, a failed
-  entry, or a failed read-back degrades the result and says so
-  ([focused work rules](shared/focused-work.md), [verified results rules](shared/verified-results.md)).
-- **Never delete what you did not write.** A trailing run of stray image lines
-  left by an earlier crash is reported and re-emitted below the new section,
-  never removed. Anything else this skill did not write is a refusal that
-  leaves the body byte-identical, because a duplicate is recoverable and a
-  deletion is not. The rule is stated positively, so nothing falls outside it:
-  the only lines a replace may delete are the shapes this skill's own renderer
-  emits — a `**caption**` line in the position the renderer puts one, an
-  `![screenshot-NN]` image, a `> _note:_` note with its bare `>` separator, and
-  a `Not uploaded:` line. **Ownership is provenance, not shape:** the note's
-  `_note:_` marker and a caption's position directly above its own image mark
-  this skill's lines, so a reviewer's own blockquote or bold line refuses rather
-  than being read as this skill's output. Prose, an HTML comment, a raw HTML
-  container, an image in any form the splice cannot count, or a body shape the
-  splice does not model each refuse, with the offending line number named.
-- **Nothing leaves the declared root, and nothing that is not an image is
-  uploaded.** Every entry's path must resolve inside the entries file's one
-  **absolute** top-level `root`, and acceptance is decided by **content type**,
-  never by extension: `file -b --mime-type` must report `image/*`, and no type
-  fails the check, because unverified is not an image.
+  entry, or a failed read-back degrades the result and says so, per the
+  [focused work rules](shared/focused-work.md) and
+  [verified results rules](shared/verified-results.md).
+- **Never delete what you did not write.** A replace deletes only the shapes
+  this skill's renderer emits; anything else refuses with its line number
+  ([section shape](references/upload-and-body-edit.md#the-sections-markdown-shape)).
+- **Nothing leaves the declared root, and only images upload.** Every entry
+  resolves inside the entries file's absolute `root`, and `file -b --mime-type`
+  must report `image/*`.
 
-## Procedure references
+Before improvising any other upload route, read
+[rejected approaches](references/rejected-approaches.md).
 
-Read each reference completely when reaching that stage. Follow them in order;
-later stages depend on state and gates established earlier. Seed one TodoWrite
-item per numbered step of the reference you are in before starting it
-([execution rules](shared/execution.md)).
+## Procedure
 
-1. [Input and result](references/01-input-and-result.md) — PR resolution, the
-   entries file, caller-string normalization, `result.json`, every refusal.
-2. [Upload and body edit](references/02-upload-and-body-edit.md) — the
-   capability check, the four-step order, path validation, the attach loop, the
-   lost-update guard, and the section's markdown shape.
-3. [Verify](references/03-verify.md) — the rendered read-back, its assertions,
-   and what a failure does.
-4. [Rejected approaches](references/04-rejected-approaches.md) — read before
-   improvising an alternative upload route.
+Copy this checklist and check off each step:
 
-## Applied principles
+```text
+- [ ] 1. Check required tools
+- [ ] 2. Resolve the PR
+- [ ] 3. Write the entries file (when no --entries was given)
+- [ ] 4. Take the pre-image and run the body checks
+- [ ] 5. Validate entries, check the attach capability, and upload
+- [ ] 6. Render the section, splice, and write once
+- [ ] 7. Verify the rendered body
+- [ ] 8. Write result.json and report
+```
 
-Read and apply: [verified results rules](shared/verified-results.md),
-[focused work rules](shared/focused-work.md),
-[execution rules](shared/execution.md), and
-[external data rules](shared/external-data.md).
+1. **Check required tools.** Run `command -v gh jq file node` and
+   `gh auth status`. When one is missing or unauthenticated, stop and name it.
+   The scripts also exit 2 naming a missing tool.
+2. **Resolve the PR.** Run `scripts/resolve-pr.sh` as shown in
+   [input and result](references/input-and-result.md).
+3. **Write the entries file** when the invocation carried no `--entries`, per
+   [input and result](references/input-and-result.md).
+4. **Take the pre-image.** Run `scripts/pre-image.sh`, then
+   `scripts/splice.mjs --check`, per
+   [upload and body edit](references/upload-and-body-edit.md).
+5. **Upload.** Run `scripts/upload.sh`, per
+   [upload and body edit](references/upload-and-body-edit.md).
+6. **Splice and write.** Render the section, run `scripts/splice.mjs`, and
+   write the body once, per
+   [upload and body edit](references/upload-and-body-edit.md).
+7. **Verify.** Run the read-back in [verify](references/verify.md).
+8. **Report.** Write `result.json` and restate it, per
+   [the result](references/input-and-result.md#the-result).
+
+Track progress per the [execution rules](shared/execution.md).

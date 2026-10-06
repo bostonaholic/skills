@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Attach one file per command, harvest the URL each attach resolved, and prove
-# the body is still the one the pre-image was taken from.
+# Validate the entries file, check that `gh` can attach, attach one file per
+# command, harvest the URL each attach resolved, and prove the body is still
+# the one the pre-image was taken from.
 #
 #   usage: upload.sh <run-dir>
 #
@@ -21,13 +22,21 @@
 # stopped matching would write the degraded "captured, not yet uploaded" over
 # assets that are live on public URLs, beside an empty failure list.
 #
+# Requires `gh`, `jq`, and `file` on PATH. A missing `file` would otherwise
+# mark every image `not an image`, so it is a fault, checked first.
+#
 # Exit codes:
 #
 #   0  the attach loop ran and the baseline still holds. A run where every
 #      entry failed exits 0 too: that is `degraded`, and failures.tsv says so
-#   1  refused before the first attach — the entries file, or the root it
-#      declares. Nothing was attached and nothing was written
-#   2  fault — the run directory is missing a file `pre-image.sh` writes
+#   1  refused before any `gh` call — the entries file (unreadable, not JSON,
+#      no entries array, zero entries, an entry lacking `path` or `caption`),
+#      or the root it declares. Nothing was attached and nothing was written
+#   2  fault — a required tool is missing, or the run directory is missing a
+#      file `pre-image.sh` writes
+#   3  capability gap — this `gh pr edit` has no `--attach` flag. The entries
+#      passed validation and nothing was attached; the caller writes the
+#      degraded section
 #   4  lost update: another writer changed the body during the upload window,
 #      or a re-read failed and the baseline cannot be proved current. Assets
 #      may be live, so the caller reports `uploaded-not-written` and writes
@@ -40,6 +49,12 @@ if [ "$#" -ne 1 ]; then
   exit 2
 fi
 RUN_DIR="$1"
+for TOOL in gh jq file; do
+  if ! command -v "$TOOL" >/dev/null 2>&1; then
+    printf 'missing required tool: %s\n' "$TOOL" >&2
+    exit 2
+  fi
+done
 for REQUIRED in pr-host number repo-spec entries-file pre-image.md; do
   if [ ! -r "$RUN_DIR/$REQUIRED" ]; then
     printf 'run directory has no %s — run resolve-pr.sh and pre-image.sh first\n' "$REQUIRED" >&2
@@ -50,7 +65,7 @@ done
 # Read, never re-derived from `pr-url`: `resolve-pr.sh` already split and
 # charset-tested the resolved URL, and `pr-host` is the value the attachment
 # allowlist below is documented to come from
-# (`references/01-input-and-result.md`).
+# (`references/input-and-result.md`).
 PR_HOST="$(cat "$RUN_DIR/pr-host")"
 NUMBER="$(cat "$RUN_DIR/number")"
 REPO_SPEC="$(cat "$RUN_DIR/repo-spec")"
@@ -66,7 +81,10 @@ rm -f "$RUN_DIR/read-failed"
 
 # Read the pre-image byte-exactly: `$(cat …)` strips trailing newlines, and the
 # empty-pre-image arm of the guard below turns on whether the body was empty.
-PRE_IMAGE="$(cat "$RUN_DIR/pre-image.md"; printf x)"
+PRE_IMAGE="$(
+  cat "$RUN_DIR/pre-image.md"
+  printf x
+)"
 PRE_IMAGE="${PRE_IMAGE%x}"
 
 refuse() {
@@ -86,13 +104,33 @@ fi
 if [ ! -r "$ENTRIES_FILE" ]; then
   refuse "entries file is not readable: $ENTRIES_FILE"
 fi
+# The shape refusals, before any `gh` call. A silently shortened list is
+# indistinguishable from a caller that meant to send fewer images, so one bad
+# entry refuses the whole run, named by its zero-based index.
+if ! ENTRIES_PROBLEM="$(jq -r '
+  if type != "object" then "the entries file is not a JSON object"
+  elif (.entries | type) != "array" then "the entries file has no entries array"
+  elif (.entries | length) == 0 then "the entries file has zero entries; at least one is required"
+  else
+    [.entries | to_entries[]
+      | select((.value | type) != "object"
+          or (.value.path | type) != "string" or .value.path == ""
+          or (.value.caption | type) != "string")
+      | .key]
+    | if length > 0 then "entry \(.[0]) lacks a path or a caption" else "" end
+  end' "$ENTRIES_FILE" 2>&1)"; then
+  refuse "the entries file is not valid JSON: $ENTRIES_PROBLEM"
+fi
+if [ -n "$ENTRIES_PROBLEM" ]; then
+  refuse "$ENTRIES_PROBLEM"
+fi
 CAPTURE_ROOT="$(jq -r '.root // empty' "$ENTRIES_FILE")" || refuse 'the entries file is not valid JSON'
 if [ -z "$CAPTURE_ROOT" ]; then
   refuse 'the entries file must declare an absolute root'
 fi
 case "$CAPTURE_ROOT" in
   /*) : ;;
-  *)  refuse "the declared root is not absolute: $CAPTURE_ROOT" ;;
+  *) refuse "the declared root is not absolute: $CAPTURE_ROOT" ;;
 esac
 CAPTURE_ROOT="$(cd -- "$CAPTURE_ROOT" && pwd -P)" || refuse "the declared root does not resolve: $CAPTURE_ROOT"
 
@@ -107,15 +145,30 @@ if [ "$ENTRY_COUNT" != "$LINE_COUNT" ]; then
   refuse 'a path holds a newline'
 fi
 
+# --- The capability, decided by the flag rather than a version string --------
+#
+# The help text is bound first and tested second, so no consumer that can exit
+# before its input is drained sits at the end of a pipeline. `|| true`: a help
+# call that fails leaves the flag unproven, which is the same gap.
+
+GH_EDIT_HELP="$(gh pr edit --help 2>&1 </dev/null)" || true
+case "$GH_EDIT_HELP" in
+  *--attach*) : ;;
+  *)
+    printf 'upgrade gh: this gh pr edit has no --attach flag\n' >&2
+    exit 3
+    ;;
+esac
+
 # --- Per-entry state --------------------------------------------------------
 
-AFTER="$PRE_IMAGE"        # the body as of the last successful read
-READ_FAILED=no            # no re-read has failed yet
+AFTER="$PRE_IMAGE" # the body as of the last successful read
+READ_FAILED=no     # no re-read has failed yet
 NEWLINE='
 '
 case "$PR_HOST" in
   github.com) ASSET_PROXY_HOST="private-user-images.githubusercontent.com" ;;
-  *)          ASSET_PROXY_HOST="private-user-images.$PR_HOST" ;;   # the Enterprise equivalent
+  *) ASSET_PROXY_HOST="private-user-images.$PR_HOST" ;; # the Enterprise equivalent
 esac
 
 REASON=""
@@ -137,7 +190,7 @@ fail_entry() {
 # $REASON. Only an URL on the attachment origin qualifies: allowlisted host,
 # path anchored at the host boundary. Any absolute URL would be too wide — a
 # party with write access can append their own during the attach window and
-# have it harvested, embedded, and copied into every companion PR.
+# have it harvested, embedded, and copied into any PR body a caller writes.
 harvest() {
   local suffix="$1" candidate rest host path file
   ASSET_URL=""
@@ -148,23 +201,23 @@ harvest() {
     host="${rest%%/*}"
     case "$rest" in
       */*) path="/${rest#*/}" ;;
-      *)   path="/" ;;
+      *) path="/" ;;
     esac
     # A host is a whole label, never a substring: userinfo makes
     # `github.com@attacker.example` the host, and a substring test ours.
     case "$host" in
-      ""|*[!A-Za-z0-9.-]*) continue ;;   # empty, or carrying userinfo, a port, or worse
+      "" | *[!A-Za-z0-9.-]*) continue ;; # empty, or carrying userinfo, a port, or worse
     esac
     # Dot segments walk out of the anchor below, so this runs BEFORE it: an
     # HTTP client normalizes `…/assets/../../attacker/evil/x.png` to content
     # the attacker controls on an allowlisted host. Their percent-encoded
     # forms are refused rather than decoded.
-    case "$path" in *..|*../*) continue ;; esac
+    case "$path" in *.. | *../*) continue ;; esac
     case "$candidate" in *%2[eEfF]*) continue ;; esac
-    file="${path%%\?*}"                  # the path with its query string removed
+    file="${path%%\?*}" # the path with its query string removed
     case "$path" in
-      /user-attachments/assets/*) : ;;   # github.com and GitHub Enterprise
-      *)                                 # the private-repo proxy rewrite, on its own host
+      /user-attachments/assets/*) : ;; # github.com and GitHub Enterprise
+      *)                               # the private-repo proxy rewrite, on its own host
         case "$host" in "$ASSET_PROXY_HOST") : ;; *) continue ;; esac
         # `*.githubusercontent.com` is not one host: raw.githubusercontent.com
         # serves any public repository's content. One enumerated host, and one
@@ -172,12 +225,13 @@ harvest() {
         # the rewrite GitHub emits is /<user-id>/<asset-id>-<uuid>.png?jwt=…
         case "${file#/}" in
           */*/*) continue ;;
-          *.png|*.jpg|*.jpeg|*.gif|*.webp|*.avif) : ;;
+          *.png | *.jpg | *.jpeg | *.gif | *.webp | *.avif) : ;;
           *) continue ;;
-        esac ;;
+        esac
+        ;;
     esac
     case "$host" in
-      "$PR_HOST"|"$ASSET_PROXY_HOST"|"${PR_SCREENSHOTS_ASSET_HOST:-$PR_HOST}") : ;;
+      "$PR_HOST" | "$ASSET_PROXY_HOST" | "${PR_SCREENSHOTS_ASSET_HOST:-$PR_HOST}") : ;;
       *) continue ;;
     esac
     # More than one allowlisted candidate is a failure, never a guess: it
@@ -199,47 +253,89 @@ harvest() {
 while IFS= read -r ENTRY_PATH; do
   REASON=""
   case "$ENTRY_PATH" in
-    *"$NEWLINE"*) REASON="newline in path" ; fail_entry ; continue ;;
+    *"$NEWLINE"*)
+      REASON="newline in path"
+      fail_entry
+      continue
+      ;;
     # The host reads `#` in an attach argument as the alt-text delimiter, so a
     # path ending `login.png#after.png` uploads a different file under an alt
     # the caller never chose.
-    *"#"*)        REASON="# in path"       ; fail_entry ; continue ;;
-    /*)           : ;;
-    *)            REASON="relative path"   ; fail_entry ; continue ;;
+    *"#"*)
+      REASON="# in path"
+      fail_entry
+      continue
+      ;;
+    /*) : ;;
+    *)
+      REASON="relative path"
+      fail_entry
+      continue
+      ;;
   esac
   # `[ -L ]` runs BEFORE `[ -e ]`, which follows the link: a dangling symlink
   # tested first reports as `file missing` and hides the attempt. `-f` follows
   # links too, so it alone accepts a link to ~/.ssh/id_ed25519 and uploads it
   # to a live, world-readable user-attachments URL.
-  if [ -L "$ENTRY_PATH" ]; then REASON="symlink refused"    ; fail_entry ; continue ; fi
-  if [ ! -e "$ENTRY_PATH" ]; then REASON="file missing"     ; fail_entry ; continue ; fi
-  if [ ! -f "$ENTRY_PATH" ]; then REASON="not a regular file" ; fail_entry ; continue ; fi
+  if [ -L "$ENTRY_PATH" ]; then
+    REASON="symlink refused"
+    fail_entry
+    continue
+  fi
+  if [ ! -e "$ENTRY_PATH" ]; then
+    REASON="file missing"
+    fail_entry
+    continue
+  fi
+  if [ ! -f "$ENTRY_PATH" ]; then
+    REASON="not a regular file"
+    fail_entry
+    continue
+  fi
   # The parent is bound on its own so the `cd` status is the one observed:
   # appending `/$(basename …)` to the substitution takes the status from
   # `basename`, which succeeds on anything, so a failed `cd` yields a bare
   # `/<name>` this arm never sees.
   if ! ENTRY_DIR="$(cd -- "$(dirname -- "$ENTRY_PATH")" && pwd -P)"; then
-    REASON="file missing" ; fail_entry ; continue
+    REASON="file missing"
+    fail_entry
+    continue
   fi
   RESOLVED="$ENTRY_DIR/$(basename -- "$ENTRY_PATH")"
   # The same two tests on the value `--attach` receives: `pwd -P` resolves a
   # symlinked parent, so a `#` in a directory ABOVE the entry reaches the
   # command without ever appearing in $ENTRY_PATH.
   case "$RESOLVED" in
-    *"$NEWLINE"*) REASON="newline in path" ; fail_entry ; continue ;;
-    *"#"*)        REASON="# in path"       ; fail_entry ; continue ;;
+    *"$NEWLINE"*)
+      REASON="newline in path"
+      fail_entry
+      continue
+      ;;
+    *"#"*)
+      REASON="# in path"
+      fail_entry
+      continue
+      ;;
   esac
   # Resolved before comparing, so `..` cannot climb out of the root.
   case "$RESOLVED" in
     "$CAPTURE_ROOT"/*) : ;;
-    *) REASON="outside the declared root" ; fail_entry ; continue ;;
+    *)
+      REASON="outside the declared root"
+      fail_entry
+      continue
+      ;;
   esac
   # By content type, never by extension, and no type fails: unverified is not
   # an image. That keeps a .env or an id_ed25519 off a public URL.
   MIME="$(file -b --mime-type -- "$RESOLVED" 2>/dev/null || true)"
   case "$MIME" in
     image/*) : ;;
-    *) REASON="not an image" ; fail_entry ; continue ;;
+    *)
+      REASON="not an image"
+      fail_entry
+      continue
+      ;;
   esac
 
   # The argument is $RESOLVED, never $ENTRY_PATH: every check ran against
@@ -257,33 +353,46 @@ while IFS= read -r ENTRY_PATH; do
   # pre-image is, because an unguarded read binds "" on a transient failure —
   # which reads as "the host removed the body".
   if ! AFTER_JSON="$(gh pr view "$NUMBER" --repo "$REPO_SPEC" --json body </dev/null)"; then
-    REASON="body read failed" ; fail_entry ; continue
+    REASON="body read failed"
+    fail_entry
+    continue
   fi
   if ! printf '%s' "$AFTER_JSON" | jq -e 'has("body") and (.body | type == "string")' >/dev/null; then
-    REASON="body read failed" ; fail_entry ; continue
+    REASON="body read failed"
+    fail_entry
+    continue
   fi
   if ! AFTER="$(printf '%s' "$AFTER_JSON" | jq -r '.body | gsub("\r";"")')"; then
-    REASON="body read failed" ; fail_entry ; continue
+    REASON="body read failed"
+    fail_entry
+    continue
   fi
   # A failed attach records its class and CONTINUES. Falling through instead
   # would carry a suffix built from someone else's append into the harvest,
   # where it is the sole candidate, never trips the ambiguity guard, and binds
   # to this entry's caption.
   if [ "$ATTACHED" != yes ]; then
-    REASON="attach failed" ; fail_entry ; continue
+    REASON="attach failed"
+    fail_entry
+    continue
   fi
   # The harvest runs over $SUFFIX — the part of the body that appeared since
   # the last read. A body that no longer starts with the previous read is not a
   # suffix at all.
   case "$AFTER" in
     "$PREVIOUS"*) SUFFIX="${AFTER#"$PREVIOUS"}" ;;
-    *) REASON="body changed during upload" ; fail_entry ; continue ;;
+    *)
+      REASON="body changed during upload"
+      fail_entry
+      continue
+      ;;
   esac
   harvest "$SUFFIX"
   if [ -n "$ASSET_URL" ]; then
     printf '%s\t%s\n' "$ASSET_URL" "$ENTRY_PATH" >>"$ASSETS_FILE"
   else
-    REASON="${REASON:-no attachment URL}" ; fail_entry
+    REASON="${REASON:-no attachment URL}"
+    fail_entry
   fi
 done <"$PATHS_FILE"
 
@@ -325,15 +434,19 @@ if [ -z "$PRE_IMAGE" ]; then
   while IFS= read -r LINE; do
     case "$LINE" in
       *[![:space:]]*) : ;;
-      *) continue ;;                     # blank, or whitespace alone
+      *) continue ;; # blank, or whitespace alone
     esac
     case "$LINE" in
       '!['*']('*')') : ;;
-      *) FOREIGN="$LINE" ; break ;;      # prose, or anything else not an image line
+      *)
+        FOREIGN="$LINE"
+        break
+        ;; # prose, or anything else not an image line
     esac
     harvest "$LINE"
     if [ -z "$ASSET_URL" ]; then
-      FOREIGN="$LINE" ; break            # an image, on a host this run never attached to
+      FOREIGN="$LINE"
+      break # an image, on a host this run never attached to
     fi
   done <<<"$AFTER"
   if [ -n "$FOREIGN" ]; then
