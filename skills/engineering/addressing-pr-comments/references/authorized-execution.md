@@ -20,6 +20,12 @@ In step 6 and authorized mode, the exclusions in `SKILL.md` hard rule 3 stay
 absolute: an item that hits one pauses and is presented instead. The option
 the user then picks for it runs in a later turn.
 
+A later turn that acts on items from an earlier report, by the user's picks
+or direction, is a decision pass. After its last item reaches an outcome,
+follow [review re-request](references/review-re-request.md). A triage pass,
+including step 6 and a direction given with the invocation, reaches it at
+step 8 instead.
+
 ## Per-item loop
 
 Run this loop for each code change (option A or B) as it finishes. The bar,
@@ -38,8 +44,8 @@ resolve, so do not ask again.
    `git add -A` or `git commit -a`, then commit and push so the reply cites
    landed code. On a push failure, stop the item and report the actual
    `git push` error output.
-5. **Reply.** Describe the change and cite the exact commit SHA as bare text
-   (no backticks).
+5. **Reply.** Describe the change, cite the exact commit SHA as bare text (no
+   backticks), and end with the item's outcome marker line.
 6. **Resolve threads only.** A review summary or conversation comment has no
    resolve operation; its handling ends at the reply.
 7. **React.** Add 👍 `THUMBS_UP` to the item's opening comment with the
@@ -54,6 +60,21 @@ Write every reply body to a temporary file outside the repository with the
 file-writing tool, then pass it by path. Never put reply text in a shell
 command or a heredoc, because it can quote the reviewer
 ([external data rules](shared/external-data.md)).
+
+End every outcome reply, the reply that carries out option A to F on any item
+shape, with the item's outcome marker line:
+
+```text
+<!-- feedback-outcome: <url> -->
+```
+
+`<url>` is the item's `url` from the step 2 retrieval, copied unchanged: a
+thread's first comment `url`, or the review summary's or conversation
+comment's own `url`. Put the marker on its own line after all other text, one
+line per item when one reply answers several PR-level items. A G reply never
+carries it, because the item still awaits an answer. GitHub hides the line
+when it renders the reply. Without it, `scripts/re-request-review.mjs` counts
+the item as still pending.
 
 Shell variables may not survive from one command to the next, so each snippet
 binds its own values on its first line: `<host>`, `<owner>`, `<repo>`, and
@@ -71,7 +92,8 @@ gh api --hostname "${HOST:?}" --method POST \
   -F "body=@${BODY_FILE:?}" -F "in_reply_to=${REPLY_TO:?}" --jq .id
 ```
 
-Reply to a PR-level item with a top-level comment that links the item:
+Reply to a PR-level item with a top-level comment that links the item by its
+`url`:
 
 ```bash
 HOST='<host>' OWNER='<owner>' REPO='<repo>' NUMBER='<number>' BODY_FILE='<reply-file>'

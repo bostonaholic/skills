@@ -22,10 +22,10 @@ Classify each ordinary comment:
 
 - `REMOVE` when it explains what code does, duplicates another contract,
   narrates process, carries incidental context the code does not need, cites
-  internal work tracking, leaves dead code, carries a TODO/FIXME, is obsolete,
-  or cannot be verified. Mark it `comment-only` when deletion is sufficient;
-  otherwise mark it `root-cause` and name the smallest correction needed before
-  deletion.
+  internal work tracking, leaves dead code, carries a TODO/FIXME, is
+  demonstrably obsolete, or is contradicted by the code. Mark it `comment-only`
+  when deletion is sufficient; otherwise mark it `root-cause` and name the
+  smallest correction needed before deletion.
 - `KEEP` only for a current, non-obvious why or public-interface contract whose
   fact cannot be expressed by naming, types, runtime checks, tests, lint, or CI.
   Cite evidence for the constraint and for why mechanical encoding is not

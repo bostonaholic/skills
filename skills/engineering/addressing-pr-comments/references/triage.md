@@ -8,9 +8,10 @@
 - Step 4: Verify each item
 - Step 5: Classify each item
 - Step 7: Present the report and punch list
-- Step 8: Stop and hand off
+- Step 9: Stop and hand off
 
-Step 6 is in [authorized execution](references/authorized-execution.md).
+Step 6 is in [authorized execution](references/authorized-execution.md), and
+step 8 is in [review re-request](references/review-re-request.md).
 
 ## Step 1: Resolve the PR
 
@@ -25,7 +26,7 @@ gh pr view "<number-or-url>" --json number,url,baseRefName
 Take `host`, `owner`, `repo`, and `number` from `url`. On a GitHub Enterprise
 PR, pass `--hostname <host>` to every `gh api` call.
 
-Record the working tree's state for step 8:
+Record the working tree's state for step 9:
 
 ```bash
 git status --porcelain=v1 --untracked-files=all
@@ -103,7 +104,12 @@ Do this for each item before any classification or recommendation:
      as bare text).
    - `STALE`: the code was removed or rewritten, so the comment no longer
      applies as written.
-   - `INACCURATE`: the claim does not hold against the code.
+   - `INACCURATE`: the claim does not hold against the code. Rate the
+     concern, not the premise: a comment can cite the wrong version, line, or
+     symbol and still name a real defect, so disproving the citation settles
+     only the citation. Say which of the two is inaccurate. When the premise
+     is wrong and the concern survives, the verdict is `STILL RELEVANT` and
+     the reply corrects the citation.
 5. **Rate confidence** against the auto-apply bar in `SKILL.md` hard rule 2.
 
 Post nothing during verification. A reaction waits for the decision that
@@ -197,7 +203,7 @@ PR-level item shows `PR-level` in place of `<path>:<line>`:
 Group blocks by file, PR-level items after files, and `NEEDS CLARIFICATION`
 items last. Number blocks globally so the user can pick by number.
 
-## Step 8: Stop and hand off
+## Step 9: Stop and hand off
 
 Before ending the turn:
 

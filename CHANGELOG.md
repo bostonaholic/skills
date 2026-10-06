@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-06
+
+### Added
+
+- Add a testing rule that proves a claimed race with a test driving each side on its own connection and detecting blocking by timeout. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Add a testing rule that proves a coverage gap by deleting the behavior's code and showing the suite stays green. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Re-request review from each reviewer whose latest review requested changes once an `addressing-pr-comments` or `watching-authored-prs` pass leaves no feedback awaiting a response. [#17](https://github.com/bostonaholic/skills/pull/17)
+
+### Changed
+
+- Condense the shared writing procedure into one ordered paragraph. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Size a document to the decision it supports instead of capping it at one page. [#17](https://github.com/bostonaholic/skills/pull/17)
+
+### Fixed
+
+- Make `addressing-pr-comments` rate a comment's concern rather than its citation, so a wrong premise no longer declines a real defect. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Keep a comment that `removing-comments` cannot verify, removing only one that is demonstrably obsolete or contradicted by the code. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Keep printing the `watching-authored-prs` poll snapshot on a wake with no new feedback, so compaction recovery still has it. [#17](https://github.com/bostonaholic/skills/pull/17)
+
 ## [0.12.0] - 2026-10-06
 
 ### Changed
@@ -187,5 +206,7 @@
 
 [0.11.0]: https://github.com/bostonaholic/skills/compare/v0.10.0...v0.11.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.12.0...HEAD
 [0.12.0]: https://github.com/bostonaholic/skills/compare/v0.11.0...v0.12.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/bostonaholic/skills/compare/v0.12.0...v0.13.0
