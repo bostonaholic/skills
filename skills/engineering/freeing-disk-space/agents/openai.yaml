@@ -1,0 +1,4 @@
+interface:
+  display_name: "Freeing Disk Space"
+  short_description: "Find what fills the disk and clear regenerable files"
+  default_prompt: "Use $freeing-disk-space to find what is filling this machine's disk and propose approved cleanup commands for caches and build outputs."

@@ -11,6 +11,7 @@
 - Add `auditing-agent-token-usage`, which audits Claude Code and Codex session logs for token and context cost. [#24](https://github.com/bostonaholic/skills/pull/24)
 - Add `summarizing-friction-logs`, which renders frog friction logs across a workspace as one prioritized dashboard. [#24](https://github.com/bostonaholic/skills/pull/24)
 - Add `conducting-deep-research`, which pairs a scholarly evidence review with an institution and funding map. [#24](https://github.com/bostonaholic/skills/pull/24)
+- Add `freeing-disk-space`, which finds what fills a developer machine's disk and clears regenerable caches and build outputs after approval. [#24](https://github.com/bostonaholic/skills/pull/24)
 - Add `summarizing-shipped-work`, which turns merged PRs into a shipped-work report and offers a brag document update. [#24](https://github.com/bostonaholic/skills/pull/24)
 
 ### Changed
