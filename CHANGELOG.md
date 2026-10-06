@@ -7,6 +7,11 @@
 - Add a testing rule that proves a claimed race with a test driving each side on its own connection and detecting blocking by timeout. [#17](https://github.com/bostonaholic/skills/pull/17)
 - Add a testing rule that proves a coverage gap by deleting the behavior's code and showing the suite stays green. [#17](https://github.com/bostonaholic/skills/pull/17)
 
+### Changed
+
+- Condense the shared writing procedure into one ordered paragraph. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Size a document to the decision it supports instead of capping it at one page. [#17](https://github.com/bostonaholic/skills/pull/17)
+
 ### Fixed
 
 - Make `addressing-pr-comments` rate a comment's concern rather than its citation, so a wrong premise no longer declines a real defect. [#17](https://github.com/bostonaholic/skills/pull/17)
