@@ -32,7 +32,7 @@ begins. If a read fails, stop that step and report the exact path.
 
 ## Preflight
 
-Run `command -v git grep osv-scanner` plus the ecosystem fallbacks Phase 2
+Run `command -v git grep file osv-scanner` plus the ecosystem fallbacks Phase 2
 needs (`npm`, `bundle-audit`, `pip-audit`, `cargo-audit`). A missing scanner is
 never installed during the audit: record `Not run: <tool> not installed` and
 review the lockfile by hand for known-bad or typosquatted names.
@@ -42,13 +42,22 @@ review the lockfile by hand for known-bad or typosquatted names.
 1. Identify the ecosystems from their manifests: `package.json`, `Gemfile`,
    `requirements.txt`, `pyproject.toml`, `setup.py`, `Cargo.toml`, `go.mod`,
    `Makefile`, `CMakeLists.txt`.
-2. Find everything that runs without an explicit command: install hooks,
+2. Inventory what the greps cannot see. They skip binary files and the
+   `node_modules`, `vendor`, and `dist` directories, so run the
+   [file inventory](references/detection-patterns.md#file-inventory) to list
+   hidden files and directories, executables, binaries, and minified or packed
+   code. Read each hidden file the ecosystem does not explain. A binary or
+   prebuilt executable the repo does not explain is a finding. Minified code
+   with no source in the repo is an
+   [obfuscation](references/detection-patterns.md#obfuscation) lead; Phase 4
+   scans it even inside an excluded directory.
+3. Find everything that runs without an explicit command: install hooks,
    `.vscode/tasks.json` tasks with `"runOn": "folderOpen"`, `.envrc`, git
    hooks (`.husky/`, a script that sets `core.hooksPath`), `.devcontainer`
    commands, `Makefile` default targets, `configure`, and workflows on
-   `pull_request_target`. Use the
+   `pull_request_target` or `workflow_run`. Use the
    [auto-run and install hook greps](references/detection-patterns.md#auto-run-and-install-hooks).
-3. Record the result: **PASS** (nothing runs automatically), **CONDITIONAL**
+4. Record the result: **PASS** (nothing runs automatically), **CONDITIONAL**
    (something runs, and the report names how to avoid it), or **FAIL** (what
    runs is dangerous). Continue the static audit in every case unless the
    fail-fast rule applies.

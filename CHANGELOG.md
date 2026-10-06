@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add a file inventory (hidden files, executables, binaries, minified code) and container, CI, and privilege patterns to `auditing-repo-security`. [#14](https://github.com/bostonaholic/skills/pull/14)
+
 ## [0.7.0] - 2026-10-06
 
 ### Changed
