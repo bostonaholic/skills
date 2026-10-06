@@ -8,7 +8,7 @@ separate version PRs, or npm package publications.
 
 ## What releases
 
-Changes under `skills/engineering/` and `skills/productivity/`, plus functional
+Changes under `skills/engineering/`, `skills/productivity/`, and `agents/`, plus functional
 changes in the plugin and marketplace manifests, require a release.
 Renames and removals count. Shared source edits reach users through regenerated
 copies in active skills. Archives, tests, workflows, site code, and maintainer

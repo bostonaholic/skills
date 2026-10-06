@@ -126,6 +126,7 @@ test("runtime classification excludes archives and tooling and ignores manifest 
   assert.equal(runtimeChanged([".claude-plugin/plugin.json"], before, after), false);
   assert.equal(runtimeChanged([".claude-plugin/plugin.json"], before, () => '{"name":"renamed","version":"0.2.0"}'), true);
   assert.equal(runtimeChanged(["skills/productivity/widget/file"], before, after), true);
+  assert.equal(runtimeChanged(["agents/widget.md"], before, after), true);
 });
 
 test("manifest descriptions can be added, edited, or removed without a release", () => {

@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston",
@@ -53,5 +53,9 @@
     "./skills/productivity/running-retros",
     "./skills/productivity/writing-prose",
     "./skills/productivity/writing-system-prompts"
+  ],
+  "agents": [
+    "./agents/clean-code-architect.md",
+    "./agents/oracle.md"
   ]
 }

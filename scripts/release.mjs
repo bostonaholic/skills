@@ -99,7 +99,7 @@ function runtimeManifest(path, text) {
 }
 
 export function runtimeChanged(files, before, after) {
-  return files.some((path) => /^skills\/(engineering|productivity)\//.test(path)
+  return files.some((path) => /^(skills\/(engineering|productivity)|agents)\//.test(path)
     || (MANIFESTS.includes(path) && runtimeManifest(path, before(path)) !== runtimeManifest(path, after(path))));
 }
 
