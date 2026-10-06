@@ -7,6 +7,10 @@
 - Point `learning-from-mistakes` to `running-retros` for lessons from a whole session. [#16](https://github.com/bostonaholic/skills/pull/16)
 - Stop `writing-prose` from suggesting semicolons as an em dash replacement. [#16](https://github.com/bostonaholic/skills/pull/16)
 
+### Fixed
+
+- Hand a requested merge in `using-gh-cli` to `landing-prs`, and without it squash-merge only after checks pass and the merge state is `CLEAN`. [#16](https://github.com/bostonaholic/skills/pull/16)
+
 ## [0.11.0] - 2026-10-06
 
 ### Added
