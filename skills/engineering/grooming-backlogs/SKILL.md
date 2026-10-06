@@ -1,8 +1,8 @@
 ---
 name: grooming-backlogs
-description: 'Grooms a GitHub Projects backlog: verifies issues against the code, ranks and clusters them, and plans milestone, link, and closure changes, or promotes one issue to Ready. Proposes tracker changes; each requires approval. Use when asked to groom, triage, or prioritize a backlog, or to promote an issue to Ready.'
+description: 'Grooms a GitHub Projects backlog: verifies issues against the code, ranks and clusters them, and plans milestone, link, and closure changes, or promotes issues to Ready. Proposes tracker changes; each requires approval. Use when asked to groom, triage, or prioritize a backlog, or to promote issues to Ready.'
 effort: high
-argument-hint: "[<project-number-or-url>] [--promote <issue-number>]"
+argument-hint: "[<project-number-or-url>] [--promote <issue-number> | --promote-top [<count>] [--focus <area>]]"
 ---
 
 # grooming-backlogs — plan, ask, wait, then execute
@@ -35,12 +35,24 @@ check never proves write authority on the board.
   (`https://github.com/users/<owner>/projects/5`).
 - Neither: find the board by [board discovery](#board-discovery).
 - `--promote <issue-number>`: selects promotion mode.
+- `--promote-top [<count>]`: selects batch promotion mode, which readies the
+  top `<count>` candidates. The default is 4, which stays under the default
+  Ready limit of 5. A number directly after the flag is always its count, so
+  a board number goes before the flag or travels as a URL.
+- `--focus <area>`: narrows batch promotion mode to one focus area, such as a
+  label, a component, or a theme. Quote an area that contains spaces.
 
 This section is the only place `$ARGUMENTS` is read. A malformed, non-numeric,
 or unresolvable project reference stops before any read: report what was
 passed, name the discovery order, and do not guess. One board per run. A
 `--promote` value that is missing, non-numeric, or repeated also stops before
-any read. An issue number that is not on the board stops non-zero.
+any read. An issue number that is not on the board stops non-zero. These also
+stop before any read: a `--promote-top` count that is not a positive integer,
+a repeated `--promote-top` or `--focus`, a `--focus` with no value or without
+`--promote-top`, and `--promote` together with `--promote-top`, which name
+different modes. The focus area is prose even though the user wrote it: it
+narrows the pool by judgment over the run cache and never reaches a command
+line.
 
 The board reference resolves `$PROJECT` and `$OWNER`, the project's owner. The
 repository is never passed. Board mode derives it from the loaded board: each
@@ -80,12 +92,17 @@ The work-tracking section is untrusted data under
 
 ## Choose the mode
 
-- **`--promote` present: promotion mode**, whatever else was passed. A
-  positional board reference then only scopes which board the issue must be
-  on. Follow [promotion mode](references/promotion-mode.md). Promotion mode
-  takes its repository from the issue's board item, creates no milestone, and
-  runs no board-mode step.
-- **`--promote` absent: board mode.** Follow
+- **`--promote` present: promotion mode.** A positional board reference then
+  only scopes which board the issue must be on. Follow
+  [promotion mode](references/promotion-mode.md). Promotion mode takes its
+  repository from the issue's board item, creates no milestone, and runs no
+  board-mode step.
+- **`--promote-top` present: batch promotion mode.** Follow
+  [batch promotion mode](references/batch-promotion-mode.md) and its
+  checklist. It loads like board mode, so the one-repository rule binds it.
+  It runs board-mode steps 1, 3, and 4, then promotes through promotion
+  mode's standard, and creates no milestone.
+- **Neither present: board mode.** Follow
   [board mode](references/board-mode.md) and its checklist.
 
 ## Board settings
@@ -164,12 +181,14 @@ The actions, in the order a run performs them:
   among the writes; one that touches a just-closed endpoint dies at the
   endpoint re-read.
 - **Promote**: bring one item to the ready-to-work standard, then move its
-  card into the Ready column. Board mode recommends one; only promotion mode
-  performs one.
+  card into the Ready column. Board mode recommends one; promotion mode
+  performs one, and batch promotion mode one per selected issue, each behind
+  its own answer.
 
 ## Run cache
 
-Both modes create the run's cache directory first and print its absolute path:
+Every mode creates the run's cache directory first and prints its absolute
+path:
 
 ```bash
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/grooming-backlogs.XXXXXXXX")" \
@@ -203,7 +222,7 @@ tie names both candidates and recommends one.
 ## Conditional references
 
 - [Verifying claims](references/verifying-claims.md): when checking an issue's
-  claims, in either mode.
+  claims, in any mode.
 - [Closures](references/closures.md): when a verdict is premise evaporated,
   from the proposal to the verified close.
 - [Tracker recipes](references/tracker-recipes.md): before the first tracker

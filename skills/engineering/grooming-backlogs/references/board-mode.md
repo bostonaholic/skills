@@ -128,7 +128,7 @@ board's own rules allow to promote, in both cases without the board's
 excluded label. An issue that appears only in an aggregate count, such as
 estimate coverage, enters through the second group or not at all. The same
 set is the closure pool. An issue in an in-flight state enters for
-verification only.
+verification only. Batch promotion mode replaces this set with its own pool.
 
 Verify each candidate per [verifying claims](references/verifying-claims.md).
 A premise-evaporated candidate becomes a closure proposal under
