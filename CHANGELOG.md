@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Ship two Claude Code subagents with the plugin, loaded as `bostonaholic:<name>`: `oracle` gives a read-only second opinion on a stuck diagnosis or design trade-off, and `clean-code-architect` takes a feature or refactor to implement and test. [#12](https://github.com/bostonaholic/skills/pull/12)
+
 ## [0.8.0] - 2026-10-06
 
 ### Added

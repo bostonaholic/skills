@@ -53,5 +53,9 @@
     "./skills/productivity/running-retros",
     "./skills/productivity/writing-prose",
     "./skills/productivity/writing-system-prompts"
+  ],
+  "agents": [
+    "./agents/clean-code-architect.md",
+    "./agents/oracle.md"
   ]
 }

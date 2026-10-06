@@ -1,4 +1,4 @@
-// Fails when the Claude Code plugin manifest stops shipping exactly the tracked skills, when its
+// Fails when the Claude Code plugin manifest stops shipping exactly the tracked skills and agents, when its
 // version drifts from package.json, or when the marketplace stops pointing at this plugin from the
 // repository root. Skills are enumerated with `git ls-files`, so untracked directories never count.
 import assert from "node:assert/strict";
@@ -28,6 +28,15 @@ test("the plugin skills array lists every tracked skill once and nothing else", 
   const listed = readJson(PLUGIN).skills;
   assert.ok(Array.isArray(listed), `${PLUGIN} has no skills array`);
   assert.deepEqual([...listed].sort(), tracked);
+});
+
+test("the plugin agents array lists every tracked agent once and nothing else", () => {
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", "agents/*.md"], { encoding: "utf8" })
+    .split("\0")
+    .filter((path) => /^agents\/[^/]+\.md$/.test(path))
+    .map((path) => `./${path}`)
+    .sort();
+  assert.deepEqual([...(readJson(PLUGIN).agents ?? [])].sort(), tracked);
 });
 
 test("the plugin version equals the package.json version", () => {
