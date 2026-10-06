@@ -4,8 +4,15 @@
  * Where an approved edit is allowed to land, and whether a proposed skill
  * name or repo path may be used at all.
  *
- *     node "<skill-dir>/resources/write-target.mjs" <repo-root> <skill-name>
- *     node "<skill-dir>/resources/write-target.mjs" <repo-root> --path <repo-relative-path>
+ *     node "<skill-dir>/scripts/write-target.mjs" <repo-root> <skill-name>
+ *     node "<skill-dir>/scripts/write-target.mjs" <repo-root> --path <repo-relative-path>
+ *
+ * Output (skill name): `edit root:`, `edit target:`, `edit target exists:`,
+ * `create target:`, `create target exists:`, then one `shadowed copy:` line per
+ * copy of the same skill under the other skills root.
+ * Output (--path): `target:` and `target exists:`.
+ * Exit codes: 0 when the target is allowed; 1 on a usage error or a refusal,
+ * printed on stderr as `usage: ...` or `refusing: ...`.
  *
  * Every input here comes from transcript text, so it is untrusted. The three
  * checks below are `f(input) -> output`, which is why they are code rather
@@ -132,6 +139,21 @@ export function resolveEditTarget(query) {
   return { status: "missing", target: flat };
 }
 
+/**
+ * Copies of skill `name` under the skills root that is not the edit root:
+ * `<repo>/.claude/skills/` when the edit root is `<repo>/skills/`, and the
+ * reverse. An edit lands only at the edit target, so these copies are
+ * shadowed: the caller lists them and leaves them untouched.
+ */
+export function shadowedCopies(query) {
+  const { repoRoot, editRoot, name } = query ?? {};
+  const pluginRoot = join(repoRoot, "skills");
+  const otherRoot = editRoot === pluginRoot ? join(repoRoot, ".claude", "skills") : pluginRoot;
+  const other = resolveEditTarget({ editRoot: otherRoot, name });
+  if (other.status === "ambiguous") return other.matches;
+  return other.status === "found" ? [other.target] : [];
+}
+
 // CLI entry point — runs only when executed directly, never on import, so a
 // test import has no side effects.
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
@@ -189,4 +211,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   process.stdout.write(`edit target exists: ${existsSync(editTarget)}\n`);
   process.stdout.write(`create target: ${createTarget}\n`);
   process.stdout.write(`create target exists: ${existsSync(createTarget)}\n`);
+  if (resolved.status === "found") {
+    for (const copy of shadowedCopies({ repoRoot, editRoot, name })) {
+      process.stdout.write(`shadowed copy: ${copy}\n`);
+    }
+  }
 }

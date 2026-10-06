@@ -1,4 +1,4 @@
 interface:
-  display_name: "Improve Prompt"
-  short_description: "Improve an existing prompt"
-  default_prompt: "Use $improving-prompts to improve the supplied prompt."
+  display_name: "Improving Prompts"
+  short_description: "Compress and clarify an existing prompt"
+  default_prompt: "Use $improving-prompts to compress and clarify the supplied prompt without losing any instruction."

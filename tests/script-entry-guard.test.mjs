@@ -33,13 +33,13 @@ function importModule(t, path) {
 }
 
 test("resolve-transcript.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(join(symlinkedDir(t, "skills/productivity/running-retros/resources"), "resolve-transcript.mjs"));
+  const run = runScript(join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "resolve-transcript.mjs"));
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^usage: resolve-transcript\.mjs </);
 });
 
 test("write-target.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(join(symlinkedDir(t, "skills/productivity/running-retros/resources"), "write-target.mjs"));
+  const run = runScript(join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "write-target.mjs"));
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^usage: write-target\.mjs </);
 });
@@ -51,12 +51,12 @@ test("splice.mjs run through a symlinked directory reaches its usage error", (t)
 });
 
 test("importing resolve-transcript.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(t, join(symlinkedDir(t, "skills/productivity/running-retros/resources"), "resolve-transcript.mjs"));
+  const run = importModule(t, join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "resolve-transcript.mjs"));
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
 test("importing write-target.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(t, join(symlinkedDir(t, "skills/productivity/running-retros/resources"), "write-target.mjs"));
+  const run = importModule(t, join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "write-target.mjs"));
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 

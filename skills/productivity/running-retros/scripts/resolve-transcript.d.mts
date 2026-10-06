@@ -26,14 +26,10 @@ export interface NormalizedTranscript {
   /** Dropped non-allowlisted record types, counted per type. */
   droppedByType: Record<string, number>;
   malformedLines: number;
-  /** Retained for report compatibility; normalization never truncates spans. */
-  truncatedSpans: 0;
   /** Well-formed JSON lines no supported host writes. */
   unrecognizedRecords: number;
   /** The thread this one was forked from, whose turns are in another file. */
   priorHistory: string | null;
-  /** Retained for report compatibility; normalization never caps the stream. */
-  droppedForCeiling: 0;
 }
 
 /** One raw record, classified: kept, dropped under a counter key, or unreadable. */

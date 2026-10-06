@@ -1,7 +1,7 @@
 interface:
-  display_name: "Retro"
+  display_name: "Running Retros"
   short_description: "Mine a session or named sources for durable learnings"
-  default_prompt: "Use $running-retros to mine this session for durable learnings."
+  default_prompt: "Use $running-retros to mine this session for durable learnings and propose approval-gated changes."
 
 policy:
   allow_implicit_invocation: false

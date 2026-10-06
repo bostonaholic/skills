@@ -1,4 +1,4 @@
 interface:
-  display_name: "Agent Prompt"
-  short_description: "Compose an agent-optimized prompt for a task"
-  default_prompt: "Use $composing-agent-prompts to compose an agent-optimized prompt for a task."
+  display_name: "Composing Agent Prompts"
+  short_description: "Compose a source-cited task prompt for another agent"
+  default_prompt: "Use $composing-agent-prompts to compose a self-contained task prompt for another agent, without running the task."

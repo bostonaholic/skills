@@ -1,27 +1,43 @@
 ---
 name: learning-from-mistakes
-description: This skill should be used when the user says "learn from that mistake", "remember this for next time", "add that to CLAUDE.md", "don't do that again", or wants to codify a correction or lesson into CLAUDE.md so it persists across sessions.
+description: Codifies the latest correction or mistake in the conversation as a short imperative rule in the project or global CLAUDE.md or AGENTS.md, after the user approves it. Use when the user asks to learn from a mistake, remember a lesson for next time, add a rule to CLAUDE.md, or not repeat a behavior.
 ---
 
 # Learn From Mistake
 
-Review the conversation to identify the most recent mistake or correction, then codify it as a rule in the appropriate CLAUDE.md.
+Turn the most recent mistake or correction in the conversation into a rule in
+the instructions file the agent reads, so the lesson persists across sessions.
 
 ## Steps
 
-1. **Identify the mistake**: Scan the conversation history for the most recent correction, mistake, or suboptimal behavior. Summarize what went wrong in one sentence.
+1. **Identify the mistake**: Find the most recent correction, mistake, or
+   suboptimal behavior in the conversation and summarize what went wrong in one
+   sentence. If none is clear, ask the user which correction to codify and wait.
 
-2. **Draft a rule**: Write a concise, actionable rule that prevents this mistake in the future. The rule should be:
-   - Specific enough to be useful (not vague platitudes)
-   - Written as an imperative ("Do X" or "Never Y")
-   - One to two sentences max
+2. **Draft a rule**: One or two imperative sentences ("Do X", "Never Y"),
+   specific enough to change behavior, not a platitude.
 
-3. **Choose the right file**: Determine which CLAUDE.md to update:
-   - **Project CLAUDE.md** (`./CLAUDE.md`): for lessons specific to this project's codebase, conventions, or tooling
-   - **Global CLAUDE.md** (`~/.claude/CLAUDE.md`): for lessons that apply across all projects (general coding habits, communication style, workflow)
+3. **Choose the target file**:
+   - **Project**, for lessons about this project's codebase, conventions, or
+     tooling: the instructions file at the repository root from
+     `git rev-parse --show-toplevel` (outside a repository, ask where to write).
+     Use `CLAUDE.md` in Claude Code and `AGENTS.md` in Codex.
+   - **Global**, for lessons that apply across projects: `~/.claude/CLAUDE.md`
+     in Claude Code, `~/.codex/AGENTS.md` in Codex. In another host, ask which
+     file it reads.
+   - If the chosen file is a symlink, edit the file it resolves to. If it only
+     imports another file (a line such as `@AGENTS.md`), edit the imported file.
 
-4. **Check for duplicates**: Read the target CLAUDE.md and verify the rule doesn't already exist or overlap with an existing rule. If a related rule exists, refine it rather than adding a duplicate.
+4. **Check for overlap**: Read the target file. If the rule already exists,
+   stop and say where. If a related rule exists, refine it instead of adding a
+   duplicate.
 
-5. **Add the rule**: Append the rule to the most appropriate existing section, or create a new `## Learned Rules` section if no section fits. Keep the file well-organized.
+5. **Confirm**: Show the drafted rule (or the old and new text of a refined
+   rule), the target file path, and the section it goes in. Wait for approval,
+   and apply any edits the user asks for.
 
-6. **Show the user**: Display the exact rule added and which file was updated.
+6. **Write**: Add the approved rule to that section, or to a new
+   `## Learned Rules` section when no section fits.
+
+7. **Verify**: Re-read the file and confirm the rule appears once, exactly as
+   approved. Report the file path and the rule.

@@ -1,6 +1,6 @@
 ---
 name: cutting-skills
-description: Critically audit or explicitly trim an existing agent skill to its behavioral core, including narrowing over-broad trigger metadata. Use when the user asks to cut, simplify, shorten, de-slop, or reduce the context cost or trigger aggressiveness of a SKILL.md or skill folder. Do not trigger merely because a skill is long or is being edited for another purpose.
+description: Audits or trims an existing agent skill to its behavioral core and narrows over-broad trigger metadata. Use when the user asks to cut, simplify, shorten, de-slop, or reduce the context cost or trigger aggressiveness of a SKILL.md or skill folder. Never infer from a skill being long or edited for another purpose.
 ---
 
 # Skill Cutter
@@ -8,19 +8,33 @@ description: Critically audit or explicitly trim an existing agent skill to its 
 Reduce context cost and accidental activation without weakening the behavior the
 skill exists to provide. Treat line count as evidence, not the objective.
 
-## Choose the mode
+Copy this checklist and check off each step:
+
+```text
+- [ ] 1. Choose the mode
+- [ ] 2. Find the behavioral core
+- [ ] 3. Classify material
+- [ ] 4. Cut trigger aggression
+- [ ] 5. Apply the cut (Cut mode only)
+- [ ] 6. Validate, fix, and re-run until clean
+- [ ] 7. Report
+```
+
+## 1. Choose the mode
 
 - **Audit:** When asked to review, critique, or identify cuts, inspect and report
-  without editing.
+  without editing. Skip step 5; the report proposes each action instead.
 - **Cut:** An explicit request to cut, trim, shorten, simplify, or de-slop the
   skill authorizes local edits within that skill. It does not authorize commit,
   push, publication, or changes to consumers outside the requested scope.
 
-## Find the behavioral core
+## 2. Find the behavioral core
 
-Read the complete `SKILL.md`, its UI metadata, and only the directly relevant
-resources. Identify the concrete tasks that should trigger it and the decisions
-an otherwise capable agent would get wrong without it.
+Read the complete `SKILL.md`, its `agents/openai.yaml` if present, and only the
+directly relevant resources. Identify the concrete tasks that should trigger it
+and the decisions an otherwise capable agent would get wrong without it.
+
+## 3. Classify material
 
 Classify material before cutting:
 
@@ -35,10 +49,11 @@ Classify material before cutting:
 | Stale, unverifiable, or overclaimed fact                     | Verify, qualify, or delete             |
 | Detail needed only for one variant                           | Move to a selectively loaded reference |
 
-Report which class justified every material keep, move, or deletion. Do not hide
-subjective policy behind claims that a provider or tool requires it.
+Record which class justified every material keep, move, or deletion; the report
+lists them. Do not hide subjective policy behind claims that a provider or tool
+requires it.
 
-## Cut trigger aggression
+## 4. Cut trigger aggression
 
 The frontmatter description is always-loaded routing context. Make it narrow and
 concrete:
@@ -48,12 +63,12 @@ concrete:
   triggers unless universal activation is truly intended;
 - add concise exclusions for nearby tasks that should not activate it;
 - move no trigger rules into the body, which is read only after activation; and
-- keep `agents/openai.yaml` display text and default prompt aligned with the
+- keep the `agents/openai.yaml` display text and default prompt aligned with the
   narrowed contract.
 
 Do not make the description so timid that explicit requests stop matching.
 
-## Apply the cut
+## 5. Apply the cut
 
 Prefer deletion over compression. Preserve:
 
@@ -73,24 +88,45 @@ Remove:
 Do not preserve text merely because it is correct. Do not replace readable
 instructions with dense slogans, and do not move bulk into references simply to
 make `SKILL.md` look shorter. Do not delete scripts, assets, or operational
-references based only on apparent non-use; inspect their callers and purpose.
+references based only on apparent non-use; search for their callers, including
+tests, and read their purpose first.
 
 For unstable provider claims, check current primary documentation. Separate
 provider constraints from optional recommendations and local policy.
 
-## Validate and report
+## 6. Validate
 
-Preserve unrelated work. After editing, update broken links and UI metadata, run
-the repository's skill validator, and inspect the final diff.
+Preserve unrelated work. After editing, update broken links and
+`agents/openai.yaml`, then validate:
 
-Report:
+1. Find the repository's skill checks: a validator or lint command named in
+   `AGENTS.md`, `CONTRIBUTING.md`, or the package manifest, or
+   `skills-ref validate <target-skill>` when the Agent Skills reference
+   validator is installed. Never invent a command.
+2. If none exists, check by hand: the frontmatter parses with `name` and
+   `description`, and every relative link and script path in the skill
+   resolves to a file.
+3. Fix every failure inside the skill and re-run until clean. Report failures
+   outside the skill instead of fixing them.
+4. Inspect the final diff for removed behavior that no classification justifies.
 
-- before/after lines, words, and files;
-- the retained behavioral contract;
-- a compact keep/condense/move/delete classification with reasons;
-- trigger changes and exclusions;
-- validation performed; and
-- uncertain material deliberately left untouched.
+In Audit mode, run the checks once and report their results.
 
-A successful cut is smaller and less eager to trigger while still changing the
-agent's behavior in every case the skill was created to handle.
+## 7. Report
+
+Use this template. Keep the fields and their order; in Audit mode, actions are
+proposals and after-sizes are estimates.
+
+```markdown
+## <skill name>: <Audit | Cut>
+
+Size: SKILL.md <before> -> <after> lines; skill <before> -> <after> words; <before> -> <after> files
+Contract: <the behavior the skill still provides, in one or two sentences>
+
+| Material (file:lines) | Class | Action | Reason |
+| --------------------- | ----- | ------ | ------ |
+
+Trigger: <description change and exclusions added>
+Validation: <each command or manual check, and its result>
+Left untouched: <uncertain material and why>
+```

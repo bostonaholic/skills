@@ -1,11 +1,11 @@
 ---
 name: writing-prose
-description: Use when writing documentation, READMEs, explanations, blog posts, or any prose meant for humans to read
+description: Writes and edits prose for people in a plain, conversational, short house style with no em dashes. Use when drafting or revising documentation, READMEs, explanations, blog posts, or other human-facing prose. Not for prompts written for agents; use writing-system-prompts or composing-agent-prompts.
 ---
 
 # Writing Prose
 
-## The Rule
+## The Rule (house style)
 
 **Write like you talk. Then cut.**
 
@@ -14,95 +14,10 @@ If not, rewrite it.
 
 ## Brevity
 
-AI-assisted writing runs longer than the writer would have produced by hand:
-paragraph after paragraph of plausible-sounding text that says little. Length
-is itself a tell, and every extra word taxes the reader.
-
-Cut to what you'd write if you had to say it out loud to a busy person. This is
-not terseness: keep every idea the reader needs, drop the words that carry
-none. If a cut loses meaning, keep the words. If it only loses padding, cut.
-
-**Test:** Is this longer than I'd have written without help? If yes, cut.
-
-## Core Formula
-
-Usefulness = Correctness × Novelty × Importance × Strength
-
-- **Correct**: True, but not so vague it says nothing
-- **Novel**: Unknown to reader, surprising or unarticulated
-- **Important**: Actually matters to them
-- **Strong**: As bold as possible without becoming false
-
-These multiply. Zero in any dimension = zero value.
-
-## The Process
-
-1. **Draft fast**: Get ideas down without editing
-2. **Read aloud**: Catches awkward phrasing instantly
-3. **Cut ruthlessly**: Delete weak sentences, abandon weak paragraphs
-4. **Repeat**: Rewrite until no passage feels uncertain
-
-## Sentence-Level Checklist
-
-For each sentence ask:
-
-- [ ] Would I say this to a friend?
-- [ ] Can I cut any words?
-- [ ] Is this the simplest way to say it?
-- [ ] Does it sound good when read aloud?
-
-## Punctuation
-
-**NEVER use emdashes (—).** Use commas, periods, colons, semicolons, or
-parentheses instead. Rewrite any sentence that seems to need an emdash.
-
-## Word Choice
-
-| Prefer              | Avoid                    |
-| ------------------- | ------------------------ |
-| Short, common words | Jargon, fancy vocabulary |
-| Active voice        | Passive constructions    |
-| Concrete nouns      | Abstract nominalizations |
-| "Use"               | "Utilize"                |
-| "Help"              | "Facilitate"             |
-| "About"             | "Regarding"              |
-
-**Germanic words beat Latinate ones.** "Begin" not "commence."
-"End" not "terminate."
-
-## Red Flags
-
-These signal bad prose. Rewrite immediately:
-
-- **Formal register shift**: "The mercurial Spaniard" instead of how
-  you'd actually describe someone
-- **Hedging stacks**: "It could potentially perhaps be argued that..."
-- **Impressive-sounding emptiness**: Long sentences that say little
-- **Passive voice hiding agency**: "Mistakes were made"
-- **Unnecessary qualifications**: Unless they express genuine uncertainty
-
-## The Sound-Truth Connection
-
-Writing that sounds good is more likely to be right. Rewriting for flow
-forces better ideas. You can't consciously make ideas worse while making
-prose better.
-
-If a sentence sounds clumsy, the idea is probably muddled.
-Fix the thinking, not just the words.
-
-## Anti-Patterns
-
-### Formal for Formality's Sake
-
-```text
-# Bad
-It is imperative that users be made cognizant of the fact that...
-
-# Good
-Users need to know that...
-```
-
-### Burying the Point
+AI-assisted writing runs long: paragraph after paragraph of plausible-sounding
+text that says little. Cut to what you'd say out loud to a busy person. Keep
+every idea the reader needs and drop the words that carry none. If a cut loses
+meaning, keep the words. If it only loses padding, cut.
 
 ```text
 # Bad
@@ -114,51 +29,35 @@ of action would be...
 We decided to...
 ```
 
-### Noun Stacks
+## Core Formula
 
-```text
-# Bad
-The data validation error handling mechanism implementation...
+Usefulness = Correctness × Novelty × Importance × Strength
 
-# Good
-How we handle validation errors...
-```
+- **Correct**: True, but not so vague it says nothing
+- **Novel**: Unknown to reader, surprising or unarticulated
+- **Important**: Actually matters to them
+- **Strong**: As bold as possible without becoming false
 
-### Weasel Words
+These multiply. Zero in any dimension = zero value. Qualify a claim only to
+state real uncertainty or scope, never to hedge against criticism.
 
-```text
-# Bad
-It is generally believed that this approach is somewhat better.
+## The Process
 
-# Good
-This approach is better because [specific reason].
-```
+1. **Draft fast**: Get ideas down without editing.
+2. **Read aloud**: A sentence that sounds clumsy usually hides a muddled idea.
+   Fix the thinking, not just the words.
+3. **Cut**: Delete weak sentences and abandon weak paragraphs.
+4. **Check**: Run both checks below. Fix every failure and repeat until both
+   pass.
 
-## Qualifications Done Right
+## Checks
 
-Qualifications are not weaknesses; they are precision tools:
-
-- **Certainty level**: "I think" vs "I'm confident" vs "This is definitely"
-- **Scope**: "In most cases" vs "Always"
-- **Falsifiability**: Makes claims testable
-
-Bad qualification hedges against criticism.
-Good qualification sharpens the claim.
-
-## The Goal: Saltintesta
-
-From Italian "saltimbocca" (leaps into mouth). Ideas should leap into the
-reader's head. They barely notice the words that got them there.
-
-Simple language lets readers focus on ideas, not parsing prose.
-
-## Quick Reference
-
-| Principle      | Action                             |
-| -------------- | ---------------------------------- |
-| Conversational | Would I say this to a friend?      |
-| Simple         | Ordinary words, short sentences    |
-| Bold           | Strong claims, qualified precisely |
-| Honest         | Simple prose exposes weak ideas    |
-| Rhythmic       | Sound matches logic                |
-| Cut            | Delete everything unnecessary      |
+1. **No em dashes (house style).** Search the text: `grep -n '—' <file>`, or
+   the draft itself when it is not in a file. Rewrite each hit with a comma,
+   period, colon, semicolon, or parentheses. Repeat until the search finds
+   nothing.
+2. **Sentence checklist.** For each sentence:
+   - [ ] Would I say this to a friend?
+   - [ ] Can I cut any words?
+   - [ ] Is this the simplest way to say it, in common words and active voice?
+   - [ ] Does it sound good when read aloud?

@@ -47,3 +47,14 @@ export type EditTargetResult =
 
 /** Locates a skill directly under `editRoot` or one category level down. */
 export function resolveEditTarget(query: EditTargetQuery): EditTargetResult;
+
+export interface ShadowedCopiesQuery {
+  repoRoot: string;
+  /** The result of `preferredEditRoot`. */
+  editRoot: string;
+  /** A name already accepted by `isValidSkillName`. */
+  name: string;
+}
+
+/** `SKILL.md` paths of the same skill under the skills root other than `editRoot`. */
+export function shadowedCopies(query: ShadowedCopiesQuery): string[];

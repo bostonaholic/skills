@@ -4,8 +4,17 @@
  * Resolve the invoking session's transcript on whichever host is running, and
  * normalize it into one complete record stream.
  *
- *     node "<skill-dir>/resolve-transcript.mjs" <run-cache-dir> [store-root]
- *     node "<skill-dir>/resolve-transcript.mjs" <run-cache-dir> --file <transcript.jsonl>
+ *     node "<skill-dir>/scripts/resolve-transcript.mjs" <run-cache-dir> [store-root]
+ *     node "<skill-dir>/scripts/resolve-transcript.mjs" <run-cache-dir> --file <transcript.jsonl>
+ *
+ * Output: the session form writes <run-cache-dir>/transcript.jsonl; the --file
+ * form writes <run-cache-dir>/sources/<name>.jsonl, suffixed -2, -3, ... when
+ * an earlier source already took that name. Both print `key: value` count
+ * lines on stdout.
+ *
+ * Exit codes: 0 when the transcript was normalized; 1 on a usage error or a
+ * named failure, whose name is the first stderr line, followed by `tried:` and
+ * `note:` lines.
  *
  * THREE HOSTS, ONE CONTRACT. Claude Code and Codex CLI each keep their own
  * session store in their own record format; OpenCode keeps its sessions in a
@@ -33,12 +42,9 @@
  * Neither path ever picks among candidates, guesses from the working directory,
  * or takes the newest file. Two matches is a named failure.
  *
- * The pure halves (`detectHost`, `resolveTranscript`, `normalizeTranscript`,
- * `isUserTurn`) are unit-tested at L1; the CLI below is what the skill body runs
- * through Bash. Importing this file has no side effects.
- *
- * `storeRoot` is a parameter rather than a constant so the tests drive it
- * against synthetic fixtures; the CLI derives it from the detected host.
+ * Importing this file has no side effects. The exported functions take every
+ * input, `storeRoot` included, as a parameter so tests can drive them against
+ * synthetic fixtures; the CLI below derives those inputs from the detected host.
  */
 
 import { spawnSync } from "node:child_process";
@@ -94,13 +100,25 @@ const CLAUDE_ALLOWED_TYPES = new Set(["user", "assistant"]);
 /** Argv chunk size for the fixed-string search — well inside ARG_MAX. */
 const SEARCH_CHUNK = 200;
 
-/** Retry delay before the second search, when the first found nothing. */
+/**
+ * Retry delay before the second search, when the first found nothing: long
+ * enough for the host to flush the record that carries the id or marker.
+ */
 const DEFAULT_RETRY_DELAY_MS = 1000;
 
-/** Bytes of a transcript read to confirm its header names the expected session. */
+/**
+ * Bytes of a transcript read to confirm its header names the expected session.
+ * The id sits in the first record (Codex `session_meta`, Claude's per-record
+ * `sessionId`), so 64 KiB covers it without reading a large transcript whole.
+ */
 const HEADER_PROBE_BYTES = 64 * 1024;
 
-/** A session id is used in path comparisons only, never in a command. */
+/**
+ * A session id is used in path comparisons only, never in a command. Hosts
+ * issue UUIDs (36 characters) or similar tokens. At least 8 characters keeps a
+ * Codex suffix match (`*-<id>.jsonl`) from hitting unrelated rollouts; at most
+ * 128 keeps the value a token rather than free text, well under filename limits.
+ */
 const SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/;
 
 function sleepSync(milliseconds) {
@@ -440,9 +458,8 @@ function jsonOrEmpty(value) {
 /**
  * A tool call rendered as the evidence it is. A tool-call record carries a name
  * and an invocation and no prose, so the text-shaped reads below would normalize
- * it to the empty string — erasing the repeated invocation that is the whole
- * evidence the tooling lens looks for, while still spending a record of the
- * stream budget on a blank line.
+ * it to the empty string, erasing the repeated invocation that is the whole
+ * evidence the tooling lens looks for.
  */
 function toolUseText(name, invocation) {
   const toolName = typeof name === "string" && name ? name : "unknown";
@@ -589,8 +606,8 @@ export function priorHistoryOf(record) {
 }
 
 /**
- * Classify and bound a raw JSONL transcript. Everything a lens is allowed to
- * read comes back in `records`; every exclusion comes back as a count, because
+ * Classify a raw JSONL transcript. Everything a lens is allowed to read comes
+ * back in `records`, untruncated; every exclusion comes back as a count, because
  * a silent drop is indistinguishable from a parser that never saw the record.
  */
 export function normalizeTranscript(jsonlText) {
@@ -631,11 +648,9 @@ export function normalizeTranscript(jsonlText) {
 
   return {
     records,
-    droppedForCeiling: 0,
     format: formatOf(formats),
     droppedByType,
     malformedLines,
-    truncatedSpans: 0,
     unrecognizedRecords,
     priorHistory,
   };
@@ -860,14 +875,30 @@ export function normalizeOpencode({ dbPath, sessionId }) {
 
   return {
     records,
-    droppedForCeiling: 0,
     format: "opencode",
     droppedByType,
     malformedLines,
-    truncatedSpans: 0,
     unrecognizedRecords: 0,
     priorHistory: null,
   };
+}
+
+/**
+ * Writes `text` to a new `<stem>.jsonl` in `dir`, or `<stem>-2.jsonl`, `-3`, ...
+ * when that name is taken, so two named sources with one basename never
+ * overwrite each other. The exclusive flag makes the existence check and the
+ * write one step. Returns the path written.
+ */
+function writeNewSource(dir, stem, text) {
+  for (let suffix = 1; ; suffix++) {
+    const path = join(dir, suffix === 1 ? `${stem}.jsonl` : `${stem}-${suffix}.jsonl`);
+    try {
+      writeFileSync(path, text, { encoding: "utf8", flag: "wx" });
+      return path;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+    }
+  }
 }
 
 // CLI entry point — runs only when executed directly, never on import, so a
@@ -896,6 +927,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     "unreadable-session-store":
       "the OpenCode store lacks a required table or column, or a read of it failed",
     "unsupported-format": "the resolved file holds no records a supported host writes",
+    "unreadable-transcript": "the transcript file is missing, a directory, or not readable",
+    "unwritable-run-cache": "the normalized output could not be written into the run cache",
   };
 
   const fail = (failure, tried, note) => {
@@ -910,9 +943,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const slug = process.cwd().replace(/[/.]/g, "-");
 
   const resolved = namedFile !== null
-    ? existsSync(namedFile)
-      ? { ok: true, host: "named-file", via: "--file", path: resolve(namedFile) }
-      : { ok: false, failure: "no-match", tried: [namedFile] }
+    ? { ok: true, host: "named-file", via: "--file", path: resolve(namedFile) }
     : resolveSession({
         candidates: detectHost(process.env),
         storeRootOf: (host) => storeOverride || storeRootFor(host, process.env),
@@ -921,10 +952,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
       });
   if (!resolved.ok) fail(resolved.failure, resolved.tried, FAILURE_NOTES[resolved.failure]);
 
-  // The file hosts report a resolved path and its raw character count; OpenCode
-  // reports its database and session id, and the UTF-8 byte count of the
-  // normalized text it kept. The two byte measures are per-host signals, never
-  // compared across hosts.
+  // `bytes` is always UTF-8 bytes. A file host counts the raw transcript; OpenCode
+  // counts the normalized text it kept, because its database holds every session
+  // and its file size says nothing about this one. The two are per-host signals,
+  // never compared across hosts.
   let normalized;
   let transcriptLabel;
   let bytes;
@@ -938,20 +969,35 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     transcriptLabel = `${dbPath}#${resolved.sessionId}`;
     bytes = normalized.records.reduce((sum, record) => sum + Buffer.byteLength(record.text, "utf8"), 0);
   } else {
-    const raw = readFileSync(resolved.path, "utf8");
+    let raw;
+    try {
+      raw = readFileSync(resolved.path, "utf8");
+    } catch (error) {
+      fail("unreadable-transcript", [resolved.path], `${FAILURE_NOTES["unreadable-transcript"]} (${error.code ?? error.message})`);
+    }
     normalized = normalizeTranscript(raw);
     transcriptLabel = resolved.path;
-    bytes = raw.length;
+    bytes = Buffer.byteLength(raw, "utf8");
   }
   if (normalized.format === "unknown" || normalized.format === "mixed") {
     fail("unsupported-format", [transcriptLabel], `${FAILURE_NOTES["unsupported-format"]} (format: ${normalized.format}, unrecognized records: ${normalized.unrecognizedRecords})`);
   }
 
   const outDir = namedFile === null ? runDir : join(runDir, "sources");
-  const outName = namedFile === null ? "transcript.jsonl" : `${basename(namedFile, extname(namedFile))}.jsonl`;
-  mkdirSync(outDir, { recursive: true });
-  const outPath = join(outDir, outName);
-  writeFileSync(outPath, normalized.records.map((r) => JSON.stringify(r)).join("\n"), "utf8");
+  const outText = normalized.records.map((r) => JSON.stringify(r)).join("\n");
+  let outPath;
+  try {
+    mkdirSync(outDir, { recursive: true });
+    if (namedFile === null) {
+      // Re-running the session form re-normalizes the same session, so it replaces.
+      outPath = join(outDir, "transcript.jsonl");
+      writeFileSync(outPath, outText, "utf8");
+    } else {
+      outPath = writeNewSource(outDir, basename(namedFile, extname(namedFile)), outText);
+    }
+  } catch (error) {
+    fail("unwritable-run-cache", [outDir], `${FAILURE_NOTES["unwritable-run-cache"]} (${error.code ?? error.message})`);
+  }
 
   process.stdout.write(`host: ${resolved.host}\n`);
   process.stdout.write(`resolved by: ${resolved.via}\n`);
@@ -962,8 +1008,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   process.stdout.write(`records: ${normalized.records.length}\n`);
   process.stdout.write(`user turns: ${normalized.records.filter((r) => r.isUserTurn).length}\n`);
   process.stdout.write(`dropped by type: ${JSON.stringify(normalized.droppedByType)}\n`);
-  process.stdout.write(`dropped for ceiling: ${normalized.droppedForCeiling}\n`);
-  process.stdout.write(`truncated spans: ${normalized.truncatedSpans}\n`);
   process.stdout.write(`malformed lines: ${normalized.malformedLines}\n`);
   process.stdout.write(`unrecognized records: ${normalized.unrecognizedRecords}\n`);
   process.stdout.write(`prior history unavailable: ${normalized.priorHistory ?? "none"}\n`);
