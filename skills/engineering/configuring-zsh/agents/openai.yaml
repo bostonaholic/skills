@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zsh Config"
+  short_description: "Edit zsh configuration in dotfiles"
+  default_prompt: "Use $configuring-zsh to edit the relevant zsh configuration file."

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Safely Merge Dependabots"
+  short_description: "Review and merge safe Dependabot updates"
+  default_prompt: "Use $merging-dependabot-prs to review and merge the requested Dependabot updates."
+policy:
+  allow_implicit_invocation: false

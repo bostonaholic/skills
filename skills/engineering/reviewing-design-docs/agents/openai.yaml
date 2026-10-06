@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eng Design Doc Review"
+  short_description: "Adversarially review a design document"
+  default_prompt: "Use $reviewing-design-docs to adversarially review a design document."

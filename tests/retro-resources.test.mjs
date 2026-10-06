@@ -8,9 +8,9 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { isValidRepoPath } from "../skills/productivity/retro/resources/write-target.mjs";
+import { isValidRepoPath } from "../skills/productivity/running-retros/resources/write-target.mjs";
 
-const RESOURCES = resolve("skills/productivity/retro/resources");
+const RESOURCES = resolve("skills/productivity/running-retros/resources");
 
 function scratchDir(t) {
   const root = mkdtempSync(join(tmpdir(), "retro-resources-"));

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Ruby"
+  short_description: "Review Ruby code for unnecessary complexity"
+  default_prompt: "Use $reviewing-ruby-code to review the Ruby code for unnecessary complexity."

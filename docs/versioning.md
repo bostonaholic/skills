@@ -51,7 +51,7 @@ Example:
 
 The declared pre-merge procedure is
 [`.claude/skills/version-bump/SKILL.md`](../.claude/skills/version-bump/SKILL.md).
-Land commands, including `/shipit`, read that declaration in `AGENTS.md`.
+Land commands, including `/landing-prs`, read that declaration in `AGENTS.md`.
 Its `metadata.internal: true` keeps it out of normal `npx skills` discovery;
 the plugin manifest also excludes it. It remains available to repository maintainers.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "OSS Security Analysis"
+  short_description: "Audit a repository for security risks"
+  default_prompt: "Use $auditing-repo-security to audit the repository for security risks."

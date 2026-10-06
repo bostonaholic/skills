@@ -1,0 +1,4 @@
+interface:
+  display_name: "System Prompt"
+  short_description: "Write or review system prompts"
+  default_prompt: "Use $writing-system-prompts to write or review the system prompt."

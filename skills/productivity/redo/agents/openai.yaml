@@ -1,6 +1,0 @@
-interface:
-  display_name: "Redo"
-  short_description: "Redo work using the current findings"
-  default_prompt: "Use $redo to redo the requested work using what was learned."
-policy:
-  allow_implicit_invocation: false

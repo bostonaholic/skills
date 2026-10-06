@@ -7,9 +7,9 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { resolveEditTarget } from "../skills/productivity/retro/resources/write-target.mjs";
+import { resolveEditTarget } from "../skills/productivity/running-retros/resources/write-target.mjs";
 
-const SCRIPT = resolve("skills/productivity/retro/resources/write-target.mjs");
+const SCRIPT = resolve("skills/productivity/running-retros/resources/write-target.mjs");
 
 function scratchDir(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "write-target-")));
