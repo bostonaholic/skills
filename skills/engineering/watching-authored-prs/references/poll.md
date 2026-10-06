@@ -90,8 +90,8 @@ to [feedback](references/feedback.md).
 ## Edge cases
 
 - A wake that finds zero unresolved threads, no untriaged PR-level items, and
-  no other change (for example, a reviewer resolved their own thread) starts
-  the next cycle silently and presents nothing.
+  no other change (for example, a reviewer resolved their own thread) presents
+  no punch list and starts the next cycle. Its snapshot line still prints.
 - A `CHANGES_REQUESTED` review with an empty body and no threads: print a
   status line naming the reviewer and the requested-changes state, then stop
   as `Feedback exclusion`. Suggest the user ask the reviewer what they want.

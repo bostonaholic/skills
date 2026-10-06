@@ -11,6 +11,7 @@
 
 - Make `addressing-pr-comments` rate a comment's concern rather than its citation, so a wrong premise no longer declines a real defect. [#17](https://github.com/bostonaholic/skills/pull/17)
 - Keep a comment that `removing-comments` cannot verify, removing only one that is demonstrably obsolete or contradicted by the code. [#17](https://github.com/bostonaholic/skills/pull/17)
+- Keep printing the `watching-authored-prs` poll snapshot on a wake with no new feedback, so compaction recovery still has it. [#17](https://github.com/bostonaholic/skills/pull/17)
 
 ## [0.12.0] - 2026-10-06
 
