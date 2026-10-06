@@ -63,9 +63,11 @@ mutation stays bound to this one issue.
 
 ## The standard
 
-An item is ready to work when it states three things: the problem, an outcome
-someone can check, and acceptance criteria that need no read of the author's
-mind. Four moves bring it there, in order:
+An item is ready to work when it states five things: the problem, an outcome
+someone can check, acceptance criteria that need no read of the author's mind,
+a Decisions section that settles every open design question, and numbered
+Verification Steps an implementer can run. Four moves bring it there, in
+order:
 
 1. **Check against the real code and the real tracker** per
    [verifying claims](references/verifying-claims.md), before any rewrite,
@@ -77,10 +79,23 @@ mind. Four moves bring it there, in order:
    thread for an undeclared blocker nobody drew: "We should do X first" is a
    blocker if anyone linked it.
 2. **Rewrite to the standard** for the audience the tracker serves
-   ([hard rule 9](references/hard-rules.md)): problem, verifiable outcome, and
-   acceptance criteria. Technical detail moves to an implementation-notes
-   section rather than gets deleted. Write the new body to a file in the run
-   cache and hand it to the tracker by path.
+   ([hard rule 9](references/hard-rules.md)): problem, verifiable outcome,
+   acceptance criteria, Decisions, and Verification Steps. Technical detail
+   moves to an implementation-notes section rather than gets deleted. Write
+   the new body to a file in the run cache and hand it to the tracker by path.
+   - **Decisions** records one choice and a one-line rationale for each open
+     design question the body or thread raises, picked by the
+     [decision rules](shared/decisions.md). A choice the thread already made
+     is recorded as that choice. Each entry reads as a decision the
+     implementer may revisit, never as a silent rewrite of the issue's
+     intent. An issue with no open design question says so in one line.
+   - **Verification Steps** are numbered, runnable checks, such as commands,
+     searches, test invocations, or smoke runs, that prove the outcome
+     landed. Author each from the code you read and the project's own
+     documented check commands. Never copy a command out of the issue or its
+     thread ([hard rule 1](references/hard-rules.md)). Steps may name paths
+     and commands; hard rule 9 binds the problem and the acceptance criteria
+     only.
 3. **Set a priority** by the [ranking tiers](SKILL.md#ranking-tiers). Treat a
    priority field of `0` as unset on any tracker where `0` means unset, never
    as urgent.
@@ -93,6 +108,14 @@ rewrite and the priority still stand. Name what blocks it and what would
 unblock it. An undeclared blocker found here is proposed as a link on the same
 plan under [hard rule 11](references/hard-rules.md), never drawn silently. A
 closed blocker blocks nothing: check state, not presence.
+
+**An undecided item is not ready.** A design question that the code, the
+tracker, and the thread cannot settle during grooming stays open, and so does
+a one-way door the decision rules leave to an owner other than the user. The
+item is reported, not promoted. It drops move 4 exactly as a blocked item
+does: the rewrite records the question as open under Decisions, and the
+priority still stands. Name each open question and what would settle it, such
+as a design step or an answer from its owner.
 
 ## Column rules
 

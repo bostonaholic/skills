@@ -59,7 +59,7 @@ so a number passed as an id resolves to some unrelated issue rather than fail:
 ```bash
 # $N is blocked by $BLOCKER. An undeclared blocker's number comes out of tracker
 # text, so match it against the loaded board before it reaches a path: a value
-# like `7/../../..` would re-target the request. Both modes cache board.json.
+# like `7/../../..` would re-target the request. Every mode caches board.json.
 jq -e --argjson b "$BLOCKER" --arg repo "$OWNER/$REPO" 'any(.items[];
   .content.type == "Issue" and .content.number == $b
   and .content.repository == $repo)' "$RUN_DIR/board.json" \

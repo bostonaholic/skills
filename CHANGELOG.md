@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-06
+
+### Added
+
+- Let `grooming-backlogs` ready the top issues in one run with `--promote-top [<count>]` (default 4) and an optional `--focus <area>`, each issue behind its own approval and stopping at the Ready column's limit. [#15](https://github.com/bostonaholic/skills/pull/15)
+- Let `grooming-backlogs` find the board from the project's work-tracking section in `AGENTS.md` or `CLAUDE.md`, then the repository's linked projects, before listing every visible project. [#15](https://github.com/bostonaholic/skills/pull/15)
+- Read `grooming-backlogs` board settings from the project's work-tracking section too, under the same confirmation rules as the board's README. [#15](https://github.com/bostonaholic/skills/pull/15)
+
+### Changed
+
+- Require a Decisions section and numbered Verification Steps before `grooming-backlogs` promotes an issue; an issue with an unresolved design question is reported, not promoted. [#15](https://github.com/bostonaholic/skills/pull/15)
+- Name only an unblocked, decided issue in the `grooming-backlogs` board-mode `Next:` recommendation. [#15](https://github.com/bostonaholic/skills/pull/15)
+
 ## [0.10.0] - 2026-10-06
 
 ### Added
@@ -158,5 +171,7 @@
 
 [0.9.0]: https://github.com/bostonaholic/skills/compare/v0.8.0...v0.9.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.10.0...HEAD
 [0.10.0]: https://github.com/bostonaholic/skills/compare/v0.9.0...v0.10.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/bostonaholic/skills/compare/v0.10.0...v0.11.0

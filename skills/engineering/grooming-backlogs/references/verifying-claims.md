@@ -1,6 +1,6 @@
 # Verifying claims
 
-Both modes verify an issue's factual claims against the code and the tracker
+Every mode verifies an issue's factual claims against the code and the tracker
 before ranking or rewriting it: named paths, quoted lines, cited PRs and
 commits, and cited counts. Record one block per issue in
 `$RUN_DIR/verification.md` in the shape of
