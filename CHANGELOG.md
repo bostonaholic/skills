@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-06
+
 ### Changed
 
 - Point `learning-from-mistakes` to `running-retros` for lessons from a whole session. [#16](https://github.com/bostonaholic/skills/pull/16)
@@ -183,5 +185,7 @@
 
 [0.10.0]: https://github.com/bostonaholic/skills/compare/v0.9.0...v0.10.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.11.0...HEAD
 [0.11.0]: https://github.com/bostonaholic/skills/compare/v0.10.0...v0.11.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/bostonaholic/skills/compare/v0.11.0...v0.12.0
