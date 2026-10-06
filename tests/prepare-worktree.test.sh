@@ -145,18 +145,21 @@ cat >"$GH_FIXTURE" <<'EOF'
   {"number": 1, "title": "ok", "headRefName": "feature/ok", "baseRefName": "main", "isDraft": false, "isCrossRepository": false, "author": {"login": "a"}, "url": "u1"},
   {"number": 2, "title": "fork", "headRefName": "patch-1", "baseRefName": "main", "isDraft": false, "isCrossRepository": true, "author": {"login": "b"}, "url": "u2"},
   {"number": 3, "title": "unsafe", "headRefName": "x$(id)", "baseRefName": "main", "isDraft": false, "isCrossRepository": false, "author": {"login": "c"}, "url": "u3"},
-  {"number": 4, "title": "draft", "headRefName": "wip", "baseRefName": "main", "isDraft": true, "isCrossRepository": false, "author": {"login": "d"}, "url": "u4"}
+  {"number": 4, "title": "draft", "headRefName": "wip", "baseRefName": "main", "isDraft": true, "isCrossRepository": false, "author": {"login": "d"}, "url": "u4"},
+  {"number": 5, "title": "bump", "headRefName": "dependabot/npm_and_yarn/x-1.2.3", "baseRefName": "main", "isDraft": false, "isCrossRepository": false, "author": {"login": "app/dependabot", "is_bot": true}, "url": "u5"}
 ]
 EOF
 summary() { printf '%s\n' "$out" | jq -r 'map("\(.number):\(.rebaseable)") | join(",")'; }
 
-run 0 "$scripts/list-prs.sh" --limit 4
-[ "$(summary)" = 1:true,2:false,3:false,4:true ] || fail "rebaseable flags: $(summary)"
+run 0 "$scripts/list-prs.sh" --limit 5
+[ "$(summary)" = 1:true,2:false,3:false,4:true,5:false ] || fail "rebaseable flags: $(summary)"
+printf '%s\n' "$out" | jq -e '.[] | select(.number == 5) | .skipReason | test("rebasing-dependabot-prs")' >/dev/null ||
+  fail "Dependabot skip reason does not name rebasing-dependabot-prs: $out"
 case "$err" in *warning*) ;; *) fail "no truncation warning at the limit: $err" ;; esac
 run 0 "$scripts/list-prs.sh" --skip-drafts
-[ "$(summary)" = 1:true,2:false,3:false,4:false ] || fail "--skip-drafts flags: $(summary)"
+[ "$(summary)" = 1:true,2:false,3:false,4:false,5:false ] || fail "--skip-drafts flags: $(summary)"
 case "$err" in *warning*) fail "truncation warning below the limit: $err" ;; esac
-echo "ok - list-prs skips forks and unsafe names, keeps drafts by default, and warns at the limit"
+echo "ok - list-prs skips forks, unsafe names, and Dependabot PRs, keeps drafts by default, and warns at the limit"
 
 run 2 "$scripts/list-prs.sh" --author
 run 2 "$scripts/list-prs.sh" --limit 0

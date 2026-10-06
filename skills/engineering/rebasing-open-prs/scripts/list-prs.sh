@@ -10,7 +10,8 @@
 # Stdout: a JSON array; each item has number, title, headRefName, baseRefName, isDraft,
 #   isCrossRepository, author, url, rebaseable, and skipReason (null when rebaseable).
 #   A PR whose head or base name has a character outside [A-Za-z0-9._/-] is never rebaseable:
-#   agents place branch names in shell commands.
+#   agents place branch names in shell commands. A Dependabot PR is never rebaseable: Dependabot
+#   stops updating a PR once anyone else pushes to it.
 # Stderr: counts, and a warning when the result may be truncated.
 #
 # Requires gh (authenticated) and jq.
@@ -73,6 +74,7 @@ result=$(printf '%s\n' "$raw" | jq \
   def safe: test("^[A-Za-z0-9._/-]+$");
   map(
     (if   .isCrossRepository and ($incForks | not)            then "fork (cannot push to contributor branch)"
+     elif .author.login == "app/dependabot"                     then "dependabot (another push stops Dependabot updating it; use /rebasing-dependabot-prs)"
      elif ((.headRefName | safe) and (.baseRefName | safe)) | not then "branch name outside [A-Za-z0-9._/-]"
      elif .isDraft and $skipDrafts                          then "draft (skipped by request)"
      else null end) as $skip

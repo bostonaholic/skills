@@ -10,6 +10,7 @@
 ### Fixed
 
 - Hand a requested merge in `using-gh-cli` to `landing-prs`, and without it squash-merge only after checks pass and the merge state is `CLEAN`. [#16](https://github.com/bostonaholic/skills/pull/16)
+- Skip Dependabot PRs in `rebasing-open-prs` and point them to `rebasing-dependabot-prs`, since a push by anyone else stops Dependabot updating the PR. [#16](https://github.com/bostonaholic/skills/pull/16)
 
 ## [0.11.0] - 2026-10-06
 

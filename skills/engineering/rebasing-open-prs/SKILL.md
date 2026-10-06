@@ -72,7 +72,8 @@ the manifest records.
 Run `"<skill-dir>/scripts/list-prs.sh"`, adding `--author @me` when the user
 asks for their own PRs. It prints a JSON array; each item has `rebaseable` and,
 when skipped, `skipReason`. Drafts are included and forks are skipped
-(contributor branches usually reject pushes). Pass `--skip-drafts` or
+(contributor branches usually reject pushes). Dependabot PRs are always skipped,
+since another push stops Dependabot updating them. Pass `--skip-drafts` or
 `--include-forks` only when the user asks. A truncation warning on stderr
 means more open PRs exist than `--limit`: re-run with a larger limit.
 
