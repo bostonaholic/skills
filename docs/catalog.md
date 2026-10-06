@@ -14,7 +14,8 @@ the collection's extraction history.
   generated README content. Edit it instead of the block between the README's
   `generated:start` and `generated:end` markers.
 - `scripts/build-site.mjs` renders the catalog and 404 page. `docs/style.css`
-  controls their appearance.
+  controls their appearance, and `docs/copy-code.js` adds the code-block copy
+  buttons.
 - `package.json`, `.claude-plugin/plugin.json`, and
   `.claude-plugin/marketplace.json` carry the package and plugin descriptions.
   Keep them consistent with the personal software engineering focus.

@@ -41,7 +41,7 @@ function buildFixture(t, { files, outsideFiles, links }) {
 
 test("build-site exits 1 naming a symlinked static file and publishes nothing", (t) => {
   const { run, out } = buildFixture(t, {
-    files: { "docs/CNAME": "example.invalid\n" },
+    files: { "docs/CNAME": "example.invalid\n", "docs/copy-code.js": "" },
     outsideFiles: { "outside.css": "body { color: red; }\n" },
     links: { "docs/style.css": "outside.css" },
   });
@@ -53,7 +53,7 @@ test("build-site exits 1 naming a symlinked static file and publishes nothing", 
 test("build-site exits 1 naming a static file under a symlinked docs/ and publishes nothing", (t) => {
   const { run, out } = buildFixture(t, {
     files: {},
-    outsideFiles: { "docs/CNAME": "example.invalid\n", "docs/style.css": "body { color: red; }\n" },
+    outsideFiles: { "docs/CNAME": "example.invalid\n", "docs/copy-code.js": "", "docs/style.css": "body { color: red; }\n" },
     links: { docs: "docs" },
   });
   assert.equal(run.status, 1, run.stdout + run.stderr);
