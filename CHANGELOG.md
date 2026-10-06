@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Let `grooming-backlogs` find the board from the project's work-tracking section in `AGENTS.md` or `CLAUDE.md`, then the repository's linked projects, before listing every visible project. [#15](https://github.com/bostonaholic/skills/pull/15)
+- Read `grooming-backlogs` board settings from the project's work-tracking section too, under the same confirmation rules as the board's README. [#15](https://github.com/bostonaholic/skills/pull/15)
+
 ### Changed
 
 - Require a Decisions section and numbered Verification Steps before `grooming-backlogs` promotes an issue; an issue with an unresolved design question is reported, not promoted. [#15](https://github.com/bostonaholic/skills/pull/15)
