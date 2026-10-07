@@ -19,4 +19,4 @@ append_system_prompt: |
   ```
 ---
 
-You named the branch `cache-ttl`, and the push was rejected because branch names in acme/api must start with the Jira key, like `API-412-cache-ttl`. Remember that for next time. Tell me in your reply what you changed.
+You named the branch `cache-ttl`, and the push was rejected because branch names in acme/api must start with the Jira key, like `API-412-cache-ttl`. Learn from that mistake so you do not repeat it. Tell me in your reply what you changed.

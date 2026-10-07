@@ -67,8 +67,8 @@ cat >src/App.jsx <<'EOF_5'
 import { Route, Routes } from "react-router-dom";
 import Nav from "./components/Nav.jsx";
 import Home from "./pages/Home.jsx";
-import SalesDashboard from "./pages/SalesDashboard.jsx";
-import SupportDashboard from "./pages/SupportDashboard.jsx";
+import SalesDashboard from "./pages/Revenue.jsx";
+import SupportDashboard from "./pages/Queue.jsx";
 import Settings from "./pages/Settings.jsx";
 
 export default function App() {
@@ -114,7 +114,7 @@ export default function Home() {
 }
 EOF_7
 
-cat >src/pages/SalesDashboard.jsx <<'EOF_8'
+cat >src/pages/Revenue.jsx <<'EOF_8'
 import { salesByRegion } from "../data.js";
 
 export default function SalesDashboard() {
@@ -144,7 +144,7 @@ export default function SalesDashboard() {
 }
 EOF_8
 
-cat >src/pages/SupportDashboard.jsx <<'EOF_9'
+cat >src/pages/Queue.jsx <<'EOF_9'
 import { openTickets } from "../data.js";
 
 export default function SupportDashboard() {
