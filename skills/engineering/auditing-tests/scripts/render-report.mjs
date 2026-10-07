@@ -50,9 +50,11 @@ export function validateReport(report) {
 
   const baseline = report.baseline ?? {};
   if (baseline.status === "ran") {
-    if (!filled(baseline.command)) errors.push("baseline.command is required when baseline.status is ran");
+    if (!filled(baseline.command))
+      errors.push("baseline.command is required when baseline.status is ran");
   } else if (baseline.status === "not-run") {
-    if (!filled(baseline.reason)) errors.push("baseline.reason is required when baseline.status is not-run");
+    if (!filled(baseline.reason))
+      errors.push("baseline.reason is required when baseline.status is not-run");
   } else {
     errors.push("baseline.status must be ran or not-run");
   }
@@ -73,7 +75,8 @@ export function validateReport(report) {
   for (const lane of lanes) {
     const laneName = filled(lane.name) ? lane.name : "(unnamed lane)";
     if (!filled(lane.name)) errors.push("every lane needs a name");
-    if ("seams" in lane) errors.push(`lane ${laneName} has a seams field; rename it to testOnlyCode`);
+    if ("seams" in lane)
+      errors.push(`lane ${laneName} has a seams field; rename it to testOnlyCode`);
     const laneFiles = new Set(list(lane.files));
     for (const file of laneFiles) place(file, `lane ${laneName}`);
 
@@ -89,7 +92,8 @@ export function validateReport(report) {
       }
       if (tests.has(id)) errors.push(`test id ${id} appears more than once`);
       tests.set(id, test);
-      if (!laneFiles.has(test.file)) errors.push(`${id}: file ${test.file} is not in lane ${laneName}`);
+      if (!laneFiles.has(test.file))
+        errors.push(`${id}: file ${test.file} is not in lane ${laneName}`);
       if (!MARKS.includes(test.mark)) {
         errors.push(`${id}: mark must be one of ${MARKS.join(", ")}`);
         continue;
@@ -107,7 +111,9 @@ export function validateReport(report) {
           }
         }
         if (redTests.has(`${test.file}::${test.name}`)) {
-          errors.push(`${id}: fails on the baseline, so it is a product-bug lead and cannot be marked D`);
+          errors.push(
+            `${id}: fails on the baseline, so it is a product-bug lead and cannot be marked D`,
+          );
         }
       }
       if ((test.mark === "C" || test.mark === "D") && test.verified !== true) {
@@ -132,7 +138,8 @@ export function validateReport(report) {
   for (const entry of list(report.downgraded)) {
     const test = tests.get(entry.id);
     if (!test) errors.push(`downgraded names unknown test ${entry.id}`);
-    else if (test.mark !== "R") errors.push(`${entry.id} is listed as downgraded but is marked ${test.mark}`);
+    else if (test.mark !== "R")
+      errors.push(`${entry.id} is listed as downgraded but is marked ${test.mark}`);
   }
   return errors;
 }
@@ -150,7 +157,9 @@ function table(headers, rows) {
 }
 
 function allTests(report) {
-  return list(report.lanes).flatMap((lane) => list(lane.tests).map((test) => ({ lane: lane.name, ...test })));
+  return list(report.lanes).flatMap((lane) =>
+    list(lane.tests).map((test) => ({ lane: lane.name, ...test })),
+  );
 }
 
 export function renderReport(report) {
@@ -166,7 +175,8 @@ export function renderReport(report) {
     `Commit \`${scope.commit}\` on ${scope.date}. Scope: ${list(scope.paths).join(", ") || "whole repository"}. ` +
       `Inventory: \`${scope.discovery}\`.\n`,
   );
-  if (list(scope.dirty).length > 0) out.push(`Audited with uncommitted changes in: ${scope.dirty.join(", ")}.\n`);
+  if (list(scope.dirty).length > 0)
+    out.push(`Audited with uncommitted changes in: ${scope.dirty.join(", ")}.\n`);
 
   out.push("## Summary\n");
   out.push(
@@ -194,28 +204,51 @@ export function renderReport(report) {
   );
 
   out.push("## Product-bug leads\n");
-  out.push("A test that fails on the baseline points at the product first. Reproduce it and repair the owner.\n");
-  out.push(table(["File", "Test", "Failure"], list(baseline.failures).map((f) => [f.file, f.name, f.assertion])));
+  out.push(
+    "A test that fails on the baseline points at the product first. Reproduce it and repair the owner.\n",
+  );
+  out.push(
+    table(
+      ["File", "Test", "Failure"],
+      list(baseline.failures).map((f) => [f.file, f.name, f.assertion]),
+    ),
+  );
 
   out.push("## Delete (D)\n");
   out.push(
     table(
       ["Lane", "Test", "Class", ...EVIDENCE_FIELDS],
-      byMark("D").map((t) => [t.lane, `${t.file}:${t.line ?? "?"} ${t.name}`, t.junkClass, ...EVIDENCE_FIELDS.map((f) => t.evidence[f])]),
+      byMark("D").map((t) => [
+        t.lane,
+        `${t.file}:${t.line ?? "?"} ${t.name}`,
+        t.junkClass,
+        ...EVIDENCE_FIELDS.map((f) => t.evidence[f]),
+      ]),
     ),
   );
   out.push("## Consolidate (C)\n");
   out.push(
     table(
       ["Lane", "Test", "Class", "Absorbed by"],
-      byMark("C").map((t) => [t.lane, `${t.file}:${t.line ?? "?"} ${t.name}`, t.junkClass, t.absorbedBy]),
+      byMark("C").map((t) => [
+        t.lane,
+        `${t.file}:${t.line ?? "?"} ${t.name}`,
+        t.junkClass,
+        t.absorbedBy,
+      ]),
     ),
   );
   out.push("## Fix the assertion (F)\n");
   out.push(
     table(
       ["Lane", "Test", "Class", "Contract", "Repair"],
-      byMark("F").map((t) => [t.lane, `${t.file}:${t.line ?? "?"} ${t.name}`, t.junkClass, t.contract, t.action]),
+      byMark("F").map((t) => [
+        t.lane,
+        `${t.file}:${t.line ?? "?"} ${t.name}`,
+        t.junkClass,
+        t.contract,
+        t.action,
+      ]),
     ),
   );
 
@@ -223,7 +256,12 @@ export function renderReport(report) {
   out.push(
     table(
       ["Contract", "Keeper", "Retire", "Carry into keeper"],
-      list(report.layers).map((l) => [l.contract, l.keeper, list(l.retire).join(", "), list(l.carry).join("; ")]),
+      list(report.layers).map((l) => [
+        l.contract,
+        l.keeper,
+        list(l.retire).join(", "),
+        list(l.carry).join("; "),
+      ]),
     ),
   );
 
@@ -231,15 +269,24 @@ export function renderReport(report) {
   out.push(
     table(
       ["Location", "Kind", "Freed by"],
-      list(report.lanes).flatMap((lane) => list(lane.testOnlyCode).map((c) => [c.location, c.kind, list(c.freedBy).join(", ")])),
+      list(report.lanes).flatMap((lane) =>
+        list(lane.testOnlyCode).map((c) => [c.location, c.kind, list(c.freedBy).join(", ")]),
+      ),
     ),
   );
 
   out.push("## Downgraded candidates\n");
-  out.push(table(["Test", "Was", "Reason"], list(report.downgraded).map((d) => [d.id, d.from, d.reason])));
+  out.push(
+    table(
+      ["Test", "Was", "Reason"],
+      list(report.downgraded).map((d) => [d.id, d.from, d.reason]),
+    ),
+  );
 
   out.push("## Suggested batches\n");
-  const batches = list(report.lanes).filter((lane) => list(lane.tests).some((t) => t.mark === "C" || t.mark === "D"));
+  const batches = list(report.lanes).filter((lane) =>
+    list(lane.tests).some((t) => t.mark === "C" || t.mark === "D"),
+  );
   out.push(
     batches.length === 0
       ? "None.\n"
@@ -252,7 +299,9 @@ export function renderReport(report) {
   );
 
   out.push("## Auditor notes\n");
-  const notes = list(report.lanes).flatMap((lane) => list(lane.notes).map((note) => `- **${lane.name}**: ${cell(note)}`));
+  const notes = list(report.lanes).flatMap((lane) =>
+    list(lane.notes).map((note) => `- **${lane.name}**: ${cell(note)}`),
+  );
   out.push(notes.length === 0 ? "None.\n" : `${notes.join("\n")}\n`);
 
   out.push("## Ledger\n");
@@ -262,13 +311,23 @@ export function renderReport(report) {
     out.push(
       table(
         ["Mark", "Test", "Guards", "Catches"],
-        list(lane.tests).map((t) => [t.mark, `${t.file}:${t.line ?? "?"} ${t.name}`, t.contract ?? t.absorbedBy ?? "", t.catches ?? t.junkClass ?? ""]),
+        list(lane.tests).map((t) => [
+          t.mark,
+          `${t.file}:${t.line ?? "?"} ${t.name}`,
+          t.contract ?? t.absorbedBy ?? "",
+          t.catches ?? t.junkClass ?? "",
+        ]),
       ),
     );
   }
 
   out.push("## Not audited\n");
-  out.push(table(["File", "Reason"], list(report.gaps).map((g) => [g.file, g.reason])));
+  out.push(
+    table(
+      ["File", "Reason"],
+      list(report.gaps).map((g) => [g.file, g.reason]),
+    ),
+  );
 
   return out.join("\n");
 }
@@ -276,7 +335,8 @@ export function renderReport(report) {
 // Returns why the renderer refuses to write `target`, or null when it may write there.
 function writeRefusal(target) {
   try {
-    if (lstatSync(target).isSymbolicLink()) return `${target} is a symlink, and the renderer never writes through one`;
+    if (lstatSync(target).isSymbolicLink())
+      return `${target} is a symlink, and the renderer never writes through one`;
   } catch (error) {
     if (error.code !== "ENOENT") return `cannot check ${target}: ${error.message}`;
   }
@@ -286,7 +346,9 @@ function writeRefusal(target) {
 function main(args) {
   const [input, output] = args;
   if (!input) {
-    process.stderr.write("render-report.mjs: usage: render-report.mjs <report.json> [<report.md>]\n");
+    process.stderr.write(
+      "render-report.mjs: usage: render-report.mjs <report.json> [<report.md>]\n",
+    );
     return 2;
   }
   let report;

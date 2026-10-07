@@ -74,7 +74,8 @@ function unfilter(raw, height, stride, bytesPerPixel) {
       if (filter === 1) predicted = left;
       else if (filter === 2) predicted = up;
       else if (filter === 3) predicted = (left + up) >> 1;
-      else if (filter === 4) predicted = paeth(left, up, x >= bytesPerPixel ? prior[x - bytesPerPixel] : 0);
+      else if (filter === 4)
+        predicted = paeth(left, up, x >= bytesPerPixel ? prior[x - bytesPerPixel] : 0);
       out[x] = (line[x] + predicted) & 0xff;
     }
   }
@@ -101,11 +102,14 @@ export function decodePng(buffer) {
   const stride = width * channels;
   let raw;
   try {
-    raw = inflateSync(Buffer.concat(chunks.filter((chunk) => chunk.type === "IDAT").map((chunk) => chunk.data)));
+    raw = inflateSync(
+      Buffer.concat(chunks.filter((chunk) => chunk.type === "IDAT").map((chunk) => chunk.data)),
+    );
   } catch (error) {
     throw new PngError(`corrupt image data: ${error.message}`);
   }
-  if (raw.length < height * (stride + 1)) throw new PngError("image data shorter than its dimensions");
+  if (raw.length < height * (stride + 1))
+    throw new PngError("image data shorter than its dimensions");
 
   const pixels = unfilter(raw, height, stride, channels);
   const rgba = new Uint32Array(width * height);
@@ -147,7 +151,8 @@ export function inspect(buffer) {
   const failures = [];
   if (width === 0 || height === 0) failures.push("zero-size frame");
   if (counts.size <= 1) failures.push("blank frame: a single flat color");
-  if (buffer.length > MAX_BYTES) failures.push(`${buffer.length} bytes exceeds the ${MAX_BYTES}-byte attachment bound`);
+  if (buffer.length > MAX_BYTES)
+    failures.push(`${buffer.length} bytes exceeds the ${MAX_BYTES}-byte attachment bound`);
 
   return {
     width,

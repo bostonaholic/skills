@@ -3,7 +3,16 @@
 // overwriting another source, an unreadable one must fail by name, and an
 // arbitrary repo path must pass the allowlist and containment guard.
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -25,8 +34,14 @@ function run(script, args) {
 
 const CLAUDE_CODE_LINES = [
   { type: "user", sessionId: "abc", message: { role: "user", content: "find the config loader" } },
-  { type: "assistant", sessionId: "abc", message: { role: "assistant", content: [{ type: "text", text: "searching" }] } },
-].map((r) => JSON.stringify(r)).join("\n");
+  {
+    type: "assistant",
+    sessionId: "abc",
+    message: { role: "assistant", content: [{ type: "text", text: "searching" }] },
+  },
+]
+  .map((r) => JSON.stringify(r))
+  .join("\n");
 
 test("resolve-transcript.mjs --file normalizes a named transcript into sources/", (t) => {
   const dir = scratchDir(t);
@@ -41,8 +56,13 @@ test("resolve-transcript.mjs --file normalizes a named transcript into sources/"
   assert.match(result.stdout, /^records: 2$/m);
   const out = join(runDir, "sources", "abc.jsonl");
   assert.match(result.stdout, new RegExp(`^normalized: ${out}$`, "m"));
-  const records = readFileSync(out, "utf8").split("\n").map((line) => JSON.parse(line));
-  assert.deepEqual(records.map((r) => r.text), ["find the config loader", "searching"]);
+  const records = readFileSync(out, "utf8")
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    records.map((r) => r.text),
+    ["find the config loader", "searching"],
+  );
 });
 
 test("resolve-transcript.mjs --file refuses a file no supported host writes", (t) => {
@@ -70,7 +90,10 @@ test("resolve-transcript.mjs --file keeps two sources that share a basename", (t
 
   assert.equal(first.status, 0, first.stderr);
   assert.equal(second.status, 0, second.stderr);
-  assert.match(second.stdout, new RegExp(`^normalized: ${join(runDir, "sources", "abc-2.jsonl")}$`, "m"));
+  assert.match(
+    second.stdout,
+    new RegExp(`^normalized: ${join(runDir, "sources", "abc-2.jsonl")}$`, "m"),
+  );
   assert.equal(readFileSync(join(runDir, "sources", "abc.jsonl"), "utf8").split("\n").length, 2);
   assert.equal(readFileSync(join(runDir, "sources", "abc-2.jsonl"), "utf8").split("\n").length, 1);
 });
@@ -86,14 +109,21 @@ test("resolve-transcript.mjs --file reuses the path when the normalized bytes ma
 
   assert.equal(first.status, 0, first.stderr);
   assert.equal(again.status, 0, again.stderr);
-  assert.match(again.stdout, new RegExp(`^normalized: ${join(runDir, "sources", "abc.jsonl")}$`, "m"));
+  assert.match(
+    again.stdout,
+    new RegExp(`^normalized: ${join(runDir, "sources", "abc.jsonl")}$`, "m"),
+  );
   assert.deepEqual(readdirSync(join(runDir, "sources")), ["abc.jsonl"]);
 });
 
 test("resolve-transcript.mjs --file reports bytes as UTF-8 bytes", (t) => {
   const dir = scratchDir(t);
   const transcript = join(dir, "abc.jsonl");
-  const text = JSON.stringify({ type: "user", sessionId: "abc", message: { role: "user", content: "café ✓" } });
+  const text = JSON.stringify({
+    type: "user",
+    sessionId: "abc",
+    message: { role: "user", content: "café ✓" },
+  });
   writeFileSync(transcript, text);
 
   const result = run("resolve-transcript.mjs", [join(dir, "run"), "--file", transcript]);
@@ -119,10 +149,25 @@ test("resolve-transcript.mjs --file without a path reaches its usage error", (t)
 });
 
 test("isValidRepoPath admits plain relative paths only", () => {
-  for (const ok of ["CODING_STANDARDS.md", "docs/coding-standards/naming.md", ".claude/skills/x/SKILL.md"]) {
+  for (const ok of [
+    "CODING_STANDARDS.md",
+    "docs/coding-standards/naming.md",
+    ".claude/skills/x/SKILL.md",
+  ]) {
     assert.equal(isValidRepoPath(ok), true, ok);
   }
-  for (const bad of ["", "/etc/passwd", "../sibling/README.md", "docs/../../x", "-rf", "a b.md", "a;b", "docs//x.md", "docs/", 42]) {
+  for (const bad of [
+    "",
+    "/etc/passwd",
+    "../sibling/README.md",
+    "docs/../../x",
+    "-rf",
+    "a b.md",
+    "a;b",
+    "docs//x.md",
+    "docs/",
+    42,
+  ]) {
     assert.equal(isValidRepoPath(bad), false, String(bad));
   }
 });

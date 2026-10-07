@@ -49,7 +49,17 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readSync,
+  readdirSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
@@ -169,7 +179,8 @@ export function storeRootFor(host, env) {
   const environment = env ?? {};
   const home = environment.HOME || homedir();
   if (host === "codex") return join(environment.CODEX_HOME || join(home, ".codex"), "sessions");
-  if (host === "claude-code") return join(environment.CLAUDE_CONFIG_DIR || join(home, ".claude"), "projects");
+  if (host === "claude-code")
+    return join(environment.CLAUDE_CONFIG_DIR || join(home, ".claude"), "projects");
   if (host === "opencode") {
     const dataHome = environment.XDG_DATA_HOME || join(home, ".local", "share");
     return environment.OPENCODE_DB || join(dataHome, "opencode", "opencode.db");
@@ -230,7 +241,9 @@ function filesContaining(files, marker) {
 /** The transcript `host` would name `sessionId`, as a filename test. */
 function namesSession(host, file, sessionId) {
   const name = basename(file);
-  return HOSTS[host]?.suffixed ? name.endsWith(`-${sessionId}.jsonl`) : name === `${sessionId}.jsonl`;
+  return HOSTS[host]?.suffixed
+    ? name.endsWith(`-${sessionId}.jsonl`)
+    : name === `${sessionId}.jsonl`;
 }
 
 /** The first `HEADER_PROBE_BYTES` of a file, without reading a huge transcript whole. */
@@ -263,7 +276,8 @@ export function declaredSessionId(headText) {
       // A truncated final line is expected — the probe cuts at a byte offset.
       continue;
     }
-    if (record?.type === "session_meta" && typeof record?.payload?.id === "string") return record.payload.id;
+    if (record?.type === "session_meta" && typeof record?.payload?.id === "string")
+      return record.payload.id;
     if (typeof record?.sessionId === "string") return record.sessionId;
   }
   return null;
@@ -302,7 +316,9 @@ function searchBySessionId({ host, storeRoot, sessionId }) {
   const { depth, suffixed } = HOSTS[host];
   const levels = Array.from({ length: depth }, () => "*");
   const leaf = suffixed ? `*-${sessionId}.jsonl` : `${sessionId}.jsonl`;
-  const candidates = transcriptsUnder(storeRoot, depth).filter((file) => namesSession(host, file, sessionId));
+  const candidates = transcriptsUnder(storeRoot, depth).filter((file) =>
+    namesSession(host, file, sessionId),
+  );
   return { matches: confirmed(candidates, sessionId), tried: [join(storeRoot, ...levels, leaf)] };
 }
 
@@ -356,7 +372,8 @@ export function resolveTranscript(options) {
   }
 
   if (matches.length === 0) return { ok: false, failure: "no-match", tried, host, via };
-  if (matches.length > 1) return { ok: false, failure: "multiple-matches", tried: matches, host, via };
+  if (matches.length > 1)
+    return { ok: false, failure: "multiple-matches", tried: matches, host, via };
   return { ok: true, path: matches[0], host, via };
 }
 
@@ -433,12 +450,17 @@ export function resolveSession(options) {
 
   if (carrying.length === 1) {
     const pick = carrying[0];
-    return { ...pick.result, via: pick.result.host === "opencode" ? "marker" : "session-id+marker" };
+    return {
+      ...pick.result,
+      via: pick.result.host === "opencode" ? "marker" : "session-id+marker",
+    };
   }
   return {
     ok: false,
     failure: "ambiguous-host",
-    tried: found.map(({ candidate, result }) => `${candidate.host}: ${result.path ?? result.sessionId}`),
+    tried: found.map(
+      ({ candidate, result }) => `${candidate.host}: ${result.path ?? result.sessionId}`,
+    ),
   };
 }
 
@@ -517,7 +539,8 @@ export function isUserTurn(record) {
   if (record === null || typeof record !== "object") return false;
   if (isCodexRecord(record)) {
     const { payload } = record;
-    if (record.type !== "response_item" || payload.type !== "message" || payload.role !== "user") return false;
+    if (record.type !== "response_item" || payload.type !== "message" || payload.role !== "user")
+      return false;
     const text = codexText(payload.content).trimStart();
     return !CODEX_INJECTION_PREFIXES.some((prefix) => text.startsWith(prefix));
   }
@@ -562,7 +585,9 @@ function classifyCodex(record) {
     const role = typeof payload.role === "string" ? payload.role : "unknown";
     if (CODEX_DROPPED_ROLES.has(role)) return { drop: role };
     if (role === "user") {
-      return { keep: { type: "user", isUserTurn: isUserTurn(record), text: codexText(payload.content) } };
+      return {
+        keep: { type: "user", isUserTurn: isUserTurn(record), text: codexText(payload.content) },
+      };
     }
     if (role === "assistant") {
       return { keep: { type: "assistant", isUserTurn: false, text: codexText(payload.content) } };
@@ -574,7 +599,10 @@ function classifyCodex(record) {
   // Matched by shape rather than by an enumerated list of call types, so a
   // rollout that renames one still yields the name and arguments the tooling
   // lens counts.
-  if (typeof payload.name === "string" && (payload.input !== undefined || payload.arguments !== undefined)) {
+  if (
+    typeof payload.name === "string" &&
+    (payload.input !== undefined || payload.arguments !== undefined)
+  ) {
     return {
       keep: {
         type: "assistant",
@@ -693,7 +721,8 @@ function suppressSqliteWarning() {
   const saved = process.listeners("warning");
   process.removeAllListeners("warning");
   const filter = (warning) => {
-    if (warning?.name === "ExperimentalWarning" && /SQLite/i.test(String(warning.message ?? ""))) return;
+    if (warning?.name === "ExperimentalWarning" && /SQLite/i.test(String(warning.message ?? "")))
+      return;
     for (const listener of saved) listener(warning);
   };
   process.on("warning", filter);
@@ -730,11 +759,19 @@ export function openOpencodeDb(dbPath) {
  */
 function assertOpencodeSchema(db) {
   const tables = new Set(
-    db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((row) => row.name),
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all()
+      .map((row) => row.name),
   );
   for (const [table, columns] of Object.entries(OPENCODE_REQUIRED_COLUMNS)) {
     if (!tables.has(table)) throw new Error(`opencode store has no ${table} table`);
-    const present = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name));
+    const present = new Set(
+      db
+        .prepare(`PRAGMA table_info(${table})`)
+        .all()
+        .map((row) => row.name),
+    );
     for (const column of columns) {
       if (!present.has(column)) throw new Error(`opencode ${table} table has no ${column} column`);
     }
@@ -761,7 +798,12 @@ export function resolveOpencodeSession(options) {
   const { dbPath, marker, retryDelayMs } = options ?? {};
 
   if (!dbPath || !existsSync(dbPath)) {
-    return { ok: false, host: "opencode", failure: "no-session-store", tried: [String(dbPath ?? "")] };
+    return {
+      ok: false,
+      host: "opencode",
+      failure: "no-session-store",
+      tried: [String(dbPath ?? "")],
+    };
   }
   // `instr(X, '')` matches every row, so an empty marker would resolve an
   // arbitrary childless session rather than fail.
@@ -773,7 +815,8 @@ export function resolveOpencodeSession(options) {
   try {
     db = openOpencodeDb(dbPath);
   } catch (error) {
-    const failure = error instanceof SqliteUnavailableError ? "sqlite-unavailable" : "unreadable-session-store";
+    const failure =
+      error instanceof SqliteUnavailableError ? "sqlite-unavailable" : "unreadable-session-store";
     return { ok: false, host: "opencode", failure, tried: [String(dbPath)] };
   }
 
@@ -786,15 +829,27 @@ export function resolveOpencodeSession(options) {
       sleepSync(retryDelayMs ?? DEFAULT_RETRY_DELAY_MS);
       matches = matchingOpencodeSessions(db, marker);
     }
-    if (matches.length === 0) return { ok: false, host: "opencode", failure: "no-match", tried: [String(dbPath)] };
-    if (matches.length > 1) return { ok: false, host: "opencode", failure: "ambiguous-session", tried: matches };
+    if (matches.length === 0)
+      return { ok: false, host: "opencode", failure: "no-match", tried: [String(dbPath)] };
+    if (matches.length > 1)
+      return { ok: false, host: "opencode", failure: "ambiguous-session", tried: matches };
     const [sessionId] = matches;
     if (!SESSION_ID_PATTERN.test(sessionId)) {
-      return { ok: false, host: "opencode", failure: "unreadable-session-store", tried: [sessionId] };
+      return {
+        ok: false,
+        host: "opencode",
+        failure: "unreadable-session-store",
+        tried: [sessionId],
+      };
     }
     return { ok: true, host: "opencode", sessionId, via: "marker" };
   } catch {
-    return { ok: false, host: "opencode", failure: "unreadable-session-store", tried: [String(dbPath)] };
+    return {
+      ok: false,
+      host: "opencode",
+      failure: "unreadable-session-store",
+      tried: [String(dbPath)],
+    };
   } finally {
     try {
       db.close();
@@ -863,7 +918,8 @@ export function normalizeOpencode({ dbPath, sessionId }) {
       }
 
       const text = kept.join("\n");
-      const isUserTurn = role === "user" && !CLAUDE_INJECTION_TAGS.some((tag) => text.includes(tag));
+      const isUserTurn =
+        role === "user" && !CLAUDE_INJECTION_TAGS.some((tag) => text.includes(tag));
       records.push({ type: role, isUserTurn, text });
     }
   } finally {
@@ -913,11 +969,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const runDir = process.argv[2] ?? "";
   // `--file <path>` normalizes a transcript the caller already named, such as
   // a past session a retro prompt asked for, instead of resolving this one.
-  const namedFile = process.argv[3] === "--file" ? process.argv[4] ?? "" : null;
-  const storeOverride = namedFile === null ? process.argv[3] ?? "" : "";
+  const namedFile = process.argv[3] === "--file" ? (process.argv[4] ?? "") : null;
+  const storeOverride = namedFile === null ? (process.argv[3] ?? "") : "";
 
   if (!runDir || namedFile === "") {
-    process.stderr.write("usage: resolve-transcript.mjs <run-cache-dir> [store-root | --file <transcript.jsonl>]\n");
+    process.stderr.write(
+      "usage: resolve-transcript.mjs <run-cache-dir> [store-root | --file <transcript.jsonl>]\n",
+    );
     process.exit(1);
   }
 
@@ -928,7 +986,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
       "two agents' session variables are set in one process and the marker settled neither transcript",
     "ambiguous-session":
       "more than one childless OpenCode session carries this run's marker, so the run cannot tell which session is its own",
-    "sqlite-unavailable": "this runtime cannot load the built-in node:sqlite module that reads the OpenCode store",
+    "sqlite-unavailable":
+      "this runtime cannot load the built-in node:sqlite module that reads the OpenCode store",
     "unreadable-session-store":
       "the OpenCode store lacks a required table or column, or a read of it failed",
     "unsupported-format": "the resolved file holds no records a supported host writes",
@@ -947,14 +1006,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   // session also started here, so it is an optimization, never the mechanism.
   const slug = process.cwd().replace(/[/.]/g, "-");
 
-  const resolved = namedFile !== null
-    ? { ok: true, host: "named-file", via: "--file", path: resolve(namedFile) }
-    : resolveSession({
-        candidates: detectHost(process.env),
-        storeRootOf: (host) => storeOverride || storeRootFor(host, process.env),
-        marker: runDir,
-        slug,
-      });
+  const resolved =
+    namedFile !== null
+      ? { ok: true, host: "named-file", via: "--file", path: resolve(namedFile) }
+      : resolveSession({
+          candidates: detectHost(process.env),
+          storeRootOf: (host) => storeOverride || storeRootFor(host, process.env),
+          marker: runDir,
+          slug,
+        });
   if (!resolved.ok) fail(resolved.failure, resolved.tried, FAILURE_NOTES[resolved.failure]);
 
   // `bytes` is always UTF-8 bytes. A file host counts the raw transcript; OpenCode
@@ -972,20 +1032,31 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
       fail("unreadable-session-store", [dbPath], FAILURE_NOTES["unreadable-session-store"]);
     }
     transcriptLabel = `${dbPath}#${resolved.sessionId}`;
-    bytes = normalized.records.reduce((sum, record) => sum + Buffer.byteLength(record.text, "utf8"), 0);
+    bytes = normalized.records.reduce(
+      (sum, record) => sum + Buffer.byteLength(record.text, "utf8"),
+      0,
+    );
   } else {
     let raw;
     try {
       raw = readFileSync(resolved.path, "utf8");
     } catch (error) {
-      fail("unreadable-transcript", [resolved.path], `${FAILURE_NOTES["unreadable-transcript"]} (${error.code ?? error.message})`);
+      fail(
+        "unreadable-transcript",
+        [resolved.path],
+        `${FAILURE_NOTES["unreadable-transcript"]} (${error.code ?? error.message})`,
+      );
     }
     normalized = normalizeTranscript(raw);
     transcriptLabel = resolved.path;
     bytes = Buffer.byteLength(raw, "utf8");
   }
   if (normalized.format === "unknown" || normalized.format === "mixed") {
-    fail("unsupported-format", [transcriptLabel], `${FAILURE_NOTES["unsupported-format"]} (format: ${normalized.format}, unrecognized records: ${normalized.unrecognizedRecords})`);
+    fail(
+      "unsupported-format",
+      [transcriptLabel],
+      `${FAILURE_NOTES["unsupported-format"]} (format: ${normalized.format}, unrecognized records: ${normalized.unrecognizedRecords})`,
+    );
   }
 
   const outDir = namedFile === null ? runDir : join(runDir, "sources");
@@ -1001,7 +1072,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
       outPath = writeNewSource(outDir, basename(namedFile, extname(namedFile)), outText);
     }
   } catch (error) {
-    fail("unwritable-run-cache", [outDir], `${FAILURE_NOTES["unwritable-run-cache"]} (${error.code ?? error.message})`);
+    fail(
+      "unwritable-run-cache",
+      [outDir],
+      `${FAILURE_NOTES["unwritable-run-cache"]} (${error.code ?? error.message})`,
+    );
   }
 
   process.stdout.write(`host: ${resolved.host}\n`);

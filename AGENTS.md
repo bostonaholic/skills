@@ -66,6 +66,8 @@ Run only the checks relevant to the change, and report the exact commands and re
 ```sh
 npm test
 npm run lint:skills
+npm run lint:js
+npm run format:check
 node scripts/catalog.mjs --check
 claude plugin validate . --strict
 git diff --check

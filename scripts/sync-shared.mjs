@@ -11,7 +11,17 @@
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
 // Importing this module runs nothing; scripts/lint-skills.mjs imports `references`.
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmdirSync, rmSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmdirSync,
+  rmSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -19,7 +29,9 @@ const SKILL_LINK = /^shared\/([a-z0-9-]+\.md)$/;
 const SIBLING_LINK = /^([a-z0-9-]+\.md)(?:#.*)?$/;
 
 function lsFiles(...pathspecs) {
-  return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" }).split("\0").filter(Boolean);
+  return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
 }
 
 // Yields { line, target } for every link target and code-span path outside fenced code.
@@ -31,7 +43,13 @@ export function* references(text, { spans }) {
     let marker = raw.match(/^\s*(`{3,}|~{3,})(.*)$/);
     if (marker?.[1][0] === "`" && marker[2].includes("`")) marker = null;
     if (fence) {
-      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+      if (
+        marker &&
+        marker[1][0] === fence[0] &&
+        marker[1].length >= fence.length &&
+        !marker[2].trim()
+      )
+        fence = null;
       continue;
     }
     if (marker) {
@@ -50,7 +68,8 @@ export function* references(text, { spans }) {
         prose += raw.slice(cursor, run.index);
         openTicks = run[0].length;
       } else if (run[0].length === openTicks) {
-        if (spans) yield { line: index + 1, target: raw.slice(cursor, run.index).trim().split(/\s/)[0] };
+        if (spans)
+          yield { line: index + 1, target: raw.slice(cursor, run.index).trim().split(/\s/)[0] };
         openTicks = null;
       } else continue;
       cursor = run.index + run[0].length;
@@ -121,7 +140,10 @@ function plan() {
     ),
   ].filter(Boolean);
   if (errors.length) return { errors, copies: [] };
-  const copies = skills.map((dir) => ({ dir: `${dir}/shared`, files: derive(dir, tracked.get(dir), errors) }));
+  const copies = skills.map((dir) => ({
+    dir: `${dir}/shared`,
+    files: derive(dir, tracked.get(dir), errors),
+  }));
   return { errors, copies };
 }
 
@@ -135,9 +157,11 @@ function check(copies) {
     for (const file of files) {
       const copy = join(dir, file);
       if (!existsSync(copy)) problems.push(`missing: ${copy}`);
-      else if (!readFileSync(copy).equals(readFileSync(join("shared", file)))) problems.push(`stale: ${copy}`);
+      else if (!readFileSync(copy).equals(readFileSync(join("shared", file))))
+        problems.push(`stale: ${copy}`);
     }
-    for (const file of onDisk(dir)) if (!files.includes(file)) problems.push(`extra: ${join(dir, file)}`);
+    for (const file of onDisk(dir))
+      if (!files.includes(file)) problems.push(`extra: ${join(dir, file)}`);
   }
   return problems;
 }
@@ -146,7 +170,8 @@ function write(copies) {
   for (const { dir, files } of copies) {
     if (files.length) mkdirSync(dir, { recursive: true });
     for (const file of files) copyFileSync(join("shared", file), join(dir, file));
-    for (const file of onDisk(dir)) if (!files.includes(file)) rmSync(join(dir, file), { recursive: true, force: true });
+    for (const file of onDisk(dir))
+      if (!files.includes(file)) rmSync(join(dir, file), { recursive: true, force: true });
     if (existsSync(dir) && onDisk(dir).length === 0) rmdirSync(dir);
   }
 }
@@ -173,4 +198,5 @@ function main(args) {
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
-if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) main(process.argv.slice(2));
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href)
+  main(process.argv.slice(2));

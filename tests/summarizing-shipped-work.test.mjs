@@ -6,7 +6,16 @@
 // comment stripping of its output lines.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -39,7 +48,10 @@ function fakeBin(dir, { tools = TOOLS, cases = "" } = {}) {
   const log = join(dir, "gh.log");
   writeFileSync(log, "");
   const gh = join(bin, "gh");
-  writeFileSync(gh, `#!${BASH}\nprintf '%s\\n' "$*" >>'${log}'\ncase "$*" in\n${cases}\n  *) echo '[]' ;;\nesac\n`);
+  writeFileSync(
+    gh,
+    `#!${BASH}\nprintf '%s\\n' "$*" >>'${log}'\ncase "$*" in\n${cases}\n  *) echo '[]' ;;\nesac\n`,
+  );
   chmodSync(gh, 0o755);
   return { bin, log };
 }
@@ -47,7 +59,10 @@ function fakeBin(dir, { tools = TOOLS, cases = "" } = {}) {
 function run(t, args, { tools, cases, env = {} } = {}) {
   const dir = scratch(t);
   const { bin, log } = fakeBin(dir, { tools, cases });
-  const result = spawnSync(BASH, [SCRIPT, ...args], { encoding: "utf8", env: { PATH: bin, TMPDIR: dir, ...env } });
+  const result = spawnSync(BASH, [SCRIPT, ...args], {
+    encoding: "utf8",
+    env: { PATH: bin, TMPDIR: dir, ...env },
+  });
   const ghCalls = readFileSync(log, "utf8").split("\n").filter(Boolean);
   return { result, ghCalls, dir };
 }
@@ -83,7 +98,9 @@ test("fetch-shipped-prs.sh refuses a malformed or impossible date, or START afte
 });
 
 test("fetch-shipped-prs.sh exits 69 naming a missing jq before any gh call", (t) => {
-  const { result, ghCalls } = run(t, ["2026-01-01", "2026-01-07"], { tools: TOOLS.filter((tool) => tool !== "jq") });
+  const { result, ghCalls } = run(t, ["2026-01-01", "2026-01-07"], {
+    tools: TOOLS.filter((tool) => tool !== "jq"),
+  });
   assert.equal(result.status, 69);
   assert.match(result.stderr, /missing required tool: jq/);
   assert.deepEqual(ghCalls, []);
@@ -98,7 +115,9 @@ test("fetch-shipped-prs.sh passes one --owner flag per OWNER, and none without o
 
   const everywhere = run(t, ["2026-01-01", "2026-01-07"]);
   assert.equal(everywhere.result.status, 0, everywhere.result.stderr);
-  assert.deepEqual(everywhere.ghCalls, [`search prs --author=@me --merged-at=2026-01-01..2026-01-07 ${JSON_FIELDS}`]);
+  assert.deepEqual(everywhere.ghCalls, [
+    `search prs --author=@me --merged-at=2026-01-01..2026-01-07 ${JSON_FIELDS}`,
+  ]);
 });
 
 test("fetch-shipped-prs.sh splits a range over 31 days into inclusive 31-day chunks", (t) => {
@@ -112,7 +131,10 @@ test("fetch-shipped-prs.sh splits a range over 31 days into inclusive 31-day chu
 
 test("fetch-shipped-prs.sh exits 1 with the cap error when a chunk returns 1000 results", (t) => {
   const dir = scratch(t);
-  const full = Array.from({ length: 1000 }, (_, i) => ({ repository: { nameWithOwner: "acme/deploy-service" }, number: i + 1 }));
+  const full = Array.from({ length: 1000 }, (_, i) => ({
+    repository: { nameWithOwner: "acme/deploy-service" },
+    number: i + 1,
+  }));
   const { result, ghCalls } = run(t, ["2026-01-01", "2026-03-01"], {
     cases: answer(dir, '*"--merged-at=2026-01-01..2026-01-31"*', full),
   });
@@ -169,7 +191,10 @@ test("fetch-shipped-prs.sh prints one line per PR with links de-duplicated and c
   ];
   const { result } = run(t, ["2026-01-01", "2026-01-07"], { cases: answer(dir, "*", prs) });
   assert.equal(result.status, 0, result.stderr);
-  const lines = result.stdout.trim().split("\n").map((line) => JSON.parse(line));
+  const lines = result.stdout
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
   assert.equal(lines.length, 2);
   assert.deepEqual(lines[0], {
     repo: "acme/deploy-service",

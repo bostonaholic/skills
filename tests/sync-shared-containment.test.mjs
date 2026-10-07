@@ -4,7 +4,19 @@
 // whose files must survive.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -13,7 +25,8 @@ const SYNC = resolve("scripts/sync-shared.mjs");
 const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
 const RULE = "# Rule one\n\nKeep it short.\n";
 const SENTINEL = "outside the repository\n";
-const skill = (file) => `---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead [the rule](shared/${file}) first.\n`;
+const skill = (file) =>
+  `---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead [the rule](shared/${file}) first.\n`;
 
 // Builds <tmp>/repo (staged, uncommitted) and <tmp>/outside/sentinel.md. `links` maps a repo path
 // to the outside path its symlink points at; a linked path replaces the file the fixture would
@@ -26,7 +39,10 @@ function fixture(t, links, { rule = "rule-one.md", moveSkills = false } = {}) {
   const outside = join(base, "outside");
   mkdirSync(outside, { recursive: true });
   writeFileSync(join(outside, "sentinel.md"), SENTINEL);
-  for (const [path, text] of Object.entries({ "shared/rule-one.md": RULE, "skills/engineering/widget/SKILL.md": skill(rule) })) {
+  for (const [path, text] of Object.entries({
+    "shared/rule-one.md": RULE,
+    "skills/engineering/widget/SKILL.md": skill(rule),
+  })) {
     if (Object.keys(links).some((link) => path === link || path.startsWith(`${link}/`))) continue;
     mkdirSync(dirname(join(repo, path)), { recursive: true });
     writeFileSync(join(repo, path), text);
@@ -35,7 +51,10 @@ function fixture(t, links, { rule = "rule-one.md", moveSkills = false } = {}) {
     mkdirSync(dirname(join(repo, path)), { recursive: true });
     symlinkSync(join(outside, target), join(repo, path));
   }
-  for (const args of [["init", "-q"], ["add", "--", "shared", "skills"]]) {
+  for (const args of [
+    ["init", "-q"],
+    ["add", "--", "shared", "skills"],
+  ]) {
     const run = spawnSync("git", args, { cwd: repo, env: GIT_ENV, encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
   }
@@ -76,10 +95,16 @@ for (const args of [[], ["--check"]]) {
   });
 
   test(`${mode} refuses a symlinked file inside shared/ and leaves its outside target intact`, (t) => {
-    const { repo, sentinel } = fixture(t, { "skills/engineering/widget/shared/rule-one.md": "sentinel.md" });
+    const { repo, sentinel } = fixture(t, {
+      "skills/engineering/widget/shared/rule-one.md": "sentinel.md",
+    });
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
-    assert.match(run.output, /skills\/engineering\/widget\/shared\/rule-one\.md\b.*symlink/, run.output);
+    assert.match(
+      run.output,
+      /skills\/engineering\/widget\/shared\/rule-one\.md\b.*symlink/,
+      run.output,
+    );
     assert.equal(readFileSync(sentinel, "utf8"), SENTINEL);
   });
 
@@ -88,7 +113,11 @@ for (const args of [[], ["--check"]]) {
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
     assert.ok(refuses(run.output, "skills/engineering/widget"), run.output);
-    assert.equal(existsSync(join(outside, "skills", "engineering", "widget", "shared")), false, "created a shared/ outside the repository");
+    assert.equal(
+      existsSync(join(outside, "skills", "engineering", "widget", "shared")),
+      false,
+      "created a shared/ outside the repository",
+    );
   });
 
   test(`${mode} refuses a root shared/ that is a symlink and copies none of its bytes`, (t) => {
@@ -96,7 +125,10 @@ for (const args of [[], ["--check"]]) {
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
     assert.ok(refuses(run.output, "shared"), run.output);
-    assert.deepEqual(skillCopies(repo).filter((text) => text === SENTINEL), []);
+    assert.deepEqual(
+      skillCopies(repo).filter((text) => text === SENTINEL),
+      [],
+    );
   });
 
   test(`${mode} refuses a symlinked category before creating shared copies`, (t) => {
@@ -121,6 +153,9 @@ for (const args of [[], ["--check"]]) {
     const run = runSync(repo, ...args);
     assert.equal(run.status, 1, run.output);
     assert.ok(refuses(run.output, "shared/rule-one.md"), run.output);
-    assert.deepEqual(skillCopies(repo).filter((text) => text === SENTINEL), []);
+    assert.deepEqual(
+      skillCopies(repo).filter((text) => text === SENTINEL),
+      [],
+    );
   });
 }

@@ -47,7 +47,10 @@ test("the plugin version equals the package.json version", () => {
 test("the marketplace lists the plugin by its name with source ./", () => {
   const plugin = readJson(PLUGIN);
   assert.ok(plugin.name, `${PLUGIN} has no name`);
-  const entries = (readJson(MARKETPLACE).plugins ?? []).map(({ name, source }) => ({ name, source }));
+  const entries = (readJson(MARKETPLACE).plugins ?? []).map(({ name, source }) => ({
+    name,
+    source,
+  }));
   assert.deepEqual(entries, [{ name: plugin.name, source: "./" }]);
 });
 

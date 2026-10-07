@@ -6,7 +6,15 @@
 // `git add`, never a commit.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -25,11 +33,18 @@ async function catalogModule() {
 }
 
 function escaped(text) {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function trackedSkills() {
-  return execFileSync("git", ["-C", REPO, "ls-files", "-z", "--", "skills/*/*/SKILL.md"], { encoding: "utf8" })
+  return execFileSync("git", ["-C", REPO, "ls-files", "-z", "--", "skills/*/*/SKILL.md"], {
+    encoding: "utf8",
+  })
     .split("\0")
     .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
     .map((path) => path.split("/")[2])
@@ -46,14 +61,22 @@ function buildSite(t, cwd) {
   assert.ok(existsSync(BUILD_SITE), `missing ${BUILD_SITE}`);
   const out = join(realpathSync(mkdtempSync(join(tmpdir(), "catalog-site-"))), "site");
   t.after(() => rmSync(dirname(out), { recursive: true, force: true }));
-  const run = spawnSync(process.execPath, [BUILD_SITE, out], { cwd, env: GIT_ENV, encoding: "utf8" });
+  const run = spawnSync(process.execPath, [BUILD_SITE, out], {
+    cwd,
+    env: GIT_ENV,
+    encoding: "utf8",
+  });
   assert.equal(run.status, 0, run.stdout + run.stderr);
   return out;
 }
 
 function runCli(script, cwd, ...args) {
   assert.ok(existsSync(script), `missing ${script}`);
-  const run = spawnSync(process.execPath, [script, ...args], { cwd, env: GIT_ENV, encoding: "utf8" });
+  const run = spawnSync(process.execPath, [script, ...args], {
+    cwd,
+    env: GIT_ENV,
+    encoding: "utf8",
+  });
   return { status: run.status, output: run.stdout + run.stderr };
 }
 
@@ -64,7 +87,10 @@ function fixtureRepo(t, files) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   }
-  for (const args of [["init", "-q"], ["add", "-A"]]) {
+  for (const args of [
+    ["init", "-q"],
+    ["add", "-A"],
+  ]) {
     const run = spawnSync("git", args, { cwd: root, env: GIT_ENV, encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
   }
@@ -85,9 +111,11 @@ test("categorized inputs retain names, source paths, calls, and invocation label
     "docs/CNAME": "example.test\n",
     "docs/style.css": "body { margin: 0; }\n",
     "docs/copy-code.js": "",
-    "skills/engineering/alpha/SKILL.md": "---\nname: alpha\ndescription: Fixture reader.\ndisable-model-invocation: true\n---\nCall the Skill tool with `beta`.\n",
+    "skills/engineering/alpha/SKILL.md":
+      "---\nname: alpha\ndescription: Fixture reader.\ndisable-model-invocation: true\n---\nCall the Skill tool with `beta`.\n",
     "skills/productivity/beta/SKILL.md": "---\nname: beta\ndescription: Fixture writer.\n---\n",
-    "skills/deprecated/old/SKILL.md.disabled": "---\nname: old\ndescription: Archived fixture.\n---\n",
+    "skills/deprecated/old/SKILL.md.disabled":
+      "---\nname: old\ndescription: Archived fixture.\n---\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
@@ -98,7 +126,10 @@ test("categorized inputs retain names, source paths, calls, and invocation label
   assert.ok(readme.includes("Explicit invocation only. Calls: `beta`."));
   assert.ok(!readme.includes("Archived fixture"));
   const html = readFileSync(join(buildSite(t, root), "index.html"), "utf8");
-  assert.deepEqual([...html.matchAll(/<section id="([^"]+)"/g)].map(([, id]) => id), ["alpha", "beta"]);
+  assert.deepEqual(
+    [...html.matchAll(/<section id="([^"]+)"/g)].map(([, id]) => id),
+    ["alpha", "beta"],
+  );
   for (const dir of ["engineering/alpha", "productivity/beta"]) {
     assert.ok(html.includes(`https://github.com/bostonaholic/skills/tree/main/skills/${dir}`));
   }
@@ -182,7 +213,8 @@ test("a Skill tool call wrapped across a line break still yields a Calls entry",
     "README.md": FIXTURE_README,
     "skills/engineering/alpha/SKILL.md":
       "---\nname: alpha\ndescription: 'Use for fixture checks.'\n---\n\n# alpha\n\nWhen the report is ready, call the Skill tool\nwith `beta` to publish it.\n",
-    "skills/engineering/beta/SKILL.md": "---\nname: beta\ndescription: 'Use for fixture publishing.'\n---\n\n# beta\n",
+    "skills/engineering/beta/SKILL.md":
+      "---\nname: beta\ndescription: 'Use for fixture publishing.'\n---\n\n# beta\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
@@ -192,17 +224,22 @@ test("a Skill tool call wrapped across a line break still yields a Calls entry",
 test("a skill without agents/openai.yaml is listed with the first sentence of its description", (t) => {
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
-    "skills/engineering/gamma/SKILL.md": "---\nname: gamma\ndescription: 'Use for fixture checks. Produces a fixture report.'\n---\n\n# gamma\n",
+    "skills/engineering/gamma/SKILL.md":
+      "---\nname: gamma\ndescription: 'Use for fixture checks. Produces a fixture report.'\n---\n\n# gamma\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
-  assert.equal(readmeEntry(root, "gamma"), "- **[gamma](./skills/engineering/gamma/SKILL.md)**: Use for fixture checks.");
+  assert.equal(
+    readmeEntry(root, "gamma"),
+    "- **[gamma](./skills/engineering/gamma/SKILL.md)**: Use for fixture checks.",
+  );
 });
 
 test("--write exits 1 naming the missing generated-block marker", (t) => {
   const root = fixtureRepo(t, {
     "README.md": `# Fixture\n\n${END}\n`,
-    "skills/engineering/gamma/SKILL.md": "---\nname: gamma\ndescription: 'Use for fixture checks.'\n---\n\n# gamma\n",
+    "skills/engineering/gamma/SKILL.md":
+      "---\nname: gamma\ndescription: 'Use for fixture checks.'\n---\n\n# gamma\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 1, run.output);
@@ -212,7 +249,8 @@ test("--write exits 1 naming the missing generated-block marker", (t) => {
 test("catalog --check exits 1 naming a SKILL.md whose name differs from its directory", (t) => {
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
-    "skills/engineering/delta/SKILL.md": "---\nname: epsilon\ndescription: 'Use for fixture checks.'\n---\n\n# delta\n",
+    "skills/engineering/delta/SKILL.md":
+      "---\nname: epsilon\ndescription: 'Use for fixture checks.'\n---\n\n# delta\n",
   });
   const run = runCli(CATALOG, root, "--check");
   assert.equal(run.status, 1, run.output);
@@ -224,7 +262,8 @@ test("build-site exits 1 naming a SKILL.md whose name differs from its directory
     "docs/CNAME": "skills.bostonaholic.dev\n",
     "docs/style.css": "body { margin: 0; }\n",
     "docs/copy-code.js": "",
-    "skills/engineering/delta/SKILL.md": "---\nname: epsilon\ndescription: 'Use for fixture checks.'\n---\n\n# delta\n",
+    "skills/engineering/delta/SKILL.md":
+      "---\nname: epsilon\ndescription: 'Use for fixture checks.'\n---\n\n# delta\n",
   });
   const run = runCli(BUILD_SITE, root, join(root, "site"));
   assert.equal(run.status, 1, run.output);

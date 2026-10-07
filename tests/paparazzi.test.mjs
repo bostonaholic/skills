@@ -7,8 +7,19 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { deflateSync } from "node:zlib";
-import { MAX_BYTES, decodePng, inspect } from "../skills/engineering/capturing-screenshots/scripts/png-check.mjs";
-import { DEFAULT_CONTEXT, InputError, MESSAGE_LENGTH, MESSAGE_LIMIT, note, planFrames } from "../skills/engineering/capturing-screenshots/scripts/shoot.mjs";
+import {
+  MAX_BYTES,
+  decodePng,
+  inspect,
+} from "../skills/engineering/capturing-screenshots/scripts/png-check.mjs";
+import {
+  DEFAULT_CONTEXT,
+  InputError,
+  MESSAGE_LENGTH,
+  MESSAGE_LIMIT,
+  note,
+  planFrames,
+} from "../skills/engineering/capturing-screenshots/scripts/shoot.mjs";
 
 const PNG_CHECK = resolve("skills/engineering/capturing-screenshots/scripts/png-check.mjs");
 const SHOOT = resolve("skills/engineering/capturing-screenshots/scripts/shoot.mjs");
@@ -33,7 +44,11 @@ function chunk(type, data) {
 
 function paeth(left, up, upLeft) {
   const estimate = left + up - upLeft;
-  const [a, b, c] = [Math.abs(estimate - left), Math.abs(estimate - up), Math.abs(estimate - upLeft)];
+  const [a, b, c] = [
+    Math.abs(estimate - left),
+    Math.abs(estimate - up),
+    Math.abs(estimate - upLeft),
+  ];
   if (a <= b && a <= c) return left;
   return b <= c ? up : upLeft;
 }
@@ -51,7 +66,9 @@ function encodePng(rows, { colorType = 6, palette } = {}) {
     for (let x = 0; x < line.length; x++) {
       const left = x >= channels ? line[x - channels] : 0;
       const upLeft = x >= channels ? prior[x - channels] : 0;
-      const predicted = [0, left, prior[x], (left + prior[x]) >> 1, paeth(left, prior[x], upLeft)][filter];
+      const predicted = [0, left, prior[x], (left + prior[x]) >> 1, paeth(left, prior[x], upLeft)][
+        filter
+      ];
       out[x + 1] = (line[x] - predicted) & 0xff;
     }
     return out;
@@ -71,7 +88,9 @@ function encodePng(rows, { colorType = 6, palette } = {}) {
 }
 
 function grid(width, height, pixel) {
-  return Array.from({ length: height }, (_, y) => Array.from({ length: width }, (_, x) => pixel(x, y)));
+  return Array.from({ length: height }, (_, y) =>
+    Array.from({ length: width }, (_, x) => pixel(x, y)),
+  );
 }
 
 const WHITE = [255, 255, 255, 255];
@@ -88,20 +107,49 @@ function run(script, args, options = {}) {
 }
 
 test("decodePng reverses every filter type for RGBA, RGB, gray, and palette images", () => {
-  const rgba = grid(7, 10, (x, y) => [(x * 37) & 0xff, (y * 53) & 0xff, (x * y * 11) & 0xff, 255 - x]);
+  const rgba = grid(7, 10, (x, y) => [
+    (x * 37) & 0xff,
+    (y * 53) & 0xff,
+    (x * y * 11) & 0xff,
+    255 - x,
+  ]);
   const decoded = decodePng(encodePng(rgba));
   assert.equal(decoded.width, 7);
   assert.equal(decoded.height, 10);
-  assert.equal(decoded.rgba[3 * 7 + 4], ((4 * 37) << 24 | (3 * 53) << 16 | (4 * 3 * 11) << 8 | (255 - 4)) >>> 0);
+  assert.equal(
+    decoded.rgba[3 * 7 + 4],
+    (((4 * 37) << 24) | ((3 * 53) << 16) | ((4 * 3 * 11) << 8) | (255 - 4)) >>> 0,
+  );
 
-  const rgb = decodePng(encodePng(grid(3, 6, (x) => [x * 80, 0, 0]), { colorType: 2 }));
-  assert.equal(rgb.rgba[2], (160 << 24 | 255) >>> 0);
+  const rgb = decodePng(
+    encodePng(
+      grid(3, 6, (x) => [x * 80, 0, 0]),
+      { colorType: 2 },
+    ),
+  );
+  assert.equal(rgb.rgba[2], ((160 << 24) | 255) >>> 0);
 
-  const gray = decodePng(encodePng(grid(2, 5, (x, y) => [x + y * 10]), { colorType: 0 }));
-  assert.equal(gray.rgba[4 * 2 + 1], (41 << 24 | 41 << 16 | 41 << 8 | 255) >>> 0);
+  const gray = decodePng(
+    encodePng(
+      grid(2, 5, (x, y) => [x + y * 10]),
+      { colorType: 0 },
+    ),
+  );
+  assert.equal(gray.rgba[4 * 2 + 1], ((41 << 24) | (41 << 16) | (41 << 8) | 255) >>> 0);
 
-  const palette = decodePng(encodePng(grid(2, 5, (x) => [x]), { colorType: 3, palette: [[1, 2, 3], [4, 5, 6]] }));
-  assert.equal(palette.rgba[1], (4 << 24 | 5 << 16 | 6 << 8 | 255) >>> 0);
+  const palette = decodePng(
+    encodePng(
+      grid(2, 5, (x) => [x]),
+      {
+        colorType: 3,
+        palette: [
+          [1, 2, 3],
+          [4, 5, 6],
+        ],
+      },
+    ),
+  );
+  assert.equal(palette.rgba[1], ((4 << 24) | (5 << 16) | (6 << 8) | 255) >>> 0);
 });
 
 test("inspect fails a single-color frame and flags a near-uniform one as sparse", () => {
@@ -162,12 +210,28 @@ test("planFrames expands a shot list into one frame per shot under shared defaul
   assert.deepEqual(
     frames.map(({ name, url, file }) => [name, url, file]),
     [
-      ["01-settings-populated", "http://127.0.0.1:4100/docs/settings", join("/out", "01-settings-populated.png")],
-      ["02-pricing-populated", "http://127.0.0.1:4100/docs/pricing", join("/out", "02-pricing-populated.png")],
-      ["03-escape-populated", "http://127.0.0.1:4100/docs//evil.example/", join("/out", "03-escape-populated.png")],
+      [
+        "01-settings-populated",
+        "http://127.0.0.1:4100/docs/settings",
+        join("/out", "01-settings-populated.png"),
+      ],
+      [
+        "02-pricing-populated",
+        "http://127.0.0.1:4100/docs/pricing",
+        join("/out", "02-pricing-populated.png"),
+      ],
+      [
+        "03-escape-populated",
+        "http://127.0.0.1:4100/docs//evil.example/",
+        join("/out", "03-escape-populated.png"),
+      ],
     ],
   );
-  assert.deepEqual(frames[0].context, { ...DEFAULT_CONTEXT, colorScheme: "dark", viewport: { width: 390, height: 844 } });
+  assert.deepEqual(frames[0].context, {
+    ...DEFAULT_CONTEXT,
+    colorScheme: "dark",
+    viewport: { width: 390, height: 844 },
+  });
   assert.deepEqual(frames[1].context, { ...DEFAULT_CONTEXT, colorScheme: "dark" });
 });
 
@@ -175,27 +239,55 @@ test("planFrames refuses an unusable shot list before anything launches", () => 
   const origin = "http://127.0.0.1:4100";
   const refusals = [
     [{ shots: [{ name: "01-a", path: "/" }] }, /origin/],
-    [{ origins: { after: origin }, shots: [{ name: "01-a", path: "/" }] }, /^origins: unknown field/],
+    [
+      { origins: { after: origin }, shots: [{ name: "01-a", path: "/" }] },
+      /^origins: unknown field/,
+    ],
     [{ origin, shots: [{ name: "01-a", path: "/", sides: ["after"] }] }, /unknown field/],
     [{ origin, shots: [{ name: "settings", path: "/" }] }, /name/],
-    [{ origin, shots: [{ name: "01-a", path: "/" }, { name: "01-a", path: "/b" }] }, /duplicate name/],
+    [
+      {
+        origin,
+        shots: [
+          { name: "01-a", path: "/" },
+          { name: "01-a", path: "/b" },
+        ],
+      },
+      /duplicate name/,
+    ],
     [{ origin, shots: [{ name: "01-a", path: "relative" }] }, /start with/],
     [{ origin, shots: [{ name: "01-a", path: "/", actions: [{ fill: "#q" }] }] }, /string value/],
     [{ origin, shots: [{ name: "01-a", path: "/", actions: [{ drag: "#q" }] }] }, /unknown action/],
-    [{ origin, shots: [{ name: "01-a", path: "/", target: { role: "button", nth: 2 } }] }, /locator/],
-    [{ origin, shots: [{ name: "01-a", path: "/", fullPage: true, target: "#card" }] }, /exclusive/],
+    [
+      { origin, shots: [{ name: "01-a", path: "/", target: { role: "button", nth: 2 } }] },
+      /locator/,
+    ],
+    [
+      { origin, shots: [{ name: "01-a", path: "/", fullPage: true, target: "#card" }] },
+      /exclusive/,
+    ],
     [{ origin, shots: [{ name: "01-a", path: "/", deviceScaleFactor: 4 }] }, /deviceScaleFactor/],
     [{ origin: "file:///etc", shots: [{ name: "01-a", path: "/" }] }, /http/],
     [{ origin, shots: [] }, /non-empty/],
   ];
   for (const [list, message] of refusals) {
-    assert.throws(() => planFrames(list, "/out"), (error) => error instanceof InputError && message.test(error.message), JSON.stringify(list));
+    assert.throws(
+      () => planFrames(list, "/out"),
+      (error) => error instanceof InputError && message.test(error.message),
+      JSON.stringify(list),
+    );
   }
 });
 
 test("note keeps the first line of each message up to the limit and counts the rest as omitted", () => {
-  const result = { consoleErrors: [], pageErrors: [], failedRequests: [], omitted: { consoleErrors: 0, pageErrors: 0, failedRequests: 0 } };
-  for (let index = 0; index < MESSAGE_LIMIT + 2; index++) note(result, "consoleErrors", `error ${index}\n    at stack`);
+  const result = {
+    consoleErrors: [],
+    pageErrors: [],
+    failedRequests: [],
+    omitted: { consoleErrors: 0, pageErrors: 0, failedRequests: 0 },
+  };
+  for (let index = 0; index < MESSAGE_LIMIT + 2; index++)
+    note(result, "consoleErrors", `error ${index}\n    at stack`);
   note(result, "pageErrors", "x".repeat(MESSAGE_LENGTH + 50));
 
   assert.equal(result.consoleErrors.length, MESSAGE_LIMIT);
@@ -209,7 +301,13 @@ test("shoot exits 2 when the output directory cannot be created, before looking 
   const env = { ...process.env, PAPARAZZI_TOOLS: "" };
   const list = join(dir, "shots.json");
   const blocker = join(dir, "blocker");
-  writeFileSync(list, JSON.stringify({ origin: "http://127.0.0.1:9", shots: [{ name: "01-home-populated", path: "/" }] }));
+  writeFileSync(
+    list,
+    JSON.stringify({
+      origin: "http://127.0.0.1:9",
+      shots: [{ name: "01-home-populated", path: "/" }],
+    }),
+  );
   writeFileSync(blocker, "a file where the output directory's parent should be");
 
   const blocked = run(SHOOT, [list, join(blocker, "out")], { cwd: dir, env });
@@ -223,7 +321,13 @@ test("shoot exits 2 on an unusable list and 3 when no Playwright resolves", (t) 
   const bad = join(dir, "bad.json");
   const good = join(dir, "good.json");
   writeFileSync(bad, "{ not json");
-  writeFileSync(good, JSON.stringify({ origin: "http://127.0.0.1:9", shots: [{ name: "01-home-populated", path: "/" }] }));
+  writeFileSync(
+    good,
+    JSON.stringify({
+      origin: "http://127.0.0.1:9",
+      shots: [{ name: "01-home-populated", path: "/" }],
+    }),
+  );
 
   const unusable = run(SHOOT, [bad, join(dir, "out")], { cwd: dir, env });
   assert.equal(unusable.status, 2);
@@ -256,48 +360,68 @@ function serve(t, html) {
     server.closeAllConnections();
     server.close();
   });
-  return new Promise((done) => server.listen(0, "127.0.0.1", () => done(`http://127.0.0.1:${server.address().port}`)));
+  return new Promise((done) =>
+    server.listen(0, "127.0.0.1", () => done(`http://127.0.0.1:${server.address().port}`)),
+  );
 }
 
 /** Async, because a synchronous spawn would block the event loop serving the origins. */
 function shootAsync(list, outDir) {
   return new Promise((done) => {
-    execFile(process.execPath, [SHOOT, list, outDir], (error, stdout, stderr) => done({ status: error?.code ?? 0, stdout, stderr }));
+    execFile(process.execPath, [SHOOT, list, outDir], (error, stdout, stderr) =>
+      done({ status: error?.code ?? 0, stdout, stderr }),
+    );
   });
 }
 
-test("shoot captures viewport, element, and full-page frames and fails an error page", { skip: !playwrightAvailable() && "no playwright package resolves" }, async (t) => {
-  const dir = scratch(t);
-  const origin = await serve(t, `<!doctype html><body style="margin:0;font:16px sans-serif"><h1>Settings</h1><button>Save</button><div style="height:900px"></div><p>Footer</p></body>`);
-  const list = join(dir, "shots.json");
-  writeFileSync(
-    list,
-    JSON.stringify({
-      origin,
-      defaults: { deviceScaleFactor: 1, viewport: { width: 400, height: 300 } },
-      shots: [
-        { name: "01-settings-populated", path: "/" },
-        { name: "02-settings-button", path: "/", target: { role: "button", name: "Save" } },
-        { name: "03-settings-full", path: "/", fullPage: true },
-        { name: "04-missing-error", path: "/missing" },
-      ],
-    }),
-  );
+test(
+  "shoot captures viewport, element, and full-page frames and fails an error page",
+  { skip: !playwrightAvailable() && "no playwright package resolves" },
+  async (t) => {
+    const dir = scratch(t);
+    const origin = await serve(
+      t,
+      `<!doctype html><body style="margin:0;font:16px sans-serif"><h1>Settings</h1><button>Save</button><div style="height:900px"></div><p>Footer</p></body>`,
+    );
+    const list = join(dir, "shots.json");
+    writeFileSync(
+      list,
+      JSON.stringify({
+        origin,
+        defaults: { deviceScaleFactor: 1, viewport: { width: 400, height: 300 } },
+        shots: [
+          { name: "01-settings-populated", path: "/" },
+          { name: "02-settings-button", path: "/", target: { role: "button", name: "Save" } },
+          { name: "03-settings-full", path: "/", fullPage: true },
+          { name: "04-missing-error", path: "/missing" },
+        ],
+      }),
+    );
 
-  const shot = await shootAsync(list, join(dir, "out"));
-  assert.equal(shot.status, 1, shot.stderr);
-  const frames = Object.fromEntries(JSON.parse(shot.stdout).frames.map((frame) => [frame.name, frame]));
-  const size = (name) => {
-    const { width, height } = decodePng(readFileSync(frames[name].file));
-    return [width, height];
-  };
+    const shot = await shootAsync(list, join(dir, "out"));
+    assert.equal(shot.status, 1, shot.stderr);
+    const frames = Object.fromEntries(
+      JSON.parse(shot.stdout).frames.map((frame) => [frame.name, frame]),
+    );
+    const size = (name) => {
+      const { width, height } = decodePng(readFileSync(frames[name].file));
+      return [width, height];
+    };
 
-  assert.equal(frames["01-settings-populated"].file, join(dir, "out", "01-settings-populated.png"));
-  assert.deepEqual(size("01-settings-populated"), [400, 300]);
-  assert.ok(size("02-settings-button")[0] < 200, JSON.stringify(size("02-settings-button")));
-  assert.ok(size("03-settings-full")[1] > 900);
-  assert.equal(frames["04-missing-error"].ok, false);
-  assert.equal(frames["04-missing-error"].file, null);
-  assert.match(frames["04-missing-error"].reason, /HTTP 404/);
-  assert.deepEqual(frames["01-settings-populated"].omitted, { consoleErrors: 0, pageErrors: 0, failedRequests: 0 });
-});
+    assert.equal(
+      frames["01-settings-populated"].file,
+      join(dir, "out", "01-settings-populated.png"),
+    );
+    assert.deepEqual(size("01-settings-populated"), [400, 300]);
+    assert.ok(size("02-settings-button")[0] < 200, JSON.stringify(size("02-settings-button")));
+    assert.ok(size("03-settings-full")[1] > 900);
+    assert.equal(frames["04-missing-error"].ok, false);
+    assert.equal(frames["04-missing-error"].file, null);
+    assert.match(frames["04-missing-error"].reason, /HTTP 404/);
+    assert.deepEqual(frames["01-settings-populated"].omitted, {
+      consoleErrors: 0,
+      pageErrors: 0,
+      failedRequests: 0,
+    });
+  },
+);

@@ -4,7 +4,17 @@
 // cannot attach, or print a refusal prefix other than `refused:`.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -35,13 +45,19 @@ function fakeBin(dir, { tools = [], cases = "" } = {}) {
   const log = join(dir, "gh.log");
   writeFileSync(log, "");
   const gh = join(bin, "gh");
-  writeFileSync(gh, `#!${BASH}\nprintf '%s\\n' "$*" >>'${log}'\ncase "$*" in\n${cases}\n  *) exit 1 ;;\nesac\n`);
+  writeFileSync(
+    gh,
+    `#!${BASH}\nprintf '%s\\n' "$*" >>'${log}'\ncase "$*" in\n${cases}\n  *) exit 1 ;;\nesac\n`,
+  );
   chmodSync(gh, 0o755);
   return { bin, log };
 }
 
 function run(script, args, bin) {
-  return spawnSync(BASH, [join(SCRIPTS, script), ...args], { encoding: "utf8", env: { PATH: bin } });
+  return spawnSync(BASH, [join(SCRIPTS, script), ...args], {
+    encoding: "utf8",
+    env: { PATH: bin },
+  });
 }
 
 test("resolve-pr.sh resolves the current branch's PR when the invocation has no PR token", (t) => {
@@ -83,8 +99,16 @@ function uploadRun(t, entries, { tools = [...UPLOAD_TOOLS, "file"], cases = "" }
   mkdirSync(runDir);
   mkdirSync(root);
   const entriesFile = join(dir, "entries.json");
-  writeFileSync(entriesFile, typeof entries === "string" ? entries : JSON.stringify({ root, ...entries }));
-  for (const [name, value] of Object.entries({ "pr-host": "github.com", number: "7", "repo-spec": "github.com/o/r", "entries-file": entriesFile })) {
+  writeFileSync(
+    entriesFile,
+    typeof entries === "string" ? entries : JSON.stringify({ root, ...entries }),
+  );
+  for (const [name, value] of Object.entries({
+    "pr-host": "github.com",
+    number: "7",
+    "repo-spec": "github.com/o/r",
+    "entries-file": entriesFile,
+  })) {
     writeFileSync(join(runDir, name), `${value}\n`);
   }
   writeFileSync(join(runDir, "pre-image.md"), "Body.\n");
@@ -101,7 +125,9 @@ test("upload.sh refuses zero entries before any gh call", (t) => {
 });
 
 test("upload.sh refuses an entry lacking a caption, named by index, before any gh call", (t) => {
-  const { result, ghCalls } = uploadRun(t, { entries: [{ path: "/x/a.png", caption: "a" }, { path: "/x/b.png" }] });
+  const { result, ghCalls } = uploadRun(t, {
+    entries: [{ path: "/x/a.png", caption: "a" }, { path: "/x/b.png" }],
+  });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /entry 1 lacks a path or a caption/);
   assert.equal(ghCalls, "");
@@ -121,16 +147,24 @@ test("upload.sh refuses a file that is not an object with an entries array, or n
 });
 
 test("upload.sh exits 2 naming a missing file tool before any gh call", (t) => {
-  const { result, ghCalls } = uploadRun(t, { entries: [{ path: "/x/a.png", caption: "a" }] }, { tools: UPLOAD_TOOLS });
+  const { result, ghCalls } = uploadRun(
+    t,
+    { entries: [{ path: "/x/a.png", caption: "a" }] },
+    { tools: UPLOAD_TOOLS },
+  );
   assert.equal(result.status, 2);
   assert.match(result.stderr, /missing required tool: file/);
   assert.equal(ghCalls, "");
 });
 
 test("upload.sh exits 3 without attaching when gh pr edit has no --attach flag", (t) => {
-  const { result, ghCalls, runDir } = uploadRun(t, { entries: [{ path: "/x/a.png", caption: "a" }] }, {
-    cases: `  "pr edit --help") echo "Usage: gh pr edit [<number>] [flags]" ;;`,
-  });
+  const { result, ghCalls, runDir } = uploadRun(
+    t,
+    { entries: [{ path: "/x/a.png", caption: "a" }] },
+    {
+      cases: `  "pr edit --help") echo "Usage: gh pr edit [<number>] [flags]" ;;`,
+    },
+  );
   assert.equal(result.status, 3);
   assert.match(result.stderr, /no --attach flag/);
   assert.equal(ghCalls, "pr edit --help\n");
@@ -144,15 +178,23 @@ test("splice.mjs prints the same refused: prefix in splice mode as in --check mo
   const section = join(dir, "section.md");
   writeFileSync(body, "Body.\n");
   writeFileSync(section, "");
-  const result = spawnSync(process.execPath, [join(SCRIPTS, "splice.mjs"), "--body-file", body, "--section-file", section, "--landed", "0"], {
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    process.execPath,
+    [join(SCRIPTS, "splice.mjs"), "--body-file", body, "--section-file", section, "--landed", "0"],
+    {
+      encoding: "utf8",
+    },
+  );
   assert.equal(result.status, 1);
   assert.equal(result.stderr, "refused: the section to splice is empty\n");
 
   const checkBody = join(dir, "check-body.md");
   writeFileSync(checkBody, 'Body <img src="x">\n');
-  const check = spawnSync(process.execPath, [join(SCRIPTS, "splice.mjs"), "--check", "--body-file", checkBody], { encoding: "utf8" });
+  const check = spawnSync(
+    process.execPath,
+    [join(SCRIPTS, "splice.mjs"), "--check", "--body-file", checkBody],
+    { encoding: "utf8" },
+  );
   assert.equal(check.status, 1);
   assert.match(check.stderr, /^refused: the body carries an HTML image tag/);
   assert.equal(check.stdout, "");

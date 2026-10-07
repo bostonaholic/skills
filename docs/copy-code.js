@@ -40,7 +40,7 @@
         },
         function () {
           flash(button, COPY_ICON, "Copy failed");
-        }
+        },
       );
     });
 
