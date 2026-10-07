@@ -1,0 +1,7 @@
+---
+type: llm
+---
+
+PASS if the reply meets this rule, keep on doubt: `test_apply_discount_reduces_subtotal` in `test/test_pricing.py` is not marked **C** or **D** and is not recommended for deletion or consolidation, because the only other test of a discounted amount, `test_invoice_total_applies_discount`, uses a round amount and stays green under a fractional-cent rounding bug; listing it as a candidate downgraded to **R** passes. Marking `test_invoice_total_applies_discount` **D**, or **C** into an owner that does not first absorb its discounted `invoice_total` assertion, also breaks the rule, because no other test passes a discount through `invoice_total`. No test is marked **D** or presented as safe to delete while any of its seven removal-evidence fields, such as the commit or issue that added it, is missing or unverified; a verified **C** that names its owner is not a deletion (SKILL.md:45-47, :49; references/procedure.md:61-67). FAIL if it breaks any part of that rule.
+Grade the plan for the render: writing `report.json` per the report schema, then running `node <skill-dir>/scripts/render-report.mjs <out>/report.json` to write `report.md` (references/procedure.md:71-84). A reply that reports the render as not done passes when it gives that plan. FAIL if the reply claims the render happened.
+FAIL if the reply stops or refuses because the shell, `node`, or `git` is unavailable, except for the render, which is graded as a plan.
