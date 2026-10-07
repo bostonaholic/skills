@@ -16,6 +16,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 - E. Content
 - F. Scripts and tools
 - G. Evaluation and iteration
+  - Running the evals
 - Checks
 
 ## Description form
@@ -95,15 +96,241 @@ with it.
 
 ## G. Evaluation and iteration
 
-| ID  | Rule                                                                                                            |
-| --- | --------------------------------------------------------------------------------------------------------------- |
-| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. |
-| G2  | Evaluations run on Haiku, Sonnet, and Opus.                                                                     |
-| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise.           |
-| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                         |
+| ID  | Rule                                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). |
+| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                             |
+| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.         |
+| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                              |
 
-The evaluation suite is not built yet; see the tracking issue linked from
-AGENTS.md.
+### Running the evals
+
+The eval suite in `evals/` runs on demand with `claude plugin eval`. The
+cases and the verdict script match the CLI in Claude Code 2.1.289. Each run
+costs money, so the suite never joins `npm test` or CI. Every case runs in
+two arms: with the plugin's skills (the with-arm) and without them (the
+without-arm), each `--runs` times. The report gives each arm's score and the
+difference between them.
+
+#### Layout
+
+Each active skill has three cases in `evals/<category>/<skill>/`:
+
+- `<skill>-trigger`: a realistic request. The skill fires and does its work.
+- `<skill>-guard`: a near miss. The skill does not fire, or it refuses or
+  stops.
+- `<skill>-core`: the rule the skill exists to enforce.
+
+The case name is the directory name. `--case '<skill>-*'` selects one skill,
+and `--case '<skill>-core'` selects one case. A case directory holds
+`prompt.md` and one grader per file in `graders/`. Saved command output is
+inline in the `prompt.md` `append_system_prompt`. A case that needs
+repository files also holds `case.yaml` and a `scaffold.sh` that writes them
+into the run's workspace. Never use `context.add_dirs`: the CLI mounts that
+directory outside the workspace and denies reads of it.
+
+Every case carries one of two run tags:
+
+- `readonly`: no Bash, Edit, or Write. The `agent` and `no-agent` tags split
+  these cases by whether the skill dispatches subagents, so you can run them
+  as two commands with separate caps.
+- `bash`: the command line grants Edit and two read-only `git` patterns.
+
+Every run has the `Agent` tool, whatever `allowed_tools` lists. The `no-agent`
+tag only selects cases and does not withhold `Agent`. The harness refuses
+Bash, Edit, and Write at every subagent depth when the run does not grant
+them. `max_turns` counts top-level turns only, so `timeout_seconds` is the
+only bound on a subagent tree.
+
+Results go to `evals/results/<timestamp>/`, which git ignores. The folder
+holds `aggregate-result.json` and `report.html`.
+
+#### Flags for every command
+
+- `--max-cost-usd <cap>`. The CLI checks the cap before each run starts, so
+  runs already in flight finish and spend can pass the cap by up to `-j`
+  runs. A run that passes the cap skips its `llm` graders and sets
+  `skippedPaidGraders`.
+- `--no-publish`. The report holds prompts, fixtures, and traces, and the CLI
+  publishes it unless you pass this flag.
+- `--scaffold` on every command that runs cases. It runs each case's
+  `scaffold.sh`, which writes the case's repository files. Pass it only for
+  scaffold scripts written in this repository.
+- `--trust-plugin` when an agent session starts the command. That session has
+  no terminal to answer the plugin trust prompt.
+- `--threshold 0` on every command that runs cases. The CLI also scores a run
+  that ended with an error, so at any `--runs` value the exit code never gives
+  the case verdict. The default threshold of 1.0 turns any low score into
+  exit 1.
+- `--judge-model haiku` and `-j 4` on recorded runs.
+- `--keep-temp` on recorded runs and whenever you will read traces. Without
+  it, the CLI deletes each run's directory when the run ends.
+
+#### Free load check
+
+Before a paid run, load the cases at no cost:
+
+```sh
+claude plugin eval . --tag readonly --runs 1 --max-cost-usd 0 --no-publish
+claude plugin eval . --tag bash --runs 1 --max-cost-usd 0 --no-publish
+```
+
+A `--max-cost-usd 0` command validates the selected cases and starts no run.
+It validates `prompt.md` for every case, and graders and `case.yaml` only for
+selected cases. It does not catch an invalid regex. Before the run, compile
+each grader `pattern` and `input_match` with `new RegExp()` in Node.
+
+The check passes when no output line reports `failed to load` and the exit
+code is not 1. Exit 2, the cap-hit code, also passes.
+
+#### Recorded runs
+
+Run one model at a time. The `readonly` caps are Haiku $25, Sonnet $85, and
+Opus $100. The `bash` caps are Haiku $5, Sonnet $10, and Opus $20. The Opus
+`bash` cap is below the $30 of a before-and-after command because the `bash`
+tag holds few cases and runs each once, while a before-and-after command runs
+each case three times. These commands show the Sonnet row:
+
+```sh
+claude plugin eval . --tag readonly --runs 1 --threshold 0 --model sonnet \
+  --judge-model haiku -j 4 --scaffold --keep-temp --max-cost-usd 85 --no-publish
+claude plugin eval . --tag bash --runs 1 --threshold 0 --model sonnet \
+  --judge-model haiku -j 4 --scaffold --keep-temp \
+  --allow-tools Edit "Bash(git status:*)" "Bash(git diff:*)" \
+  --max-cost-usd 10 --no-publish
+```
+
+Grant no other tool. Never grant `gh`, `git push`, or network access. The CLI
+runs Bash in a sandbox. If the Docker credential store (`~/.docker` or
+`$DOCKER_CONFIG`) holds a symbolic link, the sandbox refuses to run. Docker
+Desktop installs such links. On that machine, every `bash` run ends with an
+error. The verdict script prints `fail` for those cases (0/N passing),
+because the error names no limit. Record those cases as not run instead.
+
+After the Sonnet recorded run, rerun each failing case alone at `--runs 3` on
+Sonnet. Use the command for the case's tag from step 2 of
+[Before and after a skill edit](#before-and-after-a-skill-edit), with
+`--model sonnet`, `--case '<skill>-<kind>'`, and `--max-cost-usd 5`, so one
+rerun spends at most $5. Stop when the summed `costUsd` of all reruns reaches
+$30. A case not rerun keeps its `--runs 1` result, marked
+"single run".
+
+#### Verdicts
+
+The eval command's exit code gives no per-case verdict. After every eval
+command, run the verdict script on its results file, with the same `--runs`
+value:
+
+```sh
+node scripts/eval-verdict.mjs --runs 3 evals/results/<timestamp>/aggregate-result.json
+```
+
+It prints one line per case, sorted by name:
+`<case> <passing>/<counted> excluded <n> <pass|fail|incomplete>`. It reads
+only with-arm runs. `scripts/eval-verdict.mjs` defines the rules, and its
+header states them:
+
+- The script excludes a run when `skippedPaidGraders` is true, because the
+  cost cap left its `llm` graders unjudged. It also excludes a run whose
+  error matches `/(usage|rate)[ -]limit/i`.
+- A counted run passes only when its `error` is null or absent and every
+  `graders[]` entry has `scored: false` or `passed: true`. Any other error,
+  such as a timeout or a scaffold failure, fails the run even when its graders
+  pass.
+- A case with fewer counted runs than `--runs` is `incomplete` and has no
+  verdict. A cap can stop a case before it starts. That case has no line, and
+  it counts as incomplete. Compare the printed case names against the cases
+  the command selected. Each selected case with no line is incomplete.
+- At `--runs 1`, a case passes on 1/1 and fails on 0/1.
+- At `--runs 3`, a case passes with two or three passing runs and fails with
+  zero or one.
+
+Read the error of every failed run. If an error names a limit in other words,
+the pattern missed it. Widen the pattern in the script, add a test, and rerun
+the script on the saved results file.
+
+Rerun an incomplete case alone with `--case '<skill>-<kind>'` and the same
+model and flags. Wait for any limit to reset first. Rerun it at most twice.
+The rerun's result replaces the incomplete one. A rerun of a recorded run gets
+only the unspent part of that run's cap.
+
+With `--threshold 0`, the eval command's exit 1 means a load, filter, start,
+or trust error. Its exit 2 means a cap hit or a rejected credential, with
+partial results. The verdict script also exits 2, with one stderr line and no
+stdout, for these causes:
+
+- a bad argument: a `--runs` value other than 1 or 3, or anything but
+  `--runs <n> <file>`
+- an unreadable or non-JSON file
+- a `schemaVersion` other than 1
+- `cases` missing or not an array
+- a case with more with-arm runs than `--runs`
+- a counted (not excluded) run with no error whose `graders` list is missing
+  or empty
+
+The script checks the whole file for these causes before it prints a line.
+
+#### Before and after a skill edit
+
+Run these steps on each model. Caps per command are Haiku $5, Sonnet $10, and
+Opus $30.
+
+1. List the skills to run: the edited skill, its callers, and its siblings.
+   - A caller is a skill whose `Calls:` list in the README catalog names the
+     edited skill. `scripts/catalog.mjs` builds that list from each "call the
+     Skill tool with `<name>`" line. Add the callers of each caller until no
+     new caller appears.
+   - A sibling is a skill whose `description:` names the edited skill, or a
+     skill that the edited skill's `description:` names. Find the first kind
+     with
+     `grep -l '^description:.*<name>' skills/{engineering,productivity}/*/SKILL.md`.
+     Read the edited skill's `description:` for the second kind. A widened
+     description can take a sibling's requests, and the sibling's `trigger`
+     case then fails.
+2. Before the edit, run both commands for the edited skill and for each
+   caller, with `--case '<skill>-*'`. Add `--keep-temp` for a caller. For a
+   sibling, run only the `readonly` command.
+
+   ```sh
+   claude plugin eval . --tag readonly --case '<skill>-*' --runs 3 --threshold 0 \
+     --model <model> --judge-model haiku -j 4 --scaffold --max-cost-usd <cap> --no-publish
+   claude plugin eval . --tag bash --case '<skill>-*' --runs 3 --threshold 0 \
+     --model <model> --judge-model haiku -j 4 --scaffold \
+     --allow-tools Edit "Bash(git status:*)" "Bash(git diff:*)" \
+     --max-cost-usd <cap> --no-publish
+   ```
+
+   Keep two commands, because one command would grant Bash and Edit to the
+   `readonly` cases. If the skill has no `bash` case, the second command exits
+   1 with "No eval cases found".
+
+3. Run the verdict script on each results file.
+4. Make the edit, then run the same commands and the verdict script again.
+5. Compare the per-case verdicts of every case, caller and sibling cases
+   included. A case that passed before and fails after blocks the edit. A
+   case still incomplete after its reruns also blocks the edit.
+6. Read the kept traces of each caller's cases. A caller case covers the
+   edited skill only when its trace shows a `Skill` call to that skill. If no
+   case of a caller shows that call, list "caller path not exercised" for that
+   caller. That result does not block the edit.
+
+#### Traces and the G3 review
+
+With `--keep-temp`, each run's trace stays at the `tracePath` in
+`aggregate-result.json`, as stream-json lines in `trace.jsonl`. Kept run
+directories are read-only. Never run git inside them. The trace shows
+messages from first-level subagents. Nested subagents show only progress
+events, so their file reads are not visible.
+
+For G3, read the with-arm traces of each skill after a recorded run. Look for
+these patterns:
+
+- A reference file the skill links that the agent never opens.
+- A file the agent reads more than once.
+- A file the agent reaches with Grep instead of through its link.
+
+Revise the skill for each finding, and test the edit with the before and
+after commands.
 
 ## Checks
 
