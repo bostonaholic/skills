@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `fixing-root-causes`, moved from Team's `principle-fix-root-causes`, which traces a bug to its root cause and fixes it there instead of patching the symptom. [#26](https://github.com/bostonaholic/skills/pull/26)
+
 ## [0.15.1] - 2026-10-07
 
 ### Changed
