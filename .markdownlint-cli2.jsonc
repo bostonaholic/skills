@@ -1,6 +1,0 @@
-{
-  "config": {
-    "extends": "markdownlint/style/prettier",
-  },
-  "gitignore": true,
-}
