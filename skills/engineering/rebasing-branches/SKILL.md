@@ -26,6 +26,10 @@ Copy this checklist and check off each step:
 - [ ] 8. Report
 ```
 
+Steps 4 and 6 run checks in subagents under the
+[step delegation rules](shared/step-delegation.md); the other steps stay
+inline.
+
 ## 1. Preflight
 
 ```bash
@@ -123,7 +127,9 @@ Find the project's checks in its agent instructions (`AGENTS.md`, `CLAUDE.md`),
 once, fastest first (format, lint, typecheck, build, test), and record the
 exact command and exit code. Run a suite that takes more than about a minute
 with `run_in_background: true`. A check that already fails here does not block
-the rebase; step 6 compares against it.
+the rebase; step 6 compares against it. Run this step in one read-only `sonnet`
+subagent given the repository path; it runs the checks, edits no file, and
+returns one line per check with the exact command and its exit code.
 
 ## 5. Fetch and rebase
 
@@ -145,7 +151,9 @@ ask the user. Stage each resolved file and continue with
 
 ## 6. Re-run checks and compare
 
-Re-run every check from step 4 the same way. A check that passed at baseline
+Re-run every check from step 4 the same way, in one read-only `sonnet`
+subagent given the repository path and step 4's lines; it returns the same
+one-line-per-check shape, and the comparison stays here. A check that passed at baseline
 and fails now stops the run, as does an undecided conflict. Nothing reaches the
 remote while either stands.
 

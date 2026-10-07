@@ -12,6 +12,10 @@ them.
 
 ## Steps
 
+Steps 5 and 8 run in subagents under the
+[step delegation rules](shared/step-delegation.md); the other steps stay
+inline.
+
 1. **Synthesize what was learned**: Review the conversation. Identify the core
    problem, the constraints and edge cases discovered along the way, what made
    the current approach complex or unsatisfying, and the insights that only
@@ -34,7 +38,9 @@ them.
 
 5. **Record the baseline**: List the checks the current implementation passes
    (tests, linters, type checks, and any manual checks from the conversation),
-   run them, and note each result.
+   and note each result. Run them in one read-only `sonnet` subagent given the
+   repository root and each check's command or manual procedure; it edits no
+   file and returns one line per check with its result.
 
 6. **Save the previous attempt**: Save it before changing anything. Run every
    command from the repository root, with `<files>` the whole step 4 list,
@@ -71,7 +77,10 @@ them.
 
 8. **Implement cleanly**: Write the new design from scratch rather than
    patching. Carry forward no unnecessary abstractions, workarounds, or dead
-   code from the previous attempt.
+   code from the previous attempt. Run this step in one writer subagent given
+   the step 1 synthesis, the approved step 3 design, and the step 5 checks; it
+   writes only inside the repository, commits nothing, and returns the paths it
+   created or changed plus any constraint it could not meet.
 
 9. **Verify against the baseline**: Run the same checks as step 5. Fix and
    re-run until every check the previous attempt passed passes again. Report

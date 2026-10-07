@@ -62,13 +62,14 @@ with it.
 
 ## D. Workflows and feedback loops
 
-| ID  | Rule                                                                                                                      |
-| --- | ------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Complex tasks are clear, numbered steps.                                                                                  |
-| D2  | Particularly complex workflows include a progress checklist the agent copies and checks off.                              |
-| D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.              |
-| D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                             |
-| D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact. |
+| ID  | Rule                                                                                                                                                                                                                                                                                    |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Complex tasks are clear, numbered steps.                                                                                                                                                                                                                                                |
+| D2  | Particularly complex workflows include a progress checklist the agent copies and checks off.                                                                                                                                                                                            |
+| D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.                                                                                                                                                                            |
+| D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                                                                                                                                                                                           |
+| D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact.                                                                                                                                                               |
+| D6  | Numbered steps delegate to fresh-context subagents by default, per `shared/step-delegation.md`. The skill links that file, names its delegated steps, and gives each one an output contract. Claude Code and Codex both spawn subagents only when instructed, so the skill must say it. |
 
 ## E. Content
 

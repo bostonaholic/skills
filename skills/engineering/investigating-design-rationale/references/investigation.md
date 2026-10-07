@@ -1,6 +1,12 @@
 # Investigation
 
-1. **Build the code anchor** inline, before dispatching anyone:
+1. **Build the code anchor** in one read-only subagent (`model: sonnet`)
+   before dispatching investigators. Pass it the target, the user's question
+   verbatim, and the absolute paths of the
+   [external data rules](shared/external-data.md) and
+   [pull-request comment retrieval](shared/pull-request-comments.md); it
+   returns the items below with citations, PR discussion as quoted excerpts,
+   and each named gap:
    - File paths, line ranges, and key symbols.
    - Last-touch commits: `git blame -L <start>,<end> <file>` and
      `git log --oneline --follow -- <file>`.

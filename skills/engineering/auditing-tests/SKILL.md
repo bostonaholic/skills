@@ -34,6 +34,9 @@ Read each linked file from this skill's directory when the step that uses it beg
   steps and checklist. Its baseline run follows the
   [execution rules](shared/execution.md), and a baseline it compares
   against follows the [durable state rules](shared/durable-state.md).
+  Steps 2, 4, 5, and 6 are delegated under the
+  [step delegation rules](shared/step-delegation.md); steps 1, 3, 7, and 8
+  stay in this session.
 - [Lane auditor brief](references/lane-auditor.md): the prompt each auditor
   receives in procedure step 4. Pass it on; follow it yourself only for a
   lane audited inline.

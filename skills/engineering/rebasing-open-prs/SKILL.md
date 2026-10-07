@@ -55,6 +55,11 @@ Copy this checklist and check off each step:
 - [ ] 6. Reconcile and report
 ```
 
+Step 5 and step 6's reconcile run in subagents under the
+[step delegation rules](shared/step-delegation.md); step 5's dispatch contract
+below takes precedence over them. Steps 1 to 4, the bounded wait, and the
+report stay inline.
+
 ## 1. Fetch
 
 From the target repo's main checkout:
@@ -143,6 +148,9 @@ apart from the fetch, and safe to repeat:
 `FETCH=failed` on the first line means the per-PR lines come from stale refs;
 re-run before trusting them. Derive each PR's status from its reconcile line and
 `<run>/<n>.json` with the [reconcile status rules](references/reconcile-status.md).
+Run the reconcile and this derivation in one read-only `sonnet` subagent given
+`<run>`, `<skill-dir>`, and the absolute path of those rules; it changes nothing beyond
+`reconcile.sh`'s fetch and returns one table row per manifest line in the shape below.
 
 Report every PR, including skipped, flagged, and failed ones:
 

@@ -49,6 +49,10 @@ independently.
 2. Rate every claim with the [confidence tiers](references/confidence-tiers.md).
 3. Write the answer in the [output format](references/output-format.md).
 
+Investigation steps 1 and 3 are delegated under the
+[step delegation rules](shared/step-delegation.md); every other step stays
+in this session.
+
 Read each linked file from this skill's directory when the step that uses it
 begins. If a read fails, stop that step and report the exact path.
 

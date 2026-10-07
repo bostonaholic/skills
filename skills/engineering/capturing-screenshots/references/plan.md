@@ -5,6 +5,11 @@
    where a name is not already a path. When a name matches no screen, or more
    than one, or the caller named nothing, ask one question rather than guess,
    and create no output directory until it is answered.
+   A read-only subagent does the mapping, per
+   [step delegation rules](shared/step-delegation.md), given the checkout path
+   and the caller's names verbatim. It returns one row per name: the path and
+   actions that reach it, `no match`, or every candidate it found; the
+   question stays in this session.
 
 2. **Choose the states.** Shoot the states the caller named. `populated`,
    `empty`, and `error` are the manifest's `state:` values. Interaction states

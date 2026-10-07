@@ -37,6 +37,10 @@ question ("where should this validation live").
   [critique mode](references/critique-mode.md). Read that file only in
   Critique mode.
 
+Explain steps 2 and 3 and Critique step 1 are delegated under the
+[step delegation rules](shared/step-delegation.md); every other step stays
+in this session.
+
 Read each linked file from this skill's directory when the step that uses it
 begins. If a read fails, stop that step and report the exact path.
 

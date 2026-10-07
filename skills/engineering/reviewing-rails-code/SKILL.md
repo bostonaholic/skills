@@ -20,6 +20,10 @@ Copy this checklist and check off each step:
 - [ ] 6. Write the report from the template
 ```
 
+Steps 3, 4, and 6 run in subagents per the
+[step delegation rules](shared/step-delegation.md); steps 1, 2, and 5 stay
+inline.
+
 ## 1. Resolve the scope
 
 | Request                        | Files                                                                                   |
@@ -60,12 +64,24 @@ it with `npx skills@latest add bostonaholic/skills --skill simplifying-ruby-code
 - **Reinvented Rails:** custom DSLs or base classes that duplicate scopes,
   validations, callbacks, enums, or `ActiveModel` behavior.
 
+Scan in read-only `sonnet` subagents, one per directory in scope (one per file
+for a short list), launched together with at most 4 in flight; give each its
+files and the paths of this file and simplifying-ruby-code's `SKILL.md` when
+installed. Each returns candidate findings as pattern number or anti-pattern
+name, `file:line`, class or method name, and a one-sentence problem, plus good
+patterns with `file:line`.
+
 ## 4. Check callers
 
 Before reporting that a class can be removed or inlined, run
 `rg -n '\bClassName\b'` and check string references (`"ClassName"`,
 `constantize`, `perform_later`, `config/routes.rb`, `config/*.yml`). Drop or
 downgrade a finding whose callers you cannot account for.
+
+Run this check in read-only `sonnet` subagents, one per candidate class, launched
+together with at most 4 in flight, given the class name and its `file:line`.
+Each returns every reference with `file:line` and its kind (constant, string,
+config) and names any it cannot account for.
 
 ## 5. Classify
 
@@ -81,6 +97,12 @@ downgrade a finding whose callers you cannot account for.
 Use this template exactly: keep the section order and field labels, and write
 "None" under an empty section. Head a finding with its pattern number and name,
 or with the section 3 anti-pattern name when no numbered pattern fits.
+
+Draft the report in one writer subagent that may write only
+`<out>/simplicity-review.md` in a temporary directory, given the classified
+findings, their caller reports, and this file's path; it reads each cited
+location and returns the path. Check the draft against the template, then
+present it.
 
 ````markdown
 # Simplicity review: <scope>

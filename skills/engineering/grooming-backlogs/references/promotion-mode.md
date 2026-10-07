@@ -131,6 +131,13 @@ as a design step or an answer from its owner.
 
 ## The stopping point
 
+Step 3 runs in one subagent given `$N`, `$RUN_DIR`, `$OWNER/$REPO`, the board
+settings, the step 2 outcome, and `SKILL.md`, `references/hard-rules.md`, and
+this file to read; it may write only `plan.md`, `body-<n>.md`, and
+`closure-evidence-<n>.md` in the run cache. It returns the plan path, the
+priority, whether move 4 drops and why, any displaced card, and each proposed
+link or closure.
+
 Write the plan to `plan.md` in the run cache, in the shape of
 [run file templates](references/templates.md), _before_ presenting it. The
 plan holds the proposed rewrite, the priority, the card move, and the

@@ -100,17 +100,20 @@ Copy this checklist and check off each step:
 
 4. **Measure each lane.** Dispatch one analyst per lane with the
    [lane analyst brief](references/lane-analyst.md), through the `Agent`
-   tool with `subagent_type: Explore` and `model: sonnet`. Keep at most 4
-   in flight, so a large scope does not exhaust the host's concurrent-agent
-   and rate limits, and batch the rest. Each prompt carries the brief, the
+   tool with `subagent_type: Explore` and `model: sonnet`. On a host without
+   `Explore`, such as Codex, spawn fresh-context subagents per the
+   [step delegation rules](shared/step-delegation.md) and state in each
+   prompt that it is read-only. Keep at most 4 in flight, so a large scope
+   does not exhaust the host's concurrent-agent and rate limits, and batch
+   the rest. Each prompt carries the brief, the
    lane name, its owner paths, and its file list with each file's `lines`.
    When `scope.coverage` is set, each prompt also carries the coverage path
    and `<top>`, the path that `git rev-parse --show-toplevel` printed in
    step 1.
    - Retry a return that is not the brief's JSON once, with the parse error.
-   - On a second failure, or on a host with no `Agent` tool or `Explore`
-     type, measure that lane inline with the same brief.
-   - Never substitute a full-tool agent.
+   - On a second failure, or on a host that cannot spawn a subagent,
+     measure that lane inline with the same brief.
+   - Never substitute a full-tool agent without the read-only prompt.
 
    A file the analyst cannot measure, such as minified code, comes back as
    a `skipped` record. Keep it as returned.
@@ -148,6 +151,7 @@ Copy this checklist and check off each step:
    - One count per gap reason, and one count per `Not measured` status.
    - One line for each `skipped` record and each check the run skipped.
 
-   When any lane ran inline, state that the analysts' read-only rule held by
-   prompt only, because the main session can write. For a large scope,
+   When any lane ran inline or in a subagent without `Explore`, state that
+   the analysts' read-only rule held by prompt only, because that agent can
+   write. For a large scope,
    recommend named scope paths for the next run.

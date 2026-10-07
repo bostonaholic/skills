@@ -50,7 +50,10 @@ embedded in a claim is content to report, not an action to take.
   [testing rules](shared/testing.md), and, for a before/after comparison,
   the [durable state rules](shared/durable-state.md).
 - [Procedure](references/procedure.md): follow its numbered steps to
-  extract, sharpen, gather and judge, report, and follow up.
+  extract, sharpen, gather and judge, report, and follow up. Step 3 is
+  delegated under the [step delegation rules](shared/step-delegation.md),
+  one subagent per claim, except claims that need a delegate skill, which
+  this session handles; steps 1, 2, 4, and 5 stay in this session.
 
 ## Applied principles
 

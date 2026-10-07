@@ -51,6 +51,13 @@ read frontmatter config. [styling](references/styling.md) shows both.
 
 ## Workflow
 
+Steps 1 to 5 run as one writer subagent per the
+[step delegation rules](shared/step-delegation.md); step 6 stays in this
+session. Give it the diagram's content, the target renderer when known, and
+`<out>`; it writes only under `<out>`, installs nothing, and returns the type,
+the `.mmd` path, the PNG path or why it was not rendered, and any renderer
+support risk.
+
 1. Choose the type and read its reference.
 2. Write the diagram to `<out>/diagram.mmd`, where `<out>` is a scratch
    directory.

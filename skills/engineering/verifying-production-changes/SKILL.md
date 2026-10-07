@@ -8,11 +8,17 @@ description: Verifies a merged change took effect in production by revision ance
 Merged is not deployed, and deployed is not verified. This skill covers the
 two steps between them.
 
+Deploy-gate steps 1 and 5 and data steps 2 to 4 are delegated under the
+[step delegation rules](shared/step-delegation.md); the rest stay in this
+session.
+
 ## Gate on the deploy
 
 1. **Find the running revision.** Use the endpoint or artifact that names it:
    a status endpoint, a bootstrap manifest, a build-info route. It must report
-   a commit sha, not a version string.
+   a commit sha, not a version string. A read-only subagent given the service
+   and the repository path finds it and returns the endpoint or artifact, the
+   exact command that reads it, and the sha that command reports.
 2. **Fetch first** when the deployed sha is unknown locally. An ancestry check
    against a commit the clone has never seen reports a false negative.
 3. **Compare by ancestry, never equality:**
@@ -33,7 +39,10 @@ two steps between them.
    deploy describes one instance. Take several samples per poll, require every
    one on target, and require several consecutive clean polls before calling
    it deployed. Report a mixed result as a rollout in progress with the count,
-   not as a failure.
+   not as a failure. A read-only `sonnet` subagent runs the polls, given the
+   step 1 command, the target sha, and the ancestry check from step 4; it may
+   run `git fetch` and returns each poll's on-target and stale counts and the
+   final state: deployed, rollout in progress, or not deployed.
 6. **State the bound.** "No stale instance observed across N sampled requests"
    is what the method supports. "Fully deployed" overstates it, since the
    balancer can keep hiding an instance. Where the platform reports instance
@@ -51,12 +60,20 @@ Report any discrepancy instead.
 2. **Split into two cohorts.** Parse the report into the population that
    should change and the population that should not. Both matter: a migration
    that touches too much is as wrong as one that touches too little, and only
-   the untouched cohort catches the first.
+   the untouched cohort catches the first. A writer subagent given the log
+   path writes only the two cohort files and returns their paths, each
+   cohort's count, and the rows the report treated specially.
 3. **Sample across the axes that vary,** such as product, platform, and
    lifecycle state. Take a dozen from each cohort, including any row the
-   report treated specially: a partial change, a skip, a conflict.
+   report treated specially: a partial change, a skip, a conflict. Run one
+   read-only `sonnet` subagent per cohort, launched together, given that
+   cohort's file and the special rows; each returns its sampled row keys with
+   their axis values and the report's predicted outcome.
 4. **Query read-only and diff predicted against actual.** Agreement on both
-   cohorts is the finding.
+   cohorts is the finding. Run one read-only `sonnet` subagent per cohort,
+   launched together, given its sample and the read-only query command; each
+   returns every row as match or mismatch, with predicted and actual values
+   for each mismatch.
 5. **Check one fleet-wide invariant.** After the change, the population the
    task was supposed to eliminate should be empty. That single count covers
    every row the sample did not reach.

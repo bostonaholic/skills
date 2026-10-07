@@ -118,6 +118,11 @@ every action the user picks in a later turn, follows
 with the [reaction mechanics](shared/reaction-mechanics.md) when an action
 lands.
 
+Steps 4 and 5 run in one subagent per item under the
+[step delegation rules](shared/step-delegation.md). The other steps stay
+inline: they take a few calls on input a caller may pass, write to the PR, or
+wait on the user.
+
 Step 8, and the end of each later turn that acts on items from an earlier
 report, follows [review re-request](references/review-re-request.md). When no
 feedback awaits a response, it re-requests review from each reviewer whose

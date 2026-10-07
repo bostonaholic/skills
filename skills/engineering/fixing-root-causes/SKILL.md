@@ -18,6 +18,8 @@ When debugging, do not fix symptoms. Trace every problem to its root cause and f
 - Check for the pattern, not just the instance (grep for the same pattern, fix all instances)
 - When stuck, instrument. Don't guess (add logging, read the actual error)
 
+Reproducing, tracing, and fixing form one tight loop, so they stay in this session. Delegate the pattern sweep per the [step delegation rules](shared/step-delegation.md): once the root cause is known, give one read-only subagent the cause, the fixed instance's `file:line`, and the pattern to search for. It returns every other instance as `file:line` with one line on why it matches, or states that it found none. Fix each instance here.
+
 ## Restart bugs: suspect state before code
 
 When something "fails after restart," suspect stale persistent state first: config files, caches, lock files, serialized state. If clearing a state file restores behavior, prioritize state validation as the fix.

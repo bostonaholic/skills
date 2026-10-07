@@ -36,7 +36,10 @@ An empty scope is a successful no-op. Report it and stop.
 
 ## Steps
 
-Track these steps per the [execution rules](shared/execution.md).
+Track these steps per the [execution rules](shared/execution.md). Steps 3,
+5, and 7 are delegated under the
+[step delegation rules](shared/step-delegation.md); steps 1, 2, 4, 6, and 8
+stay in this session.
 
 1. **Resolve scope.** Record the exact files and the pre-review working-tree
    state as the recovery baseline
@@ -52,14 +55,20 @@ Track these steps per the [execution rules](shared/execution.md).
    ([finding format](shared/findings.md) and
    [focused work rules](shared/focused-work.md)), and instruct it to read
    them before work. Never pass author discussion or a proposed verdict.
-   If read-only `Explore` is unavailable, report and stop.
+   On a host without `Explore`, such as Codex, spawn a fresh-context
+   subagent per the step delegation rules, grant it read and search tools
+   only where the host allows, and state in its prompt that it is
+   read-only. If the host cannot spawn a subagent, report and stop.
 4. **Validate the report.** Reject scope escapes, unsupported
    classifications, findings without `file:line` evidence, a missing or
    malformed verdict line, and any reviewer mutation. **Retry limit: 1.**
-   Use a new `Explore` reviewer and name the failed contract. If the second
+   Dispatch a new reviewer as in step 3 and name the failed contract. If the second
    report is invalid, stop without applying findings.
 5. **Delete comment-only removals.** Leave every `KEEP` unchanged. Delete
-   each `REMOVE [comment-only]` comment.
+   each `REMOVE [comment-only]` comment. Delegate the deletions to one
+   writer subagent that may edit only the files those findings name, given
+   the findings verbatim; it returns each finding's `file:line` as deleted,
+   or skipped with the reason.
 6. **Gate behavior changes.** Present every `REMOVE [root-cause]` and every
    `ENCODE` finding as one named set through `AskUserQuestion` (in chat on a
    host without it, then wait): approve the stated corrections and encodings,
@@ -76,9 +85,15 @@ Track these steps per the [execution rules](shared/execution.md).
 7. **Verify.** Inspect the final diff for scope escapes. Run the narrowest
    project-native checks that cover every code, type, test, lint, or CI
    edit, per the [verify playbook](shared/verify.md). A test the approved
-   set adds meets the [testing rules](shared/testing.md).
+   set adds meets the [testing rules](shared/testing.md). Delegate this to
+   one read-only subagent (`sonnet`) that edits no file, given the resolved
+   scope, the recovery baseline, the approved set, and the absolute paths
+   of this file, the verify playbook, and the testing rules; it returns each scope escape
+   as `file:line`, each check as command and pass or fail with its first
+   failing lines, and each added test that misses the testing rules.
 8. **Report.** Give counts for reviewed, removed, kept, encoded, unenforced,
    and unfixed comments; list reviewer retries, checks run, and open
-   out-of-scope work.
+   out-of-scope work. When the reviewer ran without `Explore`, add one line:
+   the read-only guarantee rests on the prompt, not the host.
 
 Do not commit, push, or open a pull request.

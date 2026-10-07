@@ -82,10 +82,19 @@ takes data and returns data, and leave a thin method that performs the I/O.
 
 ## Refactor safely
 
+Steps 1 and 2 run in subagents, launched together, per the
+[step delegation rules](shared/step-delegation.md); steps 3 and 4 are an edit
+and re-run loop and stay inline.
+
 1. Find every caller before inlining or deleting a class:
    `rg -n '\bClassName\b'`, plus string references (`"ClassName"`,
-   `constantize`, job and YAML config).
-2. Run the test suite for a green baseline.
+   `constantize`, job and YAML config). Use one read-only `sonnet` subagent per
+   class, at most 4 in flight, given the class name and its `file:line`; each
+   returns every reference with `file:line` and its kind (constant, string,
+   config).
+2. Run the test suite for a green baseline in one read-only subagent given the
+   test command. It returns the pass, fail, and error counts and each failing
+   test with `file:line` and its first error line.
 3. Apply one pattern at a time. Run the suite after each step; on failure, fix
    or revert that step before continuing.
 4. Update tests that mocked the removed layer to call the pure function or the

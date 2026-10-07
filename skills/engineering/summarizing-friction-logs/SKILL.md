@@ -10,6 +10,9 @@ read-only dashboard, so known friction can be prioritized in a single view.
 Check for frog with `command -v frog`; when it is missing, use the fallback in
 step 3 and never install it.
 
+Step 5 runs in subagents per the
+[step delegation rules](shared/step-delegation.md); the rest stays inline.
+
 ## 1. Resolve the workspace
 
 The workspace is the directory that holds the user's repositories. Use the path
@@ -62,6 +65,10 @@ For each entry selected for rendering, read
 one-line gist: what got in the way, plus the suggested fix when the entry names
 one. The list output carries only titles; the gist makes the dashboard
 actionable.
+
+Run one read-only `sonnet` subagent per scope, launched together with at most
+4 in flight, given the scope path and its selected ids. Each returns one `<id>: <gist>` line per id
+and names any file it could not read.
 
 ## 6. Render the dashboard
 

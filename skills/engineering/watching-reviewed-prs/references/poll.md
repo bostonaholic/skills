@@ -113,6 +113,13 @@ pending verdict there writes nothing.
 
 ## Re-review
 
+Run one read-only `opus` subagent per item, launched together with at most 4 in
+flight, given the item id and shape, `$PR_URL`, the previous and current head
+SHAs, and `SKILL.md` and this file to read; it fetches and judges as below and
+writes nothing. It returns the verdict with `file:line` evidence, the id and
+`viewerHasReacted` state of the comment that claimed the settlement (or none),
+and for a rejected verdict the unmet claim and what would settle it.
+
 Fetch the triggered items' full comment lists (id, author login, and body)
 with a scoped GraphQL read: a thread's `comments`, or for a PR-level item its
 own body plus the conversation comments and review bodies posted after it.

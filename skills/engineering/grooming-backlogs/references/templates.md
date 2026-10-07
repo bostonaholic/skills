@@ -33,6 +33,9 @@ needed. Tracker text appears only inside a fenced block labelled
 
 ## verification.md
 
+Each verifier writes only its issue's `## #<n>` block to
+`verification-<n>.md`; this session writes the header and joins the blocks.
+
 ```markdown
 # Verification: <owner>/<repo>, <YYYY-MM-DD>
 
@@ -49,7 +52,9 @@ Working tree: checkout of <owner>/<repo> at <sha> | not a checkout: code-level c
 
 ## plan.md
 
-Check off each step with its re-query evidence as it lands.
+Check off each step with its re-query evidence as it lands. In batch
+promotion, each issue's section is first written to `plan-<n>.md`, then
+joined here in rank order.
 
 ```markdown
 # Plan: <owner>/<repo>, project <n>, <YYYY-MM-DD>

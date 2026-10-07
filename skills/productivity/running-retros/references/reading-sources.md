@@ -86,6 +86,12 @@ many items it holds, and what was asked for but not read. Gather read-only, with
 whatever this host already holds; never authenticate, never write to a remote,
 and never widen a source past what the prompt asked.
 
+Gather each source in its own writer subagent, per the
+[step delegation rules](shared/step-delegation.md), launched together and
+allowed to write only that source's files under `<run cache>/sources/`. It gets
+the run cache path, the source's allowlisted scalars, and this file's path, and
+returns its `sources.md` line and counts; the session writes `sources.md`.
+
 - **Past agent sessions**: find the files in the host's own store, newest first,
   for the repository this run is in (Claude Code keeps them in
   `~/.claude/projects/<project-slug>/`; Codex in its dated `sessions/` tree,

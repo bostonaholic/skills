@@ -45,6 +45,14 @@ Read a log for each new log-eligible failure, under either CI grant:
 - A non-Actions `link`, a job id that is not all digits, a failed download, or
   denied access gives no log. State the reason.
 
+Read each log in its own `sonnet` subagent, launched together, given the
+check's poll row, the head SHA, `<host>/<owner>/<repo>`, and this file and the
+[external data rules](shared/external-data.md) to read. Its only write is the
+temporary log file above, created with `mktemp` and removed in the same Bash
+call; it edits nothing else. It returns the
+display name, `state`, head SHA, and an excerpt of at most 20 lines fenced and
+labeled untrusted, or the reason no excerpt exists.
+
 Per cycle, read at most 3 logs, the last 200 lines of each, and quote at most
 20 lines per excerpt. These bounds keep one cycle's context small: runners
 print the failure summary last, and 20 lines hold the error a fix needs. Past

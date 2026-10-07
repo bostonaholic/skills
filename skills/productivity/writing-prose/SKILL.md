@@ -43,6 +43,9 @@ state real uncertainty or scope, never to hedge against criticism.
 
 ## The Process
 
+Check 2 is delegated under the [step delegation rules](shared/step-delegation.md)
+when the text is in a file; every other step stays in this session.
+
 1. **Draft fast**: Get ideas down without editing.
 2. **Read aloud**: A sentence that sounds clumsy usually hides a muddled idea.
    Fix the thinking, not just the words.
@@ -60,3 +63,8 @@ state real uncertainty or scope, never to hedge against criticism.
    - [ ] Can I cut any words?
    - [ ] Is this the simplest way to say it, in common words and active voice?
    - [ ] Does it sound good when read aloud?
+
+   When the text is in a file, a read-only `sonnet` subagent given its path
+   runs this checklist and returns each failing sentence with its line, the
+   failed item, and a rewrite. Fix them here and re-check only the rewritten
+   sentences.

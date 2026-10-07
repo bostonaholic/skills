@@ -11,6 +11,10 @@ strongest available research or reasoning model.
 
 ## Workflow
 
+Steps 4 and 5 and the source checks in step 6 are delegated under the
+[step delegation rules](shared/step-delegation.md); every other step stays in
+this session.
+
 1. **Define the research target.** Capture the topic, the decision or goal the
    research should support, scope, timeframe, geography, audience, and
    requested deliverable. Read user-provided sources first. Ask one concise
@@ -48,11 +52,14 @@ strongest available research or reasoning model.
    source failures and seek alternatives within the same lane instead of
    retrying each source.
 6. **Verify and reconcile.** Open the primary sources behind material findings
-   and funding claims instead of relying only on search snippets or subagent
-   summaries. Compare conflicting results, assess whether population and
-   methods explain the difference, check publication status and correction or
-   retraction notices, and look for independent replication. Distinguish
-   evidence from inference.
+   and funding claims instead of relying only on search snippets or lane
+   summaries. Give each material claim and its cited source to its own fresh
+   read-only verifier (`model: sonnet`), launched together with at most 4 in
+   flight; each returns supported, contradicted, or not found, with the quoted
+   passage, its page or section, and any publication status, correction, or
+   retraction notice it saw. Then, on the lead model, compare conflicting
+   results, assess whether population and methods explain the difference, and
+   look for independent replication. Distinguish evidence from inference.
 7. **Synthesize and report.** Use the selected lead model and read
    [references/report-format.md](references/report-format.md) before writing
    the report; its section structure is a default to adapt to the requested
