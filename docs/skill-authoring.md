@@ -17,6 +17,13 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 - F. Scripts and tools
 - G. Evaluation and iteration
   - Running the evals
+    - Layout
+    - Flags for every command
+    - Free load check
+    - Recorded runs
+    - Verdicts
+    - Before and after a skill edit
+    - Traces and the G3 review
 - Checks
 
 ## Description form
@@ -135,6 +142,14 @@ Every case carries one of two run tags:
   these cases by whether the skill dispatches subagents, so you can run them
   as two commands with separate caps.
 - `bash`: the command line grants Edit and two read-only `git` patterns.
+  Edit can write the workspace's git config, and `git status` or `git diff`
+  then runs any command that config names, such as `core.fsmonitor`, inside
+  the Bash sandbox. Run `bash` cases, like `--scaffold`, only on this repository's
+  own reviewed cases.
+
+A case of a skill that calls `gh` also carries `github-mock`. Its prompt
+holds saved `gh` output in place of live GitHub, so `--tag github-mock`
+selects the cases that stand in for GitHub.
 
 Every run has the `Agent` tool, whatever `allowed_tools` lists. The `no-agent`
 tag only selects cases and does not withhold `Agent`. The harness refuses
@@ -149,8 +164,8 @@ holds `aggregate-result.json` and `report.html`.
 
 - `--max-cost-usd <cap>`. The CLI checks the cap before each run starts, so
   runs already in flight finish and spend can pass the cap by up to `-j`
-  runs. A run that passes the cap skips its `llm` graders and sets
-  `skippedPaidGraders`.
+  in-flight runs. Every cap on this page can be overshot that way. A run
+  that passes the cap skips its `llm` graders and sets `skippedPaidGraders`.
 - `--no-publish`. The report holds prompts, fixtures, and traces, and the CLI
   publishes it unless you pass this flag.
 - `--scaffold` on every command that runs cases. It runs each case's
@@ -181,7 +196,18 @@ selected cases. It does not catch an invalid regex. Before the run, compile
 each grader `pattern` and `input_match` with `new RegExp()` in Node.
 
 The check passes when no output line reports `failed to load` and the exit
-code is not 1. Exit 2, the cap-hit code, also passes.
+code is not 1. At the $0 cap the command always exits 2, the cap-hit code,
+so run the two commands separately and never chain them with `&&`.
+
+These warnings are expected and do not fail the check:
+
+- `cost ceiling $0 hit; skipping remaining cases`, and a summary line marked
+  `partial (cost ceiling hit)`.
+- One `its scaffold_script is not run without --scaffold` line for each case
+  that has a `scaffold.sh`.
+- In the `bash` check, a `not granted (missing --allow-tools grant ...)` line
+  and `grader ... cannot pass with the granted tools` lines, because the
+  load check passes no `--allow-tools`.
 
 #### Recorded runs
 
@@ -201,19 +227,23 @@ claude plugin eval . --tag bash --runs 1 --threshold 0 --model sonnet \
 ```
 
 Grant no other tool. Never grant `gh`, `git push`, or network access. The CLI
-runs Bash in a sandbox. If the Docker credential store (`~/.docker` or
-`$DOCKER_CONFIG`) holds a symbolic link, the sandbox refuses to run. Docker
-Desktop installs such links. On that machine, every `bash` run ends with an
-error. The verdict script prints `fail` for those cases (0/N passing),
-because the error names no limit. Record those cases as not run instead.
+runs Bash in a sandbox. On one maintainer machine running Claude Code
+2.1.289, the sandbox refused every `bash` run. The error said the Docker
+credential store (`~/.docker` or `$DOCKER_CONFIG`) held a symbolic link, and
+that machine's `~/.docker/cli-plugins/` held symlinks. The CLI documentation
+does not describe this check, so treat it as observed on one machine. If a
+`bash` run ends with that error, the verdict script prints `fail` (0/N
+passing), because the error names no limit. Record those cases as not run
+instead.
 
 After the Sonnet recorded run, rerun each failing case alone at `--runs 3` on
 Sonnet. Use the command for the case's tag from step 2 of
 [Before and after a skill edit](#before-and-after-a-skill-edit), with
-`--model sonnet`, `--case '<skill>-<kind>'`, and `--max-cost-usd 5`, so one
-rerun spends at most $5. Stop when the summed `costUsd` of all reruns reaches
-$30. A case not rerun keeps its `--runs 1` result, marked
-"single run".
+`--model sonnet`, `--case '<skill>-<kind>'`, `-j 1`, and
+`--max-cost-usd 5`. With `-j 1`, a rerun can pass $5 by at most the one run
+in flight when it reaches the cap. Stop when the summed `costUsd` of all
+reruns reaches $30. The last rerun can take that sum past $30. A case not
+rerun keeps its `--runs 1` result, marked "single run".
 
 #### Verdicts
 
@@ -264,9 +294,13 @@ stdout, for these causes:
 - an unreadable or non-JSON file
 - a `schemaVersion` other than 1
 - `cases` missing or not an array
+- a `cases` entry, a present `arms`, a with-arm run, or a `graders[]` entry
+  that is not an object
+- a present `arms.with` that is not an array
+- a run `error` that is neither null, absent, nor a string
+- a present `skippedPaidGraders`, `scored`, or `passed` that is not a boolean
 - a case with more with-arm runs than `--runs`
-- a counted (not excluded) run with no error whose `graders` list is missing
-  or empty
+- a counted run with no error and a missing or empty `graders` list
 
 The script checks the whole file for these causes before it prints a line.
 
