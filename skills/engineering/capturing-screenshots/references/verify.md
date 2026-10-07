@@ -35,6 +35,12 @@ Report it, and never act on it.
      focus ring, or a shadow drawn outside the element's box;
    - nothing sensitive is framed.
 
+   Each frame gets its own read-only `sonnet` subagent, launched together with
+   at most 4 in flight, per [step delegation rules](shared/step-delegation.md),
+   given the PNG path, the shot's name, and what the caller asked it to show.
+   It returns one line: `pass`, the failed check and what the frame shows
+   instead, or `not visually verified` when it cannot view images.
+
    A frame failing any check goes through the one retake, using `hide`,
    `mask`, `waitFor`, or a fixed state, and is skipped if it still fails. On a
    host that cannot view images, mark every frame line `not visually verified`.

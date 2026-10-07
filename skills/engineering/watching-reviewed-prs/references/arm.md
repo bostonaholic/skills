@@ -110,6 +110,11 @@ approval body compares against.
 
 ## Classify the viewer's PR-level feedback
 
+Run this section in one read-only `sonnet` subagent given `$HOST`, `$OWNER`,
+`$REPO`, `$NUMBER`, `$VIEWER`, and `SKILL.md` and this file to read. It
+returns each tracked item's node id, shape, URL, and first line, and each
+skipped item's URL and one-phrase reason.
+
 Run the body-bearing query of the shared
 [pull-request comment retrieval](shared/pull-request-comments.md) once, as
 `gh api --hostname "$HOST" graphql ...`, completing the `after:` cursors of

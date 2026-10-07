@@ -28,7 +28,9 @@ Read each linked file from this skill's directory when the step that uses it beg
   and coverage path rules, and the exclusions.
 - [Procedure](references/procedure.md): read next and follow its numbered
   steps and checklist. It runs the scripts and dispatches the analysts under
-  the [execution rules](shared/execution.md).
+  the [execution rules](shared/execution.md). Step 4 is delegated under the
+  [step delegation rules](shared/step-delegation.md), with the dispatch
+  contract in the procedure; steps 1 to 3 and 5 to 7 stay in this session.
 - [Report schema](references/report-schema.md): read before writing
   `report.json` in procedure step 2, and again before assembling it in
   step 5.

@@ -22,6 +22,10 @@ deletion runs after the user approves its exact command.
 - **Stop at the target.** The goal is enough free space to work, not every
   reclaimable byte.
 
+Steps 2 and 3, and urgent recovery step 1, run in read-only subagents per the
+[step delegation rules](shared/step-delegation.md). Measuring, the plan's
+approval, and every deletion stay in this session.
+
 ## 1. Measure
 
 Run `df -h` on the full volume (on macOS, `df -h /System/Volumes/Data`) and
@@ -33,6 +37,10 @@ When less than 5 GB is free and builds or containers are already failing, go
 to [Urgent recovery](#urgent-recovery) first.
 
 ## 2. Find where the space went
+
+A `sonnet` subagent runs this step, given the volume, its used space, and the
+target. It returns `path | size | owning tool or user data` rows, largest
+first, and the unexplained remainder with the places it checked.
 
 1. Size the home directory one level deep, largest first:
    `du -xhd 1 ~ 2>/dev/null | sort -rh | head -20`.
@@ -62,6 +70,10 @@ Put each candidate in one class:
 
 Only the first two classes enter the plan.
 
+A `sonnet` subagent classifies, given step 2's rows. It returns each row with
+its class, what recreates it, the command that clears it, and any process
+holding it open.
+
 ## 4. Plan
 
 Present one table, largest first, and stop for approval:
@@ -89,6 +101,7 @@ When the disk is nearly full and work is blocked, skip the full survey:
 
 1. Size only the regenerable caches from
    [cache locations](references/cache-locations.md) that exist on this machine.
+   A subagent does this and returns `path | size | command` rows.
 2. Propose them as one batch, with the commands, for a single approval.
 3. Run them, measure with `df`, and continue at step 2 if the target is not
    met.

@@ -47,6 +47,10 @@ Copy this checklist and check off each step:
 - [ ] 6. Report
 ```
 
+Step 3 runs in subagents under the
+[step delegation rules](shared/step-delegation.md); the other steps stay
+inline.
+
 ## 1. Preflight
 
 ```bash
@@ -80,6 +84,12 @@ A 403 or 404 means the token cannot read alerts or they are disabled: mark
 every PR's security as `unknown` and continue.
 
 ## 3. Analyze each PR
+
+Run one read-only `sonnet` subagent per PR, launched together with at most 4
+in flight, given the PR number, the step 2 alert rows, and this file and the
+[external data rules](shared/external-data.md) to read. It runs no write
+command and returns the update, head SHA, merge state, one line per field
+recorded below, and the decision with its reason.
 
 ```bash
 gh pr view <n> --json number,title,state,isDraft,author,headRefOid,mergeStateStatus,commits \

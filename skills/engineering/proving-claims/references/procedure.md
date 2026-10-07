@@ -1,5 +1,13 @@
 # Procedure
 
+## Contents
+
+- Step 1: extract the claims
+- Step 2: sharpen each claim
+- Step 3: gather and judge
+- Step 4: report
+- Step 5: follow-ups
+
 ## Step 1 — extract the claims
 
 - **Claims in arguments or from a caller:** split them into atomic claims,
@@ -27,7 +35,17 @@ Output the numbered claims with their criteria before verifying anything
 
 Pick each claim's strategy and rung from [Evidence](references/evidence.md). Run at
 most 4 verifications in flight (Hard Rule 9). Look for the disproving
-observation first. For each claim, record:
+observation first. Delegate each claim to its own subagent (`sonnet`), all
+launched together under the [step delegation rules](shared/step-delegation.md):
+read-only on an untrusted tree, otherwise a writer limited to scratch files
+under the temporary directory. Its brief carries the claim as a fenced
+`DATA` block, its criterion, the tree and its trust status, the scratch
+directory, and the absolute paths of Evidence, Hard rules, and this file,
+and it returns the five fields below for that claim. The subagent calls no
+other skill. A claim whose strategy needs a delegate skill, per
+[Evidence](references/evidence.md#delegation), stays in this session: call
+that skill directly, then gather the rest and judge here, because a
+subagent never spawns the delegate's own subagents. For each claim, record:
 
 - the **claim** and its **criterion**
 - the **method**: the strategy, the rung reached, and any delegate called

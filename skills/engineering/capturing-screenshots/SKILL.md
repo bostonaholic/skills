@@ -85,6 +85,11 @@ These are the only caps; every reference defers to them.
 
 Seed one todo per numbered step of the reference you are in.
 
+Plan step 1 and verify step 2 run in subagents per the
+[step delegation rules](shared/step-delegation.md). Every other step stays in
+this session: it asks the caller, owns the app's processes, writes `$OUT`, or
+belongs to the retake loop.
+
 1. [Plan the shots](references/plan.md): the targets, the states and
    variants, the framing, and the shot-list schema.
 2. [Stage and shoot](references/shoot.md): the tools, the app, seeding,

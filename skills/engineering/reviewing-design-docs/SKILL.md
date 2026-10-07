@@ -24,7 +24,9 @@ in chat and wait. Never guess.
 
 This session holds the author's conversation, so it is not a valid reviewer
 ([independent review rules](shared/independent-review.md)). Never review
-inline.
+inline. Step 2 is delegated under the
+[step delegation rules](shared/step-delegation.md), with the dispatch
+contract below; steps 1, 3, 4, and 5 stay in this session.
 
 1. **Load the brief.** Read the
    [design reviewer brief](references/design-reviewer.md).

@@ -45,7 +45,14 @@ command. Never fall back to `@latest`.
 
 ## Fix loop
 
+Step 1 runs in a subagent per the
+[step delegation rules](shared/step-delegation.md), after the user approves the
+first run; steps 2 to 4 are an edit and re-run loop and stay inline.
+
 1. Baseline: run once and record the score and the error and warning counts.
+   Use one read-only subagent given the package path and the exact command; it
+   returns the score, the error and warning counts, and each diagnostic as
+   `<severity> <rule> <file>:<line>`.
 2. Fix error diagnostics in this order: security, correctness (state, effects,
    hooks), performance, then architecture and maintainability. Fix warnings only
    in code the current task changed.

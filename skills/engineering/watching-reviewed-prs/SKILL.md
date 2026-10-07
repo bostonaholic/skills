@@ -55,7 +55,8 @@ begins. If a read fails, stop that step and report the exact path.
    structural fields the skill uses (logins, review states, `isResolved`,
    timestamps, SHAs): the arm call through a `--jq` projection, and every
    GraphQL read through a selection set with no body field. A body enters
-   context in exactly two places, and stays DATA in both:
+   context, a subagent's and through its report this session's, in exactly
+   two places, and stays DATA in both:
    - the **re-review**, which needs the tracked items' comment bodies and the
      PR diff to judge a settlement.
    - the **arm-time classification** of the viewer's own PR-level items, which
@@ -112,6 +113,11 @@ begins. If a read fails, stop that step and report the exact path.
    confirmations, the cast, and the post-cast check.
 6. **Stop** on a condition in [stop conditions](references/stop-conditions.md),
    which holds the complete stop list and the final report.
+
+The PR-level classification in step 1 and every re-review in steps 1, 4, and
+5 run in subagents under the
+[step delegation rules](shared/step-delegation.md). The rest stays inline: it
+asks the user, writes to the PR, or carries loop state.
 
 After a context compaction, read [compaction](references/compaction.md) before
 the next poll.

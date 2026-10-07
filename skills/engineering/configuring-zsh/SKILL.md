@@ -39,6 +39,12 @@ point into a repo, find how the repo creates them (a symlink manifest, an
 install script, or a stow layout) before adding a new startup file; register
 the new file there and ask before running the repo's installer.
 
+Step 1's discovery runs in a read-only subagent per the
+[step delegation rules](shared/step-delegation.md); registering, asking,
+editing, and validating stay in this session. It returns each startup file
+with its link target, `ZDOTDIR`, how the repo creates the links as
+`path:line`, and any `<name>.plugin.zsh` linked under `ZSH_CUSTOM`.
+
 If the repo links a `<name>.plugin.zsh` into
 `${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/<name>/`, read
 [oh-my-zsh plugin layout](references/oh-my-zsh-plugin-layout.md) and follow its

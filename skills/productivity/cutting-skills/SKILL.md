@@ -20,6 +20,9 @@ Copy this checklist and check off each step:
 - [ ] 7. Report
 ```
 
+Steps 2 to 5 and the diff inspection in step 6 run in subagents per the
+[step delegation rules](shared/step-delegation.md); the rest stays inline.
+
 ## 1. Choose the mode
 
 - **Audit:** When asked to review, critique, or identify cuts, inspect and report
@@ -33,6 +36,9 @@ Copy this checklist and check off each step:
 Read the complete `SKILL.md`, its `agents/openai.yaml` if present, and only the
 directly relevant resources. Identify the concrete tasks that should trigger it
 and the decisions an otherwise capable agent would get wrong without it.
+
+A read-only `sonnet` subagent given the target skill path does this and returns
+the triggering tasks and core decisions, each with `file:line`.
 
 ## 3. Classify material
 
@@ -53,6 +59,10 @@ Record which class justified every material keep, move, or deletion; the report
 lists them. Do not hide subjective policy behind claims that a provider or tool
 requires it.
 
+A read-only `sonnet` subagent given the skill path and step 2's report returns
+this table with a material (`file:lines`), class, action, and reason per row.
+One subagent covers the whole skill, since duplicates span files.
+
 ## 4. Cut trigger aggression
 
 The frontmatter description is always-loaded routing context. Make it narrow and
@@ -67,6 +77,10 @@ concrete:
   narrowed contract.
 
 Do not make the description so timid that explicit requests stop matching.
+
+A read-only subagent, launched alongside step 3's and given the skill path and
+step 2's report, returns the proposed `description` and `agents/openai.yaml`
+text with the exclusions it adds. In Cut mode, step 5 applies them.
 
 ## 5. Apply the cut
 
@@ -94,6 +108,10 @@ tests, and read their purpose first.
 For unstable provider claims, check current primary documentation. Separate
 provider constraints from optional recommendations and local policy.
 
+A writer subagent that may edit only files inside the target skill applies the
+step 3 table and the step 4 proposal, and returns each changed file with the
+table rows it applied and any row it left unapplied, with the reason.
+
 ## 6. Validate
 
 Preserve unrelated work. After editing, update broken links and
@@ -109,6 +127,8 @@ Preserve unrelated work. After editing, update broken links and
 3. Fix every failure inside the skill and re-run until clean. Report failures
    outside the skill instead of fixing them.
 4. Inspect the final diff for removed behavior that no classification justifies.
+   A fresh read-only `opus` reviewer given the diff and the step 3 table
+   returns each removed behavior that no row justifies, with `file:line`.
 
 In Audit mode, run the checks once and report their results.
 

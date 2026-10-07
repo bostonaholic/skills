@@ -10,6 +10,14 @@ description: Writes and reviews system prompts for AI tools, agents, chatbots, a
 A system prompt is a contract with the model. Every line must change its
 behavior in a way someone could test; cut the rest.
 
+## Contents
+
+- Choose the mode
+- Section order
+- Write
+- Review
+- Checklist
+
 ## Choose the mode
 
 - **Review:** the user supplied a prompt. Follow the Review steps.
@@ -17,6 +25,10 @@ behavior in a way someone could test; cut the rest.
 
 Read each linked file from this skill's directory when the step that uses it
 begins. If a read fails, stop that step and report the exact path.
+
+Write steps 2 to 4 and Review steps 1 to 4 are delegated under the
+[step delegation rules](shared/step-delegation.md); the rest stay in this
+session.
 
 ## Section order
 
@@ -45,14 +57,25 @@ Follow this order and skip sections that don't apply:
    [section guidance](references/section-guidance.md) for each section's rules
    and examples. When the prompt drives an agent through multi-step tool work,
    also read [agentic techniques](references/agentic-techniques.md).
+   A writer subagent given the step 1 requirements and assumptions writes
+   only the draft file this session names and returns its path plus each
+   skipped section with the reason.
 3. **Add examples.** This is the highest-return step. Add 3-10 concrete
    examples showing response length and tone, tool-call decisions, edge cases,
-   and at least one bad-to-good pair.
-4. **Check** the draft with the checklist below.
+   and at least one bad-to-good pair. A writer subagent given the draft path
+   and the step 1 requirements adds them to the draft and returns how many it
+   added and which of these kinds each shows.
+4. **Check** the draft with the checklist below. A read-only `sonnet`
+   subagent given the draft path returns each item as checked, unchecked, or
+   N/A, with the draft line or reason. Fix and re-run the list in this session.
 5. **Deliver** the prompt in a fenced block, followed by one line per
    assumption made in step 1.
 
 ## Review
+
+Steps 1 to 3 are independent: run each in its own read-only `sonnet`
+subagent, launched together, given the prompt (its path, or its text when
+pasted). Each returns its findings as `Section | Issue | Fix` rows.
 
 1. Read the whole prompt and map its content to the section order. Note
    missing and misplaced sections.
@@ -61,7 +84,10 @@ Follow this order and skip sections that don't apply:
 3. Run the checklist below against the prompt.
 4. Revise the prompt to fix every finding, using
    [section guidance](references/section-guidance.md) for missing or weak
-   sections, then run the checklist on the revision.
+   sections, then run the checklist on the revision. A writer subagent given
+   the prompt and the merged rows from steps 1 to 3 writes only the revised
+   prompt file this session names and returns its path, the fix applied for
+   each row, and any checklist item still unchecked.
 5. Report in this format unless the user asked for another:
 
 ````markdown

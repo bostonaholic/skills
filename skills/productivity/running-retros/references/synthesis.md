@@ -1,7 +1,13 @@
 # Synthesis: one list, sorted once
 
 Merge the passes' findings into one list, collapsing findings that name the
-same cause. Every item lands in exactly one bucket:
+same cause. One writer subagent does this, per the
+[step delegation rules](shared/step-delegation.md), allowed to write only
+`plan.md`, `title-<n>.txt`, and `issue-<n>.md` in the run cache. It gets the run
+cache path and every pass's findings list, and returns the plan's absolute path
+and its Accepted, Rejected, and Backlog counts.
+
+Every item lands in exactly one bucket:
 
 - **Accepted**: a durable learning that belongs in a repository file. It names
   the target (a file to edit or create: a skill, `AGENTS.md`,

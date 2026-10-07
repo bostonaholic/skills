@@ -88,6 +88,11 @@ Every report names both as
    which holds the complete stop list, the approval hand-off, and the final
    report.
 
+The CI failure log reads in step 3 run in subagents under the
+[step delegation rules](shared/step-delegation.md). The rest stays inline: it
+asks the user, writes to the PR or branch, or carries loop state; triage
+follows `addressing-pr-comments`.
+
 After a context compaction, read [compaction](references/compaction.md) before
 the next poll.
 

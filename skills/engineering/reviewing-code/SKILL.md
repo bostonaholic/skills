@@ -21,7 +21,9 @@ to restate it.
 
 This session holds conversation history, so it is not a valid reviewer
 ([independent review rules](shared/independent-review.md)). Never review
-inline.
+inline. Step 2 is delegated under the
+[step delegation rules](shared/step-delegation.md), with the dispatch
+contract below; steps 1, 3, and 4 stay in this session.
 
 1. **Load the brief.** Read the [code reviewer brief](references/code-reviewer.md),
    including its [report format](references/code-reviewer.md#report-format).

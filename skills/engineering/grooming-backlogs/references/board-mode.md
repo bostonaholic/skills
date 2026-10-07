@@ -101,6 +101,11 @@ not optional, and everything this load returns falls under
 
 ## Step 2: Compute the gap inventory
 
+Run this step in one `sonnet` subagent given `$RUN_DIR`, `$OWNER/$REPO`, the
+board settings, and `references/hard-rules.md` and this file to read; it may
+write only `$RUN_DIR/gap-inventory.md`. It returns that path, each row's count,
+and the issue numbers the rows name individually.
+
 Write this inventory to `$RUN_DIR/gap-inventory.md`, in the shape of
 [run file templates](references/templates.md), before forming any opinion:
 
@@ -136,6 +141,11 @@ A premise-evaporated candidate becomes a closure proposal under
 
 ## Step 4: Rank the verified candidates
 
+Steps 4, 5, and 6 run as three read-only `sonnet` subagents launched together,
+each given `$RUN_DIR`, the board settings, the step 3 outcomes, and `SKILL.md`,
+`references/hard-rules.md`, and this file to read. This one returns the ranked
+issue numbers, each with its tier and a one-line reason, and any residual tie.
+
 Rank by the [ranking tiers](SKILL.md#ranking-tiers) and their tiebreaker.
 The pool draws only from the verified candidates of step 3; an empty pool
 means the report names no candidate. An item the board's rules exclude from
@@ -144,6 +154,10 @@ promotion (the excluded label and its column, in
 still catches shipped-behavior contradictions that do not carry that label.
 
 ## Step 5: Cluster by outcome, not by component
+
+Its subagent returns each cluster's issue numbers, its outcome sentence, and
+its placement: an existing milestone, or a new one with its proposed
+description.
 
 Issues filed off the same incident belong together even when their titles
 share no words. Then place each cluster:
@@ -163,6 +177,11 @@ They never justify one of their own. Extending a description holds to the
 same bar as **Describe**: the sentence stays markable.
 
 ## Step 6: Find the dependencies, then propose the links
+
+Its subagent returns each proposed link with both endpoints, the direction,
+and the sentence or shared artifact it rests on; each cycle and two-way pair
+with both readings; and each blocker off the repository or board with its
+owner.
 
 **Declared** links arrived with the load and are inputs, not findings.
 **Undeclared** ones are read out of the same cache, two ways:
@@ -194,6 +213,12 @@ in step 8. A blocker outside this repository or off the board is reported
 with its owner named, never linked.
 
 ## Step 7: Write the plan to a file
+
+Run this step in one subagent given `$RUN_DIR`, the board settings with their
+sources, the step 4 to 6 reports, and `SKILL.md`, `references/hard-rules.md`,
+and this file to read; it may write only `$RUN_DIR/plan.md` and
+`$RUN_DIR/closure-evidence-<n>.md` files. It returns the plan path and each
+mutation class with its step numbers, naming every new issue and closure.
 
 Write the proposal to `$RUN_DIR/plan.md`, in the shape of
 [run file templates](references/templates.md), as numbered, individually
@@ -258,6 +283,11 @@ before creating one, so re-running an approved plan never duplicates.
 
 Every text-bearing write goes through a file in `$RUN_DIR`, never through the
 command line, in the shapes of [tracker recipes](references/tracker-recipes.md).
+Before the first write, draft each answered description rewrite in its own
+subagent, launched together with at most 4 in flight, given the issue number,
+the answered refinement depth, `$RUN_DIR`, and `SKILL.md`,
+`references/hard-rules.md`, and `references/promotion-mode.md` to read; it may
+write only `$RUN_DIR/body-<n>.md` and returns that path.
 Before rewriting a description, cache the current body to
 `$RUN_DIR/original-body-<n>.md`. Write the replacement to
 `$RUN_DIR/body-<n>.md` and pass it by path. A rewrite with no cached

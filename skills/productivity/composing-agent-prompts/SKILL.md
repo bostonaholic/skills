@@ -9,7 +9,8 @@ argument-hint: "[<task description>] [--repo <path>] [--out <path>]"
 
 Compose a self-contained prompt that another coding agent can execute — in a
 different repository, or on a bounded change here. This skill dispatches
-nothing, runs nothing, and edits nothing except the optional output file. The
+subagents only for its own research and checks; it never dispatches or runs the
+task it composes, and edits nothing except the optional output file. The
 prompt points at the target repo's domain facts, product rules, conventions, and
 instructions; it never restates them.
 
@@ -26,6 +27,9 @@ description; if that is ambiguous, ask one question before emitting.
 
 Seed one item per numbered step in the todo tool before starting
 ([execution rules](shared/execution.md), which also cover hosts without one).
+Steps 2 to 5 and the check in step 6 run in subagents per the
+[step delegation rules](shared/step-delegation.md); everything else stays
+inline.
 
 1. Restate the task in one or two sentences. If the description is ambiguous,
    record the ambiguity as an open question instead of choosing a reading.
@@ -33,21 +37,29 @@ Seed one item per numbered step in the todo tool before starting
    read them. Record every fact in a fact ledger with the path or command that
    shows it, following [verified results rules](shared/verified-results.md).
    Mark anything you cannot verify as unknown; never guess a path, name, or
-   behavior.
+   behavior. Resolve the repo inline, then delegate the reading to a read-only
+   `sonnet` subagent given the restated task, the repo path, and any named
+   files; it returns the fact ledger, one fact per line with its source.
 3. Extract the target repo's constraints from its on-disk instructions
    (`AGENTS.md`, `CONTRIBUTING.md`, testing docs) and the commands it already
-   reuses. Add them to the ledger.
+   reuses. Add them to the ledger. A read-only `sonnet` subagent, launched
+   alongside step 2's and given the repo path, returns them as ledger lines.
 4. Draft the prompt in [the prompt template](references/prompt-template.md),
    using its section headings verbatim. Scope it to one job with one bounded
-   result ([focused work rules](shared/focused-work.md)).
+   result ([focused work rules](shared/focused-work.md)). A read-only
+   subagent given the restated task, the ledger, and the template path returns
+   the full draft, with no word limit.
 5. Elevate the draft so the output needs no later prompt improver: replace each
    group of instructions that serve one purpose with the single higher-level
    instruction that preserves every member. Prefer one durable rule over a list
-   of cases, and the named target over a description of it.
+   of cases, and the named target over a description of it. A fresh read-only
+   subagent given only the draft returns the elevated draft in full.
 6. Check the draft against the ledger. Every fact with its source, every exact
    command, path, and identifier, every constraint, and every acceptance check
    must appear. Restore each missing item and check again; repeat until nothing
-   is missing. A shorter prompt that drops one is a failed prompt.
+   is missing. A shorter prompt that drops one is a failed prompt. Each check
+   is a fresh read-only `sonnet` subagent given the draft and the ledger that
+   returns every ledger item missing or altered; restore items inline.
 7. List open questions separately at the end. Never fabricate a fact to fill a
    section.
 

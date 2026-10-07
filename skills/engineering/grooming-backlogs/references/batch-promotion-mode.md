@@ -45,8 +45,11 @@ and prints the run cache, loads the board, and resolves the
 The pool is every open item in the Backlog column without the excluded label,
 narrowed to the focus area when one was passed. Judge the focus match from
 each item's cached title, labels, and body, and record the issue numbers kept
-and dropped, numbers only, in `$RUN_DIR/pool.md`. Board-mode step 3 then runs
-with this pool as both its candidate set and its closure pool, and step 4
+and dropped, numbers only, in `$RUN_DIR/pool.md`. With a focus area, run
+this judgment in one `sonnet` subagent given the focus area, `$RUN_DIR`, and
+`references/hard-rules.md` and this file to read; it may write only
+`$RUN_DIR/pool.md` and returns the kept issue numbers. Board-mode step 3 then
+runs with this pool as both its candidate set and its closure pool, and step 4
 ranks the verified candidates. An empty pool reports that nothing matched,
 proposes nothing, and asks nothing.
 
@@ -60,6 +63,14 @@ already above its limit is a pre-existing breach under the
 demotions, and select nothing.
 
 ## Each selected issue
+
+Plan each selected issue in its own subagent, launched together with at most 4
+in flight, given the issue number, `$RUN_DIR`, the board settings, and
+`SKILL.md`, `references/hard-rules.md`, `references/promotion-mode.md`, and
+this file to read; it may write only `plan-<n>.md`, `original-body-<n>.md`,
+and `body-<n>.md` in the run cache. It returns those paths, whether move 4
+drops and why, and each proposed link, and this session applies the limit
+below in rank order before joining the sections into `plan.md`.
 
 Apply the standard's four moves in rank order. The board load already holds
 promotion mode's narrow load, and the issue's block in

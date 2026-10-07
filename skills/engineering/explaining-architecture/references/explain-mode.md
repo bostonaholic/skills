@@ -6,18 +6,24 @@
    architectural overview is **complex**. When in doubt, lean simple;
    you can still fan out later if you hit a wall.
 
-2. **Simple: explore inline.** Trace the code yourself with Read, Grep,
-   and Glob, then write the explanation in the
-   [output format](references/output-format.md). Read the actual implementation; never
-   guess from file names.
+2. **Simple: dispatch one explorer.** Dispatch a single explorer as in
+   step 3, with the whole question as its one angle; it returns the
+   Explorer brief's headings. When the trace takes one or two reads, do it
+   inline instead, reading the actual implementation, never guessing from
+   file names. Then write the explanation in the
+   [output format](references/output-format.md).
 
 3. **Complex: fan out explorers.** Split the question into 2–4
    non-overlapping angles. Dispatch one explorer per angle, all **in one
    message**, through the `Agent` tool with `subagent_type: Explore` (the
-   built-in read-only type) and `model: sonnet`. Each prompt carries the
-   Explorer brief below, the question, and its assigned angle. If the `Agent`
-   tool or the `Explore` type is unavailable, explore every angle yourself
-   inline. Never substitute a full-tool agent silently.
+   built-in read-only type) and `model: sonnet`. On a host without
+   `Explore`, such as Codex, spawn fresh-context subagents per the
+   [step delegation rules](shared/step-delegation.md), state in each prompt
+   that it is read-only, and note in the answer that the read-only guarantee
+   rests on the prompt, not the host. Each prompt carries the Explorer brief
+   below, the question, and its assigned angle. If the host cannot spawn a
+   subagent, explore every angle yourself inline. Never substitute a
+   full-tool agent silently.
 
 4. **Synthesize.** Resolve contradictions by checking the code yourself.
    Claims about code carry a `file:line` citation. Acknowledge any

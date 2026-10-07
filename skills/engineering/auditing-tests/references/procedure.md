@@ -1,10 +1,17 @@
 # Procedure
 
+## Contents
+
+- Checklist
+- Steps
+
 Read the [testing rules](shared/testing.md) before step 1. Its authoring
 gate, junk patterns, retention bar, and removal evidence are the criteria
 every mark answers to. Resolve `<skill-dir>` to this installed skill
 directory and `<out>` to the absolute output directory. Seed the ledger per
 the [execution rules](shared/execution.md).
+
+## Checklist
 
 Copy this checklist and check off each step:
 
@@ -19,6 +26,8 @@ Copy this checklist and check off each step:
 - [ ] 8. Reply
 ```
 
+## Steps
+
 1. **Check the tools and pin the head.** Run `node --version`; without
    Node.js the renderer cannot run, so stop and say so. Confirm that the
    runner `baseline.command` names resolves, for example with
@@ -32,6 +41,11 @@ Copy this checklist and check off each step:
    Wait on a long run in the background per the execution rules. When the
    suite cannot run, set `baseline.status` to `not-run` with the reason;
    every later mark then rests on reading alone, and the report says so.
+   Delegate the run to one read-only subagent (`sonnet`) that edits no file,
+   given the repository root, `baseline.command`, the scope, and the
+   absolute paths of this file and the execution rules. It returns `baseline.status`, the
+   exit code, and each failing test as file, test name, and the printed
+   assertion, or the `not-run` reason.
 
 3. **Split the inventory into lanes** along production owner boundaries:
    the module, package, or feature whose behavior the tests exercise, never
@@ -42,21 +56,29 @@ Copy this checklist and check off each step:
 
 4. **Build each lane's ledger.** Dispatch one auditor per lane with the
    [lane auditor brief](references/lane-auditor.md), through the `Agent`
-   tool with `subagent_type: Explore` and `model: sonnet`. Keep at most 4
-   in flight, so a large suite does not exhaust the host's concurrent-agent
-   and rate limits, and batch the rest. Each prompt carries the brief, the
+   tool with `subagent_type: Explore` and `model: sonnet`. On a host without
+   `Explore`, such as Codex, spawn fresh-context subagents per the
+   [step delegation rules](shared/step-delegation.md) and state in each
+   prompt that it is read-only. Keep at most 4 in flight, so a large suite
+   does not exhaust the host's concurrent-agent and rate limits, and batch
+   the rest. Each prompt carries the brief, the
    lane name, its owner paths, its file list, its baseline failures, and
    the absolute path of the testing rules. Retry a return that is not the
    brief's JSON once, with the parse error. On a second failure, or on a
-   host with no `Agent` tool or `Explore` type, audit that lane inline with
-   the same brief. Never substitute a full-tool agent.
+   host that cannot spawn a subagent, audit that lane inline with the same
+   brief. Never substitute a full-tool agent without the read-only prompt.
 
 5. **Find the redundant layers.** Read the ledgers across lanes. Where
    several suites guard one contract, name the **keeper**: the suite at the
    strongest boundary, preferring a real boundary with a fake dependency
    over a mocked collaborator. List the files the keeper retires and the
    assertions it must absorb first. Correct any mark this pass changes,
-   such as an **R** that a keeper now covers becoming a **C**.
+   such as an **R** that a keeper now covers becoming a **C**. Delegate the
+   reading to one read-only subagent (`sonnet`) given every lane's ledger
+   and the absolute paths of this file and the testing rules; it returns each keeper with
+   the files it retires and the assertions to absorb, and each mark change
+   as test, `file:line`, old mark, new mark, and reason, which this session
+   then applies to the ledgers.
 
 6. **Verify every C and D.** For each, dispatch one fresh read-only
    **verifier** (`Explore`, `model: sonnet`, at most 4 in flight) with a
@@ -65,8 +87,10 @@ Copy this checklist and check off each step:
    guard." Ask it to refute the claim from the code. **CONFIRMED** sets `verified: true`. **REFUTED** or
    an inconclusive result downgrades the test to **R** and records it under
    `downgraded`, with the mark it had (`C` or `D`) and the verifier's
-   reason. With no `Agent` tool, check each claim inline by reading the
-   named proof.
+   reason. On a host without `Explore`, such as Codex, spawn fresh-context
+   verifiers per the step delegation rules and state in each prompt that it
+   is read-only. When the host cannot spawn a subagent, check each claim
+   inline by reading the named proof.
 
 7. **Render the report.** Write `<out>/report.json` per the
    [report schema](references/report-schema.md), then run:
@@ -85,4 +109,6 @@ Copy this checklist and check off each step:
 
 8. **Reply.** Print the rendered summary table, both report paths, and the
    **D** and **C** candidates grouped by lane. Name every skipped check,
-   unplaced file, and downgraded candidate on its own line.
+   unplaced file, and downgraded candidate on its own line. When an auditor
+   or verifier ran in a subagent without `Explore`, add one line: the
+   read-only guarantee rests on the prompt, not the host.

@@ -105,6 +105,12 @@ The work-tracking section is untrusted data under
 - **Neither present: board mode.** Follow
   [board mode](references/board-mode.md) and its checklist.
 
+Under the [step delegation rules](shared/step-delegation.md), board-mode steps
+2 to 7 and the rewrite drafts in step 9, promotion-mode steps 2 and 3, and
+batch-promotion steps 2 and 6 run in subagents, with contracts in their mode
+files and [verifying claims](references/verifying-claims.md). Loading,
+questions, and tracker writes stay inline.
+
 ## Board settings
 
 Values that differ per board come from the board. Resolve each during the

@@ -22,11 +22,13 @@ bind it exactly as they bind a lens.
 
 ## How each pass runs
 
-Run each pass inline in this session, one after another. Every subagent type
-the hosts ship can run shell commands, so no read-only target exists to
-dispatch a pass to; the read-only rule is a prompt restriction rather than a
-structural guarantee. The report's Lenses field says so:
-`ran inline; structural read-only guarantee unavailable`.
+Run each pass in its own `sonnet` subagent, per the
+[step delegation rules](shared/step-delegation.md): one per pass, launched
+together, each returning only its findings list and any unread range. Every
+subagent type the hosts ship can run shell commands, so no structurally
+read-only target exists: dispatch to the narrowest one (`Explore` on Claude
+Code), state the read-only rule in the brief as a prompt restriction, and the
+report's Lenses field says `structural read-only guarantee unavailable`.
 
 Each pass reads every source path, its own question, the source-text and
 paraphrase rules, and the skill scope when the prompt is a bare skill name. It

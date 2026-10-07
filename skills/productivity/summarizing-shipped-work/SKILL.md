@@ -20,6 +20,9 @@ user names; with none named, search all of the user's merged PRs. When the
 user asks for work only, leave out personal and trivial repositories and name
 them in one line at the end of the report.
 
+Steps 3 and 4 run in one subagent per the
+[step delegation rules](shared/step-delegation.md); the rest stays inline.
+
 ## 1. Resolve the timeframe
 
 Turn the request into inclusive `START` and `END` dates (`YYYY-MM-DD`), and
@@ -59,6 +62,10 @@ For a long range (more than about 150 PRs), read the file in slices with `jq`
 rather than all at once.
 
 ## 3. Group and summarize
+
+A writer subagent that may write only `<out>/report.md` does steps 3 and 4. It
+gets `<out>/shipped.jsonl`, `START`, `END`, whether the request is work only,
+and any product names from the user's notes, and returns the report path and any title key it left unlinked.
 
 **Group by product or system, not by repository.** One feature often spans
 repositories: a `deploy-service` change, its screen in `web-console`, and its
@@ -132,6 +139,8 @@ Left out as personal or trivial: <repos>.
 - The left-out line appears only for a work-only request.
 
 Write plainly: no metaphors, no intensifiers, no "just".
+
+Show the user the report from `<out>/report.md`.
 
 ## 5. Offer the brag document update
 

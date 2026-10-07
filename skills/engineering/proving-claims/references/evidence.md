@@ -50,6 +50,7 @@ calls for.
 
 Delegate when another skill produces the evidence better than you can
 inline. The delegate supplies evidence, and `proving-claims` still owns the verdict.
+This session calls each delegate itself, never a per-claim subagent.
 
 - **Visual claims:** call the Skill tool with `capturing-screenshots`. Name the screens
   and states the criterion needs, and pass `--out` under a temporary

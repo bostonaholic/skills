@@ -15,7 +15,8 @@ The approval covers every tracked item, so before any merge-safety check every
 tracked thread and PR-level item must hold a current verdict of addressed or
 answered. Re-review any item that lacks one: a thread that resolved during a
 confirmation wait, an item engaged during that wait, a verdict voided by a
-reopen, or verdicts lost to a compaction.
+reopen, or verdicts lost to a compaction. Each sweep re-review runs in a
+subagent exactly as [poll](references/poll.md) dispatches it.
 
 - When the head moved after a verdict was recorded, re-check the threads whose
   `path` the new commits touch. PR-level items have no `path`, so re-check

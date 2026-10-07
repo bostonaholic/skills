@@ -71,6 +71,18 @@ node id. Nothing is dropped silently; an ambiguous item surfaces as
 
 ## Step 4: Verify each item
 
+Run steps 4 and 5 for each item in its own `sonnet` subagent, given the item's
+retrieval data, the PR's host, owner, repo, number, and base branch, and
+`SKILL.md` and this file to read; it posts nothing. Items share one working
+tree, so an item whose comment asserts runtime behavior runs alone, with no
+other item in flight, and may write only its own throwaway reproduction test.
+Every other item is read-only, runs no test, and launches with the rest, at
+most 4 in flight; one that finds it needs a test returns that, and the item
+reruns alone. Each subagent returns the verdict with its `file:line` or SHA
+evidence, any test cited with its run result, the class, the recommended
+option with a one-line why, the confidence with the first auto-apply check it
+fails, and the path of any throwaway test left unstaged.
+
 Do this for each item before any classification or recommendation:
 
 1. **Read the current code.** For a thread, read `path` around `line` or

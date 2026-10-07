@@ -81,4 +81,8 @@ Copy this checklist and check off each step:
 8. **Report.** Write `result.json` and restate it, per
    [the result](references/input-and-result.md#the-result).
 
+Step 7 runs in a subagent per the
+[step delegation rules](shared/step-delegation.md). The other steps stay in
+this session: each is one or two script calls or writes `$RUN_DIR` or the PR.
+
 Track progress per the [execution rules](shared/execution.md).

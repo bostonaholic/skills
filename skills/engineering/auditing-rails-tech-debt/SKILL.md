@@ -19,6 +19,10 @@ Copy this checklist and check off each step:
 - [ ] 4. Write the report from the template
 ```
 
+Steps 1, 3, and 4 run in subagents per the
+[step delegation rules](shared/step-delegation.md); step 2 follows its own
+fan-out rule.
+
 ## Non-negotiables
 
 1. **Evidence-rooted.** Every finding cites `file:line` from the codebase. Never
@@ -96,6 +100,11 @@ Build a model of the app before judging anything:
   the biggest files:
   `find app/models app/controllers -name '*.rb' | xargs wc -l | sort -rn | head`.
 
+Run this step in one read-only subagent given the app root. It returns total
+Ruby lines, the test-to-code ratio, layers present and missing, the 10 largest
+models and controllers with line counts, and architecture notes from `Gemfile`,
+routes, and schema.
+
 ## 2. Hunt by category
 
 Sweep each category. The reference files list the concrete greps and smells.
@@ -124,12 +133,12 @@ Sweep each category. The reference files list the concrete greps and smells.
    `method_missing` abuse, mutable constants
    ([SOLID](references/solid-ruby.md)).
 
-For an app under about 10k lines of Ruby, one agent can read everything
-relevant: audit inline. For a larger app, fan out parallel read-only subagents,
-one per category. Give each its category, reference files, and these
-non-negotiables, and have it return findings in the report template with
-`file:line` evidence. Subagents edit nothing. Verify and merge their findings
-yourself; never let a subagent's unverified claim into the final report.
+Whatever the app's size, fan out read-only subagents, one per category,
+launched together with at most 4 in flight. Give each its category, reference
+files, and these non-negotiables, and have it return candidate findings in the
+report template with `file:line` evidence. Subagents edit nothing. Merge their
+candidates and pass each to step 3; never let a candidate into the final
+report until a step 3 verifier confirms it.
 
 ## 3. Verify
 
@@ -138,10 +147,22 @@ invoked? Does a mitigating structure exist elsewhere (for example, a concern
 that already extracts the logic)? Does the schema or a test justify the design?
 Drop anything you cannot confirm.
 
+Verify in read-only `sonnet` subagents, one per candidate and never the one that
+found it, launched together with at most 4 in flight, each given the claim with
+its `file:line` and violated rule under the
+[independent review rules](shared/independent-review.md). Each returns confirmed
+or refuted with the `file:line` evidence for its answer.
+
 ## 4. Report
 
 Use this template exactly: keep the field labels and their order, order findings
 by severity, and omit **Why a class** when the After adds no class.
+
+Draft the report in one writer subagent that may write only
+`<out>/rails-tech-debt-audit.md` in a temporary directory, given the confirmed
+findings, their verifier reports, and this file's path; it reads each cited
+location and reference file and returns the path. Check the draft against the
+template and the non-negotiables, then present it.
 
 ```markdown
 ### [SEVERITY] <short title naming the anti-pattern>
