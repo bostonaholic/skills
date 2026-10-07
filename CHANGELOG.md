@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-07
+
 ### Changed
 
 - Delegate skill steps to fresh-context subagents by default in Claude Code and Codex, keeping approval, shared-state, and trivial steps inline. [#27](https://github.com/bostonaholic/skills/pull/27)
@@ -262,5 +264,7 @@
 
 [0.15.1]: https://github.com/bostonaholic/skills/compare/v0.15.0...v0.15.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.16.0...HEAD
 [0.16.0]: https://github.com/bostonaholic/skills/compare/v0.15.1...v0.16.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/bostonaholic/skills/compare/v0.16.0...v0.17.0
