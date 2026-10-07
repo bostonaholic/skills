@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Reformat bundled skill scripts with oxfmt and clean up lint warnings, with no behavior change. [#25](https://github.com/bostonaholic/skills/pull/25)
+
 ## [0.15.0] - 2026-10-06
 
 ### Added
