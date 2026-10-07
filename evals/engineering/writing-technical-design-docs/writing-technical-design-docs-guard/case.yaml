@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: writing-technical-design-docs-guard
+context:
+  scaffold_script: scaffold.sh
