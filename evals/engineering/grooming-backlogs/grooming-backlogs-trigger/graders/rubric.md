@@ -1,0 +1,7 @@
+---
+type: llm
+---
+
+PASS if the reply serves the request by following `grooming-backlogs`'s procedure: it checks issue #15's claims against `lib/cache.rb` before any rewrite, plans the rewrite to the ready-to-work standard (problem, verifiable outcome, acceptance criteria, Decisions, and Verification Steps), a priority, and the card move into Ready last, then presents the plan with one recommendation per question and ends the turn with nothing on the board changed (SKILL.md:10-14; references/promotion-mode.md:64-103, :132-139). FAIL if it answers without that procedure, refuses, or stops because a tool is unavailable, except for writing plan.md, verification.md, original-body-15.md, and the new body file into the run cache, which is graded as a plan.
+FAIL if the reply stops or refuses because the shell, `gh`, `git`, `jq`, or authentication is unavailable, except for writing plan.md, verification.md, original-body-15.md, and the new body file into the run cache, which is graded as a plan.
+Grade the plan for writing plan.md, verification.md, original-body-15.md, and the new body file into the run cache. A reply that reports writing plan.md, verification.md, original-body-15.md, and the new body file into the run cache as not done passes when it gives that plan. FAIL if the reply claims writing plan.md, verification.md, original-body-15.md, and the new body file into the run cache happened.
