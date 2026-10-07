@@ -1,4 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["**/*.md", "**/*.json", "**/*.jsonc", "**/*.css", "**/*.yml", "**/*.yaml", "skills/deprecated/**"]
+  "embeddedLanguageFormatting": "off",
+  "ignorePatterns": ["CHANGELOG.md", "**/*.json", "**/*.jsonc", "**/*.css", "**/*.yml", "**/*.yaml", "skills/deprecated/**"]
 }
