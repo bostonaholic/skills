@@ -9,7 +9,10 @@ import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const scriptUrl = new URL("../skills/engineering/addressing-pr-comments/scripts/re-request-review.mjs", import.meta.url);
+const scriptUrl = new URL(
+  "../skills/engineering/addressing-pr-comments/scripts/re-request-review.mjs",
+  import.meta.url,
+);
 const scriptPath = fileURLToPath(scriptUrl);
 
 // A missing or broken script must fail each test through an assertion, not abort the file.
@@ -38,7 +41,14 @@ function bot(login) {
 }
 
 function review({ author, state, url, body, inlineCommentCount }) {
-  return { author, state, url, body, submittedAt: FIXED_SUBMITTED_AT, comments: { totalCount: inlineCommentCount } };
+  return {
+    author,
+    state,
+    url,
+    body,
+    submittedAt: FIXED_SUBMITTED_AT,
+    comments: { totalCount: inlineCommentCount },
+  };
 }
 
 function thread({ isResolved, firstCommentUrl, latestAuthor, latestBody }) {
@@ -138,12 +148,20 @@ function runScript(t, { args, responses }) {
 
   const result = spawnSync(process.execPath, [scriptPath, ...args], {
     encoding: "utf8",
-    env: { ...process.env, PATH: `${binDir}${delimiter}${process.env.PATH}`, FAKE_GH_STATE: stateDir },
+    env: {
+      ...process.env,
+      PATH: `${binDir}${delimiter}${process.env.PATH}`,
+      FAKE_GH_STATE: stateDir,
+    },
   });
 
   const callsPath = join(stateDir, "calls.jsonl");
   const calls = existsSync(callsPath)
-    ? readFileSync(callsPath, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line))
+    ? readFileSync(callsPath, "utf8")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line))
     : [];
   const lines = result.stdout === "" ? [] : result.stdout.replace(/\n$/, "").split("\n");
   return { status: result.status, stdout: result.stdout, stderr: result.stderr, lines, calls };
@@ -165,7 +183,14 @@ function pageOneResponse({
   const data = {
     viewer: { login: viewerLogin },
     repository: {
-      pullRequest: { reviewDecision, latestOpinionatedReviews, reviewRequests, reviewThreads, reviews, comments },
+      pullRequest: {
+        reviewDecision,
+        latestOpinionatedReviews,
+        reviewRequests,
+        reviewThreads,
+        reviews,
+        comments,
+      },
     },
   };
   return { stdout: JSON.stringify({ data }), stderr: "", exitCode: 0 };
@@ -186,7 +211,16 @@ function resolvedThread(discussionId) {
 }
 
 function postReviewerRequest(login) {
-  return ["api", "--hostname", "github.com", "--method", "POST", "repos/o/r/pulls/412/requested_reviewers", "-f", `reviewers[]=${login}`];
+  return [
+    "api",
+    "--hostname",
+    "github.com",
+    "--method",
+    "POST",
+    "repos/o/r/pulls/412/requested_reviewers",
+    "-f",
+    `reviewers[]=${login}`,
+  ];
 }
 
 const POST_SUCCEEDED = { stdout: JSON.stringify({ url: PR_URL }), stderr: "", exitCode: 0 };
@@ -214,25 +248,34 @@ test("derives targets and the review-decision gate", async (t) => {
       inlineCommentCount: 0,
     });
     const result = derive(
-      reviewState({ latestOpinionatedReviews: [BOB_APPROVED, carolDismissed], reviews: [BOB_APPROVED, carolDismissed] }),
+      reviewState({
+        latestOpinionatedReviews: [BOB_APPROVED, carolDismissed],
+        reviews: [BOB_APPROVED, carolDismissed],
+      }),
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
     assert.deepEqual(result.lines, ["not-requested no-changes-requested-reviewer"]);
   });
 
-  await t.test("a reviewer with a pending review request prints already-requested and gets no write", () => {
-    const result = derive(
-      reviewState({
-        latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
-        reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
-        reviewRequests: [requestedUser("alice")],
-      }),
-      PULL_REQUEST_412,
-    );
-    assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["already-requested alice", "not-requested no-changes-requested-reviewer"]);
-  });
+  await t.test(
+    "a reviewer with a pending review request prints already-requested and gets no write",
+    () => {
+      const result = derive(
+        reviewState({
+          latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
+          reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
+          reviewRequests: [requestedUser("alice")],
+        }),
+        PULL_REQUEST_412,
+      );
+      assert.deepEqual(result.logins, []);
+      assert.deepEqual(result.lines, [
+        "already-requested alice",
+        "not-requested no-changes-requested-reviewer",
+      ]);
+    },
+  );
 
   await t.test("the viewer's own CHANGES_REQUESTED review is dropped with no line", () => {
     const viewerChangesRequested = review({
@@ -263,11 +306,17 @@ test("derives targets and the review-decision gate", async (t) => {
       inlineCommentCount: 1,
     });
     const result = derive(
-      reviewState({ latestOpinionatedReviews: [botChangesRequested], reviews: [botChangesRequested] }),
+      reviewState({
+        latestOpinionatedReviews: [botChangesRequested],
+        reviews: [botChangesRequested],
+      }),
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["skipped renovate not-a-user", "not-requested no-changes-requested-reviewer"]);
+    assert.deepEqual(result.lines, [
+      "skipped renovate not-a-user",
+      "not-requested no-changes-requested-reviewer",
+    ]);
   });
 
   await t.test("an x[bot] login prints skipped invalid-login without the login", () => {
@@ -279,11 +328,17 @@ test("derives targets and the review-decision gate", async (t) => {
       inlineCommentCount: 1,
     });
     const result = derive(
-      reviewState({ latestOpinionatedReviews: [bracketBotChangesRequested], reviews: [bracketBotChangesRequested] }),
+      reviewState({
+        latestOpinionatedReviews: [bracketBotChangesRequested],
+        reviews: [bracketBotChangesRequested],
+      }),
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["skipped invalid-login", "not-requested no-changes-requested-reviewer"]);
+    assert.deepEqual(result.lines, [
+      "skipped invalid-login",
+      "not-requested no-changes-requested-reviewer",
+    ]);
   });
 
   await t.test("a User login that fails the login pattern prints skipped invalid-login", () => {
@@ -302,7 +357,10 @@ test("derives targets and the review-decision gate", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["skipped invalid-login", "not-requested no-changes-requested-reviewer"]);
+    assert.deepEqual(result.lines, [
+      "skipped invalid-login",
+      "not-requested no-changes-requested-reviewer",
+    ]);
   });
 
   await t.test("a null review author prints skipped author-unavailable", () => {
@@ -314,25 +372,34 @@ test("derives targets and the review-decision gate", async (t) => {
       inlineCommentCount: 1,
     });
     const result = derive(
-      reviewState({ latestOpinionatedReviews: [ghostChangesRequested], reviews: [ghostChangesRequested] }),
-      PULL_REQUEST_412,
-    );
-    assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["skipped author-unavailable", "not-requested no-changes-requested-reviewer"]);
-  });
-
-  await t.test("reviewDecision APPROVED makes no write even with a changes-requesting reviewer", () => {
-    const result = derive(
       reviewState({
-        reviewDecision: "APPROVED",
-        latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
-        reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
+        latestOpinionatedReviews: [ghostChangesRequested],
+        reviews: [ghostChangesRequested],
       }),
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["not-requested review-decision APPROVED"]);
+    assert.deepEqual(result.lines, [
+      "skipped author-unavailable",
+      "not-requested no-changes-requested-reviewer",
+    ]);
   });
+
+  await t.test(
+    "reviewDecision APPROVED makes no write even with a changes-requesting reviewer",
+    () => {
+      const result = derive(
+        reviewState({
+          reviewDecision: "APPROVED",
+          latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
+          reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
+        }),
+        PULL_REQUEST_412,
+      );
+      assert.deepEqual(result.logins, []);
+      assert.deepEqual(result.lines, ["not-requested review-decision APPROVED"]);
+    },
+  );
 
   await t.test("a null reviewDecision with a target still writes", () => {
     const result = derive(
@@ -355,7 +422,10 @@ test("derives targets and the review-decision gate", async (t) => {
   await t.test("two targets are written in login order", () => {
     const result = derive(
       reviewState({
-        latestOpinionatedReviews: [CAROL_CHANGES_REQUESTED_WITH_THREADS, ALICE_CHANGES_REQUESTED_WITH_THREADS],
+        latestOpinionatedReviews: [
+          CAROL_CHANGES_REQUESTED_WITH_THREADS,
+          ALICE_CHANGES_REQUESTED_WITH_THREADS,
+        ],
         reviews: [CAROL_CHANGES_REQUESTED_WITH_THREADS, ALICE_CHANGES_REQUESTED_WITH_THREADS],
       }),
       PULL_REQUEST_412,
@@ -402,7 +472,10 @@ test("derives pending feedback without markers", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#discussion_r1001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("an unresolved thread whose latest author is null is pending", () => {
@@ -422,7 +495,10 @@ test("derives pending feedback without markers", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#discussion_r1001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("a human review summary is pending", () => {
@@ -441,7 +517,10 @@ test("derives pending feedback without markers", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#pullrequestreview-2001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#pullrequestreview-2001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("a human conversation comment is pending", () => {
@@ -449,12 +528,21 @@ test("derives pending feedback without markers", async (t) => {
       reviewState({
         latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
-        comments: [conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-3001`, body: BODY_SENTINEL })],
+        comments: [
+          conversationComment({
+            author: user("dave"),
+            url: `${PR_URL}#issuecomment-3001`,
+            body: BODY_SENTINEL,
+          }),
+        ],
       }),
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#issuecomment-3001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#issuecomment-3001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("a viewer reaction alone leaves a conversation comment pending", () => {
@@ -474,7 +562,10 @@ test("derives pending feedback without markers", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#issuecomment-3001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#issuecomment-3001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("a Bot conversation comment is ignored", () => {
@@ -483,7 +574,11 @@ test("derives pending feedback without markers", async (t) => {
         latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         comments: [
-          conversationComment({ author: bot("graphite-app"), url: `${PR_URL}#issuecomment-3002`, body: BODY_SENTINEL }),
+          conversationComment({
+            author: bot("graphite-app"),
+            url: `${PR_URL}#issuecomment-3002`,
+            body: BODY_SENTINEL,
+          }),
         ],
       }),
       PULL_REQUEST_412,
@@ -492,44 +587,59 @@ test("derives pending feedback without markers", async (t) => {
     assert.deepEqual(result.lines, []);
   });
 
-  await t.test("an empty CHANGES_REQUESTED review with no inline comments blocks every write", () => {
-    const bobEmptyChangesRequested = review({
-      author: user("bob"),
-      state: "CHANGES_REQUESTED",
-      url: `${PR_URL}#pullrequestreview-201`,
-      body: "",
-      inlineCommentCount: 0,
-    });
-    const result = derive(
-      reviewState({
-        latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, bobEmptyChangesRequested],
-        reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, bobEmptyChangesRequested],
-      }),
-      PULL_REQUEST_412,
-    );
-    assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, ["pending empty-changes-request bob", "not-requested pending-feedback"]);
-  });
+  await t.test(
+    "an empty CHANGES_REQUESTED review with no inline comments blocks every write",
+    () => {
+      const bobEmptyChangesRequested = review({
+        author: user("bob"),
+        state: "CHANGES_REQUESTED",
+        url: `${PR_URL}#pullrequestreview-201`,
+        body: "",
+        inlineCommentCount: 0,
+      });
+      const result = derive(
+        reviewState({
+          latestOpinionatedReviews: [
+            ALICE_CHANGES_REQUESTED_WITH_THREADS,
+            bobEmptyChangesRequested,
+          ],
+          reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, bobEmptyChangesRequested],
+        }),
+        PULL_REQUEST_412,
+      );
+      assert.deepEqual(result.logins, []);
+      assert.deepEqual(result.lines, [
+        "pending empty-changes-request bob",
+        "not-requested pending-feedback",
+      ]);
+    },
+  );
 
-  await t.test("an empty CHANGES_REQUESTED review clears once its reviewer is in reviewRequests", () => {
-    const bobEmptyChangesRequested = review({
-      author: user("bob"),
-      state: "CHANGES_REQUESTED",
-      url: `${PR_URL}#pullrequestreview-201`,
-      body: "",
-      inlineCommentCount: 0,
-    });
-    const result = derive(
-      reviewState({
-        latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, bobEmptyChangesRequested],
-        reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, bobEmptyChangesRequested],
-        reviewRequests: [requestedUser("bob")],
-      }),
-      PULL_REQUEST_412,
-    );
-    assert.deepEqual(result.logins, ["alice"]);
-    assert.deepEqual(result.lines, ["already-requested bob"]);
-  });
+  await t.test(
+    "an empty CHANGES_REQUESTED review clears once its reviewer is in reviewRequests",
+    () => {
+      const bobEmptyChangesRequested = review({
+        author: user("bob"),
+        state: "CHANGES_REQUESTED",
+        url: `${PR_URL}#pullrequestreview-201`,
+        body: "",
+        inlineCommentCount: 0,
+      });
+      const result = derive(
+        reviewState({
+          latestOpinionatedReviews: [
+            ALICE_CHANGES_REQUESTED_WITH_THREADS,
+            bobEmptyChangesRequested,
+          ],
+          reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, bobEmptyChangesRequested],
+          reviewRequests: [requestedUser("bob")],
+        }),
+        PULL_REQUEST_412,
+      );
+      assert.deepEqual(result.logins, ["alice"]);
+      assert.deepEqual(result.lines, ["already-requested bob"]);
+    },
+  );
 
   await t.test("eleven pending items print ten pending lines and pending-more 1", () => {
     const result = derive(
@@ -598,7 +708,10 @@ test("CLI writes only when nothing is pending", async (t) => {
   });
 
   await t.test("unparseable gh JSON prints review-state-read-failed and exits 1", (st) => {
-    const run = runScript(st, { args: [PR_URL], responses: [{ stdout: "not json", stderr: "", exitCode: 0 }] });
+    const run = runScript(st, {
+      args: [PR_URL],
+      responses: [{ stdout: "not json", stderr: "", exitCode: 0 }],
+    });
     assert.deepEqual(run.lines, ["not-requested review-state-read-failed"]);
     assert.match(run.stderr, /^re-request-review\.mjs: gh printed output that is not JSON$/m);
     assert.equal(run.status, 1);
@@ -615,27 +728,42 @@ test("CLI writes only when nothing is pending", async (t) => {
         }),
       ],
     });
-    assert.deepEqual(run.lines, [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"]);
+    assert.deepEqual(run.lines, [
+      `pending ${PR_URL}#discussion_r1001`,
+      "not-requested pending-feedback",
+    ]);
     assert.equal(run.status, 0);
     assert.equal(run.calls.length, 1, "only the review-state read may run");
   });
 
-  await t.test("a failed first POST prints failed <login> http-<status>, the second POST still runs, and exit is 1", (st) => {
-    const run = runScript(st, {
-      args: [PR_URL],
-      responses: [
-        pageOneResponse({
-          latestOpinionatedReviews: connection([CAROL_CHANGES_REQUESTED_WITH_THREADS, ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-          reviews: connection([CAROL_CHANGES_REQUESTED_WITH_THREADS, ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-        }),
-        { stdout: "", stderr: "gh: Validation Failed (HTTP 422)\n", exitCode: 1 },
-        POST_SUCCEEDED,
-      ],
-    });
-    assert.deepEqual(run.lines, ["failed alice http-422", "re-requested carol"]);
-    assert.deepEqual(run.calls.slice(1), [postReviewerRequest("alice"), postReviewerRequest("carol")]);
-    assert.equal(run.status, 1);
-  });
+  await t.test(
+    "a failed first POST prints failed <login> http-<status>, the second POST still runs, and exit is 1",
+    (st) => {
+      const run = runScript(st, {
+        args: [PR_URL],
+        responses: [
+          pageOneResponse({
+            latestOpinionatedReviews: connection([
+              CAROL_CHANGES_REQUESTED_WITH_THREADS,
+              ALICE_CHANGES_REQUESTED_WITH_THREADS,
+            ]),
+            reviews: connection([
+              CAROL_CHANGES_REQUESTED_WITH_THREADS,
+              ALICE_CHANGES_REQUESTED_WITH_THREADS,
+            ]),
+          }),
+          { stdout: "", stderr: "gh: Validation Failed (HTTP 422)\n", exitCode: 1 },
+          POST_SUCCEEDED,
+        ],
+      });
+      assert.deepEqual(run.lines, ["failed alice http-422", "re-requested carol"]);
+      assert.deepEqual(run.calls.slice(1), [
+        postReviewerRequest("alice"),
+        postReviewerRequest("carol"),
+      ]);
+      assert.equal(run.status, 1);
+    },
+  );
 
   await t.test("no stdout line carries a body byte", (st) => {
     const daveSummary = review({
@@ -653,8 +781,16 @@ test("CLI writes only when nothing is pending", async (t) => {
           reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS, daveSummary]),
           reviewThreads: connection([unresolvedReviewerThread(1001)]),
           comments: connection([
-            conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-3001`, body: BODY_SENTINEL }),
-            conversationComment({ author: user("me"), url: `${PR_URL}#issuecomment-3002`, body: BODY_SENTINEL }),
+            conversationComment({
+              author: user("dave"),
+              url: `${PR_URL}#issuecomment-3001`,
+              body: BODY_SENTINEL,
+            }),
+            conversationComment({
+              author: user("me"),
+              url: `${PR_URL}#issuecomment-3002`,
+              body: BODY_SENTINEL,
+            }),
           ]),
         }),
       ],
@@ -709,7 +845,10 @@ test("a viewer marker clears only the item it names", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#discussion_r1001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("a viewer-last thread with a marker for another item is pending", () => {
@@ -730,7 +869,10 @@ test("a viewer marker clears only the item it names", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#discussion_r1001`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("a viewer marker for issuecomment-123 leaves issuecomment-12 pending", () => {
@@ -740,7 +882,11 @@ test("a viewer marker clears only the item it names", async (t) => {
         latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         comments: [
-          conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-12`, body: BODY_SENTINEL }),
+          conversationComment({
+            author: user("dave"),
+            url: `${PR_URL}#issuecomment-12`,
+            body: BODY_SENTINEL,
+          }),
           conversationComment({
             author: user("me"),
             url: `${PR_URL}#issuecomment-900`,
@@ -751,7 +897,10 @@ test("a viewer marker clears only the item it names", async (t) => {
       PULL_REQUEST_412,
     );
     assert.deepEqual(result.logins, []);
-    assert.deepEqual(result.lines, [`pending ${PR_URL}#issuecomment-12`, "not-requested pending-feedback"]);
+    assert.deepEqual(result.lines, [
+      `pending ${PR_URL}#issuecomment-12`,
+      "not-requested pending-feedback",
+    ]);
   });
 
   await t.test("one viewer comment with two marker lines clears both items", () => {
@@ -768,7 +917,11 @@ test("a viewer marker clears only the item it names", async (t) => {
         latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, daveSummary],
         comments: [
-          conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-12`, body: BODY_SENTINEL }),
+          conversationComment({
+            author: user("dave"),
+            url: `${PR_URL}#issuecomment-12`,
+            body: BODY_SENTINEL,
+          }),
           conversationComment({
             author: user("me"),
             url: `${PR_URL}#issuecomment-900`,
@@ -790,7 +943,11 @@ test("a marker in a non-viewer comment clears nothing", () => {
       latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
       reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
       comments: [
-        conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-12`, body: BODY_SENTINEL }),
+        conversationComment({
+          author: user("dave"),
+          url: `${PR_URL}#issuecomment-12`,
+          body: BODY_SENTINEL,
+        }),
         conversationComment({
           author: user("mallory"),
           url: `${PR_URL}#issuecomment-13`,
@@ -813,48 +970,118 @@ test("CLI follows a second page by cursor", (t) => {
     args: [PR_URL],
     responses: [
       pageOneResponse({
-        latestOpinionatedReviews: connection([BOB_APPROVED], { hasNextPage: true, endCursor: "opinionated-cursor-1" }),
+        latestOpinionatedReviews: connection([BOB_APPROVED], {
+          hasNextPage: true,
+          endCursor: "opinionated-cursor-1",
+        }),
         reviews: connection([BOB_APPROVED, ALICE_CHANGES_REQUESTED_WITH_THREADS]),
       }),
       followUpPageResponse(
         "latestOpinionatedReviews",
-        connection([ALICE_CHANGES_REQUESTED_WITH_THREADS], { hasNextPage: false, endCursor: "opinionated-cursor-2" }),
+        connection([ALICE_CHANGES_REQUESTED_WITH_THREADS], {
+          hasNextPage: false,
+          endCursor: "opinionated-cursor-2",
+        }),
       ),
       POST_SUCCEEDED,
     ],
   });
-  assert.equal(run.calls[1]?.includes("after=opinionated-cursor-1"), true, "second gh call must carry after=<endCursor>");
+  assert.equal(
+    run.calls[1]?.includes("after=opinionated-cursor-1"),
+    true,
+    "second gh call must carry after=<endCursor>",
+  );
   assert.deepEqual(run.lines, ["re-requested alice"]);
   assert.deepEqual(run.calls[2], postReviewerRequest("alice"));
   assert.equal(run.status, 0);
 });
 
 test("CLI stops at the page cap and on a failed page", async (t) => {
-  await t.test("hasNextPage on page 10 prints review-state-incomplete after exactly 10 reads and sends no POST", (st) => {
-    const run = runScript(st, {
-      args: [PR_URL],
-      responses: [
-        pageOneResponse({
-          latestOpinionatedReviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-          reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-          reviewThreads: connection([resolvedThread(1001)], { hasNextPage: true, endCursor: "threads-cursor-1" }),
-        }),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1002)], { hasNextPage: true, endCursor: "threads-cursor-2" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1003)], { hasNextPage: true, endCursor: "threads-cursor-3" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1004)], { hasNextPage: true, endCursor: "threads-cursor-4" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1005)], { hasNextPage: true, endCursor: "threads-cursor-5" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1006)], { hasNextPage: true, endCursor: "threads-cursor-6" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1007)], { hasNextPage: true, endCursor: "threads-cursor-7" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1008)], { hasNextPage: true, endCursor: "threads-cursor-8" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1009)], { hasNextPage: true, endCursor: "threads-cursor-9" })),
-        followUpPageResponse("reviewThreads", connection([resolvedThread(1010)], { hasNextPage: true, endCursor: "threads-cursor-10" })),
-      ],
-    });
-    assert.deepEqual(run.lines, ["not-requested review-state-incomplete"]);
-    assert.match(run.stderr, /^re-request-review\.mjs: reviewThreads has more than 10 pages$/m);
-    assert.equal(run.calls.length, 10, "page 1 plus 9 follow-up pages, then stop");
-    assert.equal(run.status, 1);
-  });
+  await t.test(
+    "hasNextPage on page 10 prints review-state-incomplete after exactly 10 reads and sends no POST",
+    (st) => {
+      const run = runScript(st, {
+        args: [PR_URL],
+        responses: [
+          pageOneResponse({
+            latestOpinionatedReviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
+            reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
+            reviewThreads: connection([resolvedThread(1001)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-1",
+            }),
+          }),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1002)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-2",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1003)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-3",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1004)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-4",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1005)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-5",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1006)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-6",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1007)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-7",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1008)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-8",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1009)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-9",
+            }),
+          ),
+          followUpPageResponse(
+            "reviewThreads",
+            connection([resolvedThread(1010)], {
+              hasNextPage: true,
+              endCursor: "threads-cursor-10",
+            }),
+          ),
+        ],
+      });
+      assert.deepEqual(run.lines, ["not-requested review-state-incomplete"]);
+      assert.match(run.stderr, /^re-request-review\.mjs: reviewThreads has more than 10 pages$/m);
+      assert.equal(run.calls.length, 10, "page 1 plus 9 follow-up pages, then stop");
+      assert.equal(run.status, 1);
+    },
+  );
 
   await t.test("a failed second page prints review-state-read-failed and exits 1", (st) => {
     const run = runScript(st, {
@@ -863,7 +1090,10 @@ test("CLI stops at the page cap and on a failed page", async (t) => {
         pageOneResponse({
           latestOpinionatedReviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
           reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-          reviewThreads: connection([resolvedThread(1001)], { hasNextPage: true, endCursor: "threads-cursor-1" }),
+          reviewThreads: connection([resolvedThread(1001)], {
+            hasNextPage: true,
+            endCursor: "threads-cursor-1",
+          }),
         }),
         { stdout: "", stderr: "gh: Bad Gateway (HTTP 502)\n", exitCode: 1 },
       ],
@@ -877,7 +1107,13 @@ test("CLI stops at the page cap and on a failed page", async (t) => {
 const ENTERPRISE_PR_URL = "https://ghe.example.com/o/r/pull/412";
 
 function changesRequested({ author, reviewId, body = "", inlineCommentCount = 1, prUrl = PR_URL }) {
-  return review({ author, state: "CHANGES_REQUESTED", url: `${prUrl}#pullrequestreview-${reviewId}`, body, inlineCommentCount });
+  return review({
+    author,
+    state: "CHANGES_REQUESTED",
+    url: `${prUrl}#pullrequestreview-${reviewId}`,
+    body,
+    inlineCommentCount,
+  });
 }
 
 function viewerLastThread({ discussionId, latestBody }) {
@@ -914,7 +1150,10 @@ test("CLI refuses a wrong argument count before any gh call", async (t) => {
 test("CLI prints not-requested gh-unavailable and exits 1 when gh is not on PATH", (t) => {
   const emptyDir = mkdtempSync(join(tmpdir(), "rr-no-gh-"));
   t.after(() => rmSync(emptyDir, { recursive: true, force: true }));
-  const result = spawnSync(process.execPath, [scriptPath, PR_URL], { encoding: "utf8", env: { PATH: emptyDir } });
+  const result = spawnSync(process.execPath, [scriptPath, PR_URL], {
+    encoding: "utf8",
+    env: { PATH: emptyDir },
+  });
   assert.equal(result.stdout, "not-requested gh-unavailable\n");
   assert.match(result.stderr, /^re-request-review\.mjs: cannot run gh: /m);
   assert.equal(result.status, 1);
@@ -938,7 +1177,14 @@ test("CLI treats a failed or erroring first read as review-state-read-failed", a
     const run = runScript(st, {
       args: [PR_URL],
       responses: [
-        { stdout: JSON.stringify({ ...page, errors: [{ type: "NOT_FOUND", message: "Could not resolve" }] }), stderr: "", exitCode: 0 },
+        {
+          stdout: JSON.stringify({
+            ...page,
+            errors: [{ type: "NOT_FOUND", message: "Could not resolve" }],
+          }),
+          stderr: "",
+          exitCode: 0,
+        },
       ],
     });
     assert.deepEqual(run.lines, ["not-requested review-state-read-failed"]);
@@ -950,7 +1196,15 @@ test("CLI treats a failed or erroring first read as review-state-read-failed", a
   await t.test("a response with no pull request", (st) => {
     const run = runScript(st, {
       args: [PR_URL],
-      responses: [{ stdout: JSON.stringify({ data: { viewer: { login: "me" }, repository: { pullRequest: null } } }), stderr: "", exitCode: 0 }],
+      responses: [
+        {
+          stdout: JSON.stringify({
+            data: { viewer: { login: "me" }, repository: { pullRequest: null } },
+          }),
+          stderr: "",
+          exitCode: 0,
+        },
+      ],
     });
     assert.deepEqual(run.lines, ["not-requested review-state-read-failed"]);
     assert.match(run.stderr, /^re-request-review\.mjs: the response has no pull request$/m);
@@ -961,18 +1215,28 @@ test("CLI treats a failed or erroring first read as review-state-read-failed", a
 test("CLI prints gh-exit-<n> when a failed POST names no HTTP status", (t) => {
   const run = runScript(t, {
     args: [PR_URL],
-    responses: [ALICE_TARGET_PAGE, { stdout: "", stderr: "error connecting to api.github.com\n", exitCode: 4 }],
+    responses: [
+      ALICE_TARGET_PAGE,
+      { stdout: "", stderr: "error connecting to api.github.com\n", exitCode: 4 },
+    ],
   });
   assert.deepEqual(run.lines, ["failed alice gh-exit-4"]);
   assert.equal(run.status, 1);
 });
 
 test("CLI passes --hostname for a non-github.com host", (t) => {
-  const enterpriseAlice = changesRequested({ author: user("alice"), reviewId: 100, prUrl: ENTERPRISE_PR_URL });
+  const enterpriseAlice = changesRequested({
+    author: user("alice"),
+    reviewId: 100,
+    prUrl: ENTERPRISE_PR_URL,
+  });
   const run = runScript(t, {
     args: [ENTERPRISE_PR_URL],
     responses: [
-      pageOneResponse({ latestOpinionatedReviews: connection([enterpriseAlice]), reviews: connection([enterpriseAlice]) }),
+      pageOneResponse({
+        latestOpinionatedReviews: connection([enterpriseAlice]),
+        reviews: connection([enterpriseAlice]),
+      }),
       POST_SUCCEEDED,
     ],
   });
@@ -1004,7 +1268,11 @@ test("CLI passes --hostname github.com on the read and the POST, so GH_HOST cann
 
 test("an empty changes request from an author that cannot be re-requested does not block", async (t) => {
   await t.test("the viewer's own empty changes request", () => {
-    const viewerEmpty = changesRequested({ author: user("me"), reviewId: 900, inlineCommentCount: 0 });
+    const viewerEmpty = changesRequested({
+      author: user("me"),
+      reviewId: 900,
+      inlineCommentCount: 0,
+    });
     const result = derive(
       reviewState({
         latestOpinionatedReviews: [viewerEmpty, ALICE_CHANGES_REQUESTED_WITH_THREADS],
@@ -1016,7 +1284,11 @@ test("an empty changes request from an author that cannot be re-requested does n
   });
 
   await t.test("a Bot author's empty changes request", () => {
-    const botEmpty = changesRequested({ author: bot("renovate"), reviewId: 901, inlineCommentCount: 0 });
+    const botEmpty = changesRequested({
+      author: bot("renovate"),
+      reviewId: 901,
+      inlineCommentCount: 0,
+    });
     const result = derive(
       reviewState({
         latestOpinionatedReviews: [botEmpty, ALICE_CHANGES_REQUESTED_WITH_THREADS],
@@ -1029,9 +1301,20 @@ test("an empty changes request from an author that cannot be re-requested does n
 });
 
 test("a non-empty changes-request body is pending until answered", () => {
-  const aliceWithBody = changesRequested({ author: user("alice"), reviewId: 100, body: BODY_SENTINEL, inlineCommentCount: 0 });
-  const result = derive(reviewState({ latestOpinionatedReviews: [aliceWithBody], reviews: [aliceWithBody] }), PULL_REQUEST_412);
-  assert.deepEqual(result, { lines: [`pending ${PR_URL}#pullrequestreview-100`, "not-requested pending-feedback"], logins: [] });
+  const aliceWithBody = changesRequested({
+    author: user("alice"),
+    reviewId: 100,
+    body: BODY_SENTINEL,
+    inlineCommentCount: 0,
+  });
+  const result = derive(
+    reviewState({ latestOpinionatedReviews: [aliceWithBody], reviews: [aliceWithBody] }),
+    PULL_REQUEST_412,
+  );
+  assert.deepEqual(result, {
+    lines: [`pending ${PR_URL}#pullrequestreview-100`, "not-requested pending-feedback"],
+    logins: [],
+  });
 });
 
 test("more than ten pending urls list the empty changes requests after pending-more", () => {
@@ -1098,12 +1381,18 @@ test("an outcome marker counts only as a whole line", async (t) => {
         latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
         reviewThreads: [
-          viewerLastThread({ discussionId: 1001, latestBody: `Fixed. <!-- feedback-outcome: ${PR_URL}#discussion_r1001 -->` }),
+          viewerLastThread({
+            discussionId: 1001,
+            latestBody: `Fixed. <!-- feedback-outcome: ${PR_URL}#discussion_r1001 -->`,
+          }),
         ],
       }),
       PULL_REQUEST_412,
     );
-    assert.deepEqual(result, { lines: [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"], logins: [] });
+    assert.deepEqual(result, {
+      lines: [`pending ${PR_URL}#discussion_r1001`, "not-requested pending-feedback"],
+      logins: [],
+    });
   });
 });
 
@@ -1119,11 +1408,20 @@ test("a marker in a viewer review body does not clear a PR-level item", () => {
     reviewState({
       latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS],
       reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, viewerReview],
-      comments: [conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-12`, body: BODY_SENTINEL })],
+      comments: [
+        conversationComment({
+          author: user("dave"),
+          url: `${PR_URL}#issuecomment-12`,
+          body: BODY_SENTINEL,
+        }),
+      ],
     }),
     PULL_REQUEST_412,
   );
-  assert.deepEqual(result, { lines: [`pending ${PR_URL}#issuecomment-12`, "not-requested pending-feedback"], logins: [] });
+  assert.deepEqual(result, {
+    lines: [`pending ${PR_URL}#issuecomment-12`, "not-requested pending-feedback"],
+    logins: [],
+  });
 });
 
 test("CLI fails the read on a malformed follow-up page", async (t) => {
@@ -1133,7 +1431,10 @@ test("CLI fails the read on a malformed follow-up page", async (t) => {
       responses: [
         pageOneResponse({
           latestOpinionatedReviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-          reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS], { hasNextPage: true, endCursor: null }),
+          reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS], {
+            hasNextPage: true,
+            endCursor: null,
+          }),
         }),
       ],
     });
@@ -1149,9 +1450,16 @@ test("CLI fails the read on a malformed follow-up page", async (t) => {
       responses: [
         pageOneResponse({
           latestOpinionatedReviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
-          reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS], { hasNextPage: true, endCursor: "reviews-cursor-1" }),
+          reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS], {
+            hasNextPage: true,
+            endCursor: "reviews-cursor-1",
+          }),
         }),
-        { stdout: JSON.stringify({ data: null, errors: [{ message: "timeout" }] }), stderr: "", exitCode: 0 },
+        {
+          stdout: JSON.stringify({ data: null, errors: [{ message: "timeout" }] }),
+          stderr: "",
+          exitCode: 0,
+        },
       ],
     });
     assert.deepEqual(run.lines, ["not-requested review-state-read-failed"]);
@@ -1162,7 +1470,11 @@ test("CLI fails the read on a malformed follow-up page", async (t) => {
 });
 
 test("CLI merges follow-up nodes into the pending check", (t) => {
-  const daveComment = conversationComment({ author: user("dave"), url: `${PR_URL}#issuecomment-12`, body: BODY_SENTINEL });
+  const daveComment = conversationComment({
+    author: user("dave"),
+    url: `${PR_URL}#issuecomment-12`,
+    body: BODY_SENTINEL,
+  });
   const run = runScript(t, {
     args: [PR_URL],
     responses: [
@@ -1174,19 +1486,29 @@ test("CLI merges follow-up nodes into the pending check", (t) => {
       followUpPageResponse("comments", connection([daveComment])),
     ],
   });
-  assert.deepEqual(run.lines, [`pending ${PR_URL}#issuecomment-12`, "not-requested pending-feedback"]);
+  assert.deepEqual(run.lines, [
+    `pending ${PR_URL}#issuecomment-12`,
+    "not-requested pending-feedback",
+  ]);
   assert.equal(run.calls.length, 2, "no POST while a follow-up page holds pending feedback");
   assert.equal(run.calls[1].includes("after=comments-cursor-1"), true);
   assert.equal(run.status, 0);
 });
 
 test("CLI passes --hostname on follow-up reads for a non-github.com host", (t) => {
-  const enterpriseAlice = changesRequested({ author: user("alice"), reviewId: 100, prUrl: ENTERPRISE_PR_URL });
+  const enterpriseAlice = changesRequested({
+    author: user("alice"),
+    reviewId: 100,
+    prUrl: ENTERPRISE_PR_URL,
+  });
   const run = runScript(t, {
     args: [ENTERPRISE_PR_URL],
     responses: [
       pageOneResponse({
-        latestOpinionatedReviews: connection([], { hasNextPage: true, endCursor: "opinionated-cursor-1" }),
+        latestOpinionatedReviews: connection([], {
+          hasNextPage: true,
+          endCursor: "opinionated-cursor-1",
+        }),
         reviews: connection([enterpriseAlice]),
       }),
       followUpPageResponse("latestOpinionatedReviews", connection([enterpriseAlice])),

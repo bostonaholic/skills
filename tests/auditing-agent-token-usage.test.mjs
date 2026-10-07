@@ -10,7 +10,9 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 
-const SCRIPT = resolve("skills/engineering/auditing-agent-token-usage/scripts/audit-token-usage.sh");
+const SCRIPT = resolve(
+  "skills/engineering/auditing-agent-token-usage/scripts/audit-token-usage.sh",
+);
 const BASH = spawnSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -79,7 +81,11 @@ test("no session file written in the window prints one line and exits 0", (t) =>
 
 test("an Agent spawn is INHERITED without model:, DEFINITION when its definition pins one", (t) => {
   const home = fakeHome(t);
-  write(home, ".claude/agents/pinned-agent.md", "---\nname: pinned-agent\nmodel: haiku\n---\n\nBody.\n");
+  write(
+    home,
+    ".claude/agents/pinned-agent.md",
+    "---\nname: pinned-agent\nmodel: haiku\n---\n\nBody.\n",
+  );
   write(home, ".claude/agents/loose-agent.md", "---\nname: loose-agent\n---\n\nBody.\n");
   jsonl(home, ".claude/projects/proj/session.jsonl", [
     assistant([toolUse("Agent", { subagent_type: "general-purpose" })]),
@@ -105,7 +111,10 @@ test("MCP calls are counted per server from assistant tool_use entries only", (t
     assistant([toolUse("mcp__github__list_issues")]),
     assistant([toolUse("mcp__my-server__run")]),
     { type: "attachment", tools: [{ name: "mcp__listed_only__tool" }] },
-    { type: "user", message: { content: [{ type: "tool_use", name: "mcp__not_assistant__tool" }] } },
+    {
+      type: "user",
+      message: { content: [{ type: "tool_use", name: "mcp__not_assistant__tool" }] },
+    },
   ]);
   const result = run(home);
   assert.equal(result.status, 0, result.stderr);
@@ -131,7 +140,10 @@ test("only tool results over 10,000 characters count as oversized", (t) => {
   ]);
   const result = run(home);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(section(result.stdout, 4), /^ {2}1 results over 10,000 chars: 0\.0 MB total, largest 10001 chars$/m);
+  assert.match(
+    section(result.stdout, 4),
+    /^ {2}1 results over 10,000 chars: 0\.0 MB total, largest 10001 chars$/m,
+  );
 });
 
 test("Codex totals sum per-response usage records and report the re-read share", (t) => {
@@ -142,7 +154,13 @@ test("Codex totals sum per-response usage records and report the re-read share",
     {
       type: "token_usage_record",
       payload: {
-        usage: { input_tokens: 1e6, cached_input_tokens: 6e5, cache_write_input_tokens: 1e5, output_tokens: 2e5, reasoning_output_tokens: 5e4 },
+        usage: {
+          input_tokens: 1e6,
+          cached_input_tokens: 6e5,
+          cache_write_input_tokens: 1e5,
+          output_tokens: 2e5,
+          reasoning_output_tokens: 5e4,
+        },
         turn_token_usage: running,
         thread_token_usage: running,
       },
@@ -150,7 +168,15 @@ test("Codex totals sum per-response usage records and report the re-read share",
     { type: "turn_context", payload: { model: "codex-model", effort: "high" } },
     {
       type: "token_usage_record",
-      payload: { usage: { input_tokens: 1e6, cached_input_tokens: 3e5, cache_write_input_tokens: 0, output_tokens: 3e5, reasoning_output_tokens: 5e4 } },
+      payload: {
+        usage: {
+          input_tokens: 1e6,
+          cached_input_tokens: 3e5,
+          cache_write_input_tokens: 0,
+          output_tokens: 3e5,
+          reasoning_output_tokens: 5e4,
+        },
+      },
     },
     { type: "compacted" },
   ]);
@@ -160,6 +186,9 @@ test("Codex totals sum per-response usage records and report the re-read share",
   const codex = section(result.stdout, 6);
   assert.match(codex, /^\s+2\s+codex-model\s+high$/m);
   assert.match(codex, /^ {2}input 2\.0M {2}output 0\.50M \(reasoning 0\.10M\) {2}total 2\.5M$/m);
-  assert.match(codex, /^ {2}context re-read: 0\.9M cached \+ 0\.1M cache-write = 40% of all tokens$/m);
+  assert.match(
+    codex,
+    /^ {2}context re-read: 0\.9M cached \+ 0\.1M cache-write = 40% of all tokens$/m,
+  );
   assert.match(codex, /^ {2}compactions: 1$/m);
 });

@@ -33,7 +33,9 @@ const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 
 function lsFiles(...pathspecs) {
-  return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" }).split("\0").filter(Boolean);
+  return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
 }
 
 function lineCount(text) {
@@ -42,31 +44,48 @@ function lineCount(text) {
 
 function checkName(name, report) {
   if (!name) return report("A1", "no name");
-  if (name.length > NAME_MAX) report("A1", `name is ${name.length} characters; the limit is ${NAME_MAX}`);
-  if (!NAME_FORMAT.test(name)) report("A1", `name "${name}" must be lowercase letters, digits, and single hyphens`);
-  if (RESERVED_WORDS.test(name)) report("A1", `name "${name}" contains a reserved word (anthropic, claude)`);
-  if (!GERUND.test(name)) report("A2", `name "${name}" must start with a gerund (verb + -ing), as in "reviewing-code"`);
+  if (name.length > NAME_MAX)
+    report("A1", `name is ${name.length} characters; the limit is ${NAME_MAX}`);
+  if (!NAME_FORMAT.test(name))
+    report("A1", `name "${name}" must be lowercase letters, digits, and single hyphens`);
+  if (RESERVED_WORDS.test(name))
+    report("A1", `name "${name}" contains a reserved word (anthropic, claude)`);
+  if (!GERUND.test(name))
+    report("A2", `name "${name}" must start with a gerund (verb + -ing), as in "reviewing-code"`);
 }
 
 function checkDescription(description, report) {
   if (!description) return report("A3", "no description");
-  if (description.length > DESCRIPTION_MAX) report("A3", `description is ${description.length} characters; the limit is ${DESCRIPTION_MAX}`);
+  if (description.length > DESCRIPTION_MAX)
+    report(
+      "A3",
+      `description is ${description.length} characters; the limit is ${DESCRIPTION_MAX}`,
+    );
   if (XML_TAG.test(description)) report("A3", "description contains an XML tag");
   const firstWord = description.split(/\s/)[0];
   if (!THIRD_PERSON_VERB.test(firstWord) || NOT_A_VERB.has(firstWord)) {
-    report("A4", `description must open with a third-person verb, as in "Reviews ..."; it opens with "${firstWord}"`);
+    report(
+      "A4",
+      `description must open with a third-person verb, as in "Reviews ..."; it opens with "${firstWord}"`,
+    );
   }
-  if (FIRST_OR_SECOND_PERSON.test(description)) report("A4", "description must be third person; it addresses I or you");
-  if (!USE_WHEN.test(description)) report("A5", 'description must say when to use the skill with a "Use when ..." clause');
+  if (FIRST_OR_SECOND_PERSON.test(description))
+    report("A4", "description must be third person; it addresses I or you");
+  if (!USE_WHEN.test(description))
+    report("A5", 'description must say when to use the skill with a "Use when ..." clause');
 }
 
 function checkLinks(dir, skillText, files, report) {
   const linked = new Set();
-  for (const { target } of references(skillText, { spans: false })) linked.add(target.split("#")[0].replace(/^\.\//, ""));
+  for (const { target } of references(skillText, { spans: false }))
+    linked.add(target.split("#")[0].replace(/^\.\//, ""));
   for (const path of files) {
     const relative = path.slice(dir.length + 1);
     if (BUNDLED_MARKDOWN.test(relative) && !linked.has(relative)) {
-      report("C3", `${relative} is not linked from SKILL.md; link it as [..](${relative}) with when to read it`);
+      report(
+        "C3",
+        `${relative} is not linked from SKILL.md; link it as [..](${relative}) with when to read it`,
+      );
     }
   }
 }
@@ -74,10 +93,15 @@ function checkLinks(dir, skillText, files, report) {
 function checkFile(path, text, report) {
   if (!path.endsWith("/SKILL.md") && lineCount(text) > TOC_MIN_LINES) {
     const firstSection = text.match(/^## (.*)$/m)?.[1].trim();
-    if (firstSection !== "Contents") report("C4", `${lineCount(text)} lines; open with a "## Contents" section listing the sections`);
+    if (firstSection !== "Contents")
+      report(
+        "C4",
+        `${lineCount(text)} lines; open with a "## Contents" section listing the sections`,
+      );
   }
   for (const { line, target } of references(text, { spans: true })) {
-    if (target.includes("\\") && /\.[a-z]+$/i.test(target)) report("C5", `line ${line}: use forward slashes in "${target}"`);
+    if (target.includes("\\") && /\.[a-z]+$/i.test(target))
+      report("C5", `line ${line}: use forward slashes in "${target}"`);
   }
 }
 
@@ -101,9 +125,14 @@ export function lintSkills() {
     checkName(scalar(frontmatter[1], "name"), report);
     checkDescription(scalar(frontmatter[1], "description"), report);
     const bodyLines = lineCount(skillText.slice(frontmatter[0].length));
-    if (bodyLines >= BODY_MAX_LINES) report("C1", `body is ${bodyLines} lines; keep it under ${BODY_MAX_LINES} by moving detail into references/`);
+    if (bodyLines >= BODY_MAX_LINES)
+      report(
+        "C1",
+        `body is ${bodyLines} lines; keep it under ${BODY_MAX_LINES} by moving detail into references/`,
+      );
     checkLinks(dir, skillText, files, report);
-    for (const path of files) checkFile(path, path === skillPath ? skillText : readFileSync(path, "utf8"), reportFor(path));
+    for (const path of files)
+      checkFile(path, path === skillPath ? skillText : readFileSync(path, "utf8"), reportFor(path));
   }
   return problems;
 }
@@ -116,7 +145,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   }
   const problems = lintSkills();
   if (problems.length) {
-    console.error(`${problems.join("\n")}\n${problems.length} problem(s). See docs/skill-authoring.md.`);
+    console.error(
+      `${problems.join("\n")}\n${problems.length} problem(s). See docs/skill-authoring.md.`,
+    );
     process.exit(1);
   }
 }

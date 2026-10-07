@@ -53,7 +53,18 @@ export const DEFAULT_CONTEXT = {
 
 const NAME = /^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const LIST_KEYS = new Set(["origin", "defaults", "shots"]);
-const SHOT_KEYS = new Set(["name", "path", "actions", "waitFor", "target", "fullPage", "mask", "hide", "expectStatus", ...Object.keys(DEFAULT_CONTEXT)]);
+const SHOT_KEYS = new Set([
+  "name",
+  "path",
+  "actions",
+  "waitFor",
+  "target",
+  "fullPage",
+  "mask",
+  "hide",
+  "expectStatus",
+  ...Object.keys(DEFAULT_CONTEXT),
+]);
 const LOCATOR_ACTIONS = ["click", "hover", "check", "scroll", "fill"];
 
 export class InputError extends Error {}
@@ -70,8 +81,14 @@ function checkLocator(spec, where) {
   if (typeof spec === "string" && spec.trim()) return;
   if (isObject(spec)) {
     const keys = Object.keys(spec);
-    const single = keys.length === 1 && ["text", "label", "testId"].includes(keys[0]) && typeof spec[keys[0]] === "string";
-    const role = typeof spec.role === "string" && keys.every((key) => key === "role" || key === "name") && (spec.name === undefined || typeof spec.name === "string");
+    const single =
+      keys.length === 1 &&
+      ["text", "label", "testId"].includes(keys[0]) &&
+      typeof spec[keys[0]] === "string";
+    const role =
+      typeof spec.role === "string" &&
+      keys.every((key) => key === "role" || key === "name") &&
+      (spec.name === undefined || typeof spec.name === "string");
     if (single || role) return;
   }
   fail(where, "a locator is a selector string or one of {role[, name]}, {text}, {label}, {testId}");
@@ -80,21 +97,29 @@ function checkLocator(spec, where) {
 function checkContext(context, where) {
   const { viewport, deviceScaleFactor, colorScheme, locale, timezoneId } = context;
   const dimension = (value) => Number.isInteger(value) && value > 0 && value <= MAX_VIEWPORT_PX;
-  if (!isObject(viewport) || !dimension(viewport.width) || !dimension(viewport.height)) fail(where, `viewport needs integer width and height in 1-${MAX_VIEWPORT_PX}`);
-  if (typeof deviceScaleFactor !== "number" || deviceScaleFactor < MIN_SCALE_FACTOR || deviceScaleFactor > MAX_SCALE_FACTOR) {
+  if (!isObject(viewport) || !dimension(viewport.width) || !dimension(viewport.height))
+    fail(where, `viewport needs integer width and height in 1-${MAX_VIEWPORT_PX}`);
+  if (
+    typeof deviceScaleFactor !== "number" ||
+    deviceScaleFactor < MIN_SCALE_FACTOR ||
+    deviceScaleFactor > MAX_SCALE_FACTOR
+  ) {
     fail(where, `deviceScaleFactor must be a number in ${MIN_SCALE_FACTOR}-${MAX_SCALE_FACTOR}`);
   }
   if (!["light", "dark"].includes(colorScheme)) fail(where, "colorScheme must be light or dark");
   if (typeof locale !== "string" || !locale) fail(where, "locale must be a non-empty string");
-  if (typeof timezoneId !== "string" || !timezoneId) fail(where, "timezoneId must be a non-empty string");
+  if (typeof timezoneId !== "string" || !timezoneId)
+    fail(where, "timezoneId must be a non-empty string");
 }
 
 function checkAction(action, where) {
   if (!isObject(action)) fail(where, "an action is an object");
   const [kind, ...extra] = Object.keys(action).filter((key) => key !== "value");
-  if (extra.length || !kind) fail(where, "an action names exactly one of click, hover, check, scroll, fill, press");
+  if (extra.length || !kind)
+    fail(where, "an action names exactly one of click, hover, check, scroll, fill, press");
   if (kind === "press") {
-    if (typeof action.press !== "string" || !action.press || "value" in action) fail(where, "press takes one key name, such as Enter");
+    if (typeof action.press !== "string" || !action.press || "value" in action)
+      fail(where, "press takes one key name, such as Enter");
     return;
   }
   if (!LOCATOR_ACTIONS.includes(kind)) fail(where, `unknown action ${JSON.stringify(kind)}`);
@@ -129,7 +154,8 @@ export function planFrames(list, outDir) {
   const { origin, defaults = {}, shots } = list;
   checkOrigin(origin, "origin");
   if (!isObject(defaults)) fail("defaults", "must be an object");
-  for (const key of Object.keys(defaults)) if (!(key in DEFAULT_CONTEXT)) fail(`defaults.${key}`, "unknown setting");
+  for (const key of Object.keys(defaults))
+    if (!(key in DEFAULT_CONTEXT)) fail(`defaults.${key}`, "unknown setting");
   if (!Array.isArray(shots) || !shots.length) fail("shots", "must be a non-empty array");
 
   const frames = [];
@@ -137,8 +163,10 @@ export function planFrames(list, outDir) {
   shots.forEach((shot, index) => {
     const where = `shots[${index}]`;
     if (!isObject(shot)) fail(where, "must be an object");
-    for (const key of Object.keys(shot)) if (!SHOT_KEYS.has(key)) fail(`${where}.${key}`, "unknown field");
-    if (typeof shot.name !== "string" || !NAME.test(shot.name)) fail(`${where}.name`, "must match NN-lowercase-words, such as 01-settings-empty");
+    for (const key of Object.keys(shot))
+      if (!SHOT_KEYS.has(key)) fail(`${where}.${key}`, "unknown field");
+    if (typeof shot.name !== "string" || !NAME.test(shot.name))
+      fail(`${where}.name`, "must match NN-lowercase-words, such as 01-settings-empty");
     if (names.has(shot.name)) fail(`${where}.name`, "duplicate name");
     names.add(shot.name);
 
@@ -149,16 +177,21 @@ export function planFrames(list, outDir) {
     const actions = shot.actions ?? [];
     if (!Array.isArray(actions)) fail(`${where}.actions`, "must be an array");
     actions.forEach((action, at) => checkAction(action, `${where}.actions[${at}]`));
-    for (const key of ["waitFor", "target"]) if (key in shot) checkLocator(shot[key], `${where}.${key}`);
+    for (const key of ["waitFor", "target"])
+      if (key in shot) checkLocator(shot[key], `${where}.${key}`);
     for (const key of ["mask", "hide"]) {
       if (!(key in shot)) continue;
       if (!Array.isArray(shot[key])) fail(`${where}.${key}`, "must be an array of locators");
       shot[key].forEach((spec, at) => checkLocator(spec, `${where}.${key}[${at}]`));
     }
-    if ("expectStatus" in shot && !(Number.isInteger(shot.expectStatus) && shot.expectStatus >= 100 && shot.expectStatus <= 599)) {
+    if (
+      "expectStatus" in shot &&
+      !(Number.isInteger(shot.expectStatus) && shot.expectStatus >= 100 && shot.expectStatus <= 599)
+    ) {
       fail(`${where}.expectStatus`, "must be an HTTP status code");
     }
-    if ("fullPage" in shot && typeof shot.fullPage !== "boolean") fail(`${where}.fullPage`, "must be true or false");
+    if ("fullPage" in shot && typeof shot.fullPage !== "boolean")
+      fail(`${where}.fullPage`, "must be true or false");
     if (shot.fullPage && "target" in shot) fail(where, "fullPage and target are exclusive");
 
     frames.push({
@@ -194,18 +227,26 @@ async function launch(chromium) {
     try {
       return { browser: await chromium.launch({ channel: "chrome" }), channel: "chrome" };
     } catch (chrome) {
-      throw new Error(`no browser: bundled chromium: ${firstLine(bundled)}; chrome: ${firstLine(chrome)}`);
+      throw new Error(
+        `no browser: bundled chromium: ${firstLine(bundled)}; chrome: ${firstLine(chrome)}`,
+      );
     }
   }
 }
 
 function firstLine(error) {
-  return String(error?.message ?? error).split("\n")[0].slice(0, MESSAGE_LENGTH);
+  return String(error?.message ?? error)
+    .split("\n")[0]
+    .slice(0, MESSAGE_LENGTH);
 }
 
 function locate(page, spec) {
   if (typeof spec === "string") return page.locator(spec);
-  if ("role" in spec) return page.getByRole(spec.role, spec.name === undefined ? {} : { name: spec.name, exact: true });
+  if ("role" in spec)
+    return page.getByRole(
+      spec.role,
+      spec.name === undefined ? {} : { name: spec.name, exact: true },
+    );
   if ("text" in spec) return page.getByText(spec.text, { exact: true });
   if ("label" in spec) return page.getByLabel(spec.label, { exact: true });
   return page.getByTestId(spec.testId);
@@ -264,7 +305,8 @@ async function clipTo(page, spec, viewport) {
 
 /** Records one page message under `result[kind]`, or counts it in `result.omitted[kind]` once MESSAGE_LIMIT are kept. */
 export function note(result, kind, text) {
-  if (result[kind].length < MESSAGE_LIMIT) result[kind].push(String(text).split("\n")[0].slice(0, MESSAGE_LENGTH));
+  if (result[kind].length < MESSAGE_LIMIT)
+    result[kind].push(String(text).split("\n")[0].slice(0, MESSAGE_LENGTH));
   else result.omitted[kind] += 1;
 }
 
@@ -287,10 +329,20 @@ async function capture(browser, frame) {
   try {
     const page = await context.newPage();
     page.setDefaultTimeout(SHOT_TIMEOUT_MS);
-    page.on("console", (message) => message.type() === "error" && note(result, "consoleErrors", message.text()));
+    page.on(
+      "console",
+      (message) => message.type() === "error" && note(result, "consoleErrors", message.text()),
+    );
     page.on("pageerror", (error) => note(result, "pageErrors", error.message));
-    page.on("requestfailed", (request) => note(result, "failedRequests", `failed ${request.url()}`));
-    page.on("response", (response) => response.status() >= 400 && note(result, "failedRequests", `${response.status()} ${response.url()}`));
+    page.on("requestfailed", (request) =>
+      note(result, "failedRequests", `failed ${request.url()}`),
+    );
+    page.on(
+      "response",
+      (response) =>
+        response.status() >= 400 &&
+        note(result, "failedRequests", `${response.status()} ${response.url()}`),
+    );
 
     const response = await page.goto(frame.url, { waitUntil: "load", timeout: SHOT_TIMEOUT_MS });
     result.status = response?.status() ?? null;
@@ -307,8 +359,16 @@ async function capture(browser, frame) {
     }
     if (shot.waitFor) await locate(page, shot.waitFor).first().waitFor({ state: "visible" });
     if (shot.hide?.length) {
-      const hidden = await Promise.all(shot.hide.map((spec) => locate(page, spec).elementHandles()));
-      await page.evaluate((elements) => elements.forEach((element) => element.style.setProperty("visibility", "hidden", "important")), hidden.flat());
+      const hidden = await Promise.all(
+        shot.hide.map((spec) => locate(page, spec).elementHandles()),
+      );
+      await page.evaluate(
+        (elements) =>
+          elements.forEach((element) =>
+            element.style.setProperty("visibility", "hidden", "important"),
+          ),
+        hidden.flat(),
+      );
     }
 
     const clip = shot.target ? await clipTo(page, shot.target, settings.viewport) : undefined;
@@ -323,7 +383,12 @@ async function capture(browser, frame) {
     });
 
     const check = inspect(buffer);
-    Object.assign(result, { width: check.width, height: check.height, bytes: check.bytes, sparse: check.sparse });
+    Object.assign(result, {
+      width: check.width,
+      height: check.height,
+      bytes: check.bytes,
+      sparse: check.sparse,
+    });
     if (check.failures.length) {
       result.reason = check.failures.join("; ");
       return result;
@@ -357,13 +422,17 @@ async function main(argv) {
   try {
     mkdirSync(resolve(outDir), { recursive: true });
   } catch (error) {
-    process.stderr.write(`shoot.mjs: cannot create output directory ${resolve(outDir)}: ${firstLine(error)}\n`);
+    process.stderr.write(
+      `shoot.mjs: cannot create output directory ${resolve(outDir)}: ${firstLine(error)}\n`,
+    );
     return 2;
   }
 
   const loaded = loadPlaywright();
   if (!loaded) {
-    process.stderr.write("shoot.mjs: no playwright package in $PAPARAZZI_TOOLS or the working directory\n");
+    process.stderr.write(
+      "shoot.mjs: no playwright package in $PAPARAZZI_TOOLS or the working directory\n",
+    );
     return 3;
   }
   let launched;

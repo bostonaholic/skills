@@ -126,14 +126,16 @@ const EXIT_FAILURE = 1;
 const EXIT_USAGE = 2;
 
 const CONNECTION_SELECTIONS = {
-  latestOpinionatedReviews: "nodes { state url body comments { totalCount } author { __typename login } }",
+  latestOpinionatedReviews:
+    "nodes { state url body comments { totalCount } author { __typename login } }",
   reviewRequests: "nodes { requestedReviewer { __typename ... on User { login } } }",
   reviewThreads: `nodes {
     isResolved
     firstComment: comments(first: 1) { nodes { url } }
     latestComment: comments(last: 1) { nodes { author { login } body } }
   }`,
-  reviews: "nodes { state submittedAt url body comments { totalCount } author { __typename login } }",
+  reviews:
+    "nodes { state submittedAt url body comments { totalCount } author { __typename login } }",
   comments: "nodes { url body author { __typename login } }",
 };
 const CONNECTION_NAMES = Object.keys(CONNECTION_SELECTIONS);
@@ -184,7 +186,10 @@ export function deriveReRequest(reviewState, pullRequest) {
 
   const pendingLines = describePending(reviewState, pullRequest, targets.writeSet);
   if (pendingLines.length > 0) {
-    return { lines: [...targets.lines, ...pendingLines, "not-requested pending-feedback"], logins: [] };
+    return {
+      lines: [...targets.lines, ...pendingLines, "not-requested pending-feedback"],
+      logins: [],
+    };
   }
 
   return { lines: targets.lines, logins: targets.writeSet.map((target) => target.login).sort() };
@@ -193,7 +198,9 @@ export function deriveReRequest(reviewState, pullRequest) {
 function checkTargets({ viewerLogin, latestOpinionatedReviews, reviewRequests }) {
   const requestedLogins = new Set(
     reviewRequests
-      .map(({ requestedReviewer }) => (requestedReviewer?.__typename === "User" ? requestedReviewer.login : null))
+      .map(({ requestedReviewer }) =>
+        requestedReviewer?.__typename === "User" ? requestedReviewer.login : null,
+      )
       .filter((login) => typeof login === "string"),
   );
   const lines = [];
@@ -221,7 +228,9 @@ function checkTargets({ viewerLogin, latestOpinionatedReviews, reviewRequests })
 function describePending(reviewState, pullRequest, writeSet) {
   const itemUrlPattern = pullRequestItemUrlPattern(pullRequest);
   const urlLines = pendingItemUrls(reviewState).map((url) =>
-    typeof url === "string" && itemUrlPattern.test(url) ? `pending ${url}` : "pending url-unavailable",
+    typeof url === "string" && itemUrlPattern.test(url)
+      ? `pending ${url}`
+      : "pending url-unavailable",
   );
   const cappedUrlLines = urlLines.slice(0, MAX_PENDING_URL_LINES);
   if (urlLines.length > MAX_PENDING_URL_LINES) {
@@ -246,7 +255,10 @@ function pendingItemUrls({ viewerLogin, reviewThreads, reviews, comments }) {
   );
   const isUnmarked = (item) => !markedPullRequestItemUrls.has(item.url);
   const reviewUrls = reviews
-    .filter((review) => review.state !== "PENDING" && !isEmptyBody(review.body) && isOtherUser(review.author))
+    .filter(
+      (review) =>
+        review.state !== "PENDING" && !isEmptyBody(review.body) && isOtherUser(review.author),
+    )
     .filter(isUnmarked)
     .map((review) => review.url);
   const commentUrls = comments
@@ -259,7 +271,8 @@ function pendingItemUrls({ viewerLogin, reviewThreads, reviews, comments }) {
 function isThreadMarked(thread, viewerLogin) {
   const latestComment = thread.latestComment?.nodes?.[0];
   const firstCommentUrl = thread.firstComment?.nodes?.[0]?.url;
-  if (latestComment?.author?.login !== viewerLogin || typeof firstCommentUrl !== "string") return false;
+  if (latestComment?.author?.login !== viewerLogin || typeof firstCommentUrl !== "string")
+    return false;
   return outcomeMarkerUrls(latestComment.body).includes(firstCommentUrl);
 }
 
@@ -299,7 +312,8 @@ function parsePullRequestUrl(url) {
 const readFailure = (reason) => ({ failure: "review-state-read-failed", reason });
 
 function ghFailure({ error, exitCode, stderr }) {
-  if (error.code === "ENOENT") return { failure: "gh-unavailable", reason: `cannot run gh: ${error.message}` };
+  if (error.code === "ENOENT")
+    return { failure: "gh-unavailable", reason: `cannot run gh: ${error.message}` };
   if (error.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
     return readFailure(`gh output exceeded ${GH_OUTPUT_LIMIT_BYTES} bytes`);
   }
@@ -308,7 +322,9 @@ function ghFailure({ error, exitCode, stderr }) {
 }
 
 function graphqlMessages(errors) {
-  const messages = Array.isArray(errors) ? errors.map((error) => error?.message).filter((m) => typeof m === "string") : [];
+  const messages = Array.isArray(errors)
+    ? errors.map((error) => error?.message).filter((m) => typeof m === "string")
+    : [];
   return messages.length > 0 ? messages.join("; ") : "no message";
 }
 
@@ -337,10 +353,16 @@ async function readConnection(pullRequest, name, firstPage) {
     nodes.push(...page.nodes);
     if (!page.pageInfo.hasNextPage) return { nodes };
     if (pagesRead === MAX_PAGES_PER_CONNECTION) {
-      return { failure: "review-state-incomplete", reason: `${name} has more than ${MAX_PAGES_PER_CONNECTION} pages` };
+      return {
+        failure: "review-state-incomplete",
+        reason: `${name} has more than ${MAX_PAGES_PER_CONNECTION} pages`,
+      };
     }
 
-    const next = await readPage(pullRequest, FOLLOW_UP_QUERIES[name], ["-f", `after=${page.pageInfo.endCursor}`]);
+    const next = await readPage(pullRequest, FOLLOW_UP_QUERIES[name], [
+      "-f",
+      `after=${page.pageInfo.endCursor}`,
+    ]);
     if (next.failure) return next;
     page = next.response.data?.repository?.pullRequest?.[name];
   }
@@ -371,7 +393,8 @@ async function readPage(pullRequest, query, extraArgs) {
     return readFailure("gh printed output that is not JSON");
   }
   if (!isObject(response)) return readFailure("gh printed JSON that is not an object");
-  if ("errors" in response) return readFailure(`GraphQL errors: ${graphqlMessages(response.errors)}`);
+  if ("errors" in response)
+    return readFailure(`GraphQL errors: ${graphqlMessages(response.errors)}`);
   return { response };
 }
 
@@ -380,7 +403,8 @@ function isObject(value) {
 }
 
 function isConnectionPage(value) {
-  if (!Array.isArray(value?.nodes) || typeof value?.pageInfo?.hasNextPage !== "boolean") return false;
+  if (!Array.isArray(value?.nodes) || typeof value?.pageInfo?.hasNextPage !== "boolean")
+    return false;
   return !value.pageInfo.hasNextPage || typeof value.pageInfo.endCursor === "string";
 }
 

@@ -28,7 +28,9 @@ export function buildGitArgs({ pathspecs, exclude }) {
   return {
     topLevel: gitArgv("rev-parse", "--show-toplevel"),
     head: gitArgv("rev-parse", "--verify", "HEAD"),
-    lsFiles: pathspecs.map((pathspec) => gitArgv("ls-files", "-z", "--stage", "--", `:(literal)${pathspec}`, ...exclusions)),
+    lsFiles: pathspecs.map((pathspec) =>
+      gitArgv("ls-files", "-z", "--stage", "--", `:(literal)${pathspec}`, ...exclusions),
+    ),
     // autoRefreshIndex keeps a file whose stat changed but whose content did not out of the dirty list.
     diff: gitArgv(
       "-c",
@@ -72,7 +74,9 @@ export function classifyStatus(topLevel, key, mode) {
     if (!realpathSync(path).startsWith(realpathSync(topLevel) + sep)) return notMeasured("symlink");
     bytes = readFileSync(path);
   } catch (error) {
-    return notMeasured(error.code === "ENOENT" || error.code === "ENOTDIR" ? "missing" : "unreadable");
+    return notMeasured(
+      error.code === "ENOENT" || error.code === "ENOTDIR" ? "missing" : "unreadable",
+    );
   }
   if (bytes.subarray(0, BINARY_PROBE_BYTES).includes(0)) return notMeasured("binary");
   return { status: "text", lines: countLines(bytes) };
@@ -97,7 +101,8 @@ async function git(args, cwd) {
   }
   const { code, error } = await closed;
   if (error) throw new AuditError(`cannot run git: ${error.message}`);
-  if (code !== 0) throw new AuditError(`git ${args.join(" ")} failed: ${stderr.trim() || `exit code ${code}`}`);
+  if (code !== 0)
+    throw new AuditError(`git ${args.join(" ")} failed: ${stderr.trim() || `exit code ${code}`}`);
   return stdout;
 }
 
@@ -122,19 +127,30 @@ function readScope(input) {
     throw new AuditError(`${input} is not an auditing-complexity version 1 report`);
   }
   const { pathspecs, exclude } = report.scope ?? {};
-  if (!Array.isArray(pathspecs) || pathspecs.length === 0 || !pathspecs.every((p) => typeof p === "string" && p !== "")) {
+  if (
+    !Array.isArray(pathspecs) ||
+    pathspecs.length === 0 ||
+    !pathspecs.every((p) => typeof p === "string" && p !== "")
+  ) {
     throw new AuditError(`${input}: scope.pathspecs must be a non-empty list of paths`);
   }
-  if (!Array.isArray(exclude) || !exclude.every((e) => typeof e?.path === "string" && e.path !== "")) {
+  if (
+    !Array.isArray(exclude) ||
+    !exclude.every((e) => typeof e?.path === "string" && e.path !== "")
+  ) {
     throw new AuditError(`${input}: scope.exclude must be a list of { path, reason } records`);
   }
   const { coverage } = report.scope;
   if (coverage !== undefined) {
     if (typeof coverage !== "string" || coverage === "") {
-      throw new AuditError(`${input}: scope.coverage must be a non-empty path, not ${JSON.stringify(coverage)}`);
+      throw new AuditError(
+        `${input}: scope.coverage must be a non-empty path, not ${JSON.stringify(coverage)}`,
+      );
     }
     if (coverage.startsWith("/") || coverage.split("/").includes("..")) {
-      throw new AuditError(`${input}: scope.coverage ${coverage} must be top-level-relative, with no leading / and no .. segment`);
+      throw new AuditError(
+        `${input}: scope.coverage ${coverage} must be top-level-relative, with no leading / and no .. segment`,
+      );
     }
   }
   return { pathspecs, exclude: exclude.map((e) => e.path), coverage };
@@ -163,7 +179,8 @@ async function collectInventory(scope) {
   const modes = new Map();
   for (const [i, lsFiles] of args.lsFiles.entries()) {
     const matched = parseLsFiles(await git(lsFiles, topLevel));
-    if (matched.size === 0) throw new AuditError(`no tracked file under ${topLevel} matches ${scope.pathspecs[i]}`);
+    if (matched.size === 0)
+      throw new AuditError(`no tracked file under ${topLevel} matches ${scope.pathspecs[i]}`);
     for (const [path, mode] of matched) modes.set(path, mode);
   }
   const inventory = [...modes.keys()].sort();
@@ -175,7 +192,9 @@ async function collectInventory(scope) {
     exclude: scope.exclude,
     ...(scope.coverage === undefined ? {} : { coverage: scope.coverage }),
     dirty: listDirty(await git(args.diff, topLevel), inventory),
-    files: Object.fromEntries(inventory.map((path) => [path, classifyStatus(topLevel, path, modes.get(path))])),
+    files: Object.fromEntries(
+      inventory.map((path) => [path, classifyStatus(topLevel, path, modes.get(path))]),
+    ),
   };
 }
 
@@ -187,7 +206,8 @@ function refuseSymlink(target) {
     if (error.code === "ENOENT") return;
     throw new AuditError(`cannot check ${target}: ${error.message}`);
   }
-  if (stats.isSymbolicLink()) throw new AuditError(`${target} is a symlink, and the script never writes through one`);
+  if (stats.isSymbolicLink())
+    throw new AuditError(`${target} is a symlink, and the script never writes through one`);
 }
 
 async function main(args) {

@@ -109,9 +109,7 @@ export function hasPluginMarker(repoRoot) {
  */
 export function preferredEditRoot(query) {
   const repoRoot = query?.repoRoot ?? "";
-  return query?.hasPluginMarker
-    ? join(repoRoot, "skills")
-    : join(repoRoot, ".claude", "skills");
+  return query?.hasPluginMarker ? join(repoRoot, "skills") : join(repoRoot, ".claude", "skills");
 }
 
 /**
@@ -131,9 +129,10 @@ export function resolveEditTarget(query) {
         .map((entry) => entry.name)
         .sort()
     : [];
-  const matches = [flat, ...categories.map((category) => join(editRoot, category, name, "SKILL.md"))].filter(
-    (candidate) => existsSync(candidate),
-  );
+  const matches = [
+    flat,
+    ...categories.map((category) => join(editRoot, category, name, "SKILL.md")),
+  ].filter((candidate) => existsSync(candidate));
   if (matches.length > 1) return { status: "ambiguous", matches };
   if (matches.length === 1) return { status: "found", target: matches[0] };
   return { status: "missing", target: flat };
@@ -162,7 +161,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const name = process.argv[3] ?? "";
 
   if (!repoRoot || !name || (name === "--path" && !process.argv[4])) {
-    process.stderr.write("usage: write-target.mjs <repo-root> <skill-name | --path <repo-relative-path>>\n");
+    process.stderr.write(
+      "usage: write-target.mjs <repo-root> <skill-name | --path <repo-relative-path>>\n",
+    );
     process.exit(1);
   }
 
@@ -190,7 +191,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const editRoot = preferredEditRoot({ repoRoot, hasPluginMarker: hasPluginMarker(repoRoot) });
   const resolved = resolveEditTarget({ editRoot, name });
   if (resolved.status === "ambiguous") {
-    process.stderr.write(`refusing: '${name}' names more than one skill: ${resolved.matches.join(", ")}\n`);
+    process.stderr.write(
+      `refusing: '${name}' names more than one skill: ${resolved.matches.join(", ")}\n`,
+    );
     process.exit(1);
   }
   const editTarget = resolved.target;

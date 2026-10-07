@@ -6,7 +6,14 @@
 // through a symlinked docs/) exits 1 before anything is written.
 //   node scripts/build-site.mjs <out>
 // Acts on the git repository at the working directory.
-import { copyFileSync, existsSync, lstatSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -25,11 +32,12 @@ const TITLE = "bostonaholic/skills";
 const STATIC_FILES = ["style.css", "copy-code.js", "CNAME"];
 
 export function escapeHtml(text) {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-}
-
-function inlineHtml(text) {
-  return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function page(title, stylesheet, body) {
@@ -62,7 +70,9 @@ function installHtml() {
 function sectionHtml(skill) {
   const id = escapeHtml(skill.name);
   const usage = [`/${skill.name}`, skill.argumentHint].filter(Boolean).join(" ");
-  const calls = skill.calls.map((name) => `<a href="#${escapeHtml(name)}"><code>${escapeHtml(name)}</code></a>`);
+  const calls = skill.calls.map(
+    (name) => `<a href="#${escapeHtml(name)}"><code>${escapeHtml(name)}</code></a>`,
+  );
   return [
     `<section id="${id}">`,
     `  <h4><a href="#${id}">${escapeHtml(skill.displayName)}</a> <code>${id}</code></h4>`,
@@ -118,13 +128,21 @@ export function render404() {
 }
 
 function build(out) {
-  const missing = STATIC_FILES.map((file) => join("docs", file)).filter((path) => !existsSync(path));
+  const missing = STATIC_FILES.map((file) => join("docs", file)).filter(
+    (path) => !existsSync(path),
+  );
   if (missing.length) throw new CatalogError(`missing ${missing.join(", ")}`);
-  const linked = STATIC_FILES.map((file) => join("docs", file)).filter((path) => lstatSync(path).isSymbolicLink());
-  if (linked.length) throw new CatalogError(`${linked.join(", ")}: is a symlink; refusing to copy it`);
+  const linked = STATIC_FILES.map((file) => join("docs", file)).filter((path) =>
+    lstatSync(path).isSymbolicLink(),
+  );
+  if (linked.length)
+    throw new CatalogError(`${linked.join(", ")}: is a symlink; refusing to copy it`);
   const root = realpathSync(".");
-  const outside = STATIC_FILES.map((file) => join("docs", file)).filter((path) => realpathSync(path) !== join(root, path));
-  if (outside.length) throw new CatalogError(`${outside.join(", ")}: resolves outside ${root}; refusing to copy it`);
+  const outside = STATIC_FILES.map((file) => join("docs", file)).filter(
+    (path) => realpathSync(path) !== join(root, path),
+  );
+  if (outside.length)
+    throw new CatalogError(`${outside.join(", ")}: resolves outside ${root}; refusing to copy it`);
   const catalog = loadCatalog();
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "index.html"), renderIndex(catalog));

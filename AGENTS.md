@@ -22,27 +22,27 @@ A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` 
 
 ## Repository map
 
-| Area | Location | Purpose |
-| --- | --- | --- |
-| Active skills | `skills/engineering/`, `skills/productivity/` | One skill per directory. Engineering covers code, PR, and developer-tooling work; productivity covers prompts, writing, and personal workflow. |
-| Archived skills | `skills/deprecated/` | Retired skills with `SKILL.md.disabled` entrypoints. Never installed or catalogued. |
-| Shared rules | `shared/` | Source for rules several skills use, copied into each skill's `shared/` by `npm run sync-shared`. |
-| Subagents | `agents/*.md` | Subagents registered in the Claude Code and Cursor plugin manifests. |
-| Plugin metadata | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json` | Claude Code plugin and marketplace manifests, and the Cursor plugin manifest. |
-| Catalog and site | `README.md`, `scripts/catalog.mjs`, `scripts/build-site.mjs`, `docs/` | Generated README catalog, static site, and maintainer docs. |
-| Installation | `INSTALL.md` | Install and update steps for people and agents. |
-| Tooling | `scripts/`, `tests/`, `.github/workflows/` | Linting, shared-copy sync, releases, script tests, and CI. |
-| Releases | `CHANGELOG.md`, `.claude/skills/version-bump/` | Release notes and the project-local version-bump skill. |
+| Area             | Location                                                                                      | Purpose                                                                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active skills    | `skills/engineering/`, `skills/productivity/`                                                 | One skill per directory. Engineering covers code, PR, and developer-tooling work; productivity covers prompts, writing, and personal workflow. |
+| Archived skills  | `skills/deprecated/`                                                                          | Retired skills with `SKILL.md.disabled` entrypoints. Never installed or catalogued.                                                            |
+| Shared rules     | `shared/`                                                                                     | Source for rules several skills use, copied into each skill's `shared/` by `npm run sync-shared`.                                              |
+| Subagents        | `agents/*.md`                                                                                 | Subagents registered in the Claude Code and Cursor plugin manifests.                                                                           |
+| Plugin metadata  | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json` | Claude Code plugin and marketplace manifests, and the Cursor plugin manifest.                                                                  |
+| Catalog and site | `README.md`, `scripts/catalog.mjs`, `scripts/build-site.mjs`, `docs/`                         | Generated README catalog, static site, and maintainer docs.                                                                                    |
+| Installation     | `INSTALL.md`                                                                                  | Install and update steps for people and agents.                                                                                                |
+| Tooling          | `scripts/`, `tests/`, `.github/workflows/`                                                    | Linting, shared-copy sync, releases, script tests, and CI.                                                                                     |
+| Releases         | `CHANGELOG.md`, `.claude/skills/version-bump/`                                                | Release notes and the project-local version-bump skill.                                                                                        |
 
 ## Skill anatomy
 
-| Path | Purpose |
-| --- | --- |
-| `SKILL.md` | Entrypoint: frontmatter plus the procedure. |
+| Path                 | Purpose                                                                       |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `SKILL.md`           | Entrypoint: frontmatter plus the procedure.                                   |
 | `agents/openai.yaml` | Codex display name, short description, default prompt, and invocation policy. |
-| `references/` | Files only this skill reads, linked from `SKILL.md`. |
-| `scripts/` | Executable helpers the skill runs. |
-| `shared/` | Generated copies of root `shared/` files. Never edit them in place. |
+| `references/`        | Files only this skill reads, linked from `SKILL.md`.                          |
+| `scripts/`           | Executable helpers the skill runs.                                            |
+| `shared/`            | Generated copies of root `shared/` files. Never edit them in place.           |
 
 ## Rules for changes
 
@@ -66,6 +66,8 @@ Run only the checks relevant to the change, and report the exact commands and re
 ```sh
 npm test
 npm run lint:skills
+npm run lint:js
+npm run format:check
 node scripts/catalog.mjs --check
 claude plugin validate . --strict
 git diff --check

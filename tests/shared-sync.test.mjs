@@ -2,7 +2,15 @@
 // Checks synchronization, missing inputs, drift detection, and stale-copy removal.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -24,7 +32,10 @@ function fixtureRepo(t, files) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   }
-  for (const args of [["init", "-q"], ["add", "--", "shared", "skills"]]) {
+  for (const args of [
+    ["init", "-q"],
+    ["add", "--", "shared", "skills"],
+  ]) {
     const run = spawnSync("git", args, { cwd: root, env: GIT_ENV, encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
   }
@@ -50,7 +61,10 @@ test("sync writes both active categories and preserves frozen archived copies", 
   for (const dir of ["engineering/widget", "productivity/gadget"]) {
     assert.equal(readFileSync(join(root, "skills", dir, "shared/rule-one.md"), "utf8"), RULE_ONE);
   }
-  assert.equal(readFileSync(join(root, "skills/deprecated/old/shared/rule-one.md"), "utf8"), OLD_RULE);
+  assert.equal(
+    readFileSync(join(root, "skills/deprecated/old/shared/rule-one.md"), "utf8"),
+    OLD_RULE,
+  );
   assert.equal(runSync(root, "--check").status, 0);
 });
 
@@ -69,7 +83,8 @@ test("sync-shared --check passes: every copy equals its canonical bytes and the 
 test("write mode exits 1 naming the link and the file when a linked canonical file is missing", (t) => {
   const root = fixtureRepo(t, {
     "shared/rule-one.md": RULE_ONE,
-    "skills/engineering/widget/SKILL.md": "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead the [absent rule](shared/absent-rule.md) first.\n",
+    "skills/engineering/widget/SKILL.md":
+      "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead the [absent rule](shared/absent-rule.md) first.\n",
   });
   const run = runSync(root);
   assert.equal(run.status, 1, run.output);
@@ -80,7 +95,8 @@ test("write mode exits 1 naming the link and the file when a linked canonical fi
 test("--check exits 1 naming the link and the file when a linked canonical file is missing", (t) => {
   const root = fixtureRepo(t, {
     "shared/rule-one.md": RULE_ONE,
-    "skills/engineering/widget/SKILL.md": "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead the [absent rule](shared/absent-rule.md) first.\n",
+    "skills/engineering/widget/SKILL.md":
+      "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead the [absent rule](shared/absent-rule.md) first.\n",
   });
   const run = runSync(root, "--check");
   assert.equal(run.status, 1, run.output);
@@ -91,12 +107,16 @@ test("--check exits 1 naming the link and the file when a linked canonical file 
 test("--check exits 1 naming a copy that differs from its canonical file by one byte", (t) => {
   const root = fixtureRepo(t, {
     "shared/rule-one.md": RULE_ONE,
-    "skills/engineering/widget/SKILL.md": "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead [rule one](shared/rule-one.md) first.\n",
+    "skills/engineering/widget/SKILL.md":
+      "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nRead [rule one](shared/rule-one.md) first.\n",
     "skills/engineering/widget/shared/rule-one.md": RULE_ONE,
   });
   assert.equal(runSync(root, "--check").status, 0, "the unedited fixture must pass --check");
 
-  writeFileSync(join(root, "skills/engineering/widget/shared/rule-one.md"), RULE_ONE.replace("Keep it short.", "Keep it shorT."));
+  writeFileSync(
+    join(root, "skills/engineering/widget/shared/rule-one.md"),
+    RULE_ONE.replace("Keep it short.", "Keep it shorT."),
+  );
   const run = runSync(root, "--check");
   assert.equal(run.status, 1, run.output);
   assert.ok(run.output.includes("skills/engineering/widget/shared/rule-one.md"), run.output);
@@ -105,13 +125,22 @@ test("--check exits 1 naming a copy that differs from its canonical file by one 
 test("write mode removes a stale shared/ directory from a skill that links no shared rule", (t) => {
   const root = fixtureRepo(t, {
     "shared/old-rule.md": OLD_RULE,
-    "skills/engineering/widget/SKILL.md": "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nThis skill reads no shared rule.\n",
+    "skills/engineering/widget/SKILL.md":
+      "---\nname: widget\ndescription: Use for fixture checks.\n---\n\nThis skill reads no shared rule.\n",
     "skills/engineering/widget/shared/old-rule.md": OLD_RULE,
-    "skills/engineering/gadget/SKILL.md": "---\nname: gadget\ndescription: Use for fixture checks.\n---\n\nRead the [old rule](shared/old-rule.md) first.\n",
+    "skills/engineering/gadget/SKILL.md":
+      "---\nname: gadget\ndescription: Use for fixture checks.\n---\n\nRead the [old rule](shared/old-rule.md) first.\n",
     "skills/engineering/gadget/shared/old-rule.md": OLD_RULE,
   });
   const run = runSync(root);
   assert.equal(run.status, 0, run.output);
-  assert.equal(existsSync(join(root, "skills/engineering/widget/shared")), false, "skills/engineering/widget/shared/ survived write mode");
-  assert.equal(readFileSync(join(root, "skills/engineering/gadget/shared/old-rule.md"), "utf8"), OLD_RULE);
+  assert.equal(
+    existsSync(join(root, "skills/engineering/widget/shared")),
+    false,
+    "skills/engineering/widget/shared/ survived write mode",
+  );
+  assert.equal(
+    readFileSync(join(root, "skills/engineering/gadget/shared/old-rule.md"), "utf8"),
+    OLD_RULE,
+  );
 });

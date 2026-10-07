@@ -104,7 +104,10 @@ export function detectHost(env: Record<string, string | undefined> | undefined):
 
 export function resolveSession(options: ResolveSessionOptions): ResolveResult;
 
-export function storeRootFor(host: string | null, env: Record<string, string | undefined> | undefined): string;
+export function storeRootFor(
+  host: string | null,
+  env: Record<string, string | undefined> | undefined,
+): string;
 
 export function resolveTranscript(options: ResolveOptions): ResolveResult;
 
@@ -122,4 +125,7 @@ export function openOpencodeDb(dbPath: string): unknown;
 
 export function resolveOpencodeSession(options: ResolveOpencodeOptions): ResolveResult;
 
-export function normalizeOpencode(options: { dbPath: string; sessionId: string }): NormalizedTranscript;
+export function normalizeOpencode(options: {
+  dbPath: string;
+  sessionId: string;
+}): NormalizedTranscript;

@@ -1,10 +1,21 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { renderReport, validateReport } from "../skills/engineering/auditing-tests/scripts/render-report.mjs";
+import {
+  renderReport,
+  validateReport,
+} from "../skills/engineering/auditing-tests/scripts/render-report.mjs";
 
 const RENDER = resolve("skills/engineering/auditing-tests/scripts/render-report.mjs");
 
@@ -21,7 +32,13 @@ const EVIDENCE = {
 function report(overrides = {}) {
   return {
     version: 1,
-    scope: { root: "demo", paths: [], discovery: "git ls-files '*.test.js'", commit: "abc1234", date: "2026-09-30" },
+    scope: {
+      root: "demo",
+      paths: [],
+      discovery: "git ls-files '*.test.js'",
+      commit: "abc1234",
+      date: "2026-09-30",
+    },
     baseline: { command: "node --test", status: "ran", failures: [] },
     inventory: ["tests/cache.test.js", "tests/store.test.js"],
     lanes: [
@@ -30,10 +47,33 @@ function report(overrides = {}) {
         owner: ["src/cache.js"],
         files: ["tests/cache.test.js", "tests/store.test.js"],
         tests: [
-          { id: "tests/store.test.js::write invalidates cached read", name: "write invalidates cached read", file: "tests/store.test.js", line: 88, mark: "R", contract: "a write evicts the cached value", catches: "stale reads after a write" },
-          { id: "tests/cache.test.js::clears on write", name: "clears on write", file: "tests/cache.test.js", line: 40, mark: "D", junkClass: "promises-more-than-checked", evidence: { ...EVIDENCE }, verified: true },
+          {
+            id: "tests/store.test.js::write invalidates cached read",
+            name: "write invalidates cached read",
+            file: "tests/store.test.js",
+            line: 88,
+            mark: "R",
+            contract: "a write evicts the cached value",
+            catches: "stale reads after a write",
+          },
+          {
+            id: "tests/cache.test.js::clears on write",
+            name: "clears on write",
+            file: "tests/cache.test.js",
+            line: 40,
+            mark: "D",
+            junkClass: "promises-more-than-checked",
+            evidence: { ...EVIDENCE },
+            verified: true,
+          },
         ],
-        testOnlyCode: [{ location: "src/cache.js:9", kind: "export", freedBy: ["tests/cache.test.js::clears on write"] }],
+        testOnlyCode: [
+          {
+            location: "src/cache.js:9",
+            kind: "export",
+            freedBy: ["tests/cache.test.js::clears on write"],
+          },
+        ],
       },
     ],
     layers: [],
@@ -57,7 +97,13 @@ test("a delete candidate missing one evidence field is rejected with that field 
 
 test("a delete candidate that fails on the baseline is rejected as a product-bug lead", () => {
   const broken = report({
-    baseline: { command: "node --test", status: "ran", failures: [{ file: "tests/cache.test.js", name: "clears on write", assertion: "expected 0, got 1" }] },
+    baseline: {
+      command: "node --test",
+      status: "ran",
+      failures: [
+        { file: "tests/cache.test.js", name: "clears on write", assertion: "expected 0, got 1" },
+      ],
+    },
   });
   assert.deepEqual(validateReport(broken), [
     "tests/cache.test.js::clears on write: fails on the baseline, so it is a product-bug lead and cannot be marked D",
@@ -67,11 +113,15 @@ test("a delete candidate that fails on the baseline is rejected as a product-bug
 test("an unverified delete candidate is rejected", () => {
   const broken = report();
   delete broken.lanes[0].tests[1].verified;
-  assert.deepEqual(validateReport(broken), ["tests/cache.test.js::clears on write: mark D requires verified: true"]);
+  assert.deepEqual(validateReport(broken), [
+    "tests/cache.test.js::clears on write: mark D requires verified: true",
+  ]);
 });
 
 test("an inventory file placed in no lane and no gap is rejected", () => {
-  const broken = report({ inventory: ["tests/cache.test.js", "tests/store.test.js", "tests/orphan.test.js"] });
+  const broken = report({
+    inventory: ["tests/cache.test.js", "tests/store.test.js", "tests/orphan.test.js"],
+  });
   assert.deepEqual(validateReport(broken), ["tests/orphan.test.js is in no lane and no gap"]);
 });
 
@@ -83,7 +133,9 @@ test("a lane that still carries the retired seams field is rejected with the rep
   const broken = report();
   broken.lanes[0].seams = broken.lanes[0].testOnlyCode;
   delete broken.lanes[0].testOnlyCode;
-  assert.deepEqual(validateReport(broken), ["lane cache has a seams field; rename it to testOnlyCode"]);
+  assert.deepEqual(validateReport(broken), [
+    "lane cache has a seams field; rename it to testOnlyCode",
+  ]);
 });
 
 test("a lane that is not an object is rejected by position", () => {
@@ -101,12 +153,17 @@ test("a test that is not an object is rejected by lane and position", () => {
 test("test-only code freed by an unknown test is rejected with its location named", () => {
   const broken = report();
   broken.lanes[0].testOnlyCode[0].freedBy = ["tests/cache.test.js::no such test"];
-  assert.deepEqual(validateReport(broken), ["testOnlyCode src/cache.js:9 names unknown test tests/cache.test.js::no such test"]);
+  assert.deepEqual(validateReport(broken), [
+    "testOnlyCode src/cache.js:9 names unknown test tests/cache.test.js::no such test",
+  ]);
 });
 
 test("the rendered test-only code table lists the freed location", () => {
   const section = renderReport(report()).split("## Test-only code\n")[1].split("\n## ")[0];
-  assert.match(section, /\| src\/cache\.js:9 \| export \| tests\/cache\.test\.js::clears on write \|/);
+  assert.match(
+    section,
+    /\| src\/cache\.js:9 \| export \| tests\/cache\.test\.js::clears on write \|/,
+  );
 });
 
 test("the rendered summary counts each mark", () => {
@@ -117,7 +174,10 @@ test("the rendered summary counts each mark", () => {
 
 test("the rendered delete table carries the remaining proof", () => {
   const markdown = renderReport(report());
-  assert.match(markdown, /\| cache \| tests\/cache\.test\.js:40 clears on write \| promises-more-than-checked \|.*tests\/store\.test\.js:88 write invalidates cached read/);
+  assert.match(
+    markdown,
+    /\| cache \| tests\/cache\.test\.js:40 clears on write \| promises-more-than-checked \|.*tests\/store\.test\.js:88 write invalidates cached read/,
+  );
 });
 
 test("the CLI rejects an invalid report and writes no markdown", (t) => {

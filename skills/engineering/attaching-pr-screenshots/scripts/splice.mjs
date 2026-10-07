@@ -192,7 +192,10 @@ const HTML_TAG = new RegExp(`${UNESCAPED}<\\/?[A-Za-z][A-Za-z0-9-]*(?:[ \\t/>]|$
  * exists to prevent. Tested before `HTML_TAG` so the reason names the image it
  * cannot count rather than the container class.
  */
-const HTML_IMAGE = new RegExp(`${UNESCAPED}<(?:img|picture|source|svg|video|audio|embed|object|iframe)\\b`, "i");
+const HTML_IMAGE = new RegExp(
+  `${UNESCAPED}<(?:img|picture|source|svg|video|audio|embed|object|iframe)\\b`,
+  "i",
+);
 
 /**
  * A reference-style, collapsed, or shortcut image — `![alt][ref]`, `![alt][]`,
@@ -334,7 +337,13 @@ const OWN_DEGRADED_CAPTION = new RegExp(
 function ownSectionLine(lines, index) {
   const text = lines[index].trim();
   if (text === "") return true;
-  if (OWN_IMAGE.test(text) || OWN_NOTE.test(text) || OWN_SEPARATOR.test(text) || OWN_FAILURE.test(text)) return true;
+  if (
+    OWN_IMAGE.test(text) ||
+    OWN_NOTE.test(text) ||
+    OWN_SEPARATOR.test(text) ||
+    OWN_FAILURE.test(text)
+  )
+    return true;
   if (OWN_DEGRADED_CAPTION.test(text)) return true;
   return OWN_CAPTION.test(text) && OWN_IMAGE.test((lines[index + 1] ?? "").trim());
 }
@@ -376,13 +385,28 @@ function unmodeled(line) {
     return found ? { reason, match: found[0] } : null;
   };
   return (
-    hit(/<!--/, "carries an HTML comment that opens mid-line, which this transform does not model") ??
-    hit(INDENTED_HEADING, "carries a heading-shaped line indented into a code block, which this transform does not model") ??
+    hit(
+      /<!--/,
+      "carries an HTML comment that opens mid-line, which this transform does not model",
+    ) ??
+    hit(
+      INDENTED_HEADING,
+      "carries a heading-shaped line indented into a code block, which this transform does not model",
+    ) ??
     hit(HTML_IMAGE, "carries an HTML image tag, which this transform cannot count as an image") ??
     hit(HTML_TAG, "carries a raw HTML tag, whose boundaries this transform does not model") ??
-    hit(REFERENCE_IMAGE, "carries a reference-style image, whose target this transform cannot see") ??
-    hit(LINK_REFERENCE, "carries a link reference definition, which this transform does not model") ??
-    hit(BARE_IMAGE_URL, "carries a bare auto-embedded image URL, which this transform does not model")
+    hit(
+      REFERENCE_IMAGE,
+      "carries a reference-style image, whose target this transform cannot see",
+    ) ??
+    hit(
+      LINK_REFERENCE,
+      "carries a link reference definition, which this transform does not model",
+    ) ??
+    hit(
+      BARE_IMAGE_URL,
+      "carries a bare auto-embedded image URL, which this transform does not model",
+    )
   );
 }
 
@@ -413,9 +437,9 @@ function unmodeled(line) {
  * and as text to a parser, and `unmodeled` names the rest.
  */
 function scan(lines) {
-  const mask = new Array(lines.length).fill(false);
-  const commented = new Array(lines.length).fill(false);
-  const boundary = new Array(lines.length).fill(false);
+  const mask = Array.from({ length: lines.length }, () => false);
+  const commented = Array.from({ length: lines.length }, () => false);
+  const boundary = Array.from({ length: lines.length }, () => false);
   const labels = new Map();
   const headings = [];
   let fence = null;
@@ -436,7 +460,12 @@ function scan(lines) {
     if (fence !== null) {
       mask[index] = true;
       const closer = FENCE_DELIMITER.exec(line);
-      if (closer && closer[1][0] === fence.char && closer[1].length >= fence.length && closer[2].trim() === "") {
+      if (
+        closer &&
+        closer[1][0] === fence.char &&
+        closer[1].length >= fence.length &&
+        closer[2].trim() === ""
+      ) {
         fence = null;
       }
       continue;
@@ -483,10 +512,18 @@ function scan(lines) {
   }
 
   if (fence !== null) {
-    fault ??= at(fence.index, fence.text, "carries an unclosed code fence, so its section boundaries cannot be read");
+    fault ??= at(
+      fence.index,
+      fence.text,
+      "carries an unclosed code fence, so its section boundaries cannot be read",
+    );
   }
   if (comment) {
-    fault ??= at(commentAt, lines[commentAt] ?? "<!--", "carries an unterminated HTML comment, so its section boundaries cannot be read");
+    fault ??= at(
+      commentAt,
+      lines[commentAt] ?? "<!--",
+      "carries an unterminated HTML comment, so its section boundaries cannot be read",
+    );
   }
   return { mask, commented, boundary, labels, headings, fault };
 }
@@ -499,7 +536,12 @@ function scan(lines) {
 function paragraphStart(lines, mask, boundary, from) {
   if (mask[from] || boundary[from] || lines[from].trim() === "") return -1;
   let start = from;
-  while (start - 1 >= 0 && !mask[start - 1] && !boundary[start - 1] && lines[start - 1].trim() !== "") {
+  while (
+    start - 1 >= 0 &&
+    !mask[start - 1] &&
+    !boundary[start - 1] &&
+    lines[start - 1].trim() !== ""
+  ) {
     start--;
   }
   return start;
@@ -659,18 +701,30 @@ export function bodyRefusal(body) {
   // cannot see the container. Everywhere else that blindness refuses; here it
   // would DELETE the sibling items the replace runs through, so refuse.
   if (/^\s+\S/.test(lines[start])) {
-    return at(start, lines[start], "the body indents its Screenshots heading, which may sit inside a list item this transform cannot see");
+    return at(
+      start,
+      lines[start],
+      "the body indents its Screenshots heading, which may sit inside a list item this transform cannot see",
+    );
   }
 
   const stop = replaceEnd(lines, doc, start, contentCount);
   const foreign = foreignImages(lines.slice(start, stop).join("\n"));
   if (foreign.length > 0) {
     const line = start + lines.slice(start, stop).findIndex((text) => text.includes(foreign[0]));
-    return at(line, foreign[0], "the Screenshots section holds an image this skill did not write, so replacing it would delete it");
+    return at(
+      line,
+      foreign[0],
+      "the Screenshots section holds an image this skill did not write, so replacing it would delete it",
+    );
   }
   for (let index = start; index < stop; index++) {
     if (doc.commented[index]) {
-      return at(index, lines[index], "the Screenshots section holds an HTML comment, so replacing it would delete text this skill did not write");
+      return at(
+        index,
+        lines[index],
+        "the Screenshots section holds an HTML comment, so replacing it would delete text this skill did not write",
+      );
     }
   }
 
@@ -686,7 +740,11 @@ export function bodyRefusal(body) {
   const first = ATX_HEADING.test(lines[start]) ? start + 1 : start + 2; // setext takes two lines
   for (let index = first; index < stop; index++) {
     if (ownSectionLine(lines, index)) continue;
-    return at(index, lines[index], "the Screenshots section holds a line this skill did not write, so replacing it would delete it");
+    return at(
+      index,
+      lines[index],
+      "the Screenshots section holds a line this skill did not write, so replacing it would delete it",
+    );
   }
   return "";
 }
@@ -740,7 +798,9 @@ export function splice(body, section, options = {}) {
   // Every remaining `![…](…)` is this skill's own, cleared by the check
   // above, so what is left holding a `](` is a plain markdown link.
   if (SECTION_LINK.test(sectionText.replace(ANY_IMAGE, ""))) {
-    return refuse("the section carries an unescaped markdown link, which must never reach a public body");
+    return refuse(
+      "the section carries an unescaped markdown link, which must never reach a public body",
+    );
   }
   if (SECTION_PATH.test(sectionText)) {
     return refuse("the section renders a filesystem path where the degraded form takes a basename");
@@ -749,7 +809,9 @@ export function splice(body, section, options = {}) {
   const landed = Number.isFinite(options?.landed) ? options.landed : 0;
   const referenced = count(sectionText, NEW_SECTION_IMAGE);
   if (referenced > landed) {
-    return refuse(`the section carries more screenshot references (${referenced}) than the run landed (${landed})`);
+    return refuse(
+      `the section carries more screenshot references (${referenced}) than the run landed (${landed})`,
+    );
   }
 
   const end = contentEnd(lines, doc);
@@ -770,7 +832,11 @@ export function splice(body, section, options = {}) {
     existing = lines.slice(start, stop).join("\n");
     const tail = lines.slice(stop, contentCount);
     const head = lines.slice(0, start);
-    spliced = [...head, ...(tail.length > 0 ? blankTerminated(sectionLines) : sectionLines), ...tail];
+    spliced = [
+      ...head,
+      ...(tail.length > 0 ? blankTerminated(sectionLines) : sectionLines),
+      ...tail,
+    ];
   } else {
     const anchor = anchorIndex(doc, contentCount);
     spliced =
@@ -796,13 +862,18 @@ export function splice(body, section, options = {}) {
   // section the run after that replaces — so preservation would survive one
   // round-trip and then delete.
   const gap =
-    footerLines.length > 0 && footerLines[0].trim() !== "" && spliced.length > 0 && spliced[spliced.length - 1].trim() !== ""
+    footerLines.length > 0 &&
+    footerLines[0].trim() !== "" &&
+    spliced.length > 0 &&
+    spliced[spliced.length - 1].trim() !== ""
       ? [""]
       : [];
 
   const written = [...spliced, ...gap, ...footerLines].join("\n");
   if (written.length > BODY_LIMIT) {
-    return refuse(`the spliced body is ${written.length} characters, over the ${BODY_LIMIT}-character limit`);
+    return refuse(
+      `the spliced body is ${written.length} characters, over the ${BODY_LIMIT}-character limit`,
+    );
   }
   if (written === original) return refuse("the body already carries this section");
 
@@ -871,10 +942,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   // to any count the caller liked. `0x10`, ` 7 `, and `Infinity` convert just
   // as willingly. The shipped recipes emit plain digits, so this narrows the
   // flag to what they already send.
-  if (!/^\d+$/.test(landedFlag)) fail(`--landed expects a non-negative integer, got "${landedFlag}"`);
+  if (!/^\d+$/.test(landedFlag))
+    fail(`--landed expects a non-negative integer, got "${landedFlag}"`);
   const landed = Number(landedFlag);
 
-  const result = splice(slurp(bodyFile, "body file"), slurp(sectionFile, "section file"), { landed });
+  const result = splice(slurp(bodyFile, "body file"), slurp(sectionFile, "section file"), {
+    landed,
+  });
   if (!result.changed) {
     process.stderr.write(`refused: ${result.reason}\n`);
     process.exit(1);

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-10-07
+
+### Changed
+
+- Reformat bundled skill scripts with oxfmt and clean up lint warnings, with no behavior change. [#25](https://github.com/bostonaholic/skills/pull/25)
+
 ## [0.15.0] - 2026-10-06
 
 ### Added
@@ -242,5 +248,7 @@
 
 [0.14.0]: https://github.com/bostonaholic/skills/compare/v0.13.0...v0.14.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.15.0...HEAD
 [0.15.0]: https://github.com/bostonaholic/skills/compare/v0.14.0...v0.15.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/bostonaholic/skills/compare/v0.15.0...v0.15.1

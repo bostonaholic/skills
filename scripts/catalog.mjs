@@ -31,12 +31,15 @@ const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
 export class CatalogError extends Error {}
 
 function lsFiles(pathspec) {
-  return execFileSync("git", ["ls-files", "-z", "--", pathspec], { encoding: "utf8" }).split("\0").filter(Boolean);
+  return execFileSync("git", ["ls-files", "-z", "--", pathspec], { encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
 }
 
 function unquote(value) {
   if (value.startsWith('"') && value.endsWith('"') && value.length > 1) return JSON.parse(value);
-  if (value.startsWith("'") && value.endsWith("'") && value.length > 1) return value.slice(1, -1).replaceAll("''", "'");
+  if (value.startsWith("'") && value.endsWith("'") && value.length > 1)
+    return value.slice(1, -1).replaceAll("''", "'");
   return value;
 }
 
@@ -67,13 +70,15 @@ function loadSkill(path, skillNames, errors) {
   const name = scalar(frontmatter, "name");
   const description = scalar(frontmatter, "description");
   if (!name) errors.push(`${path}: no name`);
-  else if (name !== directoryName) errors.push(`${path}: name "${name}" differs from its directory "${directoryName}"`);
+  else if (name !== directoryName)
+    errors.push(`${path}: name "${name}" differs from its directory "${directoryName}"`);
   if (!description) errors.push(`${path}: no description`);
   if (name !== directoryName || !description) return null;
 
   const yamlPath = `${dir}/agents/openai.yaml`;
   const yaml = existsSync(yamlPath) ? readFileSync(yamlPath, "utf8") : "";
-  const shortDescription = scalar(yaml, "short_description") ?? description.match(FIRST_SENTENCE)?.[0] ?? description;
+  const shortDescription =
+    scalar(yaml, "short_description") ?? description.match(FIRST_SENTENCE)?.[0] ?? description;
   return {
     name,
     directory: dir,
@@ -89,12 +94,15 @@ function loadSkill(path, skillNames, errors) {
 
 // Returns the tracked skills sorted by name. Throws CatalogError naming every bad SKILL.md.
 export function loadCatalog() {
-  const paths = lsFiles("skills/*/*/SKILL.md").filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path));
+  const paths = lsFiles("skills/*/*/SKILL.md").filter((path) =>
+    /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path),
+  );
   const skillNames = new Set();
   const errors = [];
   for (const path of paths) {
     const name = basename(dirname(path));
-    if (skillNames.has(name)) errors.push(`${path}: duplicate skill name "${name}" across categories`);
+    if (skillNames.has(name))
+      errors.push(`${path}: duplicate skill name "${name}" across categories`);
     skillNames.add(name);
   }
   const skills = paths.map((path) => loadSkill(path, skillNames, errors));
@@ -105,7 +113,10 @@ export function loadCatalog() {
 export function skillGroups(catalog) {
   return [
     { heading: "Engineering", skills: catalog.filter((skill) => skill.category === "engineering") },
-    { heading: "Productivity", skills: catalog.filter((skill) => skill.category === "productivity") },
+    {
+      heading: "Productivity",
+      skills: catalog.filter((skill) => skill.category === "productivity"),
+    },
   ].filter((group) => group.skills.length);
 }
 
@@ -117,7 +128,18 @@ function readmeEntry(skill) {
 
 // Returns the text strictly between README_START and README_END.
 export function renderReadme(catalog) {
-  const lines = [LEDE, "", "## Install", "", INSTALL_PROMPT_LABEL, "", "```text", INSTALL_PROMPT, "```", ""];
+  const lines = [
+    LEDE,
+    "",
+    "## Install",
+    "",
+    INSTALL_PROMPT_LABEL,
+    "",
+    "```text",
+    INSTALL_PROMPT,
+    "```",
+    "",
+  ];
   lines.push(`Or follow the [installation instructions](${INSTALL_DOC}).`, "", "## Skills", "");
   for (const group of skillGroups(catalog)) {
     lines.push(`### ${group.heading}`, "", ...group.skills.map(readmeEntry), "");
@@ -129,7 +151,8 @@ function markerBounds(readme) {
   const start = readme.indexOf(README_START);
   if (start === -1) throw new CatalogError(`README.md: no ${README_START} marker`);
   const end = readme.indexOf(README_END, start);
-  if (end === -1) throw new CatalogError(`README.md: no ${README_END} marker after ${README_START}`);
+  if (end === -1)
+    throw new CatalogError(`README.md: no ${README_END} marker after ${README_START}`);
   return { start: start + README_START.length, end };
 }
 
@@ -137,8 +160,10 @@ function run(mode) {
   const block = renderReadme(loadCatalog());
   const readme = readFileSync("README.md", "utf8");
   const { start, end } = markerBounds(readme);
-  if (mode === "--write") writeFileSync("README.md", readme.slice(0, start) + block + readme.slice(end));
-  else if (readme.slice(start, end) !== block) throw new CatalogError("README.md: the generated block is stale. Run npm run readme.");
+  if (mode === "--write")
+    writeFileSync("README.md", readme.slice(0, start) + block + readme.slice(end));
+  else if (readme.slice(start, end) !== block)
+    throw new CatalogError("README.md: the generated block is stale. Run npm run readme.");
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.

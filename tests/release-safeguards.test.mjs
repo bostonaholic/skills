@@ -2,11 +2,26 @@
 // a local bare remote, and a GitHub stub. No network release or merge occurs.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test, { after } from "node:test";
-import { cutChangelog, nextVersion, releaseNotes, runtimeChanged, versionedTitle } from "../scripts/release.mjs";
+import {
+  cutChangelog,
+  nextVersion,
+  releaseNotes,
+  runtimeChanged,
+  versionedTitle,
+} from "../scripts/release.mjs";
 
 const SOURCE = resolve(".");
 const SCRIPTS = JSON.parse(readFileSync("package.json", "utf8")).scripts;
@@ -28,14 +43,24 @@ function write(root, path, content) {
 }
 
 function git(root, ...args) {
-  return execFileSync("git", args, { cwd: root, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  return execFileSync("git", args, {
+    cwd: root,
+    env: ENV,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
 }
 
 function commit(root, message = "fixture") {
   assert.equal(git(root, "config", "--get", "commit.gpgsign"), "true");
   git(root, "add", ".");
   git(root, "commit", "-S", "-m", message);
-  const signature = execFileSync("git", ["log", "-1", "--show-signature"], { cwd: root, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  const signature = execFileSync("git", ["log", "-1", "--show-signature"], {
+    cwd: root,
+    env: ENV,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   assert.match(signature, /Good "git" signature/);
   git(root, "verify-commit", "HEAD");
   return git(root, "rev-parse", "HEAD");
@@ -47,7 +72,15 @@ function fixture(t, { bootstrap = false } = {}) {
   const root = join(dir, "repo");
   mkdirSync(root);
   git(root, "init", "-q", "--initial-branch=main");
-  for (const [name, value] of Object.entries({ "user.name": "Fixture", "user.email": "fixture@example.test", "commit.gpgsign": "true", "tag.gpgSign": "true", "gpg.format": "ssh", "user.signingkey": key, "gpg.ssh.allowedSignersFile": signers })) {
+  for (const [name, value] of Object.entries({
+    "user.name": "Fixture",
+    "user.email": "fixture@example.test",
+    "commit.gpgsign": "true",
+    "tag.gpgSign": "true",
+    "gpg.format": "ssh",
+    "user.signingkey": key,
+    "gpg.ssh.allowedSignersFile": signers,
+  })) {
     git(root, "config", name, value);
   }
   if (bootstrap) {
@@ -56,18 +89,31 @@ function fixture(t, { bootstrap = false } = {}) {
     git(root, "branch", "base");
   }
   const files = {
-    "package.json": JSON.stringify({ name: "fixture", version: "0.1.0", private: true, scripts: SCRIPTS }),
-    "package-lock.json": JSON.stringify({ name: "fixture", version: "0.1.0", lockfileVersion: 3, packages: { "": { name: "fixture", version: "0.1.0" } } }),
+    "package.json": JSON.stringify({
+      name: "fixture",
+      version: "0.1.0",
+      private: true,
+      scripts: SCRIPTS,
+    }),
+    "package-lock.json": JSON.stringify({
+      name: "fixture",
+      version: "0.1.0",
+      lockfileVersion: 3,
+      packages: { "": { name: "fixture", version: "0.1.0" } },
+    }),
     ".claude-plugin/plugin.json": JSON.stringify({ name: "fixture", version: "0.1.0" }),
     ".cursor-plugin/plugin.json": JSON.stringify({ name: "fixture", version: "0.1.0" }),
-    "CHANGELOG.md": bootstrap ? "# Changelog\n\n## [Unreleased]\n\n- Initial fixture release.\n" : RELEASED,
+    "CHANGELOG.md": bootstrap
+      ? "# Changelog\n\n## [Unreleased]\n\n- Initial fixture release.\n"
+      : RELEASED,
     "shared/rule.md": RULE,
     "skills/engineering/widget/SKILL.md": "Read [the fixture rule](shared/rule.md).\n",
     [COPY]: RULE,
   };
   for (const [path, text] of Object.entries(files)) write(root, path, text);
   mkdirSync(join(root, "scripts"));
-  for (const script of ["release.mjs", "sync-shared.mjs"]) copyFileSync(join(SOURCE, "scripts", script), join(root, "scripts", script));
+  for (const script of ["release.mjs", "sync-shared.mjs"])
+    copyFileSync(join(SOURCE, "scripts", script), join(root, "scripts", script));
   commit(root);
   if (!bootstrap) git(root, "branch", "base");
   const remote = join(dir, "remote.git");
@@ -76,7 +122,9 @@ function fixture(t, { bootstrap = false } = {}) {
   git(root, "push", "-u", "origin", "main");
   const bin = join(dir, "bin");
   mkdirSync(bin);
-  writeFileSync(join(bin, "gh"), `#!/usr/bin/env node
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env node
 const fs = require("node:fs");
 const args = process.argv.slice(2);
 const call = { args };
@@ -84,34 +132,56 @@ if (args[0] === "release") call.notes = fs.readFileSync(args[args.indexOf("--not
 fs.appendFileSync(process.env.FAKE_GH_LOG, JSON.stringify(call) + "\\n");
 if (args[0] === "api") console.log(process.env.FAKE_RELEASE_EXISTS || "");
 if (args[0] === "release" && process.env.FAKE_RELEASE_FAIL) process.exit(1);
-`);
+`,
+  );
   chmodSync(join(bin, "gh"), 0o755);
   return { root, env: { ...ENV, PATH: `${bin}:${ENV.PATH}`, FAKE_GH_LOG: join(dir, "gh.log") } };
 }
 
 function run(f, script, args = [], env = {}) {
-  const result = spawnSync("npm", ["run", script, "--", ...args], { cwd: f.root, env: { ...f.env, ...env }, encoding: "utf8" });
+  const result = spawnSync("npm", ["run", script, "--", ...args], {
+    cwd: f.root,
+    env: { ...f.env, ...env },
+    encoding: "utf8",
+  });
   return { status: result.status, output: result.stdout + result.stderr };
 }
 
 function runtimeEdit(f) {
   write(f.root, "skills/engineering/widget/behavior.txt", "Changed fixture behavior.\n");
-  write(f.root, "CHANGELOG.md", RELEASED.replace("## [Unreleased]", "## [Unreleased]\n\n- Changed fixture behavior."));
+  write(
+    f.root,
+    "CHANGELOG.md",
+    RELEASED.replace("## [Unreleased]", "## [Unreleased]\n\n- Changed fixture behavior."),
+  );
   commit(f.root);
 }
 
-function readJson(root, path) { return JSON.parse(readFileSync(join(root, path), "utf8")); }
+function readJson(root, path) {
+  return JSON.parse(readFileSync(join(root, path), "utf8"));
+}
 
 test("version policy handles bootstrap, patch, minor, stable major, and rejects implicit 1.0", () => {
   assert.equal(nextVersion(null, "minor"), "0.1.0");
   assert.equal(nextVersion("0.1.0", "patch"), "0.1.1");
   assert.equal(nextVersion("0.1.9", "minor"), "0.2.0");
   assert.equal(nextVersion("1.2.3", "major"), "2.0.0");
-  for (const [base, level] of [["0.9.0", "major"], ["01.2.3", "minor"], ["1.2.3-rc.1", "patch"], [null, "patch"]]) assert.throws(() => nextVersion(base, level));
+  for (const [base, level] of [
+    ["0.9.0", "major"],
+    ["01.2.3", "minor"],
+    ["1.2.3-rc.1", "patch"],
+    [null, "patch"],
+  ])
+    assert.throws(() => nextVersion(base, level));
 });
 
 test("changelog cutting preserves older releases and rejects empty notes", () => {
-  const cut = cutChangelog(RELEASED.replace("## [Unreleased]", "## [Unreleased]\n\n- New capability."), "0.2.0", "0.1.0", "2026-10-02");
+  const cut = cutChangelog(
+    RELEASED.replace("## [Unreleased]", "## [Unreleased]\n\n- New capability."),
+    "0.2.0",
+    "0.1.0",
+    "2026-10-02",
+  );
   assert.equal(releaseNotes(cut, "0.2.0"), "- New capability.\n");
   assert.equal(releaseNotes(cut, "0.1.0"), "- Initial fixture release.\n");
   assert.ok(cut.includes(`${URL}/compare/v0.1.0...v0.2.0`));
@@ -123,17 +193,42 @@ test("changelog cutting preserves older releases and rejects empty notes", () =>
 test("runtime classification excludes archives and tooling and ignores manifest version-only edits", () => {
   const before = () => '{"name":"fixture","version":"0.1.0"}';
   const after = () => '{"name":"fixture","version":"0.2.0"}';
-  assert.equal(runtimeChanged(["skills/deprecated/old/file", "scripts/release.mjs", "docs/versioning.md"], before, after), false);
+  assert.equal(
+    runtimeChanged(
+      ["skills/deprecated/old/file", "scripts/release.mjs", "docs/versioning.md"],
+      before,
+      after,
+    ),
+    false,
+  );
   assert.equal(runtimeChanged([".claude-plugin/plugin.json"], before, after), false);
-  assert.equal(runtimeChanged([".claude-plugin/plugin.json"], before, () => '{"name":"renamed","version":"0.2.0"}'), true);
+  assert.equal(
+    runtimeChanged(
+      [".claude-plugin/plugin.json"],
+      before,
+      () => '{"name":"renamed","version":"0.2.0"}',
+    ),
+    true,
+  );
   assert.equal(runtimeChanged([".cursor-plugin/plugin.json"], before, after), false);
-  assert.equal(runtimeChanged([".cursor-plugin/plugin.json"], before, () => '{"name":"renamed","version":"0.2.0"}'), true);
+  assert.equal(
+    runtimeChanged(
+      [".cursor-plugin/plugin.json"],
+      before,
+      () => '{"name":"renamed","version":"0.2.0"}',
+    ),
+    true,
+  );
   assert.equal(runtimeChanged(["skills/productivity/widget/file"], before, after), true);
   assert.equal(runtimeChanged(["agents/widget.md"], before, after), true);
 });
 
 test("manifest descriptions can be added, edited, or removed without a release", () => {
-  for (const path of [".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".cursor-plugin/plugin.json"]) {
+  for (const path of [
+    ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    ".cursor-plugin/plugin.json",
+  ]) {
     const manifest = { name: "fixture" };
     if (path.endsWith("marketplace.json")) manifest.plugins = [{ name: "fixture", source: "./" }];
     const bare = JSON.stringify(manifest);
@@ -143,8 +238,20 @@ test("manifest descriptions can be added, edited, or removed without a release",
     manifest.description = "New description";
     if (manifest.plugins) manifest.plugins[0].description = "New plugin description";
     const updated = JSON.stringify(manifest);
-    for (const [before, after] of [[bare, original], [original, updated], [updated, bare]]) {
-      assert.equal(runtimeChanged([path], () => before, () => after), false, path);
+    for (const [before, after] of [
+      [bare, original],
+      [original, updated],
+      [updated, bare],
+    ]) {
+      assert.equal(
+        runtimeChanged(
+          [path],
+          () => before,
+          () => after,
+        ),
+        false,
+        path,
+      );
     }
   }
 });
@@ -152,21 +259,41 @@ test("manifest descriptions can be added, edited, or removed without a release",
 test("description edits do not hide functional manifest changes", () => {
   const cases = [
     [".claude-plugin/plugin.json", { skills: ["./skills/engineering/widget"] }],
-    [".claude-plugin/plugin.json", { mcpServers: { fixture: { command: "fixture", env: { description: "functional value" } } } }],
+    [
+      ".claude-plugin/plugin.json",
+      { mcpServers: { fixture: { command: "fixture", env: { description: "functional value" } } } },
+    ],
     [".claude-plugin/marketplace.json", { plugins: [{ name: "fixture", source: "./new" }] }],
   ];
   for (const [path, change] of cases) {
     const before = {
-      name: "fixture", description: "Old", skills: ["./skills/engineering/old"],
+      name: "fixture",
+      description: "Old",
+      skills: ["./skills/engineering/old"],
       plugins: [{ name: "fixture", source: "./" }],
       mcpServers: { fixture: { command: "fixture", env: { description: "old functional value" } } },
     };
     const after = { ...before, ...change, description: "New" };
-    assert.equal(runtimeChanged([path], () => JSON.stringify(before), () => JSON.stringify(after)), true, path);
+    assert.equal(
+      runtimeChanged(
+        [path],
+        () => JSON.stringify(before),
+        () => JSON.stringify(after),
+      ),
+      true,
+      path,
+    );
   }
   for (const after of [null, '{"description":"New"}']) {
     const before = after === null ? '{"description":"Old"}' : null;
-    assert.equal(runtimeChanged([".claude-plugin/plugin.json"], () => before, () => after), true);
+    assert.equal(
+      runtimeChanged(
+        [".claude-plugin/plugin.json"],
+        () => before,
+        () => after,
+      ),
+      true,
+    );
   }
 });
 
@@ -210,7 +337,13 @@ test("preparation repairs copies, versions all manifests, and can be re-entered 
   const result = run(f, "release:prepare", ["minor", "base"]);
   assert.equal(result.status, 0, result.output);
   assert.equal(readFileSync(join(f.root, COPY), "utf8"), RULE + "Updated.\n");
-  for (const path of ["package.json", "package-lock.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) assert.equal(readJson(f.root, path).version, "0.2.0");
+  for (const path of [
+    "package.json",
+    "package-lock.json",
+    ".claude-plugin/plugin.json",
+    ".cursor-plugin/plugin.json",
+  ])
+    assert.equal(readJson(f.root, path).version, "0.2.0");
   assert.equal(readJson(f.root, "package-lock.json").packages[""].version, "0.2.0");
   commit(f.root, "chore(version): 0.2.0");
   const again = run(f, "release:prepare", ["minor", "base"]);
@@ -223,7 +356,12 @@ test("preparation repairs copies, versions all manifests, and can be re-entered 
 
 test("bootstrap stays unprefixed until land time and prepares 0.1.0", (t) => {
   const f = fixture(t, { bootstrap: true });
-  const title = () => execFileSync(process.execPath, ["scripts/release.mjs", "title"], { cwd: f.root, env: { ...f.env, HEAD_SHA: "HEAD", BASE_SHA: "base", CURRENT_TITLE: "feat: initial skills" }, encoding: "utf8" }).trim();
+  const title = () =>
+    execFileSync(process.execPath, ["scripts/release.mjs", "title"], {
+      cwd: f.root,
+      env: { ...f.env, HEAD_SHA: "HEAD", BASE_SHA: "base", CURRENT_TITLE: "feat: initial skills" },
+      encoding: "utf8",
+    }).trim();
   assert.equal(title(), "");
   assert.notEqual(run(f, "release:check", ["base"]).status, 0);
   const result = run(f, "release:prepare", ["minor", "base"]);
@@ -242,7 +380,12 @@ test("development-only PRs need no bump and reject a version-only bump", (t) => 
   commit(f.root);
   assert.equal(run(f, "release:prepare", ["minor", "base"]).status, 0);
   assert.equal(run(f, "release:check", ["base"]).status, 0);
-  for (const path of ["package.json", "package-lock.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"]) {
+  for (const path of [
+    "package.json",
+    "package-lock.json",
+    ".claude-plugin/plugin.json",
+    ".cursor-plugin/plugin.json",
+  ]) {
     const manifest = readJson(f.root, path);
     manifest.version = "0.2.0";
     if (path === "package-lock.json") manifest.packages[""].version = "0.2.0";
@@ -370,6 +513,10 @@ test("title synchronization uses the fork point when the base advances", (t) => 
   git(f.root, "checkout", "topic");
   write(f.root, "docs/topic.md", "Topic documentation.\n");
   commit(f.root);
-  const title = execFileSync(process.execPath, ["scripts/release.mjs", "title"], { cwd: f.root, env: { ...f.env, HEAD_SHA: "HEAD", BASE_SHA: advancedBase, CURRENT_TITLE: "docs: example" }, encoding: "utf8" }).trim();
+  const title = execFileSync(process.execPath, ["scripts/release.mjs", "title"], {
+    cwd: f.root,
+    env: { ...f.env, HEAD_SHA: "HEAD", BASE_SHA: advancedBase, CURRENT_TITLE: "docs: example" },
+    encoding: "utf8",
+  }).trim();
   assert.equal(title, "");
 });
