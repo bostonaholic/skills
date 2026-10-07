@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '(?:src/cart/)?discount\.js'
+pattern: 'Math\.max|discount\.js:8\b'
 target: last_message
 ---

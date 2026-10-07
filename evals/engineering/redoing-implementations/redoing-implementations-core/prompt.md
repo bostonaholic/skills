@@ -19,6 +19,7 @@ append_system_prompt: |
 /bostonaholic:redoing-implementations The customer CSV importer in lib/importer.rb passes its tests now, but three rounds of fixes left it hard to follow. I want to rewrite it more simply; reply with the new design.
 
 What we learned while building it:
+
 - Duplicate rows share an email that differs only in case and surrounding spaces, so the key is the stripped, downcased email.
 - The last row for an email wins. Nothing ever needed first-wins.
 - A row with a blank email is rejected with its line number, and the import goes on.

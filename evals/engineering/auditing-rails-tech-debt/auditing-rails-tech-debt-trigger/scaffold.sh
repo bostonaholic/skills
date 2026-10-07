@@ -4,7 +4,7 @@ set -euo pipefail
 mkdir -p config db app/models app/controllers app/views/orders test/models
 
 cat >Gemfile <<'EOF_1'
-source "https://rubygems.org"
+source "https://gems.acme.invalid"
 
 ruby "3.3.4"
 

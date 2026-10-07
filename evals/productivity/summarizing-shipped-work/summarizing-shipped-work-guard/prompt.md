@@ -35,8 +35,8 @@ append_system_prompt: |
 
   fetch-shipped-prs.jsonl:
   ```text
-  {"repo":"acme/deploy-service","number":760,"merged":"2026-07-08","title":"OPS-104: Pause deploys when a health check fails","url":"https://github.acme.invalid/acme/deploy-service/pull/760","issue_links":["https://linear.app/acme/issue/OPS-104"],"title_ticket_keys":["OPS-104"],"body":"Deploys now pause when a post-deploy health check fails instead of rolling on to the next region. Ticket: https://linear.app/acme/issue/OPS-104"}
-  {"repo":"acme/web-console","number":1490,"merged":"2026-07-15","title":"List paused deploys on the dashboard","url":"https://github.acme.invalid/acme/web-console/pull/1490","issue_links":["https://linear.app/acme/issue/OPS-104"],"title_ticket_keys":[],"body":"The dashboard now lists paused deploys with the health check that paused each one. Part of https://linear.app/acme/issue/OPS-104"}
+  {"repo":"acme/deploy-service","number":760,"merged":"2026-07-08","title":"OPS-104: Pause deploys when a health check fails","url":"https://github.acme.invalid/acme/deploy-service/pull/760","issue_links":["https://linear.acme.invalid/acme/issue/OPS-104"],"title_ticket_keys":["OPS-104"],"body":"Deploys now pause when a post-deploy health check fails instead of rolling on to the next region. Ticket: https://linear.acme.invalid/acme/issue/OPS-104"}
+  {"repo":"acme/web-console","number":1490,"merged":"2026-07-15","title":"List paused deploys on the dashboard","url":"https://github.acme.invalid/acme/web-console/pull/1490","issue_links":["https://linear.acme.invalid/acme/issue/OPS-104"],"title_ticket_keys":[],"body":"The dashboard now lists paused deploys with the health check that paused each one. Part of https://linear.acme.invalid/acme/issue/OPS-104"}
   {"repo":"acme/deploy-service","number":766,"merged":"2026-07-27","title":"Cache build artifacts between CI jobs","url":"https://github.acme.invalid/acme/deploy-service/pull/766","issue_links":[],"title_ticket_keys":[],"body":"Shares the compiled artifact across CI jobs, cutting the pipeline from 14 to 9 minutes."}
   ```
 ---
