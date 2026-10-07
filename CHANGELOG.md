@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-07
+
 ### Added
 
 - Add `fixing-root-causes`, moved from Team's `principle-fix-root-causes`, which traces a bug to its root cause and fixes it there instead of patching the symptom. [#26](https://github.com/bostonaholic/skills/pull/26)
@@ -254,5 +256,7 @@
 
 [0.15.0]: https://github.com/bostonaholic/skills/compare/v0.14.0...v0.15.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.15.1...HEAD
 [0.15.1]: https://github.com/bostonaholic/skills/compare/v0.15.0...v0.15.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/bostonaholic/skills/compare/v0.15.1...v0.16.0
