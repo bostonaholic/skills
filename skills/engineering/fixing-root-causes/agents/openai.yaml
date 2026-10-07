@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fixing Root Causes"
+  short_description: "Trace each symptom to its root and fix it there"
+  default_prompt: "Use $fixing-root-causes to trace each symptom to its root and fix it there."

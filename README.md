@@ -31,6 +31,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[drawing-mermaid-diagrams](./skills/engineering/drawing-mermaid-diagrams/SKILL.md)**: Write, render, and debug Mermaid diagrams.
 - **[explaining-architecture](./skills/engineering/explaining-architecture/SKILL.md)**: Explain how a subsystem or runtime flow works. Calls: `investigating-design-rationale`.
 - **[explaining-code](./skills/engineering/explaining-code/SKILL.md)**: Explain a PR, diff, or code briefly or in full. Calls: `explaining-architecture`.
+- **[fixing-root-causes](./skills/engineering/fixing-root-causes/SKILL.md)**: Trace each symptom to its root and fix it there.
 - **[freeing-disk-space](./skills/engineering/freeing-disk-space/SKILL.md)**: Find what fills the disk and clear regenerable files.
 - **[grooming-backlogs](./skills/engineering/grooming-backlogs/SKILL.md)**: Plan backlog grooming changes for approval.
 - **[investigating-design-rationale](./skills/engineering/investigating-design-rationale/SKILL.md)**: Investigate why code is shaped as it is. Calls: `explaining-architecture`.
