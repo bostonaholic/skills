@@ -26,14 +26,14 @@ import { readFileSync, realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const USAGE = "usage: node scripts/eval-verdict.mjs --runs <1|3> <aggregate-result.json>";
-const PASSING_RUNS_NEEDED = new Map([
+export const PASSING_RUNS_NEEDED = new Map([
   ["1", 1],
   ["3", 2],
 ]);
 const LIMIT_ERROR = /(usage|rate)[ -]limit/i;
 
 // Input the script cannot judge. The CLI reports its message and exits 2.
-class VerdictError extends Error {}
+export class VerdictError extends Error {}
 
 function parseArgs(args) {
   if (args[0] === "--runs" && args.length >= 2 && !PASSING_RUNS_NEEDED.has(args[1]))
@@ -43,7 +43,7 @@ function parseArgs(args) {
   return { runs: Number(args[1]), passingNeeded: PASSING_RUNS_NEEDED.get(args[1]), path: args[2] };
 }
 
-function readResult(path) {
+export function readResult(path) {
   let text;
   try {
     text = readFileSync(path, "utf8");
@@ -80,17 +80,17 @@ function checkRun(run, where) {
   });
 }
 
-// Returns the case's with-arm runs, validating each run's shape.
-function withArmRuns(evalCase, index) {
+// Returns the case's runs in one arm ("with" or "without"), validating each run's shape.
+export function armRuns(evalCase, index, arm = "with") {
   if (!isObject(evalCase)) throw new VerdictError(`cases[${index}] is not an object`);
   const where = `case ${evalCase.name}`;
   const { arms } = evalCase;
   if (arms !== undefined && arms !== null && !isObject(arms))
     throw new VerdictError(`${where}: arms is not an object`);
-  const withRuns = arms?.with ?? [];
-  if (!Array.isArray(withRuns)) throw new VerdictError(`${where}: arms.with is not an array`);
-  withRuns.forEach((run, runIndex) => checkRun(run, `${where}: arms.with[${runIndex}]`));
-  return withRuns;
+  const runs = arms?.[arm] ?? [];
+  if (!Array.isArray(runs)) throw new VerdictError(`${where}: arms.${arm} is not an array`);
+  runs.forEach((run, runIndex) => checkRun(run, `${where}: arms.${arm}[${runIndex}]`));
+  return runs;
 }
 
 function isExcluded(run) {
@@ -101,32 +101,43 @@ function endedClean(run) {
   return run.error === null || run.error === undefined;
 }
 
-function runPasses(run) {
+// A without-arm run ignores withOnly graders: they check that the skill fired, which it cannot.
+function runPasses(run, ignoreWithOnly) {
   return (
     endedClean(run) &&
-    run.graders.every((grader) => grader.scored === false || grader.passed === true)
+    run.graders.every(
+      (grader) =>
+        (ignoreWithOnly && grader.withOnly === true) ||
+        grader.scored === false ||
+        grader.passed === true,
+    )
   );
 }
 
-function judgeCase(evalCase, index, { runs, passingNeeded }) {
-  const withRuns = withArmRuns(evalCase, index);
-  if (withRuns.length > runs)
-    throw new VerdictError(
-      `case ${evalCase.name}: ${withRuns.length} with-arm runs exceed --runs ${runs}`,
-    );
-  const counted = withRuns.filter((run) => !isExcluded(run));
+// Applies the run and case rules to one arm's runs: { passing, counted, excluded, result }.
+export function tallyRuns(name, runs, { runs: expected, passingNeeded }, ignoreWithOnly = false) {
+  if (runs.length > expected)
+    throw new VerdictError(`case ${name}: ${runs.length} runs exceed --runs ${expected}`);
+  const counted = runs.filter((run) => !isExcluded(run));
   if (
     counted.some(
       (run) => endedClean(run) && !(Array.isArray(run.graders) && run.graders.length > 0),
     )
   ) {
-    throw new VerdictError(`case ${evalCase.name}: a run with no error has no graders list`);
+    throw new VerdictError(`case ${name}: a run with no error has no graders list`);
   }
-  const passing = counted.filter(runPasses).length;
-  const result = counted.length < runs ? "incomplete" : passing >= passingNeeded ? "pass" : "fail";
+  const passing = counted.filter((run) => runPasses(run, ignoreWithOnly)).length;
+  const result =
+    counted.length < expected ? "incomplete" : passing >= passingNeeded ? "pass" : "fail";
+  return { passing, counted: counted.length, excluded: runs.length - counted.length, result };
+}
+
+function judgeCase(evalCase, index, rule) {
+  const runs = armRuns(evalCase, index);
+  const tally = tallyRuns(evalCase.name, runs, rule);
   return {
     name: evalCase.name,
-    line: `${evalCase.name} ${passing}/${counted.length} excluded ${withRuns.length - counted.length} ${result}`,
+    line: `${evalCase.name} ${tally.passing}/${tally.counted} excluded ${tally.excluded} ${tally.result}`,
   };
 }
 

@@ -6,11 +6,12 @@
 // cases at --runs 3. Each tag runs as its own command, readonly then bash, so only bash cases get
 // the Edit and git grants. A tag with no selected case is skipped. Each command writes to
 // evals/results/<timestamp>-<model>-<tag>/, and scripts/eval-verdict.mjs then prints one line per
-// case; a selected case with no line prints as incomplete.
+// case; a selected case with no line prints as incomplete. scripts/eval-baseline.mjs then compares
+// each result with evals/baselines/<model>.json, or with --record-baseline writes it.
 // --check runs the free load check ($0 cap) and compiles every grader regex. It starts no run.
 // --dry-run prints the commands and runs nothing. Arguments after -- go to every claude command.
 // Exit 0 when every case passes (or the check is clean), 1 on any failing or incomplete case, a
-// load error, or a bad regex, and 2 on a bad argument.
+// case that regressed from its baseline, a load error, or a bad regex, and 2 on a bad argument.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
@@ -27,6 +28,7 @@ const USAGE = `usage: npm run eval -- [<skill>|<case>] [options] [-- <claude fla
   --no-scaffold        skip each case's scaffold.sh (default runs it)
   --no-keep-temp       delete run directories and traces (default keeps them)
   --publish            publish the HTML report to claude.ai (default local only)
+  --record-baseline    write results into evals/baselines/<model>.json (needs --runs 3)
   --check              free load check and grader regex compile; starts no run
   --dry-run            print the claude commands and run nothing`;
 const EVALS_DIR = "evals";
@@ -40,6 +42,7 @@ const DEFAULTS = {
   scaffold: true,
   keepTemp: true,
   publish: false,
+  recordBaseline: false,
   check: false,
   dryRun: false,
   passthrough: [],
@@ -75,6 +78,7 @@ export function parseArgs(args) {
     else if (arg === "--no-scaffold") options.scaffold = false;
     else if (arg === "--no-keep-temp") options.keepTemp = false;
     else if (arg === "--publish") options.publish = true;
+    else if (arg === "--record-baseline") options.recordBaseline = true;
     else if (arg === "--check") options.check = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "-h" || arg === "--help") return { help: true };
@@ -84,6 +88,8 @@ export function parseArgs(args) {
   }
   options.runs ??= options.target === undefined ? 1 : 3;
   if (![1, 3].includes(options.runs)) throw new UsageError("--runs must be 1 or 3");
+  if (options.recordBaseline && options.runs !== 3)
+    throw new UsageError("--record-baseline needs --runs 3");
   if (!Number.isInteger(options.jobs) || options.jobs < 1 || options.jobs > 8)
     throw new UsageError("-j must be an integer from 1 to 8");
   if (!options.tags.every((tag) => TAGS.includes(tag)))
@@ -217,7 +223,30 @@ function runCheck(commands, selected) {
   return ok && problems.length === 0;
 }
 
-function runEvals(commands, runs) {
+export function baselinePath(model) {
+  return join(EVALS_DIR, "baselines", `${model}.json`);
+}
+
+// Compares one result with the model's baseline, or records it there. Returns false on a regression
+// or a baseline error.
+function runBaseline(resultPath, { runs, model, recordBaseline }) {
+  const path = baselinePath(model);
+  if (!recordBaseline && !existsSync(path)) {
+    console.log(`== no baseline at ${path}; --record-baseline writes one`);
+    return true;
+  }
+  const mode = recordBaseline ? "record" : "compare";
+  console.log(`\n== baseline ${mode} (${path}):`);
+  const baseline = spawnSync(
+    process.execPath,
+    ["scripts/eval-baseline.mjs", mode, "--runs", String(runs), path, resultPath],
+    { stdio: "inherit" },
+  );
+  return baseline.status === 0;
+}
+
+function runEvals(commands, options) {
+  const { runs } = options;
   let ok = true;
   for (const { tag, cases, outputDir, args } of commands) {
     console.log(`\n== ${tag}: ${cases.length} case(s) -> ${outputDir}`);
@@ -244,6 +273,7 @@ function runEvals(commands, runs) {
     console.log(`\n== ${tag} verdicts (--runs ${runs}):`);
     for (const line of lines) console.log(line);
     if (lines.some((line) => !line.endsWith(" pass"))) ok = false;
+    if (!runBaseline(resultPath, options)) ok = false;
   }
   return ok;
 }
@@ -262,7 +292,7 @@ function main(args) {
       console.log(["claude", ...commandArgs].map(shellQuote).join(" "));
     return 0;
   }
-  const ok = options.check ? runCheck(commands, selected) : runEvals(commands, options.runs);
+  const ok = options.check ? runCheck(commands, selected) : runEvals(commands, options);
   return ok ? 0 : 1;
 }
 

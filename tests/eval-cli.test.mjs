@@ -9,6 +9,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import {
   badGraderRegexes,
+  baselinePath,
   discoverCases,
   parseArgs,
   planCommands,
@@ -54,6 +55,7 @@ test("defaults to Sonnet, --runs 1, -j 4, a Haiku judge, both tags, and no publi
     scaffold: true,
     keepTemp: true,
     publish: false,
+    recordBaseline: false,
     check: false,
     dryRun: false,
     passthrough: [],
@@ -85,6 +87,13 @@ test("every default has a flag that overrides it", (t) => {
 
 test("defaults to --runs 3 when a target is named", () => {
   assert.equal(parseArgs(["alpha"]).runs, 3);
+});
+
+test("--record-baseline needs --runs 3 and names the per-model baseline file", () => {
+  assert.equal(parseArgs(["--record-baseline", "--runs", "3"]).recordBaseline, true);
+  assert.equal(parseArgs(["alpha", "--record-baseline"]).recordBaseline, true);
+  assert.throws(() => parseArgs(["--record-baseline"]), /--record-baseline needs --runs 3/);
+  assert.equal(baselinePath("opus"), join("evals", "baselines", "opus.json"));
 });
 
 test("passes arguments after -- through unchanged", () => {

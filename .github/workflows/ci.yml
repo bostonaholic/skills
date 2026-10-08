@@ -20,3 +20,30 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: npm test
+
+  eval-scores:
+    name: Eval scores recorded (warns, never blocks)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+      # Exit 1 (a missing score) becomes a warning annotation; exit 2 (a broken check) fails.
+      - name: Check changed skills have new eval scores
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          status=0
+          out=$(node scripts/check-eval-baselines.mjs "$BASE_SHA") || status=$?
+          if [ "$status" -eq 1 ]; then
+            while IFS= read -r line; do echo "::warning title=Eval scores::$line"; done <<< "$out"
+          elif [ "$status" -ne 0 ]; then
+            echo "$out"
+            exit "$status"
+          fi
