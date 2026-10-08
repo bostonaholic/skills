@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs the eval suite with the flags docs/skill-authoring.md#running-the-evals requires.
-//   npm run eval -- [<skill>|<case>] [--model haiku|sonnet|opus] [--runs 1|3]
-//                   [--max-cost-usd <usd>] [-j <n>] [--check] [--dry-run] [-- <claude flags>]
+//   npm run eval -- [<skill>|<case>] [options] [-- <claude flags>]
+// Every default is in DEFAULTS and has a flag that overrides it; see USAGE.
 // With no target it runs the whole suite at --runs 1; with a skill or case name it runs those
 // cases at --runs 3. Each tag runs as its own command, readonly then bash, so only bash cases get
 // the Edit and git grants. A tag with no selected case is skipped. Each command writes to
@@ -16,11 +16,34 @@ import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const USAGE =
-  "usage: npm run eval -- [<skill>|<case>] [--model haiku|sonnet|opus] [--runs 1|3] " +
-  "[--max-cost-usd <usd>] [-j <n>] [--check] [--dry-run] [-- <claude flags>]";
+const USAGE = `usage: npm run eval -- [<skill>|<case>] [options] [-- <claude flags>]
+  --model <m>          model under test (default sonnet)
+  --runs 1|3           runs per case (default 1 for the suite, 3 for a skill or case)
+  --max-cost-usd <usd> cap per command (default from the model, tag, and scope)
+  -j, --jobs <n>       concurrent runs, 1 to 8 (default 4)
+  --judge-model <m>    llm grader model (default haiku)
+  --tag readonly|bash  run one tag only (default both)
+  --threshold <0..1>   claude's exit threshold (default 0)
+  --no-scaffold        skip each case's scaffold.sh (default runs it)
+  --no-keep-temp       delete run directories and traces (default keeps them)
+  --publish            publish the HTML report to claude.ai (default local only)
+  --check              free load check and grader regex compile; starts no run
+  --dry-run            print the claude commands and run nothing`;
 const EVALS_DIR = "evals";
 const TAGS = ["readonly", "bash"];
+const DEFAULTS = {
+  model: "sonnet",
+  jobs: 4,
+  judgeModel: "haiku",
+  tags: TAGS,
+  threshold: 0,
+  scaffold: true,
+  keepTemp: true,
+  publish: false,
+  check: false,
+  dryRun: false,
+  passthrough: [],
+};
 const BASH_GRANTS = ["--allow-tools", "Edit", "Bash(git status:*)", "Bash(git diff:*)"];
 // Per-command caps in USD, from docs/skill-authoring.md: recorded runs for the whole suite,
 // before-and-after caps for one skill or case.
@@ -33,7 +56,7 @@ const SCOPED_CAPS = { haiku: 5, sonnet: 10, opus: 30 };
 class UsageError extends Error {}
 
 export function parseArgs(args) {
-  const options = { model: "sonnet", jobs: 4, check: false, dryRun: false, passthrough: [] };
+  const options = { ...DEFAULTS };
   const rest = [...args];
   const value = (flag) => {
     if (rest.length === 0) throw new UsageError(`${flag} needs a value`);
@@ -46,9 +69,15 @@ export function parseArgs(args) {
     else if (arg === "--runs") options.runs = Number(value(arg));
     else if (arg === "--max-cost-usd") options.cap = Number(value(arg));
     else if (arg === "-j" || arg === "--jobs") options.jobs = Number(value(arg));
+    else if (arg === "--judge-model") options.judgeModel = value(arg);
+    else if (arg === "--tag") options.tags = [value(arg)];
+    else if (arg === "--threshold") options.threshold = Number(value(arg));
+    else if (arg === "--no-scaffold") options.scaffold = false;
+    else if (arg === "--no-keep-temp") options.keepTemp = false;
+    else if (arg === "--publish") options.publish = true;
     else if (arg === "--check") options.check = true;
     else if (arg === "--dry-run") options.dryRun = true;
-    else if (arg === "-h" || arg === "--help") throw new UsageError(USAGE);
+    else if (arg === "-h" || arg === "--help") return { help: true };
     else if (arg.startsWith("-")) throw new UsageError(`unknown flag ${arg}\n${USAGE}`);
     else if (options.target !== undefined) throw new UsageError(`one target only\n${USAGE}`);
     else options.target = arg;
@@ -57,6 +86,10 @@ export function parseArgs(args) {
   if (![1, 3].includes(options.runs)) throw new UsageError("--runs must be 1 or 3");
   if (!Number.isInteger(options.jobs) || options.jobs < 1 || options.jobs > 8)
     throw new UsageError("-j must be an integer from 1 to 8");
+  if (!options.tags.every((tag) => TAGS.includes(tag)))
+    throw new UsageError(`--tag must be one of ${TAGS.join(", ")}`);
+  if (!(options.threshold >= 0 && options.threshold <= 1))
+    throw new UsageError("--threshold must be a number from 0 to 1");
   if (options.cap !== undefined && !(options.cap >= 0))
     throw new UsageError("--max-cost-usd must be a number >= 0");
   if (options.cap === undefined && !(options.model in SCOPED_CAPS))
@@ -100,7 +133,7 @@ export function selectCases(cases, target) {
 
 // Returns one { tag, cases, outputDir, args } per tag that has a selected case.
 export function planCommands(options, selected, caseGlob, stamp) {
-  return TAGS.flatMap((tag) => {
+  return options.tags.flatMap((tag) => {
     const cases = selected.filter((c) => c.tags.includes(tag)).map((c) => c.name);
     if (cases.length === 0) return [];
     const caseArgs = caseGlob === undefined ? [] : ["--case", caseGlob];
@@ -114,10 +147,15 @@ export function planCommands(options, selected, caseGlob, stamp) {
       (caseGlob === undefined ? SUITE_CAPS[tag][options.model] : SCOPED_CAPS[options.model]);
     const outputDir = join(EVALS_DIR, "results", `${stamp}-${options.model}-${tag}`);
     const args = ["plugin", "eval", ".", "--tag", tag, ...caseArgs];
-    args.push("--runs", String(options.runs), "--threshold", "0", "--model", options.model);
-    args.push("--judge-model", "haiku", "-j", String(options.jobs), "--scaffold", "--keep-temp");
+    args.push("--runs", String(options.runs), "--threshold", String(options.threshold));
+    args.push("--model", options.model, "--judge-model", options.judgeModel);
+    args.push("-j", String(options.jobs));
+    if (options.scaffold) args.push("--scaffold");
+    if (options.keepTemp) args.push("--keep-temp");
     if (tag === "bash") args.push(...BASH_GRANTS);
-    args.push("--max-cost-usd", String(cap), "--no-publish", "--output-dir", outputDir);
+    args.push("--max-cost-usd", String(cap));
+    if (!options.publish) args.push("--no-publish");
+    args.push("--output-dir", outputDir);
     args.push(...options.passthrough);
     return [{ tag, cases, outputDir, args }];
   });
@@ -212,6 +250,10 @@ function runEvals(commands, runs) {
 
 function main(args) {
   const options = parseArgs(args);
+  if (options.help) {
+    console.log(USAGE);
+    return 0;
+  }
   const { selected, caseGlob } = selectCases(discoverCases(EVALS_DIR), options.target);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const commands = planCommands(options, selected, caseGlob, stamp);

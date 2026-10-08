@@ -135,8 +135,11 @@ npm run eval -- reviewing-code-core --model opus
 npm run eval -- reviewing-code --dry-run  # print the claude commands only
 ```
 
-Other flags: `--runs 1|3`, `--max-cost-usd <usd>` (per command), and
-`-j <n>`. Arguments after `--` go to every `claude` command, so an agent
+Every default has a flag that overrides it: `--runs 1|3`, `--max-cost-usd
+<usd>` (per command), `-j <n>`, `--judge-model <model>`, `--tag
+readonly|bash`, `--threshold <0..1>`, `--no-scaffold`, `--no-keep-temp`, and
+`--publish`. `npm run eval -- --help` lists them with their defaults.
+Arguments after a second `--` go to every `claude` command, so an agent
 session passes `npm run eval -- <target> -- --trust-plugin`. The sections
 below explain each default and the triage the wrapper does not do.
 

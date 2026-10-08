@@ -44,15 +44,43 @@ function syntheticSuite(t) {
 
 const STAMP = "STAMP";
 
-test("defaults to Sonnet, --runs 1, and -j 4 for the whole suite", () => {
+test("defaults to Sonnet, --runs 1, -j 4, a Haiku judge, both tags, and no publishing", () => {
   assert.deepEqual(parseArgs([]), {
     model: "sonnet",
     jobs: 4,
+    judgeModel: "haiku",
+    tags: ["readonly", "bash"],
+    threshold: 0,
+    scaffold: true,
+    keepTemp: true,
+    publish: false,
     check: false,
     dryRun: false,
     passthrough: [],
     runs: 1,
   });
+});
+
+test("every default has a flag that overrides it", (t) => {
+  const options = parseArgs(
+    ["--model", "opus", "--runs", "3", "--max-cost-usd", "7", "-j", "2"].concat(
+      ["--judge-model", "sonnet", "--tag", "bash", "--threshold", "0.5"],
+      ["--no-scaffold", "--no-keep-temp", "--publish"],
+    ),
+  );
+  const { selected, caseGlob } = selectCases(syntheticSuite(t), undefined);
+  const [bash, ...rest] = planCommands(options, selected, caseGlob, STAMP);
+  assert.equal(rest.length, 0);
+  assert.equal(bash.tag, "bash");
+  const after = (flag) => bash.args[bash.args.indexOf(flag) + 1];
+  assert.equal(after("--model"), "opus");
+  assert.equal(after("--runs"), "3");
+  assert.equal(after("--max-cost-usd"), "7");
+  assert.equal(after("-j"), "2");
+  assert.equal(after("--judge-model"), "sonnet");
+  assert.equal(after("--threshold"), "0.5");
+  for (const flag of ["--scaffold", "--keep-temp", "--no-publish"])
+    assert.ok(!bash.args.includes(flag), `${flag} still passed`);
 });
 
 test("defaults to --runs 3 when a target is named", () => {
@@ -66,10 +94,12 @@ test("passes arguments after -- through unchanged", () => {
   ]);
 });
 
-test("rejects --runs other than 1 or 3, two targets, and an unknown model with no cap", () => {
+test("rejects a bad --runs, --tag, or --threshold, two targets, and an unknown model with no cap", () => {
   assert.throws(() => parseArgs(["--runs", "2"]), /--runs must be 1 or 3/);
   assert.throws(() => parseArgs(["alpha", "beta"]), /one target only/);
   assert.throws(() => parseArgs(["--model", "claude-x"]), /pass --max-cost-usd/);
+  assert.throws(() => parseArgs(["--tag", "agent"]), /--tag must be one of/);
+  assert.throws(() => parseArgs(["--threshold", "2"]), /--threshold must be/);
   assert.equal(parseArgs(["--model", "claude-x", "--max-cost-usd", "3"]).cap, 3);
 });
 
@@ -199,6 +229,13 @@ test("--dry-run prints claude commands for a real skill and exits 0", () => {
   });
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^claude plugin eval \. --tag readonly --case 'reviewing-code-\*' /);
+});
+
+test("--help prints the usage and exits 0", () => {
+  const run = spawnSync(process.execPath, [CLI, "--help"], { encoding: "utf8" });
+  assert.equal(run.status, 0);
+  assert.match(run.stdout, /^usage: npm run eval -- /);
+  assert.match(run.stdout, /--no-keep-temp/);
 });
 
 test("a bad argument exits 2 with one stderr line", () => {
