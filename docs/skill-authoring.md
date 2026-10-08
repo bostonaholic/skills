@@ -136,6 +136,23 @@ repository files also holds `case.yaml` and a `scaffold.sh` that writes them
 into the run's workspace. Never use `context.add_dirs`: the CLI mounts that
 directory outside the workspace and denies reads of it.
 
+The CLI ends `prompt.md` frontmatter at the first `---` anywhere after the
+opening line, not at a line that is exactly `---`. A diff line such as
+`--- a/<file>`, a Markdown table separator, or a horizontal rule inside the
+frontmatter cuts it there. In the recorded runs, diff fixtures cut 11 cases,
+and part of each fixture reached the model as the user prompt. A `---` in the
+prompt body, after the frontmatter, is harmless.
+
+If a fixture holds `---`, move the whole `append_system_prompt` field to
+`case.yaml` under `execution.append_system_prompt` and delete it from
+`prompt.md`. When both files set the field, the `prompt.md` value replaces the
+`case.yaml` value. A case with no scaffold can hold a `case.yaml` with only
+`schema_version`, `name`, and `execution`. The
+[free load check](#free-load-check) did not catch any of the 11 cuts, because
+a cut that leaves valid YAML loads cleanly. After a paid run, check each
+case's `promptMarkdown` in `aggregate-result.json`: it should hold only the
+intended prompt body and no fixture text.
+
 Every case carries one of two run tags:
 
 - `readonly`: no Bash, Edit, or Write. The `agent` and `no-agent` tags split
@@ -245,6 +262,14 @@ in flight when it reaches the cap. Stop when the summed `costUsd` of all
 reruns reaches $30. The last rerun can take that sum past $30. A case not
 rerun keeps its `--runs 1` result, marked "single run".
 
+If the unspent Sonnet cap is at least three times the `costUsd` of the
+`--runs 1` pass, run the whole `readonly` suite at `--runs 3` on Sonnet
+instead of the per-case reruns. Run it after fixing the case bugs that the
+`--runs 1` failures expose. It gives every case that completes a `--runs 3`
+verdict. In the recorded run, the `--runs 1` pass cost $20.18 and the
+`--runs 3` pass $59.63. A case fixed after the `--runs 3` pass still needs
+its own `--runs 3` rerun from the $30 rerun budget.
+
 #### Verdicts
 
 The eval command's exit code gives no per-case verdict. After every eval
@@ -278,6 +303,17 @@ header states them:
 Read the error of every failed run. If an error names a limit in other words,
 the pattern missed it. Widen the pattern in the script, add a test, and rerun
 the script on the saved results file.
+
+A timeout can be an API stall, not skill behavior. In a stalled run's trace,
+a stream cut-off ("response above was cut off mid-stream"), `api_retry`
+events, or no model output at all is followed by nothing until the timeout.
+In the recorded runs, 57 Opus runs timed out, the stalled ones often after a
+single message. If a timed-out run's trace shows a stall, rerun the case alone
+with the same model and flags, paid from that model's cap; Sonnet reruns come
+from the $30 rerun budget. The recorded Opus reruns lowered `-j` to 2. The
+rerun's result replaces the stalled one, and a case that times out again
+keeps the failure. The verdict script still counts every timeout as a failed
+run, so this triage is by hand.
 
 Rerun an incomplete case alone with `--case '<skill>-<kind>'` and the same
 model and flags. Wait for any limit to reset first. Rerun it at most twice.
