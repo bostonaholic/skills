@@ -20,9 +20,13 @@ to the reviewer. Never ask the user to restate it.
   [posting reviews](references/posting-reviews.md) into the SHA-pair target
   `<base-sha>...<head-sha>`, the PR state, and the at-head flag. When that
   resolution fails, print `Stopped before review: <reason>.` and stop
-  before dispatch.
-- A branch, a commit range, a path, or no argument resolves into the base
-  and head refs, or the paths.
+  before dispatch. An argument of digits only is a PR number.
+- A branch goes through the same lookup and that reference's branch gate.
+  A branch whose local tip is its open PR's head resolves as a PR number
+  does. Any other branch resolves into the base and head refs, and its
+  review runs without a post.
+- A commit range, a path, or no argument resolves into the base and head
+  refs, or the paths.
 
 ## Steps
 

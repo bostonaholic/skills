@@ -9,6 +9,7 @@ on that PR, so nothing here asks the user first.
 - Classify the argument
 - Look up the PR
 - State
+- Branch gate
 - Local commits
 - Target and at-head flag
 - Errors and ownership
@@ -18,16 +19,19 @@ on that PR, so nothing here asks the user first.
 
 ## Classify the argument
 
-Classify `$ARGUMENTS` before any shell use. Only two forms are PR targets:
+Classify `$ARGUMENTS` before any shell use. Three forms get a PR lookup:
 
-- a bare PR number matching `^[0-9]+$`;
+- a bare PR number matching `^[0-9]+$`, even when a branch has that name;
 - a PR URL matching
-  `^https://[A-Za-z0-9.-]{1,253}/[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}/pull/[0-9]+$`.
+  `^https://[A-Za-z0-9.-]{1,253}/[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}/pull/[0-9]+$`;
+- a branch that matches `^[A-Za-z0-9._/-]{1,255}$` with no leading `-`,
+  checked under `LC_ALL=C`. A branch name outside this allowlist gets no
+  lookup, and the branch review runs without a post.
 
-Any other argument gets no lookup and keeps the resolution in `SKILL.md`
-Input as a branch, a commit range, or a path, and it never posts.
+A commit range, a path, or no argument gets no lookup, keeps the resolution
+in `SKILL.md` Input, and never posts.
 
-Even a validated value never appears in a shell word, because double quotes
+Even a validated URL never appears in a shell word, because double quotes
 do not stop `$(...)` ([never interpolate](shared/external-data.md)). Split a
 matched URL with parameter expansion into `$ARG_HOST`, `$ARG_OWNER`,
 `$ARG_REPO`, and `$ARG_NUMBER`, so the argument string itself reaches no
@@ -55,6 +59,10 @@ gh pr view "$ARG_NUMBER" --repo "$ARG_HOST/$ARG_OWNER/$ARG_REPO" \
   --jq '{url, state, headRefOid, baseRefOid, baseRefName}'
 ```
 
+For a branch, make the same call with the branch name as the positional and
+no `--repo`. The allowlist admits no shell metacharacter and no leading
+`-`, so the matched name can appear in the command text.
+
 Validate `url` with the PR URL pattern above, and validate `headRefOid` and
 `baseRefOid` with `^[0-9a-f]{40}$`. Split `url` with the same parameter
 expansion into `$HOST`, `$OWNER`, `$REPO`, and `$NUMBER`. Take them from the
@@ -65,8 +73,17 @@ repository fields name the contributor's fork.
 ## State
 
 `OPEN` can post. `MERGED` or `CLOSED` marks the target not posted, and step
-5 runs no script. The review still runs on the SHA pair, because the user
-asked for a review.
+5 runs no script. For a PR number or URL, the review still runs on the SHA
+pair, because the user asked for a review. For a branch, the branch review
+runs.
+
+## Branch gate
+
+A branch is a PR target only when its PR is `OPEN` and
+`git rev-parse --verify refs/heads/<branch>^{commit}` prints `headRefOid`.
+Otherwise the branch review runs without a post, and step 5 prints the
+`Not posted:` line for the reason. A branch that passes the gate continues
+as a PR number does, from Local commits on.
 
 ## Local commits
 
@@ -97,7 +114,9 @@ it with the SHA pair.
 ## Errors and ownership
 
 An Input failure stops a PR number or URL before dispatch with the
-`Stopped before review:` line below. The session lines close the set of
+`Stopped before review:` line below. For a branch, an Input failure only
+marks the target not posted, and the branch review runs with the base and
+head refs that `SKILL.md` Input resolves. The session lines close the set of
 reasons.
 
 The session holds the canonical URL, the state, both SHAs, the at-head
@@ -135,25 +154,27 @@ Every line the session prints after the report comes from this table.
 Placeholders in angle brackets take one value each. When several
 `Not posted:` rows apply, print only the first in table order.
 
-| Source                                                                                                | Session line                                                                                                                                                    |
-| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `posted <EVENT> <review-url>`                                                                         | `Posted <EVENT> review on <pr-url>: <review-url>`                                                                                                               |
-| `not-posted pr-merged` or `not-posted pr-closed`, or Input state `MERGED` or `CLOSED` (no script run) | `Not posted: PR #<n> is <state>.` with `<state>` as `merged` or `closed`                                                                                        |
-| `not-posted read-failed`                                                                              | `Not posted: the PR read before posting failed.` plus stderr verbatim, then `If the token expired, run gh auth login.`                                          |
-| `not-posted gh-unavailable`, or `command -v node gh` finds a tool missing (no script run)             | `Not posted: <tool> is not installed.`                                                                                                                          |
-| `failed http-<status>`                                                                                | `Post failed (HTTP <status>):` plus stderr verbatim. Add the pending-review hint when stderr names a pending review, and suggest `gh auth login` on HTTP 401    |
-| `failed gh-exit-<code>`                                                                               | `Post failed (gh exit <code>):` plus stderr verbatim, then `The review can still have posted. Check <pr-url> before you rerun.`                                 |
-| `unverified <reason>`                                                                                 | `Post unverified: <reason>. Check <pr-url> before you rerun.`                                                                                                   |
-| `downgraded <EVENT> self-authored`                                                                    | `Review event changed from <EVENT> to COMMENT: GitHub does not allow <EVENT> on your own PR.`                                                                   |
-| `downgraded APPROVE auto-merge`                                                                       | `Review event changed from APPROVE to COMMENT: auto-merge is on, and an approval can merge the PR with no human review. Approve by hand to merge.`              |
-| `downgraded APPROVE head-moved`                                                                       | `Review event changed from APPROVE to COMMENT: the PR head moved after the review.`                                                                             |
-| `downgraded APPROVE off-head`                                                                         | `Review event changed from APPROVE to COMMENT: the checkout was not at the PR head for the whole review. Check out the PR head for a test-backed verdict.`      |
-| `head-moved <sha>`                                                                                    | `The PR head moved to <sha>. The review is pinned to <reviewed-sha>.`                                                                                           |
-| Exit 2                                                                                                | `Not posted: <stderr reason>.`                                                                                                                                  |
-| Step 3 fails twice on a PR target                                                                     | `Not posted: the report failed the verdict contract.`                                                                                                           |
-| Step 2 granted no shell                                                                               | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                              |
-| Working tree, commit range, branch, or path target                                                    | `Not posted: the target is <kind>, not a PR. Pass the PR number or URL to post.` with `<kind>` as `the working tree`, `a commit range`, `a branch`, or `a path` |
-| Input failure, PR number or URL                                                                       | `Stopped before review: <reason>.` plus the failing command's stderr verbatim                                                                                   |
+| Source                                                                                                | Session line                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `posted <EVENT> <review-url>`                                                                         | `Posted <EVENT> review on <pr-url>: <review-url>`                                                                                                            |
+| `not-posted pr-merged` or `not-posted pr-closed`, or Input state `MERGED` or `CLOSED` (no script run) | `Not posted: PR #<n> is <state>.` with `<state>` as `merged` or `closed`                                                                                     |
+| `not-posted read-failed`                                                                              | `Not posted: the PR read before posting failed.` plus stderr verbatim, then `If the token expired, run gh auth login.`                                       |
+| `not-posted gh-unavailable`, or `command -v node gh` finds a tool missing (no script run)             | `Not posted: <tool> is not installed.`                                                                                                                       |
+| `failed http-<status>`                                                                                | `Post failed (HTTP <status>):` plus stderr verbatim. Add the pending-review hint when stderr names a pending review, and suggest `gh auth login` on HTTP 401 |
+| `failed gh-exit-<code>`                                                                               | `Post failed (gh exit <code>):` plus stderr verbatim, then `The review can still have posted. Check <pr-url> before you rerun.`                              |
+| `unverified <reason>`                                                                                 | `Post unverified: <reason>. Check <pr-url> before you rerun.`                                                                                                |
+| `downgraded <EVENT> self-authored`                                                                    | `Review event changed from <EVENT> to COMMENT: GitHub does not allow <EVENT> on your own PR.`                                                                |
+| `downgraded APPROVE auto-merge`                                                                       | `Review event changed from APPROVE to COMMENT: auto-merge is on, and an approval can merge the PR with no human review. Approve by hand to merge.`           |
+| `downgraded APPROVE head-moved`                                                                       | `Review event changed from APPROVE to COMMENT: the PR head moved after the review.`                                                                          |
+| `downgraded APPROVE off-head`                                                                         | `Review event changed from APPROVE to COMMENT: the checkout was not at the PR head for the whole review. Check out the PR head for a test-backed verdict.`   |
+| `head-moved <sha>`                                                                                    | `The PR head moved to <sha>. The review is pinned to <reviewed-sha>.`                                                                                        |
+| Exit 2                                                                                                | `Not posted: <stderr reason>.`                                                                                                                               |
+| Step 3 fails twice on a PR target                                                                     | `Not posted: the report failed the verdict contract.`                                                                                                        |
+| Step 2 granted no shell                                                                               | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                           |
+| Working tree, commit range, or path target                                                            | `Not posted: the target is <kind>, not a PR. Pass the PR number or URL to post.` with `<kind>` as `the working tree`, `a commit range`, or `a path`          |
+| Branch tip differs from the PR head                                                                   | `Not posted: local branch <branch> is at <tip>, but PR #<n>'s head is <head>.`                                                                               |
+| Input failure, PR number or URL                                                                       | `Stopped before review: <reason>.` plus the failing command's stderr verbatim                                                                                |
+| Input failure, branch                                                                                 | `Not posted: <reason>.` plus the failing command's stderr verbatim. The branch review still runs                                                             |
 
 The pending-review hint tells the user to submit or delete their pending
 review on the PR, then rerun. `<stderr reason>` is the rest of the script's
