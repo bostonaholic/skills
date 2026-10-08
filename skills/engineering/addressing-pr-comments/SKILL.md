@@ -120,6 +120,7 @@ number.
 
    Group by file, PR-level after files, clarification items last; number
    blocks globally. End with `Skipped <n> review-record comments.` when n > 0.
+
 8. **Re-request review** per [review re-request](references/review-re-request.md).
 9. **Stop.** Delete leftover throwaway tests, rerun the recorded `git status`,
    and report any path that differs; never restore what triage did not touch.
