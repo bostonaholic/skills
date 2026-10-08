@@ -91,6 +91,10 @@ quality.
   provably evaporated is not. Cite the `System Fit` item, as you do for a
   sibling implementation or an out-of-diff caller the change leaves behind.
 
+Write the path in each finding's `file:` line relative to the repository
+root, never absolute, so a posted review can anchor the finding to its diff
+line.
+
 ## Severity rules
 
 A flag that repeats means the same flag in more than one place in the diff.
