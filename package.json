@@ -16,6 +16,7 @@
     "format:check": "oxfmt --check",
     "sync-shared": "node scripts/sync-shared.mjs",
     "readme": "node scripts/catalog.mjs --write",
+    "eval": "node scripts/eval.mjs",
     "site": "node scripts/build-site.mjs _site",
     "release:prepare": "node scripts/release.mjs prepare",
     "release:check": "node scripts/release.mjs check",

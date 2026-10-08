@@ -17,6 +17,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 - F. Scripts and tools
 - G. Evaluation and iteration
   - Running the evals
+    - Quick start
     - Layout
     - Flags for every command
     - Free load check
@@ -118,6 +119,26 @@ costs money, so the suite never joins `npm test` or CI. Every case runs in
 two arms: with the plugin's skills (the with-arm) and without them (the
 without-arm), each `--runs` times. The report gives each arm's score and the
 difference between them.
+
+#### Quick start
+
+`npm run eval` wraps the commands on this page with their required flags.
+It runs the `readonly` and `bash` tags as separate commands, writes each
+to `evals/results/<timestamp>-<model>-<tag>/`, and runs the verdict script
+on each result. It exits 1 if any case fails or is incomplete.
+
+```sh
+npm run eval -- --check                   # free load check plus grader regex compile
+npm run eval                              # whole suite, Sonnet, --runs 1, recorded-run caps
+npm run eval -- reviewing-code            # one skill's cases, --runs 3, before-and-after cap
+npm run eval -- reviewing-code-core --model opus
+npm run eval -- reviewing-code --dry-run  # print the claude commands only
+```
+
+Other flags: `--runs 1|3`, `--max-cost-usd <usd>` (per command), and
+`-j <n>`. Arguments after `--` go to every `claude` command, so an agent
+session passes `npm run eval -- <target> -- --trust-plugin`. The sections
+below explain each default and the triage the wrapper does not do.
 
 #### Layout
 
