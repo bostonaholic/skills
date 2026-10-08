@@ -1,6 +1,6 @@
 ---
 name: watching-authored-prs
-description: Watches the user's own PR in a bounded loop, triaging new review feedback and reporting failing CI, or fixing it when granted, until approval. Use when the user explicitly asks to watch their PR for feedback or CI. Never infer from an open PR. Not for a PR the user reviewed; use watching-reviewed-prs.
+description: Watches the user's own PR in a bounded loop, triaging new review feedback and reporting failing CI, or fixing it when granted, until approval, then hands off to landing-prs without merging, even when asked to merge once approved. Use when the user explicitly asks to watch their PR for feedback or CI, including a watch that should merge on approval. Never infer from an open PR. Not for a PR the user reviewed; use watching-reviewed-prs.
 effort: medium
 argument-hint: "[<pr-number-or-url>]"
 ---
@@ -20,7 +20,7 @@ argument-hint: "[<pr-number-or-url>]"
 
 Watch the user's own PR in a bounded loop: triage new review feedback as it
 arrives, report each new CI failure once (or fix it under a CI fix grant), and
-hand off on approval. Never merge.
+hand off on approval. Never merge, even when asked to.
 
 Feedback arrives in three disjoint shapes: an inline review **thread**, which
 has a resolved bit, a **review summary**, and a **conversation comment**. The
@@ -65,6 +65,9 @@ grants CI only. Any other or unclear object, such as "fix everything", gives
 both their defaults, and the arm report then says `watch and fix comments and
 CI` is the phrase that grants both. When a cue is ambiguous about
 authorization, default to the safe grant.
+
+A merge, land, or ship clause, such as "and merge it once it is approved", is
+not a grant. The watch still ends with the approval hand-off and never merges.
 
 | Arming instruction                                         | Feedback          | CI     |
 | ---------------------------------------------------------- | ----------------- | ------ |
@@ -191,8 +194,10 @@ Beyond the watch loop's own stops, this skill stops on, and reports by name:
 `Feedback exclusion`, `Push failure`, `CI fix bound`, and `CI exclusion`.
 Green CI is not a stop.
 
-On approval, hand off and never land, even if the user asked for a merge: the
-merge decision belongs to the user, and a push after approval can dismiss it.
+On approval, hand off and never land: never run `/landing-prs` or
+`gh pr merge`, even when the arming instruction asks to merge once approved.
+The merge decision belongs to the user, and a push after approval can dismiss
+it.
 
 1. Report the approval.
 2. Run one final triage pass over the already fetched result: every unresolved
