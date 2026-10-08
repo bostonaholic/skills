@@ -5,6 +5,7 @@
 ### Changed
 
 - Keep exact formats, values, and edge cases the user cares about verbatim when `cutting-skills` trims a skill. [#83](https://github.com/bostonaholic/skills/pull/83)
+- Add a `## Pre-merge` documentation checkbox to PR bodies written by `using-gh-cli`, and fill in the repository's PR template when one exists. [#83](https://github.com/bostonaholic/skills/pull/83)
 
 ## [0.19.0] - 2026-10-08
 
