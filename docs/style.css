@@ -28,6 +28,7 @@
 }
 
 body {
+  position: relative;
   margin: 0;
   background: var(--bg);
   color: var(--fg);
@@ -171,4 +172,17 @@ footer,
 .muted {
   color: var(--muted);
   font-size: 0.9em;
+}
+
+/* Official GitHub ribbon, pinned to the top-right corner. */
+.fork-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+}
+
+.fork-ribbon img {
+  display: block;
+  border: 0;
 }
