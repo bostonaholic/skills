@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Route a diff already in the conversation to `reviewing-code` instead of an inline review. [#64](https://github.com/bostonaholic/skills/pull/64)
+
 ## [0.21.5] - 2026-10-10
 
 ### Fixed

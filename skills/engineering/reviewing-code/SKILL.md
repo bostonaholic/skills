@@ -1,6 +1,6 @@
 ---
 name: reviewing-code
-description: 'Reviews a code diff (PR, branch, commit range, or working tree) in a fresh-context read-only subagent and returns Conventional Comments findings with an APPROVE, REQUEST CHANGES, or COMMENT verdict. Use when asked to review code, a diff, or a PR. Not for design docs; use reviewing-design-docs.'
+description: 'Reviews a code diff (PR, branch, commit range, working tree, or a diff already in the conversation) in a fresh-context read-only subagent, because a session holding the conversation is a biased reviewer, and returns Conventional Comments findings with an APPROVE, REQUEST CHANGES, or COMMENT verdict. Use when asked to review code, a diff, or a PR, including a pasted diff, a .diff or .patch file, or a diff shown earlier; never review it inline. Not for design docs; use reviewing-design-docs.'
 effort: high
 argument-hint: "[<diff target>]"
 ---
@@ -10,9 +10,11 @@ argument-hint: "[<diff target>]"
 ## Target
 
 `$ARGUMENTS` names the diff: a PR number or URL, a branch, a commit range, or
-a path. With no argument, the target is the working tree's diff against the
-base branch. Resolve it once into concrete base and head refs (or paths) and
-hand that to the reviewer. Never ask the user to restate it.
+a path. A diff already in the conversation resolves to the refs it was taken
+from, or else to its text, passed verbatim. With no argument, the target is
+the working tree's diff against the base branch. Resolve it once into concrete
+base and head refs (or paths) and hand that to the reviewer. Never ask the
+user to restate it.
 
 ## Reviewer
 
