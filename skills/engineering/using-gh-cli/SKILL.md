@@ -76,7 +76,9 @@ inline.
 
 4. **Push and create.** Write the body to a file with the file-writing tool
    from the template below (default to adapt: drop `Closes` when there is no
-   issue), then pass it by path:
+   issue), then pass it by path. The ticket reference (`Closes #<n>`,
+   `Fixes #<n>`, `Part of <ref>`) is always the body's first line, above
+   `## Summary`:
 
    ```bash
    git push -u origin HEAD
@@ -86,6 +88,8 @@ inline.
    Keep single quotes out of the title.
 
    ```markdown
+   Closes #<issue>
+
    ## Summary
 
    - <main change and why>
@@ -94,8 +98,6 @@ inline.
    ## Test plan
 
    - [ ] <command or check that proves the change>
-
-   Closes #<issue>
    ```
 
 5. **Verify.**

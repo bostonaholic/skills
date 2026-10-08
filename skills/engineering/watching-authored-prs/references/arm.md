@@ -38,7 +38,7 @@ The arm report names both grants.
   so. End the arm report with the offer: say "the PR is ready for review" to
   promote it now.
 - Move the ticket to in-review, best effort. The ticket is the issue named by
-  the PR body's `Closes #<n>` or `Part of <ref>` footer; with no footer, or no
+  the PR body's `Closes #<n>` or `Part of <ref>` line; with no such line, or no
   reachable tracker, skip silently. Never move it while the PR is a draft
   (`gh pr view --json isDraft`): a draft keeps its in-progress state. A
   tracker call never blocks the watch.
