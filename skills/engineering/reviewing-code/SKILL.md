@@ -66,6 +66,7 @@ PR state, so it stays inline.
    file it links. The reviewer reads these before work; this session does
    not:
    [code standards](shared/code-standards.md),
+   [external text rules](shared/external-data.md),
    [finding format](shared/findings.md),
    [focused work rules](shared/focused-work.md),
    [testing rules](shared/testing.md),
@@ -75,8 +76,9 @@ PR state, so it stays inline.
 
 3. **Validate the verdict.** The report's first line must be a
    `**Verdict: ...**` line whose word token is exactly one of `APPROVE`,
-   `REQUEST CHANGES`, or `COMMENT`, as in `**Verdict: ✅ APPROVE**`. Match
-   the word, not the emoji. When it is missing or holds another token,
+   `REQUEST CHANGES`, or `COMMENT`, as in `**Verdict: ✅ APPROVE**`. Only
+   one of the emoji ✅, ❌, or 💬 may come before the token. Match the word,
+   not the emoji. When it is missing or holds another token,
    dispatch one new reviewer with the same inputs and name the failed
    contract. When the second report also fails, print it, name the failure,
    and stop. For a PR target, also print

@@ -108,7 +108,8 @@ branch name. A base or head push during the review then changes nothing
 the reviewer diffs.
 
 The at-head flag is yes when `git rev-parse HEAD` equals the head SHA and
-`git status --porcelain` prints nothing, untracked files included. Record
+`git status --porcelain --untracked-files=normal` prints nothing, untracked
+files included, whatever `status.showUntrackedFiles` says. Record
 it with the SHA pair.
 
 ## Errors and ownership

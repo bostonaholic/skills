@@ -13,7 +13,8 @@
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>` on the base
  * repository, matching `PR_URL_PATTERN`. `<head-sha>` is the 40-character
  * commit the reviewer diffed. `<report-file>` holds the report alone, its
- * first line the `**Verdict: ...**` line. The last argument is the at-head
+ * first line the `**Verdict: ...**` line: the token, optionally after one of
+ * the emoji ✅, ❌, or 💬 and a space. The last argument is the at-head
  * flag from Input. Run the script from the reviewed checkout. Requires `gh`
  * on PATH, signed in to `<host>`. Every `gh` call passes `--hostname <host>`,
  * github.com included, so a `GH_HOST` in the environment never redirects the
@@ -94,7 +95,9 @@ const PR_URL_PATTERN = new RegExp(
   "^https://[A-Za-z0-9.-]{1,253}/[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}/pull/[0-9]+$",
 );
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
-const VERDICT_LINE_PATTERN = /^\*\*Verdict: (?:\S+ )?(APPROVE|REQUEST CHANGES|COMMENT)\*\*\r?$/;
+// Only a verdict emoji may precede the token, so `**Verdict: NOT APPROVE**` is no verdict line.
+const VERDICT_LINE_PATTERN =
+  /^\*\*Verdict: (?:[✅❌💬] )?(APPROVE|REQUEST CHANGES|COMMENT)\*\*\r?$/u;
 // `gh api` reports an HTTP error on stderr as `gh: <message> (HTTP <status>)`.
 const HTTP_STATUS_PATTERN = /\(HTTP (\d{3})\)/;
 const CHECKOUT_FLAGS = new Set(["at-head", "off-head"]);
