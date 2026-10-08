@@ -48,6 +48,8 @@ For unstable provider claims, check current primary documentation.
   checklists and completion ceremony, subagent dispatch mechanics, repeated
   summaries, rigid report templates no parser or user preference needs, and
   history that does not change execution.
+- Keep verbatim any exact format, value, or edge case the user cares about.
+  A model drops a loose summary of one, so a paraphrase is a silent cut.
 - Do not replace readable instructions with dense slogans.
 - Do not move bulk into references to make `SKILL.md` look shorter.
 - Do not delete scripts, assets, or references on apparent non-use; find their

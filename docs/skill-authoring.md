@@ -56,11 +56,12 @@ with it.
 Tell the model what you care about, then stay out of its way: a skill holds
 only what a frontier model would otherwise get wrong.
 
-| ID  | Rule                                                                                                     |
-| --- | -------------------------------------------------------------------------------------------------------- |
-| B1  | Assume the agent is capable. Cut what it already knows; every paragraph must justify its tokens.         |
-| B2  | Match freedom to fragility: heuristics for open tasks, exact commands for fragile or ordered operations. |
-| B3  | Don't depend on one host's quirks.                                                                       |
+| ID  | Rule                                                                                                                                                                                                                             |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | Assume the agent is capable. Cut what it already knows; every paragraph must justify its tokens.                                                                                                                                 |
+| B2  | Match freedom to fragility: heuristics for open tasks, exact commands for fragile or ordered operations.                                                                                                                         |
+| B3  | Don't depend on one host's quirks.                                                                                                                                                                                               |
+| B4  | Keep verbatim any exact format, value, or edge case the user cares about. A model drops a loose summary of one: in [#81](https://github.com/bostonaholic/skills/pull/81), three such cuts each failed their eval until restored. |
 
 ## C. Structure and progressive disclosure
 
