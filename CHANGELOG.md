@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Make simplifying-ruby-code load for direct Ruby refactor requests by leading its description with the rewrite. [#74](https://github.com/bostonaholic/skills/pull/74)
+
 ## [0.21.9] - 2026-10-10
 
 ### Fixed
