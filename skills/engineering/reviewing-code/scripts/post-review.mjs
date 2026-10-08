@@ -11,11 +11,11 @@
  *     const { notPosted, event, notes } = decideReview(facts);
  *
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>` on the base
- * repository, matching `PR_URL_PATTERN`. `<head-sha>` is the 40-character
- * commit the reviewer diffed. `<report-file>` holds the report alone, its
- * first line the `**Verdict: ...**` line: the token, optionally after one of
- * the emoji ✅, ❌, or 💬 and a space. The last argument is the at-head
- * flag from Input. Run the script from the reviewed checkout. Requires `gh`
+ * repository, matching `PR_URL_PATTERN`, with no owner or repository of `.`
+ * or `..`. `<head-sha>` is the 40-character commit the reviewer diffed.
+ * `<report-file>` holds the report alone, its first line the
+ * `**Verdict: ...**` line: the token, optionally after one of the emoji ✅,
+ * ❌, or 💬 and a space. The last argument is the at-head flag from Input. Run the script from the reviewed checkout. Requires `gh`
  * on PATH, signed in to `<host>`. Every `gh` call passes `--hostname <host>`,
  * github.com included, so a `GH_HOST` in the environment never redirects the
  * read or the write.
@@ -107,6 +107,8 @@ const USAGE = `${SCRIPT} <pr-url> <head-sha> <report-file> <at-head|off-head>`;
 const PR_URL_PATTERN = new RegExp(
   "^https://[A-Za-z0-9.-]{1,253}/[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}/pull/[0-9]+$",
 );
+// `.` and `..` match the owner and repository classes but would rewrite the REST path.
+const DOT_SEGMENTS = new Set([".", ".."]);
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 // Only a verdict emoji may precede the token, so `**Verdict: NOT APPROVE**` is no verdict line.
 const VERDICT_LINE_PATTERN =
@@ -200,7 +202,8 @@ function downgradeReasons(verdictEvent, facts, headMoved) {
 function parseArguments(argv) {
   if (argv.length !== 4) return { usage: `usage: ${USAGE}` };
   const [prUrl, headSha, reportPath, inputFlag] = argv;
-  if (!PR_URL_PATTERN.test(prUrl))
+  const pullRequest = PR_URL_PATTERN.test(prUrl) ? parsePullRequestUrl(prUrl) : null;
+  if (!pullRequest || DOT_SEGMENTS.has(pullRequest.owner) || DOT_SEGMENTS.has(pullRequest.repo))
     return { usage: "the PR URL does not match https://<host>/<owner>/<repo>/pull/<n>" };
   if (!SHA_PATTERN.test(headSha))
     return { usage: "the head SHA is not a 40-character lowercase hex commit SHA" };
@@ -217,7 +220,6 @@ function parseArguments(argv) {
   const verdict = VERDICT_LINE_PATTERN.exec(firstLine)?.[1];
   if (!verdict) return { usage: "the report's first line is not a **Verdict: ...** line" };
 
-  const pullRequest = parsePullRequestUrl(prUrl);
   return { args: { pullRequest, prUrl, headSha, report, verdict, inputFlag } };
 }
 

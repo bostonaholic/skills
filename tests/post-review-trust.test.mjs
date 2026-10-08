@@ -1,7 +1,7 @@
 // Fails when post-review.mjs posts an APPROVE on a PR whose author is not an owner, member, or
 // collaborator (or whose association is missing), lowers a REQUEST CHANGES for that reason, reads
-// a verdict word with any prefix but a verdict emoji as a verdict, or posts an APPROVE through the
-// CLI while the PR has auto-merge on.
+// a verdict word with any prefix but a verdict emoji as a verdict, posts an APPROVE through the
+// CLI while the PR has auto-merge on, or accepts `.` or `..` as a PR URL's owner or repository.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -156,6 +156,24 @@ test("a verdict word after a prefix that is not a verdict emoji exits 2 with no 
   assert.match(run.stderr, /^post-review\.mjs: the report's first line is not a/m);
   assert.deepEqual(run.calls, []);
   assert.deepEqual(run.lines, []);
+});
+
+const DOT_SEGMENT_URLS = ["https://github.com/../r/pull/412", "https://github.com/o/./pull/412"];
+
+test("a PR URL whose owner or repository is a dot segment exits 2 with no gh call", async (t) => {
+  for (const prUrl of DOT_SEGMENT_URLS) {
+    await t.test(prUrl, (st) => {
+      const run = runScript(st, {
+        cwd: scratchDir(st, "post-review-trust-cwd-"),
+        args: [prUrl, REVIEWED_SHA, writeReport(st, APPROVE_REPORT), "at-head"],
+        responses: [],
+      });
+
+      assert.equal(run.status, 2);
+      assert.match(run.stderr, /^post-review\.mjs: the PR URL does not match/m);
+      assert.deepEqual(run.calls, []);
+    });
+  }
 });
 
 test("an APPROVE on a PR with auto-merge on posts COMMENT through the CLI", (t) => {
