@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Post `reviewing-code` reviews to the PR as APPROVE, REQUEST CHANGES, or COMMENT without asking first; APPROVE posts only on PRs by repository owners, members, or collaborators. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Post `reviewing-code` reviews to the PR as APPROVE, REQUEST CHANGES, or COMMENT without asking first; APPROVE posts only on PRs by repository owners, members, or collaborators, and a report that looks like it holds a credential never posts. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 
 ## [0.20.0] - 2026-10-08
 
