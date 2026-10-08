@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-08
+
 ### Changed
 
 - Trim every skill to the goal, gates, and gotchas a frontier model would otherwise get wrong, dropping checklists, report templates, and per-step subagent dispatch. [#81](https://github.com/bostonaholic/skills/pull/81)
@@ -285,5 +287,7 @@
 
 [0.17.0]: https://github.com/bostonaholic/skills/compare/v0.16.0...v0.17.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.18.0...HEAD
 [0.18.0]: https://github.com/bostonaholic/skills/compare/v0.17.0...v0.18.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/bostonaholic/skills/compare/v0.18.0...v0.19.0
