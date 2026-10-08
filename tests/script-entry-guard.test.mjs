@@ -182,3 +182,19 @@ test("importing re-request-review.mjs through a symlinked directory has no side 
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+test("post-review.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/reviewing-code/scripts"), "post-review.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^post-review\.mjs: usage: post-review\.mjs /);
+});
+
+test("importing post-review.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/reviewing-code/scripts"), "post-review.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});

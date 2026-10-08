@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Post `reviewing-code` reviews to the PR as APPROVE, REQUEST CHANGES, or COMMENT without asking first. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.20.0] - 2026-10-08
 
 ### Changed

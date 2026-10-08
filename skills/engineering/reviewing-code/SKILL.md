@@ -1,40 +1,88 @@
 ---
 name: reviewing-code
-description: 'Reviews a code diff (PR, branch, commit range, or working tree) in a fresh-context read-only subagent and returns Conventional Comments findings with an APPROVE, REQUEST CHANGES, or COMMENT verdict. Use when asked to review code, a diff, or a PR. Not for design docs; use reviewing-design-docs.'
+description: 'Reviews a diff (PR, branch, commit range, or working tree) in a fresh-context read-only subagent for Conventional Comments findings and an APPROVE, REQUEST CHANGES, or COMMENT verdict, posted to the PR. Use when asked to review code, a diff, or a PR. Not for design docs; use reviewing-design-docs.'
 effort: high
 argument-hint: "[<diff target>]"
 ---
 
 # Code Review
 
-## Target
+Read each linked file from this skill's directory when the step that uses it begins. If a read fails, stop that step and report the exact path.
 
-`$ARGUMENTS` names the diff: a PR number or URL, a branch, a commit range, or
-a path. With no argument, the target is the working tree's diff against the
-base branch. Resolve it once into concrete base and head refs (or paths) and
-hand that to the reviewer. Never ask the user to restate it.
+## Input
 
-## Reviewer
+`$ARGUMENTS` names the diff: a PR number or URL, a branch, a commit range,
+or a path. With no argument, the target is the working tree's diff against
+the base branch. Resolve it once into a concrete target and pass that target
+to the reviewer. Never ask the user to restate it.
 
-This session holds the author's conversation, so it cannot review the work
-([independent review rules](shared/independent-review.md)). Run the
-[code reviewer brief](references/code-reviewer.md) in a fresh-context
-subagent that holds no file-editing tool, and give it only the resolved
-target and the paths of the brief and the files it links:
-[finding format](shared/findings.md),
-[testing rules](shared/testing.md), and
-[code standards](shared/code-standards.md). If it has a shell, it runs only
-the project's test command and read-only git commands. If no such subagent
-can run, stop and say so. Never review inline.
+- A PR number or URL resolves through
+  [posting reviews](references/posting-reviews.md) into the SHA-pair target
+  `<base-sha>...<head-sha>`, the PR state, and the at-head flag. When that
+  resolution fails, print `Stopped before review: <reason>.` and stop
+  before dispatch.
+- A branch, a commit range, a path, or no argument resolves into the base
+  and head refs, or the paths.
 
-## Verdict and relay
+## Steps
 
-The report's first line must be a `**Verdict: ...**` line whose word is
-exactly `APPROVE`, `REQUEST CHANGES`, or `COMMENT` (match the word, not the
-emoji). When it is missing or wrong, run one new reviewer with the same
-inputs and name the failed contract. When the second report also fails,
-print it, name the failure, and stop. Never repair a verdict yourself.
+This session holds conversation history, so it is not a valid reviewer
+([independent review rules](shared/independent-review.md)). Never review
+inline. Step 2 is delegated under the
+[step delegation rules](shared/step-delegation.md), with the dispatch
+contract below; steps 1, 3, 4, and 5 stay in this session. Step 5 writes
+PR state, so it stays inline.
 
-Print the report in full. Name any heading deviation on its own line. When
-the read-only restriction rested on the reviewer's prompt rather than its
-tool grants, say so in one line after the report.
+1. **Load the brief.** Read the [code reviewer brief](references/code-reviewer.md),
+   including its [report format](references/code-reviewer.md#report-format).
+2. **Dispatch.** Run the reviewer in a fresh-context subagent that holds no
+   file-editing tool. On Claude Code, call the `Agent` tool with
+   `subagent_type: Explore` and `model: opus`. On a host without `Explore`,
+   spawn the host's general-purpose subagent with the brief as its role
+   instructions. Grant it read and search tools and a shell, and state in
+   its prompt that the shell runs only the project's test command and
+   read-only commands (`git diff`, `git log`, `git show`, `git blame`),
+   never a command that changes tracked files, the index, refs, or remote
+   state. When the host cannot give it a
+   shell, grant read and search only and say so in its prompt. If the host
+   cannot spawn a subagent, stop and report it. Record whether the
+   reviewer got a shell; step 5 reads it.
+
+   Pass the resolved target (the SHA pair for a PR), the absolute path of
+   this skill's directory, and the absolute paths of the brief and of each
+   file it links. The reviewer reads these before work; this session does
+   not:
+   [code standards](shared/code-standards.md),
+   [finding format](shared/findings.md),
+   [focused work rules](shared/focused-work.md),
+   [testing rules](shared/testing.md),
+   [verified results rules](shared/verified-results.md), and
+   [writing standards](shared/writing.md), plus the independent review rules
+   above.
+
+3. **Validate the verdict.** The report's first line must be a
+   `**Verdict: ...**` line whose word token is exactly one of `APPROVE`,
+   `REQUEST CHANGES`, or `COMMENT`, as in `**Verdict: ✅ APPROVE**`. Match
+   the word, not the emoji. When it is missing or holds another token,
+   dispatch one new reviewer with the same inputs and name the failed
+   contract. When the second report also fails, print it, name the failure,
+   and stop. For a PR target, also print
+   `Not posted: the report failed the verdict contract.` Never repair a
+   verdict yourself.
+4. **Relay.** Print the report in full, as the report format requires, and
+   name any heading deviation on its own line. When the reviewer ran as a
+   restricted general-purpose subagent, add one line after the report: the
+   read-only guarantee rests on the prompt, not the host.
+5. **Post.** Invoking this skill on a PR target is the request to post the
+   review on that PR, so never ask first. Post only when the target is a PR
+   that was `OPEN` at Input, step 2 gave the reviewer a shell, and the
+   at-head flag is yes. Otherwise print the first applicable `Not posted:`
+   line from the session lines in
+   [posting reviews](references/posting-reviews.md) and stop. To post, run
+   that reference's tool check. Write the report alone (from its verdict
+   line to its last line, as step 4 printed it, without the
+   heading-deviation or restricted-subagent lines) to a file in the host's
+   temporary directory with the file-writing tool
+   ([never interpolate](shared/external-data.md)). Run the script as that
+   reference shows, and print its session lines in the script's order.
+   Never print "Posted" unless the outcome is `posted`. Never retry.

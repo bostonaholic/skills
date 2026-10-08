@@ -1,4 +1,4 @@
 interface:
   display_name: "Reviewing Code"
-  short_description: "Review a diff in a fresh-context read-only subagent"
-  default_prompt: "Use $reviewing-code to review a diff in a fresh-context read-only subagent."
+  short_description: "Review a diff in a fresh-context read-only subagent and post it to the PR"
+  default_prompt: "Use $reviewing-code to review a diff in a fresh-context read-only subagent and post the review to its PR."
