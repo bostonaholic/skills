@@ -26,8 +26,19 @@ a PR from the base branch itself.
 
 The ticket reference (`Closes #<n>`, `Fixes #<n>`, `Part of <ref>`) is the
 body's first line, above `## Summary`; omit it when there is no ticket. Then
-`## Summary` (bullets: change and why) and `## Test plan` (checkboxes). Pass
-the body with `--body-file`.
+`## Summary` (bullets: change and why), `## Test plan` (checkboxes), and
+`## Pre-merge` with this item:
+
+```markdown
+- [ ] Documentation matches this change. <docs updated, or why none were needed>
+```
+
+Check it only after confirming that every doc the change makes stale (README,
+contributor and agent instructions, docs, changelog) is updated or
+regenerated; otherwise leave it unchecked and say what remains. Pass the body
+with `--body-file`, which skips the repository's PR template, so when the
+repository has one (`.github/pull_request_template.md` or similar), fill in its
+sections and checkboxes as well, merging any duplicate items.
 
 `gh pr checks` exits 8 while any check is pending, which is expected right
 after creation; 1 means a failure.

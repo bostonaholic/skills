@@ -1,5 +1,5 @@
 ---
-tags: [readonly, agent, github-mock]
+tags: [readonly, no-agent, github-mock]
 allowed_tools: [Read, Grep, Glob, Skill, TodoWrite, Agent]
 max_turns: 40
 timeout_seconds: 900
