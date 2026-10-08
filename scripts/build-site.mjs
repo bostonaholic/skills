@@ -95,10 +95,14 @@ function skillsHtml(catalog) {
   return lines;
 }
 
+// The official GitHub ribbon snippet: https://github.blog/news-insights/the-library/github-ribbons/
+const RIBBON = `<a class="fork-ribbon" href="${REPO_URL}"><img loading="lazy" decoding="async" width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>`;
+
 const FOOTER = `<footer><p>MIT License. Source: <a href="${REPO_URL}">github.com/bostonaholic/skills</a></p></footer>`;
 
 export function renderIndex(catalog) {
   return page(TITLE, "style.css", [
+    RIBBON,
     "<header>",
     `<h1>${escapeHtml(TITLE)}</h1>`,
     `<p>${escapeHtml(LEDE)}</p>`,
@@ -115,6 +119,7 @@ export function renderIndex(catalog) {
 // The 404 page is served at any missing path, so its stylesheet link is absolute.
 export function render404() {
   return page(`Page not found - ${TITLE}`, "/style.css", [
+    RIBBON,
     "<header>",
     `<p><a href="/">${escapeHtml(TITLE)}</a></p>`,
     `<p>${escapeHtml(LEDE)}</p>`,
