@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `proving-claims` reads all its procedure references before starting and states the required report parts, so its reports keep the summary table and confidence ratings. [#72](https://github.com/bostonaholic/skills/pull/72)
+
 ## [0.18.0] - 2026-10-08
 
 ### Changed
