@@ -114,4 +114,4 @@ append_system_prompt: |
   ```
 ---
 
-Open a pull request for my current branch against main. Paste the title and body in your reply.
+Open a pull request for my current branch against main.

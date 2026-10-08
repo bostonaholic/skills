@@ -140,4 +140,4 @@ end
 EOF_4
 
 git init -q
-git add -A
+git add lib/importer.rb test/importer_test.rb

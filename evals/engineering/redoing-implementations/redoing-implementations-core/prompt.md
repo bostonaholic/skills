@@ -9,8 +9,8 @@ append_system_prompt: |
 
   git-status.txt:
   ```text
-   M lib/importer.rb
-   M test/importer_test.rb
+  A  lib/importer.rb
+  A  test/importer_test.rb
   ?? lib/importer/dedup_strategy.rb
   ?? lib/importer/row_dedup_cache.rb
   ```
