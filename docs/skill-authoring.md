@@ -53,11 +53,14 @@ with it.
 
 ## B. Concision and freedom
 
+Tell the model what you care about, then stay out of its way: a skill holds
+only what a frontier model would otherwise get wrong.
+
 | ID  | Rule                                                                                                     |
 | --- | -------------------------------------------------------------------------------------------------------- |
 | B1  | Assume the agent is capable. Cut what it already knows; every paragraph must justify its tokens.         |
 | B2  | Match freedom to fragility: heuristics for open tasks, exact commands for fragile or ordered operations. |
-| B3  | Write instructions that work on small and large models alike.                                            |
+| B3  | Don't depend on one host's quirks.                                                                       |
 
 ## C. Structure and progressive disclosure
 
@@ -71,24 +74,24 @@ with it.
 
 ## D. Workflows and feedback loops
 
-| ID  | Rule                                                                                                                                                                                                                                                                                    |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Complex tasks are clear, numbered steps.                                                                                                                                                                                                                                                |
-| D2  | Particularly complex workflows include a progress checklist the agent copies and checks off.                                                                                                                                                                                            |
-| D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.                                                                                                                                                                            |
-| D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                                                                                                                                                                                           |
-| D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact.                                                                                                                                                               |
-| D6  | Numbered steps delegate to fresh-context subagents by default, per `shared/step-delegation.md`. The skill links that file, names its delegated steps, and gives each one an output contract. Claude Code and Codex both spawn subagents only when instructed, so the skill must say it. |
+| ID  | Rule                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | Number steps only where order or a gate matters.                                                                                                                               |
+| D2  | (retired)                                                                                                                                                                      |
+| D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.                                                                   |
+| D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                                                                                  |
+| D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact.                                                      |
+| D6  | Use subagents only where independence or context isolation is the point (for example an independent reviewer), and say so in one sentence; never prescribe dispatch mechanics. |
 
 ## E. Content
 
-| ID  | Rule                                                                                                                                                                                      |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E1  | No time-sensitive or machine-specific facts. Keep history in a collapsed "Old patterns" block. Pin a subagent model by tier alias (`opus`, `sonnet`, `haiku`), never by a dated model ID. |
-| E2  | One term per concept across a skill and its references.                                                                                                                                   |
-| E3  | Output templates state their strictness: exact, or a default to adapt.                                                                                                                    |
-| E4  | Concrete input and output examples where style matters.                                                                                                                                   |
-| E5  | Offer one default with an escape hatch, not a menu of options.                                                                                                                            |
+| ID  | Rule                                                                                           |
+| --- | ---------------------------------------------------------------------------------------------- |
+| E1  | No time-sensitive or machine-specific facts. Keep history in a collapsed "Old patterns" block. |
+| E2  | One term per concept across a skill and its references.                                        |
+| E3  | Output templates state their strictness: exact, or a default to adapt.                         |
+| E4  | Concrete input and output examples where style matters.                                        |
+| E5  | Offer one default with an escape hatch, not a menu of options.                                 |
 
 ## F. Scripts and tools
 

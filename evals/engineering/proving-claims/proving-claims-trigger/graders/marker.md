@@ -1,5 +1,6 @@
 ---
 type: regex
-pattern: '\|[ \t]*[*_]*Claim[*_]*[ \t]*\|[ \t]*[*_]*Verdict[*_]*[ \t]*\|[ \t]*[*_]*Confidence[*_]*[ \t]*\|'
+pattern: '\|[^\n|]*\bClaim\b[^\n]*\|[^\n|]*\bVerdict\b[^\n]*\|[^\n|]*\bConfidence\b'
 target: last_message
+flags: i
 ---

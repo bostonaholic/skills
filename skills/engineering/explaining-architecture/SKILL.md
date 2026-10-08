@@ -5,49 +5,47 @@ effort: medium
 argument-hint: "[<subsystem, feature, or question>]"
 ---
 
-# How — Architectural Explanation
+# Explaining architecture
 
 Answer "how does X work?" with the mental model a senior engineer needs to
 start working in an unfamiliar subsystem: its architecture, flow, and sharp
 edges, not annotated source code.
 
-When the question is about motivation, rejected alternatives, or history rather
-than mechanics, call the Skill tool with `investigating-design-rationale`
-instead. If that skill is not installed, say so and answer the mechanics only.
+When the question is about motivation, rejected alternatives, or history
+rather than mechanics, call the Skill tool with
+`investigating-design-rationale` instead. If that skill is not installed, say
+so and answer the mechanics only.
 
-This skill is **read-only**: it writes no files, records no artifacts, and
-changes no state, in this session and in every subagent it dispatches.
+The skill is read-only: it writes no files and changes no state.
 
 ## Input
 
-`$ARGUMENTS` is the question: a subsystem, a feature flow, or a placement
-question ("where should this validation live").
+`$ARGUMENTS` is a subsystem, a feature flow, or a placement question ("where
+should this validation live"). When it is empty or vague, infer the target
+from conversation context and state your interpretation in one line before
+exploring. Do not ask first.
 
-- **Given**: parse the target and scope directly from the argument.
-- **Empty or vague**: infer the target from conversation context (open files,
-  recent edits, what was just discussed). **State your interpretation in one
-  line before exploring.** Do not ask first.
+## Explain
 
-## Modes
+Read the implementation; never infer behavior from file or function names.
+Trace each flow from trigger to effect. Where you cannot trace a link, say so
+instead of inventing it. Claims about code carry `file:line`, and a flow step
+names the function that runs it.
 
-- **Explain** (default): follow [explain mode](references/explain-mode.md),
-  then write the answer in the [output format](references/output-format.md).
-- **Critique**: selected when the request asks for problems, issues, or
-  improvements. Run Explain in full, then follow
-  [critique mode](references/critique-mode.md). Read that file only in
-  Critique mode.
+Adapt the answer to the question; use only the sections it needs:
 
-Explain steps 2 and 3 and Critique step 1 are delegated under the
-[step delegation rules](shared/step-delegation.md); every other step stays
-in this session.
+- **Overview**: what it is, what it does, why it exists, in a paragraph or
+  two.
+- **Key Concepts**: the abstractions needed to follow the rest.
+- **How It Works**: trigger, steps, data movement, decision points, in prose.
+  Add a mermaid diagram only when the flow crosses several components.
+- **Where Things Live**: the file map someone needs to start, not every file.
+- **Gotchas**: surprising behavior, historical residue, sharp edges.
 
-Read each linked file from this skill's directory when the step that uses it
-begins. If a read fails, stop that step and report the exact path.
+When something is complex, explain why. Leave out how you explored,
+background the question did not raise, and restatement.
 
-## Applied principles
+## Critique
 
-- Before dispatching explorers, read [focused work rules](shared/focused-work.md).
-- Before dispatching critics, read
-  [independent review rules](shared/independent-review.md).
-- Before writing the answer, read
-  [verified results rules](shared/verified-results.md).
+Run only when the request asks for problems, issues, or improvements. Finish
+the explanation first, then follow [critique mode](references/critique-mode.md).

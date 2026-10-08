@@ -25,29 +25,7 @@ metadata mapping) in Fowler's
   business operations performed as independent saves, so a mid-sequence failure
   leaves the database half-written.
 
-**Before (smell: related writes not coordinated):**
-
-```ruby
-def transfer(from_account, to_account, amount)
-  from_account.update!(balance: from_account.balance - amount)
-  to_account.update!(balance: to_account.balance + amount)   # raises here: money vanished
-  Transfer.create!(from: from_account, to: to_account, amount: amount)
-end
-```
-
-**After (one business transaction, one database transaction):**
-
-```ruby
-def transfer(from_account, to_account, amount)
-  ActiveRecord::Base.transaction do
-    from_account.with_lock do
-      from_account.update!(balance: from_account.balance - amount)
-      to_account.update!(balance: to_account.balance + amount)
-      Transfer.create!(from: from_account, to: to_account, amount: amount)
-    end
-  end
-end
-```
+**Fix:** One business transaction, one database transaction.
 
 **Finding rule:** flag sequences of dependent `save!`, `update!`, or `create!`
 across records with no wrapping transaction. Severity CRITICAL on money and
@@ -65,23 +43,7 @@ since they cannot roll back.
   consequence to hunt: two in-memory copies of the same row where a write to one
   is invisible to the other, causing stale-state bugs.
 
-**Before (smell: an aliased row, decisions made on the stale copy):**
-
-```ruby
-order = Order.find(params[:id])
-same_order = current_user.orders.find(params[:id])   # different Ruby object, same row
-order.update!(status: "paid")
-same_order.update!(notes: params[:notes])            # no stale write, but:
-same_order.status                                     # => "pending"
-```
-
-**After (thread one instance through, or `reload` at trust boundaries):**
-
-```ruby
-order = current_user.orders.find(params[:id])
-order.update!(status: "paid")
-order.update!(notes: params[:notes])   # one identity, one state
-```
+**Fix:** Thread one instance through, or `reload` at trust boundaries.
 
 **Finding rule:** flag methods loading the same record through two paths,
 especially load, mutate, then decide flows. Cite Identity Map (the pattern Rails
@@ -95,30 +57,7 @@ lacks, so code must compensate).
 - **Rails relevance:** associations are lazy by default, the source of the **N+1
   query** problem, the most common Rails performance debt.
 
-**Before (smell: lazy load in a loop):**
-
-```ruby
-# controller
-@posts = Post.published.limit(20)
-
-# view
-@posts.each do |post|
-  post.author.name        # +1 query per post
-  post.comments.count     # +1 query per post
-end
-```
-
-**After (eager load what the view touches; a counter cache for counts):**
-
-```ruby
-@posts = Post.published.includes(:author).limit(20)
-
-# migration + model
-add_column :posts, :comments_count, :integer, default: 0, null: false
-belongs_to :post, counter_cache: true   # on Comment
-
-post.comments_count
-```
+**Fix:** Eager load what the view touches; a counter cache for counts.
 
 **Finding rule:** flag association access inside iteration over a relation
 loaded without `includes`, `preload`, or `eager_load`. Recommend
@@ -138,22 +77,7 @@ loaded without `includes`, `preload`, or `eager_load`. Recommend
   breaks when the business value changes, or raw sequential IDs exposed where
   enumeration is a risk.
 
-**Before (smell: a natural key as identity and foreign key):**
-
-```ruby
-create_table :orders do |t|
-  t.string :customer_email   # "foreign key" by email
-end
-customer.update!(email: new_email)   # orphans every order
-```
-
-**After (surrogate identity; natural attributes stay mutable data):**
-
-```ruby
-create_table :orders do |t|
-  t.references :customer, null: false, foreign_key: true
-end
-```
+**Fix:** Surrogate identity; natural attributes stay mutable data.
 
 **Finding rule:** flag joins and lookups on mutable business attributes used as
 identity. Cite Identity Field.
@@ -169,9 +93,6 @@ identity. Cite Identity Field.
   delegated types; the hand-rolled version is an unnamed, untested Inheritance
   Mapper.
 
-**Before and after:** see Single Table Inheritance below. The after for a
-hand-rolled dispatcher is STI or `delegated_type`.
-
 ### Foreign Key Mapping
 
 - **Definition**
@@ -181,29 +102,8 @@ hand-rolled dispatcher is STI or `delegated_type`.
   without database constraints (orphan rows), and associations navigated by
   hand.
 
-**Before (smell: implicit foreign key, no constraint, hand navigation):**
-
-```ruby
-create_table :comments do |t|
-  t.integer :post_id          # no foreign_key constraint, no index
-end
-
-class Comment < ApplicationRecord
-  def post = Post.find_by(id: post_id)   # hand-rolled association
-end
-```
-
-**After:**
-
-```ruby
-create_table :comments do |t|
-  t.references :post, null: false, foreign_key: true, index: true
-end
-
-class Comment < ApplicationRecord
-  belongs_to :post
-end
-```
+**Fix:** `t.references :post, null: false, foreign_key: true, index: true` in
+the migration, and `belongs_to :post` on the model.
 
 **Finding rule:** compare `_id` columns in the schema against `add_foreign_key`
 lines; flag `_id` columns lacking constraints or indexes, and models
@@ -219,29 +119,8 @@ re-implementing association lookup. Cite Foreign Key Mapping.
   Smells: serialized ID arrays instead of a join table, and HABTM when the join
   has (or grows) attributes.
 
-**Before (smell: association stored as serialized IDs, unqueryable and
-unconstrained):**
-
-```ruby
-class User < ApplicationRecord
-  serialize :team_ids, type: Array   # or a comma-separated string column
-  def teams = Team.where(id: team_ids)
-end
-```
-
-**After:**
-
-```ruby
-class Membership < ApplicationRecord
-  belongs_to :user
-  belongs_to :team
-end
-
-class User < ApplicationRecord
-  has_many :memberships
-  has_many :teams, through: :memberships
-end
-```
+**Fix:** A join model (`Membership` with `belongs_to :user` and
+`belongs_to :team`) and `has_many :teams, through: :memberships`.
 
 **Finding rule:** flag serialized or comma-separated ID columns, and HABTM joins
 that need attributes (role, joined_at). Cite Association Table Mapping.
@@ -255,25 +134,7 @@ that need attributes (role, joined_at). Cite Association Table Mapping.
   dependent children exposed as independent top-level records, with their own
   controllers and routes and no `dependent:` cleanup, so orphans accumulate.
 
-**Before (smell: line items treated as independent aggregates):**
-
-```ruby
-class LineItem < ApplicationRecord
-  belongs_to :order, optional: true    # orphanable
-end
-# routes: resources :line_items  (top-level create/destroy, bypassing the order)
-```
-
-**After (the owner manages its dependents, which is also DDD's Aggregate
-rule):**
-
-```ruby
-class Order < ApplicationRecord
-  has_many :line_items, dependent: :destroy
-  accepts_nested_attributes_for :line_items, allow_destroy: true
-end
-# routes: resources :orders (line items only through their order)
-```
+**Fix:** The owner manages its dependents, which is also DDD's Aggregate rule.
 
 **Finding rule:** flag `has_many` without `dependent:` where children are
 meaningless alone, and top-level routes for dependent records. Cite Dependent
@@ -288,26 +149,9 @@ Mapping and DDD Aggregates (domainlanguage.com).
   groups. Smell: column clumps (`street`, `city`, `zip`; `amount_cents`,
   `currency`) manipulated as loose primitives with duplicated logic.
 
-**Before (smell: a data clump, with logic duplicated at every use site):**
-
-```ruby
-"#{user.billing_street}, #{user.billing_city} #{user.billing_zip}"
-# ...same formatting re-implemented in mailers, views, exports
-```
-
-**After:**
-
-```ruby
-Address = Data.define(:street, :city, :zip) do   # Ruby 3.2+
-  def to_s = "#{street}, #{city} #{zip}"
-end
-
-class User < ApplicationRecord
-  def billing_address
-    Address.new(street: billing_street, city: billing_city, zip: billing_zip)
-  end
-end
-```
+**Fix:** A value object over the column group, such as
+`Address = Data.define(:street, :city, :zip)` returned by
+`User#billing_address`, with the shared logic on it.
 
 **Finding rule:** flag column groups always used together (Fowler's Data Clumps
 smell). Cite Embedded Value, Value Object, and Replace Primitive with Object
@@ -323,23 +167,7 @@ smell). Cite Embedded Value, Value Object, and Replace Primitive with Object
   opaque blobs; a smell when the app _queries or joins on_ the serialized data,
   or when relational children hide inside it.
 
-**Before (smell: relational data trapped in a LOB, queried with LIKE):**
-
-```ruby
-class Order < ApplicationRecord
-  serialize :items, coder: YAML   # [{sku:, qty:, price:}, ...]
-end
-Order.where("items LIKE ?", "%#{sku}%")   # unindexable, false positives
-```
-
-**After (promote queried structure to tables; keep LOBs for opaque data):**
-
-```ruby
-class Order < ApplicationRecord
-  has_many :line_items
-end
-Order.joins(:line_items).where(line_items: { sku: sku })
-```
+**Fix:** Promote queried structure to tables; keep LOBs for opaque data.
 
 **Finding rule:** flag `LIKE` or string matching against serialized columns, and
 serialized arrays of hashes with stable schemas. Cite Serialized LOB; Fowler
@@ -355,34 +183,7 @@ notes a LOB cannot be queried, so promote it once querying starts.
   switches instead of STI; (2) STI abuse, with subclasses so divergent the table
   is mostly NULL columns.
 
-**Before (smell 1: a type flag with case statements everywhere):**
-
-```ruby
-class Notification < ApplicationRecord
-  def deliver
-    case kind
-    when "email" then NotificationMailer.notify(self).deliver_later
-    when "sms"   then SmsClient.send(phone, body)
-    when "push"  then PushService.publish(device_token, body)
-    end
-  end
-  # ...and another case statement in #preview, #retryable?, ...
-end
-```
-
-**After (STI, which is Replace Conditional with Polymorphism):**
-
-```ruby
-class Notification < ApplicationRecord; end
-
-class EmailNotification < Notification
-  def deliver = NotificationMailer.notify(self).deliver_later
-end
-
-class SmsNotification < Notification
-  def deliver = SmsClient.send(phone, body)
-end
-```
+**Fix:** STI, which is Replace Conditional with Polymorphism.
 
 **Smell 2 (STI abuse) before:** one `vehicles` table with 40 columns where
 `Boat` uses 8 and `Truck` uses 9. **After:** separate tables (Concrete Table
@@ -404,17 +205,7 @@ single-table coupling).
   composition. Cite it when hand-rolled parent and child table splits leak join
   logic everywhere.
 
-**After (Rails idiom):**
-
-```ruby
-class Entry < ApplicationRecord
-  delegated_type :entryable, types: %w[Message Comment]
-end
-
-class Message < ApplicationRecord
-  has_one :entry, as: :entryable
-end
-```
+**Fix:** `delegated_type` or composition.
 
 ### Concrete Table Inheritance
 
@@ -426,27 +217,8 @@ end
   abstract class or concern. Smell: copy-pasted columns _and_ copy-pasted logic
   across sibling tables with no shared supertype.
 
-**Before (smell: parallel models, duplicated logic):**
-
-```ruby
-class CreditCardPayment < ApplicationRecord
-  def receipt_number = "PAY-#{id}-#{created_at.to_i}"   # duplicated
-end
-class BankTransferPayment < ApplicationRecord
-  def receipt_number = "PAY-#{id}-#{created_at.to_i}"   # duplicated
-end
-```
-
-**After:**
-
-```ruby
-class Payment < ApplicationRecord
-  self.abstract_class = true
-  def receipt_number = "PAY-#{id}-#{created_at.to_i}"
-end
-class CreditCardPayment < Payment; end
-class BankTransferPayment < Payment; end
-```
+**Fix:** An abstract supertype (`self.abstract_class = true`) holding the shared
+methods, which each concrete model subclasses.
 
 **Finding rule:** flag duplicated methods across models with parallel schemas.
 Cite Concrete Table Inheritance and DRY.
@@ -463,18 +235,7 @@ Cite Concrete Table Inheritance and DRY.
   hand-maintained column lists, `attr_accessor` shadowing real columns (silently
   detaching an attribute from persistence), or stale `self.table_name` hacks.
 
-**Before (smell: `attr_accessor` shadowing a column, so writes silently stop
-persisting):**
-
-```ruby
-class User < ApplicationRecord
-  attr_accessor :email   # column exists; this shadows the ActiveRecord attribute
-end
-user.update!(email: "a@example.com")  # in-memory only; DB value unchanged
-```
-
-**After:** delete the shadowing accessor and let the metadata mapping provide
-it.
+**Fix:** delete the shadowing accessor and let the metadata mapping provide it.
 
 **Finding rule:** grep `attr_accessor` and `attr_writer` in models against the
 schema's columns. Severity HIGH: this is a silent data-loss bug. Cite Metadata
@@ -491,28 +252,7 @@ Mapping.
   duplicated across call sites, and SQL string fragments concatenated
   conditionally.
 
-**Before (smell: duplicated ad hoc query logic):**
-
-```ruby
-# admin controller
-Order.where(status: "paid").where("total > ?", 100).where(created_at: range).joins(:customer).merge(Customer.active)
-# report job: the same query, slightly diverged (a bug farm)
-Order.where(status: "paid").where("total >= ?", 100).joins(:customer).merge(Customer.active)
-```
-
-**After (one named scope both call sites compose):**
-
-```ruby
-class Order < ApplicationRecord
-  scope :paid, -> { where(status: "paid") }
-  scope :high_value, ->(minimum: 100) {
-    paid.joins(:customer).merge(Customer.active).where("orders.total > ?", minimum)
-  }
-end
-
-Order.high_value.where(created_at: range)   # admin controller
-Order.high_value                            # report job
-```
+**Fix:** One named scope both call sites compose.
 
 **Finding rule:** flag query chains of three or more conditions appearing (or
 nearly appearing) in several places. Cite Query Object and DRY.
@@ -528,21 +268,7 @@ nearly appearing) in several places. Cite Query Object and DRY.
   their absence. Cite Repository for the _leak_ smell: query construction spread
   through views and controllers, so the data layer has no boundary at all.
 
-**Before (smell: query construction in the view):**
-
-```erb
-<% Product.where(category: @category).where("price < ?", params[:max]).order(:name).each do |product| %>
-```
-
-**After (collection-like access behind the model's query layer):**
-
-```ruby
-# controller
-@products = Product.affordable_in(@category, max: params[:max])
-
-# model
-scope :affordable_in, ->(category, max:) { where(category:).where(price: ..max).order(:name) }
-```
+**Fix:** Collection-like access behind the model's query layer.
 
 **Finding rule:** flag ActiveRecord queries in views, helpers, and serializers.
 Cite Repository and MVC separation.

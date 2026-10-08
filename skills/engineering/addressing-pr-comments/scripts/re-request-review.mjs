@@ -56,7 +56,7 @@
  *     only that reviewer's pending request or newer review clears it.
  *
  * An outcome marker is a whole line `<!-- feedback-outcome: <url> -->` in a
- * viewer comment body. `references/authorized-execution.md` writes it at the
+ * viewer comment body. `SKILL.md` ("Applying") writes it at the
  * end of each outcome reply. The url must equal the item url exactly, so
  * `#issuecomment-123` never clears `#issuecomment-12`. Another author's
  * marker clears nothing.

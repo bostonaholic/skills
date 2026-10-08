@@ -33,18 +33,6 @@ instruction files (`CLAUDE.md`, `AGENTS.md`).
 Cite `file:line` for every claim about the code. Suggest a comment only when it
 explains why the code is not written another way.
 
-## Examples
-
-Input: "The cache returns stale data; the logic is in `cache.ts` and
-`store.ts`. Find the root cause."
-Output: the write path and read path traced to the line where invalidation is
-skipped, the reproduction that shows it, and the one-line fix.
-
-Input: "Refactor the duplication between `processData` and `transformData`
-without breaking callers."
-Output: every call site, the shared core, a strategy that keeps both public
-signatures, and the risks to test.
-
 ## Output
 
 Use this shape by default, and adapt the headings to the question:

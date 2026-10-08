@@ -32,54 +32,10 @@ list.
 - **Smell signals:** actions over 10 lines, business branching, direct model
   attribute manipulation, several model writes per action.
 
-**Before:**
-
-```ruby
-def create
-  @user = User.new(user_params)
-  @user.trial_ends_at = 14.days.from_now
-  @user.referral_code = SecureRandom.hex(4)
-  if params[:referrer_code].present?
-    referrer = User.find_by(referral_code: params[:referrer_code])
-    referrer&.increment!(:referral_count)
-    @user.referred_by = referrer
-  end
-  if @user.save
-    WelcomeMailer.welcome(@user).deliver_later
-    redirect_to dashboard_path
-  else
-    render :new, status: :unprocessable_entity
-  end
-end
-```
-
-**After (the controller does HTTP; the model owns its defaults and the sign-up
-operation):**
-
-```ruby
-def create
-  @user = User.sign_up!(user_params, referrer_code: params[:referrer_code])
-  redirect_to dashboard_path
-rescue ActiveRecord::RecordInvalid => error
-  @user = error.record
-  render :new, status: :unprocessable_entity
-end
-
-class User < ApplicationRecord
-  attribute :trial_ends_at, default: -> { 14.days.from_now }
-  attribute :referral_code, default: -> { SecureRandom.hex(4) }
-
-  def self.sign_up!(attributes, referrer_code: nil)
-    referrer = find_by(referral_code: referrer_code) if referrer_code.present?
-    user = transaction do
-      referrer&.increment!(:referral_count)
-      create!(attributes.merge(referred_by: referrer))
-    end
-    WelcomeMailer.welcome(user).deliver_later
-    user
-  end
-end
-```
+**Fix:** The controller does HTTP only. The model owns attribute defaults
+(`attribute :trial_ends_at, default: -> { 14.days.from_now }`) and a
+`User.sign_up!` class method that wraps the record and referral writes in one
+transaction.
 
 ## Fat model or god model
 
@@ -93,7 +49,7 @@ end
   Objects, Policy Objects, Decorators. Choose the simplest that removes the
   smell: a Service or Form Object only when it holds state or orchestrates
   several models. See Active Record in
-  [data source patterns](references/poeaa-data-source.md) for before and after.
+  [data source patterns](references/poeaa-data-source.md).
 
 ## Callback abuse
 
@@ -106,35 +62,10 @@ end
   call external services couple every save path (imports, backfills, tests) to
   side effects.
 
-**Before:**
-
-```ruby
-class Comment < ApplicationRecord
-  after_create :notify_everyone
-
-  private
-
-  def notify_everyone
-    post.touch(:last_activity_at)                    # writes another record
-    post.subscribers.each { |s| NotifyJob.perform_later(s.id, id) }  # fan-out on save
-  end
-end
-# Comment.create! in a data migration just emailed 40,000 people
-```
-
-**After (an explicit operation on the owning model, called only where a person
-comments):**
-
-```ruby
-class Post < ApplicationRecord
-  def add_comment!(author:, body:)
-    comment = comments.create!(author:, body:)
-    touch(:last_activity_at)
-    subscribers.find_each { |subscriber| NotifyJob.perform_later(subscriber.id, comment.id) }
-    comment
-  end
-end
-```
+**Fix:** Move the side effects into an explicit operation on the owning model
+(`Post#add_comment!` creates the comment, touches the post, and enqueues
+notifications), called only where a person comments, so imports and backfills
+skip them.
 
 ## default_scope
 
@@ -145,25 +76,8 @@ end
   `Model.new` defaults, and must be escaped with `unscoped`, which dangerously
   drops _all_ scoping.
 
-**Before:**
-
-```ruby
-class Post < ApplicationRecord
-  default_scope { where(deleted_at: nil).order(created_at: :desc) }
-end
-Post.find(hidden_id)         # RecordNotFound, mystifying
-Post.unscoped.where(...)     # now also lost the tenant scope someone added later
-```
-
-**After:**
-
-```ruby
-class Post < ApplicationRecord
-  scope :kept, -> { where(deleted_at: nil) }
-  scope :newest_first, -> { order(created_at: :desc) }
-end
-Post.kept.newest_first
-```
+**Fix:** Named scopes applied explicitly (`scope :kept`, `scope :newest_first`;
+`Post.kept.newest_first`).
 
 ## N+1 queries
 
@@ -176,21 +90,13 @@ Recommend `strict_loading` or the bullet gem as guard rails.
 
 - **Violates:** the
   [Rails Security Guide](https://guides.rubyonrails.org/security.html#sql-injection).
-  Severity CRITICAL.
+  Severity CRITICAL. `order`, `pluck`, and `group` are injectable too, not
+  only `where`.
 
-**Before:**
-
-```ruby
-User.where("name LIKE '%#{params[:q]}%'")
-Order.order(params[:sort])   # order, pluck, and group are also injectable
-```
-
-**After:**
-
-```ruby
-User.where("name LIKE ?", "%#{User.sanitize_sql_like(params[:q])}%")
-Order.order(Order.column_names.include?(params[:sort]) ? params[:sort] : :created_at)
-```
+**Fix:** Bind parameters and escape wildcards
+(`where("name LIKE ?", "%#{User.sanitize_sql_like(params[:q])}%")`); check a
+user-supplied sort against an allowlist such as `Order.column_names` before
+passing it to `order`.
 
 **Finding rule:** grep for `#{` inside `where(`, `order(`, `group(`, `having(`,
 `joins(`, `select(`, and `find_by_sql`.
@@ -200,26 +106,11 @@ Order.order(Order.column_names.include?(params[:sort]) ? params[:sort] : :create
 - **Violates:** the
   [Law of Demeter](https://en.wikipedia.org/wiki/Law_of_Demeter); Rails
   AntiPatterns chapter 1.
+- **Smell:** `order.customer.billing_address.city` raises on any nil hop and
+  breaks every call site when the association graph changes.
 
-**Before:**
-
-```ruby
-order.customer.billing_address.city
-# the view raises NoMethodError on nil when any hop is missing;
-# reshaping the association graph breaks every call site
-```
-
-**After:**
-
-```ruby
-class Order < ApplicationRecord
-  delegate :billing_city, to: :customer, allow_nil: true
-end
-class Customer < ApplicationRecord
-  delegate :city, to: :billing_address, prefix: :billing, allow_nil: true
-end
-order.billing_city
-```
+**Fix:** `delegate` one hop at a time with `allow_nil: true` (and `prefix:`),
+so callers write `order.billing_city`.
 
 ## Business logic in views, helpers as a junk drawer
 
@@ -246,20 +137,7 @@ one-instance-variable-per-view rule.
   concerns reaching into host internals, so the "module" is really a fragment of
   a god class.
 
-**Before:**
-
-```ruby
-module OrderStuff
-  extend ActiveSupport::Concern
-  # tax math + CSV export + Slack pings, included only by Order
-end
-```
-
-**After:** split by responsibility into the simplest home: tax math as `Order`
-methods, CSV export as a module function, Slack pings through a `SlackGateway`
-(see Gateway in [base patterns](references/poeaa-base.md)). A concern is
-justified when the _same behavior with the same contract_ is shared, such as
-`Archivable` across several models.
+**Fix:** split by responsibility into the simplest home: tax math as `Order` methods, CSV export as a module function, Slack pings through a `SlackGateway` (see Gateway in [base patterns](references/poeaa-base.md)). A concern is justified when the _same behavior with the same contract_ is shared, such as `Archivable` across several models.
 
 ## Migration and schema debt
 
@@ -271,18 +149,8 @@ justified when the _same behavior with the same contract_ is shared, such as
   duplicates, as the guide documents); data manipulation inside schema
   migrations that reference model classes.
 
-**Before:**
-
-```ruby
-validates :email, uniqueness: true      # no unique index: two concurrent signups both pass
-```
-
-**After:**
-
-```ruby
-add_index :users, :email, unique: true  # constraint where it is enforceable
-validates :email, uniqueness: true      # kept for friendly errors
-```
+**Fix:** Add `add_index :users, :email, unique: true` under
+`validates :email, uniqueness: true`; keep the validation for friendly errors.
 
 ## Time and zone bugs
 
@@ -300,31 +168,8 @@ validates :email, uniqueness: true      # kept for friendly errors
 - **Smells:** jobs that fail halfway and re-run side effects on retry (double
   emails, double charges); giant serialized arguments.
 
-**Before:**
-
-```ruby
-class ChargeJob < ApplicationJob
-  def perform(order_id)
-    order = Order.find(order_id)
-    PaymentGateway.charge(order.user.card_token, order.total)   # retry: double charge
-    order.update!(status: "paid")
-  end
-end
-```
-
-**After:**
-
-```ruby
-class ChargeJob < ApplicationJob
-  def perform(order_id)
-    order = Order.find(order_id)
-    return if order.paid?                                   # idempotency guard
-    PaymentGateway.charge(order.user.card_token, order.total,
-                          idempotency_key: "order-charge-#{order.id}")
-    order.update!(status: "paid")
-  end
-end
-```
+**Fix:** Pass IDs, not objects. Guard the side effect (`return if order.paid?`)
+and pass the gateway an idempotency key (`idempotency_key: "order-charge-#{order.id}"`).
 
 ## Boolean flag columns growing into a state machine
 
@@ -332,13 +177,8 @@ end
   (refactoring.com).
 - **Before:** `approved`, `rejected`, `archived`, `published` boolean columns
   with impossible combinations (`approved && rejected`). **After:** one `status`
-  enum (or a state-machine gem) with declared transitions:
-
-```ruby
-class Article < ApplicationRecord
-  enum :status, { draft: 0, in_review: 1, published: 2, archived: 3 }
-end
-```
+  enum (or a state-machine gem) with declared transitions, such as
+  `enum :status, { draft: 0, in_review: 1, published: 2, archived: 3 }`.
 
 ## update_attribute, update_column, save(validate: false)
 
@@ -354,24 +194,5 @@ end
 - **Violates:** Fail Fast, Fail Loud; the
   [Ruby Style Guide](https://rubystyle.guide/#no-blind-rescues).
 
-**Before:**
-
-```ruby
-total = calculate_total(order) rescue 0
-begin
-  sync_to_crm(user)
-rescue => e
-  # swallowed
-end
-```
-
-**After:**
-
-```ruby
-begin
-  sync_to_crm(user)
-rescue CrmGateway::Error => error
-  Rails.error.report(error, context: { user_id: user.id })
-  raise if critical_path?
-end
-```
+**Fix:** Rescue the specific error class, report it
+(`Rails.error.report(error, context: ...)`), and re-raise on a critical path.

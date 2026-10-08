@@ -1,43 +1,29 @@
 # Critique mode
 
-Start from the finished explanation.
+Critique through three lenses, each in a fresh-context, read-only subagent
+given the explanation, the relevant paths, and its lens, so it judges the
+code rather than your explanation. Where subagents are unavailable, run the
+lenses yourself and say so.
 
-1. **Dispatch critics.** Three fresh-context critics, all **in one
-   message**, through the `Agent` tool with `subagent_type: Explore` and
-   `model: sonnet`, one lens each. On a host without `Explore`, such as
-   Codex, spawn fresh-context subagents per the
-   [step delegation rules](shared/step-delegation.md), state in each prompt
-   that it is read-only, and note in the verdict that the read-only
-   guarantee rests on the prompt, not the host. The lenses:
-   - _Abstraction fit and boundary discipline_ — does each abstraction
-     earn its place; do boundaries sit where things change
-     independently; is validation at entry points; is it testable in
-     isolation?
-   - _Data model and complexity spend_ — do structures fit access
-     patterns; are types honest about runtime shapes; is complexity where
-     the domain needs it or leaked into accidental places?
-   - _Evolution readiness and consistency_ — how much moves when the
-     likely next requirement lands; which hardcoded assumptions would
-     need relaxing; does the area follow the codebase's established
-     patterns, and is any divergence explained?
+- **Abstraction fit and boundary discipline**: does each abstraction earn its
+  place; do boundaries sit where things change independently; is validation
+  at entry points; is it testable in isolation?
+- **Data model and complexity spend**: do structures fit access patterns; are
+  types honest about runtime shapes; is complexity where the domain needs it?
+- **Evolution readiness and consistency**: how much moves when the likely next
+  requirement lands; which hardcoded assumptions would need relaxing; does the
+  area follow the codebase's patterns, and is any divergence explained?
 
-   Each critic receives the explanation, the relevant file paths, and
-   its lens; it reads the actual code and forms its own judgment — the
-   explanation is a map, not the verdict. Each finding comes back rated
-   **structural** (wrong boundary, broken model, coupling that blocks
-   future work), **concern** (real friction, not fundamental), or
-   **observation** (worth noting), with concrete code evidence — a
-   dependency chain shown, never asserted. Architectural findings only:
-   line-level review belongs to `reviewing-code`, and a rewrite may not be
-   suggested without a demonstrated problem. If dispatch is
-   unavailable, run the three lenses yourself sequentially and say so.
+Each finding is **structural** (wrong boundary, broken model, coupling that
+blocks future work), **concern** (real friction), or **observation**, with
+code evidence: a dependency chain shown, never asserted. Architectural
+findings only; line-level review belongs to `reviewing-code`. Never suggest a
+rewrite without a demonstrated problem.
 
-2. **Judge as the lead**, not an aggregator. Sort every finding into
-   **Act on** (worth fixing now), **Consider** (real, unclear
-   cost/benefit), **Noted** (valid, low priority), or **Dismissed**
-   (wrong, missing context, or style preference — say which).
-   For each **Act on** item, name the smallest corrective change, its rough
-   effort, a material trade-off, and the fact that would change the advice.
+Judge as the lead, not an aggregator. Sort every finding into **Act on**,
+**Consider** (real, unclear cost/benefit), **Noted**, or **Dismissed** (wrong,
+missing context, or style preference; say which). For each **Act on** item,
+name the smallest corrective change, a material trade-off, and the fact that
+would change the advice.
 
-3. **Present.** The explanation first, standing on its own; the critique
-   verdict below it.
+Present the explanation first, standing on its own, with the verdict below it.

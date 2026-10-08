@@ -37,18 +37,14 @@
     "./skills/engineering/merging-dependabot-prs",
     "./skills/engineering/proving-claims",
     "./skills/engineering/rebasing-branches",
-    "./skills/engineering/rebasing-dependabot-prs",
     "./skills/engineering/rebasing-open-prs",
     "./skills/engineering/redoing-implementations",
     "./skills/engineering/removing-comments",
     "./skills/engineering/reviewing-code",
     "./skills/engineering/reviewing-design-docs",
-    "./skills/engineering/reviewing-rails-code",
-    "./skills/engineering/reviewing-ruby-code",
     "./skills/engineering/simplifying-ruby-code",
     "./skills/engineering/summarizing-friction-logs",
     "./skills/engineering/using-gh-cli",
-    "./skills/engineering/using-jq",
     "./skills/engineering/verifying-production-changes",
     "./skills/engineering/watching-authored-prs",
     "./skills/engineering/watching-reviewed-prs",
@@ -66,7 +62,6 @@
     "./skills/productivity/writing-system-prompts"
   ],
   "agents": [
-    "./agents/clean-code-architect.md",
     "./agents/oracle.md"
   ]
 }

@@ -1,12 +1,5 @@
 # Report format
 
-## Contents
-
-- Severity and points
-- Grade and verdict
-- Report template
-- Example finding
-
 ## Severity and points
 
 Rate each verified finding in exactly one row. One root cause is one finding:

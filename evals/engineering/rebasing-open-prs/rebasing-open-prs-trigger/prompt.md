@@ -63,7 +63,7 @@ append_system_prompt: |
       "author": "app/dependabot",
       "url": "https://github.acme.invalid/acme/api/pull/48",
       "rebaseable": false,
-      "skipReason": "dependabot (another push stops Dependabot updating it; use /rebasing-dependabot-prs)"
+      "skipReason": "dependabot (another push stops Dependabot updating it; use /merging-dependabot-prs)"
     }
   ]
   ```

@@ -21,30 +21,7 @@ Source: the Data Source Architectural Patterns in Fowler's
   with raw SQL scattered through the app, so table access is no longer
   centralized and schema changes fan out unpredictably.
 
-**Before (smell: raw SQL for the same table scattered across controllers and
-jobs):**
-
-```ruby
-# app/controllers/reports_controller.rb
-rows = ActiveRecord::Base.connection.select_all(
-  "SELECT * FROM orders WHERE status = 'paid' AND created_at > '#{30.days.ago}'"
-)
-
-# app/jobs/export_job.rb
-rows = ActiveRecord::Base.connection.select_all("SELECT * FROM orders WHERE status = 'paid'")
-```
-
-**After (all access to the table through one gateway, the model's query
-interface):**
-
-```ruby
-class Order < ApplicationRecord
-  scope :paid, -> { where(status: "paid") }
-  scope :recent, ->(since = 30.days.ago) { where(created_at: since..) }
-end
-
-Order.paid.recent   # controllers and jobs use the gateway
-```
+**Fix:** All access to the table through one gateway, the model's query interface.
 
 **Finding rule:** grep for `connection.select_all`, `connection.execute`, and
 `find_by_sql` naming a table that has a model. Cite Table Data Gateway; add the
@@ -61,29 +38,7 @@ Rails Security Guide if strings are interpolated.
   results that duplicate what the model already provides, usually born from a
   performance workaround that then accretes logic.
 
-**Before (smell: a hand-rolled row wrapper shadowing the model):**
-
-```ruby
-class OrderRow
-  def initialize(row_hash)
-    @row = row_hash
-  end
-
-  def total = @row["total"].to_d
-  def paid? = @row["status"] == "paid"
-end
-
-rows = ActiveRecord::Base.connection.select_all("SELECT * FROM orders WHERE ...")
-orders = rows.map { |row| OrderRow.new(row) }
-```
-
-**After (use the model; if the motivation was fewer columns, use `select`,
-`pluck`, or `pick`):**
-
-```ruby
-orders = Order.paid.select(:id, :total, :status)
-orders.first.paid?   # real model, real behavior, no duplicate wrapper
-```
+**Fix:** Use the model; if the motivation was fewer columns, use `select`, `pluck`, or `pick`.
 
 **Finding rule:** flag classes wrapping `select_all` hashes for tables that have
 models. Cite Row Data Gateway and Active Record (the wrapper duplicates the
@@ -101,38 +56,7 @@ framework's own pattern).
   smell is the **god model**: one ActiveRecord class absorbing the logic of a
   whole subsystem because "logic goes in models."
 
-**Before (smell: a god model far past Active Record's carrying capacity):**
-
-```ruby
-class User < ApplicationRecord
-  # 1,800 lines: authentication, billing, notification prefs, referral
-  # program, CSV export, admin reporting, avatar processing, ...
-  def charge_subscription!; ...; end
-  def export_activity_csv; ...; end
-  def process_avatar!; ...; end
-  def referral_bonus_for(friend); ...; end
-end
-```
-
-**After (Extract Class for concepts with their own table; a module function for
-stateless logic that does not map to the users table):**
-
-```ruby
-class User < ApplicationRecord
-  has_one :billing_account
-  has_one :referral_account
-end
-
-class BillingAccount < ApplicationRecord
-  def charge_subscription!; ...; end
-end
-
-module UserActivityExport
-  module_function
-
-  def to_csv(user); ...; end
-end
-```
+**Fix:** Extract Class for concepts with their own table; a module function for stateless logic that does not map to the users table.
 
 **Finding rule:** flag ActiveRecord models over about 300 to 500 lines, or with
 method clusters that share no table columns (measure cohesion: do methods use
@@ -151,27 +75,7 @@ Class (refactoring.com).
   for example, a pure calculation or policy subclassing `ApplicationRecord` with
   no durable state to store, or a tableless hack.
 
-**Before (smell: persistence bolted onto a pure calculation):**
-
-```ruby
-class ShippingQuote < ApplicationRecord
-  # table exists only to hold intermediate calculation state;
-  # rows are written, read once, and abandoned
-  def self.for(order)
-    create!(weight: order.weight, zone: order.zone, amount: compute(order))
-  end
-end
-```
-
-**After (compute on demand; persist only what the business must keep):**
-
-```ruby
-class Order < ApplicationRecord
-  def shipping_quote
-    RateTable.for(zone).price(weight)
-  end
-end
-```
+**Fix:** Compute on demand; persist only what the business must keep.
 
 **Finding rule:** flag ActiveRecord subclasses whose tables hold no durable
 business state (write-once scratch tables, or calculation caches better served

@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'Before\s*→\s*After[*_]*:'
+pattern: '\b(?:CRITICAL|HIGH|MEDIUM|LOW)\b'
 target: last_message
 ---

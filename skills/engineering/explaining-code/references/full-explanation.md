@@ -1,91 +1,62 @@
 # Full explanation (ELIE)
 
-Write for the person reviewing the code, not the person who wrote it. Assume
-the reviewer knows software engineering fundamentals but none of this
-codebase's internals, local vocabulary, arbitrary labels, or symbols. Use a
-reference format the reader can skim past concepts they already know, and
-deliver the complete explanation in chat as skimmable Markdown.
+Write for the person reviewing the code, not its author. Assume the reviewer
+knows software engineering but none of this codebase's internals, local
+vocabulary, or symbols. Deliver the explanation in chat as skimmable Markdown.
 
 ## Order
 
-1. Open with a TL;DR that states the main point in plain language, before any
-   concepts, diagrams, or definitions. Keep undefined local terms out of it;
-   define an unavoidable one inline.
-2. Build one dependency-ordered explanation from top to bottom. Start with the
-   purpose and outcome, then add only the product and system context the next
-   point needs. Define each local term, acronym, name, symbol, and phrase
-   before or at its first use. Each point may depend only on context above it:
-   never make the reader jump ahead, open a glossary, or cross between
-   sections.
-3. Unpack the local meaning behind important class, function, variable, and
-   service names, acronyms, and domain terms. Treat specialized technology as
-   concepts too: storage and cache behavior, queues, events, RPCs, framework
-   APIs, deployment primitives, and datastore commands. Separate general
-   engineering concepts from repo-specific meaning.
-4. Give background on the service architecture and the workflows the change
-   touches, such as client to server calls, async events, or job processing.
+1. Open with a TL;DR in plain language, before any concept, diagram, or
+   definition. Keep undefined local terms out of it.
+2. Build one dependency-ordered explanation. Start with purpose and outcome,
+   then add only the context the next point needs. Define each local term,
+   acronym, name, and symbol at or before its first use. Never make the reader
+   jump ahead, open a glossary, or cross between sections.
+3. Unpack the local meaning behind important names and domain terms, including
+   specialized technology (cache behavior, queues, events, RPCs, framework
+   APIs, datastore commands). Separate general concepts from repo-specific
+   meaning.
+4. Give background on the architecture and workflows the change touches.
 
 The expanded content alone must let the reviewer understand what the code
-does, why it is needed, how the important parts work together, and the
-evidence that the change is safe.
+does, why it is needed, how the parts work together, and the evidence that
+the change is safe.
 
-## Progressive disclosure
-
-- Keep context that later sections need expanded and in the main reading
-  order.
-- Put optional detail (full code samples, edge cases, component internals) in
-  clearly labeled collapsible sections, such as `<details>` blocks, after the
-  reader has the high-level context.
-- Never hide a prerequisite definition, or a fact the rest of the explanation
-  needs, inside a collapsed section.
-- Label each collapsed section in already-defined language, so the reader
-  knows why to open it.
-- Collapsed sections deepen understanding. They never repair gaps in the
-  expanded explanation.
+Put optional detail (full code samples, edge cases, internals) in labeled
+`<details>` blocks after the high-level context, labeled in already-defined
+language. Never hide a prerequisite definition, or a fact the rest of the
+explanation needs, inside a collapsed section.
 
 ## Fallbacks and Failures
 
 When the code has an error, fallback, or degradation path, include a section
-titled **Fallbacks and Failures**. Explain the decisions that determine whether
-execution fails fast, degrades gracefully, or falls back to another path, so
-reviewers can judge whether that behavior fits. Ground each scenario in its
-branch or error-handling code. Omit the section only when no such path exists;
-never invent hypothetical ones.
+titled **Fallbacks and Failures**: the decisions that determine whether
+execution fails fast, degrades, or falls back, grounded in the branch or
+error-handling code, so the reviewer can judge whether that behavior fits.
+Omit it only when no such path exists; never invent hypothetical ones.
 
 ## Examples, tables, and diagrams
 
-- **Trace concrete data**: a sample request with realistic field values, a
-  record before and after, a message on a topic, or a row written to a table.
-  Fabricate representative values. Never use real personal data, secrets,
-  customer data, or production payloads.
-- **Tables**: use them only for short, comparable values. When a key column
-  holds long unbroken strings (feature flag keys, URLs, code paths, fully
-  qualified symbols, protobuf fields, UUIDs, opaque IDs), use definition
-  lists, grouped sections, or repeated fields such as `Flag: ...`, so each
-  long value wraps on its own line.
-- **Diagrams**: match them to behavioral complexity, not line count. Draw one
-  for interacting parts, non-obvious branching, or effects across systems; a
-  self-contained tweak usually needs none. Pick the form that fits: sequence
-  flow, before/after, branching, state machine, or data structure. Label every
-  node and edge in plain language, and define each repo-specific name nearby.
+- Trace concrete data (a sample request, a record before and after) with
+  fabricated values. Never use real personal data, secrets, or production
+  payloads.
+- Use tables only for short, comparable values. When a key column holds long
+  unbroken strings (flag keys, URLs, code paths, qualified symbols, UUIDs), use
+  definition lists or repeated fields such as `Flag: ...` so each value wraps
+  on its own line.
+- Draw a diagram for interacting parts, non-obvious branching, or effects
+  across systems, not for a self-contained tweak. Label every node and edge in
+  plain language.
 
-## Engineering estimates
+## No estimates
 
-Give duration, staffing, delivery-date, or effort-sizing estimates only when
-explicitly requested, including by an explicitly invoked workflow that calls
-for them. Loading this skill automatically is not a request. Answer questions
-about complexity, scope, difficulty, or effort with the concrete changes,
-dependencies, unknowns, risks, and validation involved. Preserve the user's
-constraints, attributed estimates, measured runtimes, and configured
-durations. When an estimate is requested, state its assumptions and
-uncertainty.
+Give duration, staffing, or effort estimates only when explicitly requested;
+loading this skill is not a request. Answer questions about complexity or
+effort with the concrete changes, dependencies, unknowns, and risks.
 
 ## Self-check
 
-Before responding, read only the expanded content once, top to bottom, as an
-unfamiliar reviewer:
-
-1. Every term, diagram label, and symbol has its context before its first use.
-2. No later expanded section depends on a collapsed section.
-
-Reorder or add definitions until both checks pass.
+Before responding, read only the expanded content top to bottom as an
+unfamiliar reviewer. Every term, label, and symbol must have its context
+before first use, and no expanded section may depend on a collapsed one.
+Reorder or add definitions until both hold.

@@ -7,100 +7,67 @@ description: Aggregates frog friction logs across every repository in a workspac
 
 Collect every [frog](https://frog.fm) friction entry in a workspace into one
 read-only dashboard, so known friction can be prioritized in a single view.
-Check for frog with `command -v frog`; when it is missing, use the fallback in
-step 3 and never install it.
 
-Step 5 runs in subagents per the
-[step delegation rules](shared/step-delegation.md); the rest stays inline.
+## Rules
 
-## 1. Resolve the workspace
+- **Read-only.** Never run `frog resolve` or `frog publish`, never edit
+  entries, and never install frog.
+- **Never drop entries silently.** Anything not rendered is counted.
+- **`pending` matters most.** A `pending` entry is filed nowhere else, so it
+  is invisible outside this dashboard; a `linked` one already has an issue.
 
-The workspace is the directory that holds the user's repositories. Use the path
-the user gives. Otherwise use the parent of the current repository's top level
-(`git rev-parse --show-toplevel`; from a linked worktree, use the main clone,
-which `git worktree list` prints first). Outside a repository, ask once.
+## Find the logs
 
-## 2. Discover the friction logs
+The workspace is the directory that holds the user's repositories: the path
+the user gives, otherwise the parent of the current repository's main clone
+(from a linked worktree, the first path `git worktree list` prints). Outside a
+repository, ask once.
 
 ```sh
 find <workspace> -maxdepth 3 -type d -path '*/.agents/friction-log' -not -path '*/.claude/worktrees/*'
 ```
 
-Depth 3 reaches `<workspace>/<repo>/.agents/friction-log`. Worktree paths are
-excluded because worktrees share the primary clone's log and would double-count
-entries. `<workspace>/.agents/friction-log` also matches: it is not a repo but
-the global store for system-wide and cross-repo friction (a CLI or MCP server
-used everywhere, machine and shell setup, an agent harness). Label that scope
-`global` throughout, never the workspace's directory name, and never count it
-as a repo. If nothing matches, report the workspace path and stop.
+Worktrees are excluded because they share the primary clone's log and would
+double-count entries. `<workspace>/.agents/friction-log` also matches: it is
+not a repo but the global store for system-wide and cross-repo friction (a CLI
+used everywhere, machine setup, an agent harness). Label it `global`, never the
+workspace's directory name, and never count it as a repo.
 
-## 3. Collect entries per scope
+## Collect entries
 
 ```sh
 frog list --cwd <scope> --format json
 ```
 
-`<scope>` is the discovered path minus `/.agents/friction-log`: a repo root, or
-the workspace for the global store. Each entry has `id`, `title`, `severity`
-(`blocker`, `major`, or `minor`), `state` (`pending` or `linked`), and an
-optional `target`, the upstream `owner/repo` the friction belongs to. Without
-frog, read each `<scope>/.agents/friction-log/<id>/friction.md` directly; its
-YAML frontmatter carries `title`, `severity`, and `target`.
+`<scope>` is the discovered path minus `/.agents/friction-log`. Entries carry
+`id`, `title`, `severity` (`blocker`, `major`, `minor`), `state` (`pending` or
+`linked`), and an optional `target` (upstream `owner/repo`). Without frog, read
+each `<scope>/.agents/friction-log/<id>/friction.md`; its frontmatter carries
+`title`, `severity`, and `target`.
 
-## 4. Count before reading or rendering
+Count each scope before reading detail. A scope with more than 15 entries is
+bounded: sort by severity, then newest first, render only the top 10, and add
+an aggregate line for the rest, for example
+`+ 31 more (4 major, 27 minor) not rendered`.
 
-Print the workspace path and each scope's total, for example
-`Workspace: ~/src`, `global: 41`, `api-server: 18`, `web-app: 6`.
+For each rendered entry, read its `friction.md` and distill the body into a
+one-line gist: what got in the way, plus the suggested fix when it names one.
 
-A scope with more than 15 entries switches to bounded mode; these limits keep
-the dashboard readable. Sort its entries by severity (blocker, major, minor),
-then newest first, and read and render only the top 10, plus an aggregate line
-for the rest, for example `+ 31 more (4 major, 27 minor) not rendered`. Scopes
-with 15 or fewer entries render in full. Never drop entries without saying so.
+## Dashboard
 
-## 5. Read entry detail
+One Markdown dashboard, in this shape:
 
-For each entry selected for rendering, read
-`<scope>/.agents/friction-log/<id>/friction.md` and distill its body into a
-one-line gist: what got in the way, plus the suggested fix when the entry names
-one. The list output carries only titles; the gist makes the dashboard
-actionable.
+- **Header**: totals with global counted separately, for example
+  `7 entries across 3 repos + 2 global: 1 blocker · 3 major · 5 minor`, plus
+  any bounded scopes, for example `(bounded: global 41→10)`.
+- **Table**, sorted by severity, then newest first. Glyphs: 🔴 blocker,
+  🟠 major, 🟡 minor. **Logged** comes from the `id`'s `YYYYMMDDHHMMSS` prefix.
+  Append `(upstream: owner/repo)` to the title when an entry has a `target`.
 
-Run one read-only `sonnet` subagent per scope, launched together with at most
-4 in flight, given the scope path and its selected ids. Each returns one `<id>: <gist>` line per id
-and names any file it could not read.
+  | Sev        | Scope      | Entry | State   | Logged |
+  | ---------- | ---------- | ----- | ------- | ------ |
+  | 🔴 blocker | api-server | title | pending | Aug 19 |
 
-## 6. Render the dashboard
-
-Present one Markdown dashboard in the final message. The layout is exact: keep
-these sections, their order, the columns, glyphs, and line formats; only values
-change.
-
-1. **Header**: total entries, repo count, and a severity breakdown over all
-   entries, with global entries counted separately, for example
-   `7 entries across 3 repos + 2 global: 1 blocker · 3 major · 5 minor`. Drop
-   the `+ N global` clause when the global log is empty. Append any bounded
-   scopes, for example `(bounded: global 41→10, api-server 18→10)`.
-2. **Entries table**: every rendered entry in one table, sorted by severity,
-   then newest first. Glyphs: 🔴 blocker, 🟠 major, 🟡 minor. Derive **Logged**
-   from the `id`'s `YYYYMMDDHHMMSS` prefix. When an entry has a `target`,
-   append `(upstream: owner/repo)` to its title.
-
-   | Sev        | Scope      | Entry | State   | Logged |
-   | ---------- | ---------- | ----- | ------- | ------ |
-   | 🔴 blocker | api-server | title | pending | Aug 19 |
-   | 🟠 major   | global     | title | linked  | Aug 20 |
-
-3. **Detail**: one short paragraph per rendered entry (its gist), grouped by
-   scope, so each row can be understood without opening files. Put `global`
-   last: it is everyone's friction rather than one project's.
-4. **Footer**: one line naming scopes whose log has zero entries (for example
-   `No entries: docs-site, cli-tools`), a note for any log that could not be
-   read, and one line per bounded scope, for example
-   `Bounded: global, 41 total, showing 10, + 31 more (4 major, 27 minor) not rendered`.
-
-## Notes
-
-- Read-only: never run `frog resolve` or `frog publish`, and never edit entries.
-- `pending` versus `linked` matters when prioritizing: `pending` entries are
-  filed nowhere else, so they are invisible outside this dashboard.
+- **Detail**: each entry's gist, grouped by scope, `global` last.
+- **Footer**: scopes with zero entries, logs that could not be read, and one
+  line per bounded scope with its total and the unrendered counts.

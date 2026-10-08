@@ -23,16 +23,7 @@ files in the plugin directory autoload.
 
 ## Rules
 
-- Keep `.zshrc` for framework configuration; personal aliases and functions go
-  in the plugin file.
 - A new plugin needs a directory and file with the same name, an entry in
   `plugins=(...)`, and a link registered in the repo's symlink manifest.
 - If the repo has tests for its alias guard (search its test directory for the
   guard variable), add each new command-shadowing alias to them and run them.
-
-## Validate
-
-```sh
-zsh -n <plugin file>
-zsh -ic 'whence -v <function>; alias <alias>'
-```

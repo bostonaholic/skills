@@ -1,4 +1,4 @@
 interface:
   display_name: "Simplifying Ruby Code"
-  short_description: "Replace over-engineered Ruby classes with data and functions"
-  default_prompt: "Use $simplifying-ruby-code to find over-engineered Ruby here and rewrite it with plain data and pure functions."
+  short_description: "Find or fix over-engineered Ruby and Rails code"
+  default_prompt: "Use $simplifying-ruby-code to find over-engineered Ruby or Rails code here and rewrite it with plain data and pure functions, or report the findings."
