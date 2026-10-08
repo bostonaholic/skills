@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Load `freeing-disk-space` for full-disk requests that ask to empty the Trash or free a target amount of space. [#75](https://github.com/bostonaholic/skills/pull/75)
+
 ## [0.21.3] - 2026-10-10
 
 ### Changed
