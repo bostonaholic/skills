@@ -144,10 +144,11 @@ the validated canonical URL, the head SHA, the file path, and `at-head` or
 node "<skill-dir>/scripts/post-review.mjs" "<pr-url>" "<head-sha>" "<report-file>" <at-head|off-head>
 ```
 
-The script reads the verdict from the file's first line, checks the
-checkout, and reads the PR from GitHub again. It applies the downgrades,
-posts one review pinned to the head SHA, and reads it back by review id. It
-never retries. The report file can be deleted after the run.
+The script reads the verdict from the file's first line and scans the
+report for credential patterns. On a match it runs nothing else and posts
+nothing. Otherwise it checks the checkout and reads the PR from GitHub
+again. It applies the downgrades, posts one review pinned to the head SHA,
+and reads it back by review id. It never retries. The report file can be deleted after the run.
 
 ## Session lines
 
@@ -161,6 +162,7 @@ Placeholders in angle brackets take one value each. When several
 | `not-posted pr-merged` or `not-posted pr-closed`, or Input state `MERGED` or `CLOSED` (no script run) | `Not posted: PR #<n> is <state>.` with `<state>` as `merged` or `closed`                                                                                     |
 | `not-posted read-failed`                                                                              | `Not posted: the PR read before posting failed.` plus stderr verbatim, then `If the token expired, run gh auth login.`                                       |
 | `not-posted gh-unavailable`, or `command -v node gh` finds a tool missing (no script run)             | `Not posted: <tool> is not installed.`                                                                                                                       |
+| `not-posted secret-suspected`                                                                         | `Not posted: the report looks like it contains a credential. Review it locally and remove the secret before posting by hand.`                                |
 | `failed http-<status>`                                                                                | `Post failed (HTTP <status>):` plus stderr verbatim. Add the pending-review hint when stderr names a pending review, and suggest `gh auth login` on HTTP 401 |
 | `failed gh-exit-<code>`                                                                               | `Post failed (gh exit <code>):` plus stderr verbatim, then `The review can still have posted. Check <pr-url> before you rerun.`                              |
 | `unverified <reason>`                                                                                 | `Post unverified: <reason>. Check <pr-url> before you rerun.`                                                                                                |

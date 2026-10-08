@@ -20,6 +20,13 @@
  * github.com included, so a `GH_HOST` in the environment never redirects the
  * read or the write.
  *
+ * Right after the argument checks, before any `git` or `gh` call, the
+ * script scans the report for credential patterns (`CREDENTIAL_PATTERNS`):
+ * GitHub, AWS, and Slack tokens, `sk-` API keys, and private key headers.
+ * The reviewer reads text the PR author wrote, so that text can steer it
+ * into quoting a secret. On a match nothing runs, and stderr names the kind
+ * of credential but never the matched text.
+ *
  * Before the GitHub read, a post-time check runs `git rev-parse HEAD` and
  * `git status --porcelain --untracked-files=no` in the working directory. It
  * passes when `HEAD` is `<head-sha>` and no tracked file differs. It skips
@@ -43,6 +50,7 @@
  * Stdout, one token line each. The outcome line always comes first:
  *
  *   posted <EVENT> <review-url>    posted and read back
+ *   not-posted secret-suspected    the report matches a credential pattern
  *   not-posted pr-merged           the PR merged before the post
  *   not-posted pr-closed           the PR closed before the post
  *   not-posted read-failed         stderr names the failure
@@ -68,7 +76,8 @@
  * Exit codes:
  *
  *   0  posted and read back
- *   1  any other outcome after the argument checks
+ *   1  any other outcome after the argument checks. For
+ *      `secret-suspected`, nothing ran
  *   2  usage fault: a bad argument count, PR URL, SHA, or at-head flag, an
  *      unreadable report file, or a first line that is not a verdict line.
  *      Nothing ran
@@ -105,6 +114,16 @@ const VERDICT_LINE_PATTERN =
 // `gh api` reports an HTTP error on stderr as `gh: <message> (HTTP <status>)`.
 const HTTP_STATUS_PATTERN = /\(HTTP (\d{3})\)/;
 const CHECKOUT_FLAGS = new Set(["at-head", "off-head"]);
+// Each pattern is a literal prefix and one character class, so a scan is linear in the report.
+// The lookbehind keeps a prefix inside a longer word, such as `risk-...`, from matching.
+const CREDENTIAL_PATTERNS = [
+  ["GitHub token", /(?<![A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{36}/],
+  ["GitHub token", /(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20}/],
+  ["AWS access key id", /(?<![A-Za-z0-9_])AKIA[0-9A-Z]{16}/],
+  ["private key", /-----BEGIN [A-Z ]{0,40}PRIVATE KEY-----/],
+  ["Slack token", /(?<![A-Za-z0-9_])xox[abprs]-[A-Za-z0-9-]{10}/],
+  ["API key", /(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20}/],
+];
 
 const VERDICT_EVENTS = {
   APPROVE: "APPROVE",
@@ -200,6 +219,12 @@ function parseArguments(argv) {
 
   const pullRequest = parsePullRequestUrl(prUrl);
   return { args: { pullRequest, prUrl, headSha, report, verdict, inputFlag } };
+}
+
+// Returns the kind of the first credential pattern the report matches, or null.
+function credentialKind(report) {
+  const text = report.toString("utf8");
+  return CREDENTIAL_PATTERNS.find(([, pattern]) => pattern.test(text))?.[0] ?? null;
 }
 
 function parsePullRequestUrl(url) {
@@ -368,6 +393,13 @@ async function main(argv) {
     return EXIT_USAGE;
   }
   const { pullRequest, prUrl, headSha, report, verdict, inputFlag } = parsed.args;
+
+  const credential = credentialKind(report);
+  if (credential) {
+    process.stderr.write(`${SCRIPT}: the report matches a ${credential} pattern\n`);
+    printLines(["not-posted secret-suspected"]);
+    return EXIT_FAILURE;
+  }
 
   const postTimeCheckPassed = await checkoutIsAtHead(headSha);
   const read = await readPullRequestFacts(pullRequest);
