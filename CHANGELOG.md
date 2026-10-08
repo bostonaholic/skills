@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Make `investigating-design-rationale` fire on Sonnet for "why is this code shaped this way" questions, even when commits or PR text are already in context. [#73](https://github.com/bostonaholic/skills/pull/73)
+
 ## [0.21.2] - 2026-10-10
 
 - Keep `explaining-code` Brief replies to at most seven sentences with no headings or lists, leaving tests, reviewer notes, and implementation detail to the full explanation. [#71](https://github.com/bostonaholic/skills/pull/71)

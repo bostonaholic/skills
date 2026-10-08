@@ -1,6 +1,6 @@
 ---
 name: investigating-design-rationale
-description: Investigates the design rationale behind code from git history, PRs, tickets, and docs, rating each claim by evidence tier. Read-only. Use when asked why code is shaped as it is, what alternatives were rejected, or what forces shaped a decision. Not for how code works; use explaining-architecture.
+description: Answers why code is shaped as it is with an evidence-rated report, tagging each claim [Direct], [Supported], [Inferred], or [Speculative] and closing with a Sources Consulted list that covers git, PRs, tickets, docs, chat, and observability, naming the sources left unchecked. Read-only. Use when asked why code is shaped as it is, why a value or limit was chosen, what alternatives were rejected, or what forces shaped a decision, including when the asker offers a guess at the reason. Use it even when commits or PR text are already in context, since a plain answer from them omits the tiers and the unchecked sources. Not for how code works; use explaining-architecture.
 effort: high
 argument-hint: "[<question, file, symbol, or decision>]"
 ---
