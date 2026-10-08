@@ -35,9 +35,10 @@ check never proves write access to the board.
   after the flag is always its count, so a board number goes before the flag
   or travels as a URL.
 
-A malformed, missing, repeated, or conflicting argument (`--promote` with
-`--promote-top`, `--focus` without `--promote-top`) stops before any read and
-reports what was passed; never guess. One board per run. The focus area is
+A malformed, missing, repeated, or conflicting argument (a `--promote-top`
+count that is not a positive integer, `--promote` with `--promote-top`,
+`--focus` without `--promote-top`) stops before any read, and before any tool
+check, and reports what was passed; never guess. One board per run. The focus area is
 prose: it narrows the pool by judgment and never reaches a command line.
 
 The board resolves `$PROJECT` and `$OWNER`. The repository is never passed:

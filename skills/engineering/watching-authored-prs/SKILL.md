@@ -37,7 +37,8 @@ head SHA.
 
 Resolve the PR from a number, a full PR URL, or the current branch. Refuse
 before any other work when no PR resolves, when it is MERGED or CLOSED, or when
-the argument is malformed. Bind `<host>/<owner>/<repo>` from the PR's `url` and
+the argument is malformed; name the state and what the user can do instead,
+such as naming an open PR. Bind `<host>/<owner>/<repo>` from the PR's `url` and
 pass it to every `gh` call (`--repo`, or `--hostname` for `gh api`), so a
 GitHub Enterprise PR never resolves against github.com.
 

@@ -99,12 +99,27 @@ number.
    outdated. Ambiguous means `NEEDS CLARIFICATION`.
 6. **Auto-apply** items that clear the bar, per [applying](#applying).
 7. **Report.** Auto-applied items, one line each (confidence, commit SHA,
-   reaction). Then one numbered block per remaining item: location
-   (`path:line` or `PR-level`), author, class, an excerpt, URL, verdict with
-   evidence, confidence with the failed check, the applicable options with the
-   reaction each places, and one recommendation with a one-line why. Group by
-   file, PR-level after files, clarification items last. End with
-   `Skipped <n> review-record comments.` when n > 0.
+   reaction). Then one block per remaining item in exactly this format, with
+   2 to 4 options tailored to the item and `PR-level` in place of
+   `<path>:<line>` for a PR-level item:
+
+   ```text
+   [#] <path>:<line>  —  @<author>  —  <class>[, OUTDATED]
+       > <1–2 line excerpt of the comment body>
+       URL: <item url>
+       Verified: <STILL RELEVANT|ALREADY ADDRESSED|STALE|INACCURATE>  —  <one-line evidence>
+       Reaction: none yet — the option you pick places it
+       Confidence: <NN%>  —  <the auto-apply check it failed>
+
+       Options:
+         A. <concrete option tailored to this comment>  →  reacts 👍
+         C. <reply-only option>  →  reacts none
+
+       Recommendation: <A|B|C|D|…>  —  <one-line why>
+   ```
+
+   Group by file, PR-level after files, clarification items last; number
+   blocks globally. End with `Skipped <n> review-record comments.` when n > 0.
 8. **Re-request review** per [review re-request](references/review-re-request.md).
 9. **Stop.** Delete leftover throwaway tests, rerun the recorded `git status`,
    and report any path that differs; never restore what triage did not touch.
