@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '\+[*_]*\s*\d+ more[*_]*\s*\(.+\)[*_]*\s*not rendered'
+pattern: '\+[*_]*\s*8 more[*_]*\s*\(2 major, 6 minor\)[*_]*\s*not rendered'
 target: last_message
 ---
