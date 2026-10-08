@@ -153,14 +153,18 @@ The script reads the verdict from the file's first line and scans the
 report for credential patterns. On a match it runs nothing else and posts
 nothing. Otherwise it checks the checkout and reads the PR from GitHub
 again. It applies the downgrades, posts one review pinned to the head SHA,
-and reads it back by review id. It never retries. The report file can be deleted after the run.
+and reads it back by review id. It retries only the one case below. The report file can be deleted after the run.
 
 The review body is always the whole report. When the PR head has not moved,
 each finding whose `file:` line names a repo-relative path and a line on
 the PR diff's new side also posts as an inline comment on that line,
 holding the finding's text. The script reads the PR's changed files to
 find those lines, sends at most 50 inline comments, and counts them on read
-back. A finding it cannot anchor stays in the body only.
+back. A finding it cannot anchor stays in the body only. An inline
+comment's `suggestion` fence becomes a `text` fence, so no comment offers a
+one-click commit of a change that text in the PR could have steered. When
+GitHub rejects the review with its inline comments (HTTP 422), it created no
+review, so the script posts once more with the body only.
 
 ## Session lines
 
@@ -187,6 +191,7 @@ Placeholders in angle brackets take one value each. When several
 | `inline <k> <n>`                                                                                      | `Inline comments: <k> of <n> located findings anchored to the diff; the review body holds every finding.`                                                    |
 | `inline-skipped head-moved`                                                                           | `Inline comments skipped: the PR head moved after the review, so the findings are in the review body only.`                                                  |
 | `inline-skipped files-read-failed`                                                                    | `Inline comments skipped: reading the PR's changed files failed, so the findings are in the review body only.`                                               |
+| `inline-skipped post-rejected`                                                                        | `Inline comments skipped: GitHub rejected them (HTTP 422), so the review posted with the findings in the body only.`                                         |
 | Exit 2                                                                                                | `Not posted: <stderr reason>.`                                                                                                                               |
 | Verdict check fails twice on a PR target                                                              | `Not posted: the report failed the verdict contract.`                                                                                                        |
 | Reviewer had no shell                                                                                 | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                           |

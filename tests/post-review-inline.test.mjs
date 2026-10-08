@@ -1,7 +1,8 @@
 // Fails when post-review.mjs misreads a finding's `file:` location, anchors an inline comment to a
-// line outside the diff, sends more than 50 inline comments, changes the body-only POST argv,
-// posts inline comments after the head moved, fails the post when the files read fails, or
-// prints `posted` when the review holds a different number of inline comments than were sent.
+// line outside the diff, sends more than 50 inline comments or a committable suggestion, changes
+// the body-only POST argv, posts inline comments after the head moved, fails the post when the
+// files read fails or GitHub rejects the inline comments, or prints `posted` when the review holds
+// a different number of inline comments than were sent.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -23,7 +24,6 @@ const scriptUrl = new URL(
   import.meta.url,
 );
 const scriptPath = fileURLToPath(scriptUrl);
-const { parseFindings, planInlineComments, rightSideLines } = await import(scriptUrl.href);
 
 // The user's global git config (signing, identity) must never reach a fixture repository.
 const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
@@ -32,12 +32,6 @@ const SCRIPT_TIMEOUT_MS = 30_000;
 const PR_URL = "https://github.com/o/r/pull/412";
 const REVIEW_URL = `${PR_URL}#pullrequestreview-9001`;
 const MOVED_SHA = "2222222222222222222222222222222222222222";
-
-const IN_DIFF_FINDING = `**suggestion (non-blocking):** Name the retry limit.
-file: src/app.mjs:3`;
-
-const OUT_OF_DIFF_FINDING = `**suggestion (non-blocking):** Name the retry limit.
-file: src/app.mjs:40`;
 
 function commentReport(finding) {
   return `**Verdict: 💬 COMMENT**
@@ -56,8 +50,17 @@ ${finding}
 `;
 }
 
-const APP_PATCH = "@@ -1,2 +1,3 @@\n a\n+b\n c";
-const FILES_STDOUT = `${JSON.stringify({ filename: "src/app.mjs", patch: APP_PATCH })}\n`;
+// Right-side lines 1-5 (the deleted `d` takes no number) and 41-42, as two hunks.
+const APP_PATCH = "@@ -1,4 +1,5 @@\n a\n+b\n c\n-d\n+D\n e\n@@ -40,2 +41,2 @@\n x\n-y\n+Y";
+
+function filesStdout(files) {
+  return files.map((file) => `${JSON.stringify(file)}\n`).join("");
+}
+
+const FILES_STDOUT = filesStdout([
+  { filename: "src/app.mjs", patch: APP_PATCH },
+  { filename: "logo.png", patch: null },
+]);
 
 // The fake records each call's argv and every stdin byte, base64-encoded.
 const FAKE_GH_SOURCE = `
@@ -96,7 +99,8 @@ if (response === undefined) {
 }
 process.stdout.write(response.stdout ?? "");
 process.stderr.write(response.stderr ?? "");
-process.exit(response.exitCode ?? 0);
+// Exiting naturally lets a large stdout drain into the pipe.
+process.exitCode = response.exitCode ?? 0;
 `;
 
 function scratchDir(t, prefix) {
@@ -205,6 +209,8 @@ const REVIEW_COMMENTS_ARGV = [
   "length",
 ];
 
+const HTTP_422 = { stderr: "gh: Validation Failed (HTTP 422)\n", exitCode: 1 };
+
 const POST_ENDPOINT_ARGV = [
   "api",
   "--hostname",
@@ -213,6 +219,8 @@ const POST_ENDPOINT_ARGV = [
   "POST",
   "repos/o/r/pulls/412/reviews",
 ];
+
+const INLINE_POST_ARGV = [...POST_ENDPOINT_ARGV, "--input", "-"];
 
 function bodyOnlyPostArgv(headSha) {
   return [
@@ -226,294 +234,311 @@ function bodyOnlyPostArgv(headSha) {
   ];
 }
 
-// ---------------------------------------------------------------------------------------
-// parseFindings
-// ---------------------------------------------------------------------------------------
+// Responses for a run that reads the files, posts inline comments, and reads back `count` of them.
+function anchoredResponses(headSha, count, files = FILES_STDOUT) {
+  return [
+    prRead(headSha),
+    { stdout: files },
+    review(headSha),
+    review(headSha),
+    { stdout: `${count}\n` },
+  ];
+}
 
-const TOPLEVEL = "/work/repo";
+function postPayload(run) {
+  return JSON.parse(run.calls[2].stdin);
+}
 
-const PARSE_ROWS = [
-  {
-    name: "a finding with one location",
-    findings: IN_DIFF_FINDING,
-    expected: [{ body: IN_DIFF_FINDING, path: "src/app.mjs", line: 3 }],
-  },
-  {
-    name: "a line range keeps its start and anchors to its end",
-    findings: "**issue (blocking):** Drops the error.\nfile: src/app.mjs:10-14",
-    expected: [
-      {
-        body: "**issue (blocking):** Drops the error.\nfile: src/app.mjs:10-14",
-        path: "src/app.mjs",
-        line: 14,
-        startLine: 10,
-      },
-    ],
-  },
-  {
-    name: "several locations use the first",
-    findings: "**nitpick (non-blocking):** Typo.\nfile: src/a.mjs:7, src/b.mjs:9",
-    expected: [
-      {
-        body: "**nitpick (non-blocking):** Typo.\nfile: src/a.mjs:7, src/b.mjs:9",
-        path: "src/a.mjs",
-        line: 7,
-      },
-    ],
-  },
-  {
-    name: "a leading ./ is dropped",
-    findings: "**praise:** Clear name.\nfile: ./src/a.mjs:2",
-    expected: [
-      { body: "**praise:** Clear name.\nfile: ./src/a.mjs:2", path: "src/a.mjs", line: 2 },
-    ],
-  },
-  {
-    name: "an absolute path under the top level becomes repo-relative",
-    findings: `**issue (blocking):** Leaks a handle.\nfile: ${TOPLEVEL}/src/a.mjs:5`,
-    expected: [
-      {
-        body: `**issue (blocking):** Leaks a handle.\nfile: ${TOPLEVEL}/src/a.mjs:5`,
-        path: "src/a.mjs",
-        line: 5,
-      },
-    ],
-  },
-  {
-    name: "an absolute path outside the top level is dropped",
-    findings: "**issue (blocking):** Leaks a handle.\nfile: /elsewhere/src/a.mjs:5",
-    expected: [],
-  },
-  {
-    name: "a path with a .. segment is dropped",
-    findings: "**issue (blocking):** Leaks a handle.\nfile: src/../../etc/a.mjs:5",
-    expected: [],
-  },
-  {
-    name: "a finding with no file line is dropped",
-    findings: "**thought:** Consider a cache.",
-    expected: [],
-  },
-  {
-    name: "trailing blank lines are trimmed and each label line starts a new finding",
-    findings: `${IN_DIFF_FINDING}\n\n\n**question:** Why retry?\nfile: src/b.mjs:1\n\n`,
-    expected: [
-      { body: IN_DIFF_FINDING, path: "src/app.mjs", line: 3 },
-      { body: "**question:** Why retry?\nfile: src/b.mjs:1", path: "src/b.mjs", line: 1 },
-    ],
-  },
-];
+function runReport(t, report, responsesFor) {
+  const checkout = cleanCheckout(t);
+  const run = runScript(t, {
+    cwd: checkout.dir,
+    args: [PR_URL, checkout.headSha, writeReport(t, report), "at-head"],
+    responses: responsesFor(checkout.headSha),
+  });
+  return { ...run, headSha: checkout.headSha };
+}
 
-test("parseFindings returns each located finding with its full text", async (t) => {
-  for (const row of PARSE_ROWS) {
-    await t.test(row.name, () => {
-      assert.deepEqual(parseFindings(commentReport(row.findings), TOPLEVEL), row.expected);
-    });
-  }
-});
-
-test("parseFindings reads only the Findings section", () => {
-  const report = `**Verdict: 💬 COMMENT**\n\n### Summary\n\n${IN_DIFF_FINDING}\n\n### Checks\n\n- ok\n`;
-
-  assert.deepEqual(parseFindings(report, TOPLEVEL), []);
-});
-
-test("parseFindings stops at the next ### heading", () => {
-  const report = `### Findings\n\nNo findings.\n\n### Checks\n\n${IN_DIFF_FINDING}\n`;
-
-  assert.deepEqual(parseFindings(report, TOPLEVEL), []);
-});
+function comment(line, body, range = {}) {
+  return { path: "src/app.mjs", line, side: "RIGHT", body, ...range };
+}
 
 // ---------------------------------------------------------------------------------------
-// rightSideLines
+// Findings that anchor to the diff
 // ---------------------------------------------------------------------------------------
 
-test("rightSideLines keeps added and context lines and skips deleted ones", () => {
-  const patch = "@@ -1,4 +1,4 @@\n a\n-b\n+B\n c\n@@ -20,2 +20,1 @@\n-x\n y";
+const ADDED = "**suggestion (non-blocking):** Name the limit.\nfile: src/app.mjs:2";
+const CONTEXT = "**nitpick (non-blocking):** Typo.\nfile: src/app.mjs:1";
+const SECOND_HUNK = "**issue (blocking):** Drops the error.\nfile: src/app.mjs:42";
+const RANGE_IN_HUNK = "**issue (blocking):** Drops the error.\nfile: src/app.mjs:2-4";
+const RANGE_ACROSS_HUNKS = "**issue (blocking):** Drops the error.\nfile: src/app.mjs:3-41";
+const SEVERAL = "**nitpick (non-blocking):** Typo.\nfile: src/app.mjs:2, src/other.mjs:9";
+const DOT_SLASH = "**praise:** Clear name.\nfile: ./src/app.mjs:2";
+const BACKTICKS = "**praise:** Clear name.\nfile: `src/app.mjs:2`";
+const BOLD_KEY = "**praise:** Clear name.\n**file:** src/app.mjs:2";
+const BACKTICK_SUGGESTION =
+  "**suggestion (non-blocking):** Use a constant.\nfile: src/app.mjs:2\n\n```suggestion\nb = LIMIT\n```";
+const TILDE_SUGGESTION =
+  "**suggestion (non-blocking):** Use a constant.\nfile: src/app.mjs:2\n\n~~~suggestion\nb = LIMIT\n~~~";
 
-  const lines = rightSideLines([{ filename: "src/a.mjs", patch }]);
-
-  assert.deepEqual([...lines.get("src/a.mjs")], [1, 2, 3, 20]);
-});
-
-test("rightSideLines leaves out a file with no patch", () => {
-  const lines = rightSideLines([{ filename: "logo.png" }, { filename: "big.json", patch: null }]);
-
-  assert.equal(lines.size, 0);
-});
-
-// ---------------------------------------------------------------------------------------
-// planInlineComments
-// ---------------------------------------------------------------------------------------
-
-// Right-side lines 1-5 and 20-22, as two hunks.
-const DIFF_LINES = new Map([["src/a.mjs", new Set([1, 2, 3, 4, 5, 20, 21, 22])]]);
-
-const PLAN_ROWS = [
+const ANCHORED_ROWS = [
+  { name: "an added line", findings: ADDED, comments: [comment(2, ADDED)] },
+  { name: "a context line", findings: CONTEXT, comments: [comment(1, CONTEXT)] },
   {
-    name: "a line in the diff becomes a comment",
-    finding: { body: "B", path: "src/a.mjs", line: 4 },
-    expected: [{ path: "src/a.mjs", line: 4, side: "RIGHT", body: "B" }],
-  },
-  {
-    name: "a line outside the diff is dropped",
-    finding: { body: "B", path: "src/a.mjs", line: 10 },
-    expected: [],
-  },
-  {
-    name: "a file outside the diff is dropped",
-    finding: { body: "B", path: "src/other.mjs", line: 4 },
-    expected: [],
+    name: "a line in the second hunk",
+    findings: SECOND_HUNK,
+    comments: [comment(42, SECOND_HUNK)],
   },
   {
     name: "a range inside one hunk keeps its start",
-    finding: { body: "B", path: "src/a.mjs", line: 5, startLine: 2 },
-    expected: [
-      {
-        path: "src/a.mjs",
-        line: 5,
-        side: "RIGHT",
-        body: "B",
-        start_line: 2,
-        start_side: "RIGHT",
-      },
-    ],
+    findings: RANGE_IN_HUNK,
+    comments: [comment(4, RANGE_IN_HUNK, { start_line: 2, start_side: "RIGHT" })],
   },
   {
     name: "a range spanning two hunks anchors to its end line",
-    finding: { body: "B", path: "src/a.mjs", line: 21, startLine: 3 },
-    expected: [{ path: "src/a.mjs", line: 21, side: "RIGHT", body: "B" }],
+    findings: RANGE_ACROSS_HUNKS,
+    comments: [comment(41, RANGE_ACROSS_HUNKS)],
+  },
+  { name: "several locations use the first", findings: SEVERAL, comments: [comment(2, SEVERAL)] },
+  { name: "a leading ./ is dropped", findings: DOT_SLASH, comments: [comment(2, DOT_SLASH)] },
+  { name: "backticks around the location", findings: BACKTICKS, comments: [comment(2, BACKTICKS)] },
+  { name: "a **file:** key", findings: BOLD_KEY, comments: [comment(2, BOLD_KEY)] },
+  ...["- ", "* ", "1. "].map((marker) => ({
+    name: `a ${marker.trim()} list marker is dropped from the comment`,
+    findings: `${marker}${ADDED}`,
+    comments: [comment(2, ADDED)],
+  })),
+  {
+    name: "a backtick suggestion fence becomes a text fence",
+    findings: BACKTICK_SUGGESTION,
+    comments: [comment(2, BACKTICK_SUGGESTION.replace("```suggestion", "```text"))],
   },
   {
-    name: "a range whose end is outside the diff is dropped",
-    finding: { body: "B", path: "src/a.mjs", line: 8, startLine: 4 },
-    expected: [],
+    name: "a tilde suggestion fence becomes a text fence",
+    findings: TILDE_SUGGESTION,
+    comments: [comment(2, TILDE_SUGGESTION.replace("~~~suggestion", "~~~text"))],
   },
 ];
 
-test("planInlineComments anchors only findings on right-side diff lines", async (t) => {
-  for (const row of PLAN_ROWS) {
-    await t.test(row.name, () => {
-      assert.deepEqual(planInlineComments([row.finding], DIFF_LINES), row.expected);
+test("a located finding on a diff line posts as an inline comment beside the full body", async (t) => {
+  for (const row of ANCHORED_ROWS) {
+    await t.test(row.name, (st) => {
+      const report = commentReport(row.findings);
+      const run = runReport(st, report, (headSha) => anchoredResponses(headSha, 1));
+
+      assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 1 1"]);
+      assert.deepEqual(run.calls[1]?.argv, FILES_ARGV);
+      assert.deepEqual(run.calls[2]?.argv, INLINE_POST_ARGV);
+      assert.deepEqual(postPayload(run), {
+        event: "COMMENT",
+        commit_id: run.headSha,
+        body: report,
+        comments: row.comments,
+      });
+      assert.deepEqual(run.calls[4]?.argv, REVIEW_COMMENTS_ARGV);
+      assert.equal(run.status, 0);
     });
   }
 });
 
-test("planInlineComments sends at most 50 comments, the first 50 findings", () => {
-  const findings = Array.from({ length: 51 }, (_, index) => ({
-    body: `finding ${index}`,
-    path: "src/a.mjs",
-    line: 1,
-  }));
-
-  const comments = planInlineComments(findings, DIFF_LINES);
-
-  assert.equal(comments.length, 50);
-  assert.equal(comments.at(-1).body, "finding 49");
-});
-
-// ---------------------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------------------
-
-test("a located finding in the diff posts as an inline comment with the full body", (t) => {
+test("an absolute path under the checkout's top level anchors as a repo-relative path", (t) => {
   const checkout = cleanCheckout(t);
-  const report = commentReport(IN_DIFF_FINDING);
+  const finding = `**issue (blocking):** Leaks a handle.\nfile: ${checkout.dir}/src/app.mjs:2`;
   const run = runScript(t, {
     cwd: checkout.dir,
-    args: [PR_URL, checkout.headSha, writeReport(t, report), "at-head"],
-    responses: [
-      prRead(checkout.headSha),
-      { stdout: FILES_STDOUT },
-      review(checkout.headSha),
-      review(checkout.headSha),
-      { stdout: "1\n" },
-    ],
+    args: [PR_URL, checkout.headSha, writeReport(t, commentReport(finding)), "at-head"],
+    responses: anchoredResponses(checkout.headSha, 1),
   });
 
   assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 1 1"]);
-  assert.deepEqual(run.calls[1]?.argv, FILES_ARGV);
-  assert.deepEqual(run.calls[2]?.argv, [...POST_ENDPOINT_ARGV, "--input", "-"]);
-  assert.deepEqual(JSON.parse(run.calls[2].stdin), {
-    event: "COMMENT",
-    commit_id: checkout.headSha,
-    body: report,
-    comments: [{ path: "src/app.mjs", line: 3, side: "RIGHT", body: IN_DIFF_FINDING }],
-  });
-  assert.deepEqual(run.calls[4]?.argv, REVIEW_COMMENTS_ARGV);
-  assert.equal(run.status, 0);
+  assert.deepEqual(postPayload(run).comments, [comment(2, finding)]);
 });
 
-test("a located finding outside the diff posts the body with the body-only argv", (t) => {
-  const checkout = cleanCheckout(t);
-  const report = commentReport(OUT_OF_DIFF_FINDING);
-  const run = runScript(t, {
-    cwd: checkout.dir,
-    args: [PR_URL, checkout.headSha, writeReport(t, report), "at-head"],
-    responses: [
-      prRead(checkout.headSha),
-      { stdout: FILES_STDOUT },
-      review(checkout.headSha),
-      review(checkout.headSha),
-    ],
-  });
+test("each label line starts a new finding with trailing blank lines trimmed", (t) => {
+  const run = runReport(t, commentReport(`${ADDED}\n\n\n${CONTEXT}\n\n`), (headSha) =>
+    anchoredResponses(headSha, 2),
+  );
 
-  assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 0 1"]);
-  assert.deepEqual(run.calls[2]?.argv, bodyOnlyPostArgv(checkout.headSha));
-  assert.equal(run.calls[2].stdin, report);
-  assert.equal(run.calls.length, 4);
-  assert.equal(run.status, 0);
+  assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 2 2"]);
+  assert.deepEqual(postPayload(run).comments, [comment(2, ADDED), comment(1, CONTEXT)]);
 });
+
+test("at most 50 inline comments post, the first 50 findings", (t) => {
+  const findings = Array.from(
+    { length: 51 },
+    (_, index) => `**note:** n${index}\nfile: src/app.mjs:2`,
+  );
+  const run = runReport(t, commentReport(findings.join("\n\n")), (headSha) =>
+    anchoredResponses(headSha, 50),
+  );
+
+  assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 50 51"]);
+  assert.equal(postPayload(run).comments.length, 50);
+  assert.equal(postPayload(run).comments.at(-1).body, findings[49]);
+});
+
+test("a PR whose patches exceed 1 MiB still gets inline comments", (t) => {
+  const bigPatch = `@@ -1,1 +1,1 @@\n ${"x".repeat(2 * 1024 * 1024)}`;
+  const files = filesStdout([
+    { filename: "big.txt", patch: bigPatch },
+    { filename: "src/app.mjs", patch: APP_PATCH },
+  ]);
+  const run = runReport(t, commentReport(ADDED), (headSha) => anchoredResponses(headSha, 1, files));
+
+  assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 1 1"]);
+});
+
+// ---------------------------------------------------------------------------------------
+// Located findings that do not anchor
+// ---------------------------------------------------------------------------------------
+
+const UNANCHORED_ROWS = [
+  {
+    name: "a line past the first hunk, since a deleted line takes no right-side number",
+    findings: "**issue (blocking):** X.\nfile: src/app.mjs:6",
+  },
+  { name: "a file outside the diff", findings: "**issue (blocking):** X.\nfile: src/other.mjs:2" },
+  { name: "a file with no patch", findings: "**issue (blocking):** X.\nfile: logo.png:1" },
+  {
+    name: "a range whose end is outside the diff",
+    findings: "**issue (blocking):** X.\nfile: src/app.mjs:4-6",
+  },
+];
+
+test("a located finding off the diff posts the body with the body-only argv", async (t) => {
+  for (const row of UNANCHORED_ROWS) {
+    await t.test(row.name, (st) => {
+      const report = commentReport(row.findings);
+      const run = runReport(st, report, (headSha) => [
+        prRead(headSha),
+        { stdout: FILES_STDOUT },
+        review(headSha),
+        review(headSha),
+      ]);
+
+      assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline 0 1"]);
+      assert.deepEqual(run.calls[2]?.argv, bodyOnlyPostArgv(run.headSha));
+      assert.equal(run.calls[2].stdin, report);
+      assert.equal(run.calls.length, 4);
+      assert.equal(run.status, 0);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------------------
+// Findings with no usable location
+// ---------------------------------------------------------------------------------------
+
+const UNLOCATED_ROWS = [
+  {
+    name: "a path with a .. segment",
+    report: commentReport("**issue (blocking):** X.\nfile: src/../../etc/app.mjs:2"),
+  },
+  {
+    name: "an absolute path outside the top level",
+    report: commentReport("**issue (blocking):** X.\nfile: /elsewhere/src/app.mjs:2"),
+  },
+  { name: "a finding with no file line", report: commentReport("**thought:** Consider a cache.") },
+  {
+    name: "a range whose start is after its end",
+    report: commentReport("**issue (blocking):** X.\nfile: src/app.mjs:4-2"),
+  },
+  {
+    name: "a finding with no bold label",
+    report: commentReport("- issue (blocking): X.\nfile: src/app.mjs:2"),
+  },
+  {
+    name: "a finding outside the Findings section",
+    report: `**Verdict: 💬 COMMENT**\n\n### Summary\n\n${ADDED}\n\n### Checks\n\n- ok\n`,
+  },
+  {
+    name: "a finding after the next ### heading",
+    report: `**Verdict: 💬 COMMENT**\n\n### Findings\n\nNo findings.\n\n### Checks\n\n${ADDED}\n`,
+  },
+];
+
+test("a report with no located finding never reads the PR files", async (t) => {
+  for (const row of UNLOCATED_ROWS) {
+    await t.test(row.name, (st) => {
+      const run = runReport(st, row.report, (headSha) => [
+        prRead(headSha),
+        review(headSha),
+        review(headSha),
+      ]);
+
+      assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`]);
+      assert.deepEqual(run.calls[1]?.argv, bodyOnlyPostArgv(run.headSha));
+      assert.equal(run.calls.length, 3);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------------------
+// Skips and failures
+// ---------------------------------------------------------------------------------------
 
 test("a moved head posts the body only and never reads the PR files", (t) => {
-  const checkout = cleanCheckout(t);
-  const run = runScript(t, {
-    cwd: checkout.dir,
-    args: [PR_URL, checkout.headSha, writeReport(t, commentReport(IN_DIFF_FINDING)), "at-head"],
-    responses: [prRead(MOVED_SHA), review(checkout.headSha), review(checkout.headSha)],
-  });
+  const run = runReport(t, commentReport(ADDED), (headSha) => [
+    prRead(MOVED_SHA),
+    review(headSha),
+    review(headSha),
+  ]);
 
   assert.deepEqual(run.lines, [
     `posted COMMENT ${REVIEW_URL}`,
     `head-moved ${MOVED_SHA}`,
     "inline-skipped head-moved",
   ]);
-  assert.deepEqual(run.calls[1]?.argv, bodyOnlyPostArgv(checkout.headSha));
+  assert.deepEqual(run.calls[1]?.argv, bodyOnlyPostArgv(run.headSha));
   assert.equal(run.calls.length, 3);
   assert.equal(run.status, 0);
 });
 
 test("a failed PR files read posts the body only", (t) => {
-  const checkout = cleanCheckout(t);
-  const run = runScript(t, {
-    cwd: checkout.dir,
-    args: [PR_URL, checkout.headSha, writeReport(t, commentReport(IN_DIFF_FINDING)), "at-head"],
-    responses: [
-      prRead(checkout.headSha),
-      { stderr: "gh: Not Found (HTTP 404)\n", exitCode: 1 },
-      review(checkout.headSha),
-      review(checkout.headSha),
-    ],
-  });
+  const run = runReport(t, commentReport(ADDED), (headSha) => [
+    prRead(headSha),
+    { stderr: "gh: Not Found (HTTP 404)\n", exitCode: 1 },
+    review(headSha),
+    review(headSha),
+  ]);
 
   assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline-skipped files-read-failed"]);
-  assert.deepEqual(run.calls[2]?.argv, bodyOnlyPostArgv(checkout.headSha));
+  assert.deepEqual(run.calls[2]?.argv, bodyOnlyPostArgv(run.headSha));
   assert.equal(run.status, 0);
 });
 
+test("an HTTP 422 on the inline POST posts once more with the body-only argv", (t) => {
+  const report = commentReport(ADDED);
+  const run = runReport(t, report, (headSha) => [
+    prRead(headSha),
+    { stdout: FILES_STDOUT },
+    HTTP_422,
+    review(headSha),
+    review(headSha),
+  ]);
+
+  assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "inline-skipped post-rejected"]);
+  assert.deepEqual(run.calls[2]?.argv, INLINE_POST_ARGV);
+  assert.deepEqual(run.calls[3]?.argv, bodyOnlyPostArgv(run.headSha));
+  assert.equal(run.calls[3].stdin, report);
+  assert.equal(run.calls.length, 5);
+  assert.equal(run.status, 0);
+});
+
+test("any other failure of the inline POST is not retried", (t) => {
+  const run = runReport(t, commentReport(ADDED), (headSha) => [
+    prRead(headSha),
+    { stdout: FILES_STDOUT },
+    { stderr: "gh: Server Error (HTTP 500)\n", exitCode: 1 },
+  ]);
+
+  assert.deepEqual(run.lines, ["failed http-500"]);
+  assert.equal(run.calls.length, 3);
+  assert.equal(run.status, 1);
+});
+
 test("a review whose inline comment count differs from the sent count is unverified", (t) => {
-  const checkout = cleanCheckout(t);
-  const run = runScript(t, {
-    cwd: checkout.dir,
-    args: [PR_URL, checkout.headSha, writeReport(t, commentReport(IN_DIFF_FINDING)), "at-head"],
-    responses: [
-      prRead(checkout.headSha),
-      { stdout: FILES_STDOUT },
-      review(checkout.headSha),
-      review(checkout.headSha),
-      { stdout: "0\n" },
-    ],
-  });
+  const run = runReport(t, commentReport(ADDED), (headSha) => anchoredResponses(headSha, 0));
 
   assert.deepEqual(run.lines, ["unverified inline-comments-mismatch"]);
   assert.equal(run.status, 1);

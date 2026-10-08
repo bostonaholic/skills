@@ -7,10 +7,8 @@
  *
  *     node "<skill-dir>/scripts/post-review.mjs" <pr-url> <head-sha> <report-file> <at-head|off-head>
  *
- *     import { decideReview, parseFindings, planInlineComments, rightSideLines }
- *       from "<skill-dir>/scripts/post-review.mjs";
+ *     import { decideReview } from "<skill-dir>/scripts/post-review.mjs";
  *     const { notPosted, event, notes } = decideReview(facts);
- *     const comments = planInlineComments(parseFindings(report, toplevel), rightSideLines(files));
  *
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>` on the base
  * repository, matching `PR_URL_PATTERN`, with no owner or repository of `.`
@@ -51,18 +49,22 @@
  *
  * The review body is always the whole report. Each finding under
  * `### Findings` that opens with a Conventional Comments label line
- * (`**<label>:**` or `**<label> (<decoration>):**`) and carries a
- * `file: <path>:<line>` or `file: <path>:<start>-<end>` line (the first of
- * several comma-separated locations) is a located finding when its path is
- * repo-relative after normalizing: a leading `./` is dropped, an absolute path
- * under `git rev-parse --show-toplevel` becomes relative, and any other
- * absolute path or a `..` segment drops the finding. When at least one finding
- * is located and the PR head is still `<head-sha>`, the script reads the PR's
- * changed files and posts each located finding whose line is on the right
- * side of the diff as an inline comment holding that finding's text. A range
- * anchors to all its lines when every one is in a single hunk, else to its end
- * line alone. At most `MAX_INLINE_COMMENTS` post inline; every finding stays
- * in the body.
+ * (`**<label>:**` or `**<label> (<decoration>):**`, optionally after a `- `,
+ * `* `, or `1. ` list marker) and carries a `file:` or `**file:**` line is a
+ * located finding when that line's first comma-separated location,
+ * `<path>:<line>` or `<path>:<start>-<end>` with any backticks around it
+ * dropped, names a repo-relative path after normalizing: a leading `./` is
+ * dropped, an absolute path under `git rev-parse --show-toplevel` becomes
+ * relative, and any other absolute path or a `..` segment drops the finding.
+ * When at least one finding is located and the PR head is still `<head-sha>`,
+ * the script reads the PR's changed files and posts each located finding
+ * whose line is on the right side of the diff as an inline comment holding
+ * that finding's text, without its list marker. A range anchors to all its
+ * lines when every one is in a single hunk, else to its end line alone. An
+ * inline comment's `suggestion` fences become `text` fences, so no comment
+ * offers a one-click commit of text the reviewer may have been steered into
+ * writing. At most `MAX_INLINE_COMMENTS` post inline; every finding stays in
+ * the body unchanged.
  *
  * Stdout, one token line each. The outcome line always comes first:
  *
@@ -99,6 +101,9 @@
  *   inline-skipped head-moved          the PR head moved; no inline comments
  *   inline-skipped files-read-failed   the changed-files read failed; no
  *                                      inline comments
+ *   inline-skipped post-rejected       GitHub rejected the POST with inline
+ *                                      comments (HTTP 422), so the review
+ *                                      posted again with the body only
  *
  * No stdout line carries a report byte. Stderr carries gh's own stderr, then
  * `post-review.mjs: <reason>`.
@@ -119,10 +124,17 @@
  *   - GitHub rejects a body of 65,536 characters or more with HTTP 422.
  *   - The PR can merge, close, move its head, or enable auto-merge between
  *     the read and the POST: GitHub has no conditional create-review call.
+ *   - The head can also move between the PR read and the changed-files read,
+ *     so the files can describe a newer diff than `<head-sha>`. A comment on a
+ *     line that diff does not hold fails the POST with HTTP 422, which the
+ *     body-only retry below covers.
  *   - The post-time check cannot see an untracked file that predates the
  *     review; only the Input flag covers it.
- *   - Nothing retries. A `gh-exit` failure can follow a review GitHub
- *     accepted, so the caller checks the PR before a rerun.
+ *   - One retry only: a POST with inline comments that fails with HTTP 422
+ *     posts again once with the body-only argv. A 422 means GitHub created no
+ *     review, so the retry cannot post twice. Nothing else retries. A
+ *     `gh-exit` failure can follow a review GitHub accepted, so the caller
+ *     checks the PR before a rerun.
  */
 
 import { execFile } from "node:child_process";
@@ -174,12 +186,17 @@ const NOT_POSTED_STATES = { MERGED: "pr-merged", CLOSED: "pr-closed" };
 const PR_STATES = new Set(["OPEN", ...Object.keys(NOT_POSTED_STATES)]);
 
 const FINDINGS_HEADING = "### Findings";
-const FINDING_LABEL_PATTERN = /^\*\*[a-z]+(?: \([^)]*\))?:\*\*/;
-const FILE_LINE_PATTERN = /^\s*file:\s*(.*)$/;
+const LIST_MARKER_PATTERN = /^(?:[-*]|[0-9]+\.)[ \t]+/;
+// `**file:**` is a finding's location key, never a label.
+const FINDING_LABEL_PATTERN = /^\*\*(?!file:)[a-z]+(?: \([^)]*\))?:\*\*/;
+const FILE_LINE_PATTERN = /^\s*(?:\*\*file:\*\*|file:)\s*(.*)$/;
+const SUGGESTION_FENCE_PATTERN = /^([ \t]*(?:`{3,}|~{3,})[ \t]*)suggestion(?=\s|$)/gim;
 const LOCATION_PATTERN = /^(.+):([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
 const HUNK_HEADER_PATTERN = /^@@ -[0-9]+(?:,[0-9]+)? \+([0-9]+)(?:,[0-9]+)? @@/;
 // Bounds one review's inline comments; the body still carries every finding.
 const MAX_INLINE_COMMENTS = 50;
+// execFile's 1 MiB default would drop inline comments on a PR with large patches.
+const FILES_READ_MAX_BUFFER = 32 * 1024 * 1024;
 
 const EXIT_OK = 0;
 const EXIT_FAILURE = 1;
@@ -243,7 +260,7 @@ function downgradeReasons(verdictEvent, facts, headMoved) {
  * checkout's top-level directory, or null; an absolute path outside it is
  * dropped. For a range, `line` is its end and `startLine` its start.
  */
-export function parseFindings(report, toplevel = null) {
+function parseFindings(report, toplevel = null) {
   return findingBlocks(report).flatMap((lines) => {
     const location = findingLocation(lines, toplevel);
     return location ? [{ body: lines.join("\n"), ...location }] : [];
@@ -257,7 +274,8 @@ function findingBlocks(report) {
   const blocks = [];
   for (const line of lines.slice(start + 1)) {
     if (line.startsWith("### ")) break;
-    if (FINDING_LABEL_PATTERN.test(line)) blocks.push([line]);
+    const unmarked = line.replace(LIST_MARKER_PATTERN, "");
+    if (FINDING_LABEL_PATTERN.test(unmarked)) blocks.push([unmarked]);
     else blocks.at(-1)?.push(line);
   }
   return blocks.map(trimTrailingBlankLines);
@@ -271,7 +289,8 @@ function trimTrailingBlankLines(lines) {
 
 function findingLocation(lines, toplevel) {
   const fileLine = lines.map((line) => FILE_LINE_PATTERN.exec(line)).find(Boolean);
-  const match = fileLine && LOCATION_PATTERN.exec(fileLine[1].split(",")[0].trim());
+  const firstLocation = fileLine?.[1].split(",")[0].trim().replace(/^`|`$/g, "");
+  const match = firstLocation && LOCATION_PATTERN.exec(firstLocation);
   if (!match) return null;
   const path = repoRelativePath(match[1], toplevel);
   const start = Number(match[2]);
@@ -296,7 +315,7 @@ function repoRelativePath(rawPath, toplevel) {
  * added and context lines alike. A file with no patch (binary or too large) has
  * no entry.
  */
-export function rightSideLines(files) {
+function rightSideLines(files) {
   const map = new Map();
   for (const { filename, patch } of files) {
     if (typeof patch === "string") map.set(filename, patchRightSideLines(patch));
@@ -321,12 +340,17 @@ function patchRightSideLines(patch) {
  * start only when every line of it is in the diff: hunks never touch, so that
  * holds only within one hunk, as GitHub requires.
  */
-export function planInlineComments(findings, diffLines) {
+function planInlineComments(findings, diffLines) {
   const comments = [];
   for (const { body, path, line, startLine } of findings) {
     const lines = diffLines.get(path);
     if (!lines?.has(line)) continue;
-    const comment = { path, line, side: "RIGHT", body };
+    const comment = {
+      path,
+      line,
+      side: "RIGHT",
+      body: body.replace(SUGGESTION_FENCE_PATTERN, "$1text"),
+    };
     if (startLine !== undefined && rangeInDiff(lines, startLine, line))
       Object.assign(comment, { start_line: startLine, start_side: "RIGHT" });
     comments.push(comment);
@@ -379,8 +403,8 @@ function parsePullRequestUrl(url) {
 const execFileAsync = promisify(execFile);
 
 // Always ends gh's stdin, so a gh that reads fd 0 never waits for input.
-async function runGh(args, input) {
-  const pending = execFileAsync("gh", args);
+async function runGh(args, input, options = {}) {
+  const pending = execFileAsync("gh", args, options);
   // A gh that exits before reading its stdin reports that failure through its exit status.
   pending.child.stdin.on("error", () => {});
   pending.child.stdin.end(input);
@@ -495,15 +519,19 @@ async function inlineComments(pullRequest, findings, headMoved) {
 
 // The projection keeps everything but each file's name and patch out of memory.
 async function readChangedFiles({ host, owner, repo, number }) {
-  const result = await runGh([
-    "api",
-    "--hostname",
-    host,
-    "--paginate",
-    `repos/${owner}/${repo}/pulls/${number}/files`,
-    "--jq",
-    ".[] | {filename, patch}",
-  ]);
+  const result = await runGh(
+    [
+      "api",
+      "--hostname",
+      host,
+      "--paginate",
+      `repos/${owner}/${repo}/pulls/${number}/files`,
+      "--jq",
+      ".[] | {filename, patch}",
+    ],
+    undefined,
+    { maxBuffer: FILES_READ_MAX_BUFFER },
+  );
   if (!result.ok) {
     process.stderr.write(result.stderr);
     return null;
@@ -518,6 +546,17 @@ async function readChangedFiles({ host, owner, repo, number }) {
 
 function nonEmptyLines(text) {
   return text.split("\n").filter((line) => line.trim() !== "");
+}
+
+// A 422 means GitHub created no review, so one body-only retry cannot post twice.
+async function postReviewWithFallback(pullRequest, event, headSha, report, inline) {
+  const post = await postReview(pullRequest, event, headSha, report, inline.comments);
+  if (post.failed !== "http-422" || inline.comments.length === 0) return { post, inline };
+  process.stderr.write(`${SCRIPT}: GitHub rejected the inline comments; posting the body only\n`);
+  return {
+    post: await postReview(pullRequest, event, headSha, report, []),
+    inline: { comments: [], notes: ["inline-skipped post-rejected"] },
+  };
 }
 
 async function postReview({ host, owner, repo, number }, event, headSha, report, comments) {
@@ -635,8 +674,13 @@ async function main(argv) {
     return EXIT_FAILURE;
   }
 
-  const inline = await inlineComments(pullRequest, findings, read.facts.currentHeadSha !== headSha);
-  const post = await postReview(pullRequest, decision.event, headSha, report, inline.comments);
+  const { post, inline } = await postReviewWithFallback(
+    pullRequest,
+    decision.event,
+    headSha,
+    report,
+    await inlineComments(pullRequest, findings, read.facts.currentHeadSha !== headSha),
+  );
   if (post.failed) {
     process.stderr.write(`${SCRIPT}: the review POST failed\n`);
     printLines([`failed ${post.failed}`, ...decision.notes]);
