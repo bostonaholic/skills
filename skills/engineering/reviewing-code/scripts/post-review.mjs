@@ -30,11 +30,15 @@
  * CHANGES posts `REQUEST_CHANGES`, COMMENT posts `COMMENT`. These post
  * `COMMENT` instead:
  *
- *   self-authored   APPROVE or REQUEST CHANGES on the viewer's own PR
- *   auto-merge      APPROVE while auto-merge is on
- *   head-moved      APPROVE when the PR head is no longer `<head-sha>`
- *   off-head        APPROVE when the flag is `off-head` or the post-time
- *                   check fails
+ *   self-authored     APPROVE or REQUEST CHANGES on the viewer's own PR
+ *   untrusted-author  APPROVE when the PR's `authorAssociation` is not
+ *                     OWNER, MEMBER, or COLLABORATOR, or is missing: the
+ *                     verdict comes from a model that read text the author
+ *                     wrote
+ *   auto-merge        APPROVE while auto-merge is on
+ *   head-moved        APPROVE when the PR head is no longer `<head-sha>`
+ *   off-head          APPROVE when the flag is `off-head` or the post-time
+ *                     check fails
  *
  * Stdout, one token line each. The outcome line always comes first:
  *
@@ -112,6 +116,8 @@ const REVIEW_STATES = {
   REQUEST_CHANGES: "CHANGES_REQUESTED",
   COMMENT: "COMMENTED",
 };
+// GitHub's authorAssociation values for authors with write access or org membership.
+const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const NOT_POSTED_STATES = { MERGED: "pr-merged", CLOSED: "pr-closed" };
 const PR_STATES = new Set(["OPEN", ...Object.keys(NOT_POSTED_STATES)]);
 
@@ -125,6 +131,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       author { login }
+      authorAssociation
       state
       headRefOid
       autoMergeRequest { enabledAt }
@@ -133,12 +140,13 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }`;
 
 /**
- * `facts`: `{verdict, viewerLogin, authorLogin, state, autoMerge,
- * currentHeadSha, reviewedHeadSha, inputFlag, postTimeCheckPassed}`.
- * `verdict` is a verdict token, `state` is OPEN, MERGED, or CLOSED,
- * `authorLogin` is null for a deleted account, and `inputFlag` is `at-head`
- * or `off-head`. Returns `notPosted` (`pr-merged`, `pr-closed`, or null), the
- * event to post, and the note lines in their fixed order.
+ * `facts`: `{verdict, viewerLogin, authorLogin, authorAssociation, state,
+ * autoMerge, currentHeadSha, reviewedHeadSha, inputFlag,
+ * postTimeCheckPassed}`. `verdict` is a verdict token, `state` is OPEN,
+ * MERGED, or CLOSED, `authorLogin` is null for a deleted account,
+ * `authorAssociation` is GitHub's value or null, and `inputFlag` is
+ * `at-head` or `off-head`. Returns `notPosted` (`pr-merged`, `pr-closed`,
+ * or null), the event to post, and the note lines in their fixed order.
  */
 export function decideReview(facts) {
   const notPosted = NOT_POSTED_STATES[facts.state];
@@ -153,12 +161,15 @@ export function decideReview(facts) {
 }
 
 function downgradeReasons(verdictEvent, facts, headMoved) {
-  const { viewerLogin, authorLogin, autoMerge, inputFlag, postTimeCheckPassed } = facts;
+  const { viewerLogin, authorLogin, authorAssociation, autoMerge, inputFlag, postTimeCheckPassed } =
+    facts;
   const selfAuthored = authorLogin !== null && authorLogin === viewerLogin;
+  const untrustedAuthor = !TRUSTED_ASSOCIATIONS.has(authorAssociation);
   const offHead = inputFlag === "off-head" || !postTimeCheckPassed;
   const approve = verdictEvent === "APPROVE";
   const reasons = [
     ["self-authored", verdictEvent !== "COMMENT" && selfAuthored],
+    ["untrusted-author", approve && untrustedAuthor],
     ["auto-merge", approve && autoMerge],
     ["head-moved", approve && headMoved],
     ["off-head", approve && offHead],
@@ -282,10 +293,12 @@ async function readPullRequestFacts({ host, owner, repo, number }) {
     return readFailure("the pull request head is not a commit SHA");
 
   const authorLogin = pullRequest.author?.login;
+  const { authorAssociation } = pullRequest;
   return {
     facts: {
       viewerLogin,
       authorLogin: typeof authorLogin === "string" ? authorLogin : null,
+      authorAssociation: typeof authorAssociation === "string" ? authorAssociation : null,
       state: pullRequest.state,
       autoMerge: pullRequest.autoMergeRequest != null,
       currentHeadSha: pullRequest.headRefOid,

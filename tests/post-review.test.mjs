@@ -113,6 +113,7 @@ function prFacts(fields) {
     verdict: "APPROVE",
     viewerLogin: "me",
     authorLogin: "alice",
+    authorAssociation: "MEMBER",
     state: "OPEN",
     autoMerge: false,
     currentHeadSha: REVIEWED_SHA,
@@ -260,6 +261,7 @@ function prRead({
     repository: {
       pullRequest: {
         author: authorLogin === null ? null : { login: authorLogin },
+        authorAssociation: "MEMBER",
         state,
         headRefOid,
         autoMergeRequest: autoMerge ? { enabledAt: AUTO_MERGE_ENABLED_AT } : null,

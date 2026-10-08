@@ -1,5 +1,7 @@
-// Fails when post-review.mjs reads a verdict word with any prefix but a verdict emoji as a
-// verdict, or posts an APPROVE through the CLI while the PR has auto-merge on.
+// Fails when post-review.mjs posts an APPROVE on a PR whose author is not an owner, member, or
+// collaborator (or whose association is missing), lowers a REQUEST CHANGES for that reason, reads
+// a verdict word with any prefix but a verdict emoji as a verdict, or posts an APPROVE through the
+// CLI while the PR has auto-merge on.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -8,9 +10,12 @@ import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const scriptPath = fileURLToPath(
-  new URL("../skills/engineering/reviewing-code/scripts/post-review.mjs", import.meta.url),
+const scriptUrl = new URL(
+  "../skills/engineering/reviewing-code/scripts/post-review.mjs",
+  import.meta.url,
 );
+const scriptPath = fileURLToPath(scriptUrl);
+const { decideReview } = await import(scriptUrl.href);
 
 // The user's global git config (signing, identity) must never reach a fixture repository.
 const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
@@ -95,6 +100,40 @@ function jsonResponse(value) {
   return { stdout: JSON.stringify(value) };
 }
 
+// A GraphQL read of an open PR by alice, with `authorAssociation` omitted when undefined.
+function prRead({ headRefOid, authorAssociation, autoMerge = false }) {
+  return jsonResponse({
+    data: {
+      viewer: { login: "me" },
+      repository: {
+        pullRequest: {
+          author: { login: "alice" },
+          authorAssociation,
+          state: "OPEN",
+          headRefOid,
+          autoMergeRequest: autoMerge ? { enabledAt: "2026-10-08T12:00:00Z" } : null,
+        },
+      },
+    },
+  });
+}
+
+// Facts for an open PR by someone else, auto-merge off, head unmoved, checkout at the head.
+function prFacts(fields) {
+  return {
+    verdict: "APPROVE",
+    viewerLogin: "me",
+    authorLogin: "alice",
+    state: "OPEN",
+    autoMerge: false,
+    currentHeadSha: REVIEWED_SHA,
+    reviewedHeadSha: REVIEWED_SHA,
+    inputFlag: "at-head",
+    postTimeCheckPassed: true,
+    ...fields,
+  };
+}
+
 function review(state, commitId) {
   return jsonResponse({
     id: 9001,
@@ -126,20 +165,7 @@ test("an APPROVE on a PR with auto-merge on posts COMMENT through the CLI", (t) 
     cwd: checkout.dir,
     args: [PR_URL, checkout.headSha, reportPath, "at-head"],
     responses: [
-      jsonResponse({
-        data: {
-          viewer: { login: "me" },
-          repository: {
-            pullRequest: {
-              author: { login: "alice" },
-              authorAssociation: "MEMBER",
-              state: "OPEN",
-              headRefOid: checkout.headSha,
-              autoMergeRequest: { enabledAt: "2026-10-08T12:00:00Z" },
-            },
-          },
-        },
-      }),
+      prRead({ headRefOid: checkout.headSha, authorAssociation: "MEMBER", autoMerge: true }),
       review("COMMENTED", checkout.headSha),
       review("COMMENTED", checkout.headSha),
     ],
@@ -148,4 +174,123 @@ test("an APPROVE on a PR with auto-merge on posts COMMENT through the CLI", (t) 
   assert.ok(run.calls[1]?.includes("event=COMMENT"), `POST argv: ${JSON.stringify(run.calls[1])}`);
   assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, "downgraded APPROVE auto-merge"]);
   assert.equal(run.status, 0);
+});
+
+const UNTRUSTED = ["downgraded APPROVE untrusted-author"];
+
+const TRUST_DECISION_ROWS = [
+  ...["OWNER", "MEMBER", "COLLABORATOR"].map((association) => ({
+    name: `an APPROVE by author association ${association} posts APPROVE`,
+    facts: prFacts({ authorAssociation: association }),
+    expected: { event: "APPROVE", notes: [] },
+  })),
+  ...["CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "MANNEQUIN", "NONE"].map(
+    (association) => ({
+      name: `an APPROVE by author association ${association} posts COMMENT`,
+      facts: prFacts({ authorAssociation: association }),
+      expected: { event: "COMMENT", notes: UNTRUSTED },
+    }),
+  ),
+  {
+    name: "an APPROVE with no association posts COMMENT",
+    facts: prFacts({}),
+    expected: { event: "COMMENT", notes: UNTRUSTED },
+  },
+  {
+    name: "an APPROVE with a null association posts COMMENT",
+    facts: prFacts({ authorAssociation: null }),
+    expected: { event: "COMMENT", notes: UNTRUSTED },
+  },
+  {
+    name: "an association in another letter case posts COMMENT",
+    facts: prFacts({ authorAssociation: "member" }),
+    expected: { event: "COMMENT", notes: UNTRUSTED },
+  },
+  {
+    name: "a REQUEST CHANGES by a NONE author stays REQUEST_CHANGES",
+    facts: prFacts({ verdict: "REQUEST CHANGES", authorAssociation: "NONE" }),
+    expected: { event: "REQUEST_CHANGES", notes: [] },
+  },
+  {
+    name: "a REQUEST CHANGES with no association stays REQUEST_CHANGES",
+    facts: prFacts({ verdict: "REQUEST CHANGES" }),
+    expected: { event: "REQUEST_CHANGES", notes: [] },
+  },
+  {
+    name: "a COMMENT by a NONE author posts COMMENT with no note",
+    facts: prFacts({ verdict: "COMMENT", authorAssociation: "NONE" }),
+    expected: { event: "COMMENT", notes: [] },
+  },
+  {
+    name: "untrusted-author notes after self-authored and before auto-merge",
+    facts: prFacts({ authorLogin: "me", authorAssociation: "NONE", autoMerge: true }),
+    expected: {
+      event: "COMMENT",
+      notes: [
+        "downgraded APPROVE self-authored",
+        "downgraded APPROVE untrusted-author",
+        "downgraded APPROVE auto-merge",
+      ],
+    },
+  },
+];
+
+test("lowers APPROVE to COMMENT unless the PR author is an owner, member, or collaborator", async (t) => {
+  for (const row of TRUST_DECISION_ROWS) {
+    await t.test(row.name, () => {
+      const result = decideReview(row.facts);
+      assert.deepEqual({ event: result.event, notes: result.notes }, row.expected);
+    });
+  }
+});
+
+const TRUST_CLI_ROWS = [
+  { name: "a CONTRIBUTOR author", authorAssociation: "CONTRIBUTOR" },
+  { name: "a read with no authorAssociation", authorAssociation: undefined },
+];
+
+test("posts an untrusted author's APPROVE as COMMENT through the CLI", async (t) => {
+  for (const row of TRUST_CLI_ROWS) {
+    await t.test(row.name, (st) => {
+      const checkout = cleanCheckout(st);
+      const reportPath = writeReport(st, APPROVE_REPORT);
+      const run = runScript(st, {
+        cwd: checkout.dir,
+        args: [PR_URL, checkout.headSha, reportPath, "at-head"],
+        responses: [
+          prRead({ headRefOid: checkout.headSha, authorAssociation: row.authorAssociation }),
+          review("COMMENTED", checkout.headSha),
+          review("COMMENTED", checkout.headSha),
+        ],
+      });
+
+      assert.ok(
+        run.calls[1]?.includes("event=COMMENT"),
+        `POST argv: ${JSON.stringify(run.calls[1])}`,
+      );
+      assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, ...UNTRUSTED]);
+      assert.equal(run.status, 0);
+    });
+  }
+
+  await t.test("an OWNER author's APPROVE posts APPROVE", (st) => {
+    const checkout = cleanCheckout(st);
+    const reportPath = writeReport(st, APPROVE_REPORT);
+    const run = runScript(st, {
+      cwd: checkout.dir,
+      args: [PR_URL, checkout.headSha, reportPath, "at-head"],
+      responses: [
+        prRead({ headRefOid: checkout.headSha, authorAssociation: "OWNER" }),
+        review("APPROVED", checkout.headSha),
+        review("APPROVED", checkout.headSha),
+      ],
+    });
+
+    assert.ok(
+      run.calls[1]?.includes("event=APPROVE"),
+      `POST argv: ${JSON.stringify(run.calls[1])}`,
+    );
+    assert.deepEqual(run.lines, [`posted APPROVE ${REVIEW_URL}`]);
+    assert.equal(run.status, 0);
+  });
 });
