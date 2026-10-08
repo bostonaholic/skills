@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-08
+
 ### Changed
 
 - Put the ticket reference (`Closes #<n>`) first in PR bodies written by `using-gh-cli`, above `## Summary`. [#53](https://github.com/bostonaholic/skills/pull/53)
@@ -270,5 +272,7 @@
 
 [0.16.0]: https://github.com/bostonaholic/skills/compare/v0.15.1...v0.16.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.17.0...HEAD
 [0.17.0]: https://github.com/bostonaholic/skills/compare/v0.16.0...v0.17.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/bostonaholic/skills/compare/v0.17.0...v0.18.0
