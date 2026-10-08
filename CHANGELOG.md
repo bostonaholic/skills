@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Load being-extremely-fucking-brief before every reply, including plain questions, and keep its three lines short with no blank lines between them. [#67](https://github.com/bostonaholic/skills/pull/67)
+
 ## [0.21.0] - 2026-10-10
 
 ### Added
