@@ -24,5 +24,6 @@ If no correction is clear, ask which one to codify.
 - **Overlap**: if the rule already exists, stop and say where. If a related
   rule exists, refine it instead of adding a duplicate.
 - **Approval**: show the rule (or the old and new text of a refined rule), the
-  file path, and the section. Write nothing until the user approves. Place it in
-  a fitting section, or a new `## Learned Rules` section when none fits.
+  file path, and the section: an existing section that fits, or else a new
+  `## Learned Rules` section. Never propose any other new heading. Write nothing
+  until the user approves.
