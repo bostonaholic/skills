@@ -5,7 +5,7 @@
  * the report's verdict line names, pinned to the reviewed commit, then read
  * the review back.
  *
- *     node "<skill-dir>/scripts/post-review.mjs" <pr-url> <head-sha> <report-file> at-head
+ *     node "<skill-dir>/scripts/post-review.mjs" <pr-url> <head-sha> <report-file> <at-head|off-head>
  *
  *     import { decideReview } from "<skill-dir>/scripts/post-review.mjs";
  *     const { notPosted, event, notes } = decideReview(facts);
@@ -13,10 +13,17 @@
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>` on the base
  * repository, matching `PR_URL_PATTERN`. `<head-sha>` is the 40-character
  * commit the reviewer diffed. `<report-file>` holds the report alone, its
- * first line the `**Verdict: ...**` line. The last argument is the checkout
- * flag from Input; only `at-head` posts. Requires `gh` on PATH, signed in to
- * `<host>`. Every `gh` call passes `--hostname <host>`, github.com included,
- * so a `GH_HOST` in the environment never redirects the read or the write.
+ * first line the `**Verdict: ...**` line. The last argument is the at-head
+ * flag from Input. Run the script from the reviewed checkout. Requires `gh`
+ * on PATH, signed in to `<host>`. Every `gh` call passes `--hostname <host>`,
+ * github.com included, so a `GH_HOST` in the environment never redirects the
+ * read or the write.
+ *
+ * Before the GitHub read, a post-time check runs `git rev-parse HEAD` and
+ * `git status --porcelain --untracked-files=no` in the working directory. It
+ * passes when `HEAD` is `<head-sha>` and no tracked file differs. It skips
+ * untracked files, because a test run can create them. A failed `git` call
+ * fails the check.
  *
  * The event comes from the verdict token: APPROVE posts `APPROVE`, REQUEST
  * CHANGES posts `REQUEST_CHANGES`, COMMENT posts `COMMENT`. These post
@@ -25,6 +32,8 @@
  *   self-authored   APPROVE or REQUEST CHANGES on the viewer's own PR
  *   auto-merge      APPROVE while auto-merge is on
  *   head-moved      APPROVE when the PR head is no longer `<head-sha>`
+ *   off-head        APPROVE when the flag is `off-head` or the post-time
+ *                   check fails
  *
  * Stdout, one token line each. The outcome line always comes first:
  *
@@ -55,7 +64,7 @@
  *
  *   0  posted and read back
  *   1  any other outcome after the argument checks
- *   2  usage fault: a bad argument count, PR URL, SHA, or checkout flag, an
+ *   2  usage fault: a bad argument count, PR URL, SHA, or at-head flag, an
  *      unreadable report file, or a first line that is not a verdict line.
  *      Nothing ran
  *
@@ -65,6 +74,8 @@
  *   - GitHub rejects a body of 65,536 characters or more with HTTP 422.
  *   - The PR can merge, close, move its head, or enable auto-merge between
  *     the read and the POST: GitHub has no conditional create-review call.
+ *   - The post-time check cannot see an untracked file that predates the
+ *     review; only the Input flag covers it.
  *   - Nothing retries. A `gh-exit` failure can follow a review GitHub
  *     accepted, so the caller checks the PR before a rerun.
  */
@@ -75,7 +86,7 @@ import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const SCRIPT = "post-review.mjs";
-const USAGE = `${SCRIPT} <pr-url> <head-sha> <report-file> at-head`;
+const USAGE = `${SCRIPT} <pr-url> <head-sha> <report-file> <at-head|off-head>`;
 
 // The host is a DNS name (at most 253 characters); owner and repository use GitHub's
 // 39-character login and 100-character repository-name limits.
@@ -86,7 +97,7 @@ const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const VERDICT_LINE_PATTERN = /^\*\*Verdict: (?:\S+ )?(APPROVE|REQUEST CHANGES|COMMENT)\*\*\r?$/;
 // `gh api` reports an HTTP error on stderr as `gh: <message> (HTTP <status>)`.
 const HTTP_STATUS_PATTERN = /\(HTTP (\d{3})\)/;
-const AT_HEAD = "at-head";
+const CHECKOUT_FLAGS = new Set(["at-head", "off-head"]);
 
 const VERDICT_EVENTS = {
   APPROVE: "APPROVE",
@@ -120,9 +131,10 @@ query($owner: String!, $repo: String!, $number: Int!) {
 
 /**
  * `facts`: `{verdict, viewerLogin, authorLogin, state, autoMerge,
- * currentHeadSha, reviewedHeadSha}`. `verdict` is a verdict token, `state`
- * is OPEN, MERGED, or CLOSED, and `authorLogin` is null for a deleted
- * account. Returns `notPosted` (`pr-merged`, `pr-closed`, or null), the
+ * currentHeadSha, reviewedHeadSha, inputFlag, postTimeCheckPassed}`.
+ * `verdict` is a verdict token, `state` is OPEN, MERGED, or CLOSED,
+ * `authorLogin` is null for a deleted account, and `inputFlag` is `at-head`
+ * or `off-head`. Returns `notPosted` (`pr-merged`, `pr-closed`, or null), the
  * event to post, and the note lines in their fixed order.
  */
 export function decideReview(facts) {
@@ -137,13 +149,16 @@ export function decideReview(facts) {
   return { notPosted: null, event: reasons.length > 0 ? "COMMENT" : verdictEvent, notes };
 }
 
-function downgradeReasons(verdictEvent, { viewerLogin, authorLogin, autoMerge }, headMoved) {
+function downgradeReasons(verdictEvent, facts, headMoved) {
+  const { viewerLogin, authorLogin, autoMerge, inputFlag, postTimeCheckPassed } = facts;
   const selfAuthored = authorLogin !== null && authorLogin === viewerLogin;
+  const offHead = inputFlag === "off-head" || !postTimeCheckPassed;
   const approve = verdictEvent === "APPROVE";
   const reasons = [
     ["self-authored", verdictEvent !== "COMMENT" && selfAuthored],
     ["auto-merge", approve && autoMerge],
     ["head-moved", approve && headMoved],
+    ["off-head", approve && offHead],
   ];
   return reasons.filter(([, applies]) => applies).map(([reason]) => reason);
 }
@@ -151,12 +166,13 @@ function downgradeReasons(verdictEvent, { viewerLogin, authorLogin, autoMerge },
 // Returns `{ args }` or `{ usage }`, the clause naming the fault.
 function parseArguments(argv) {
   if (argv.length !== 4) return { usage: `usage: ${USAGE}` };
-  const [prUrl, headSha, reportPath, checkoutFlag] = argv;
+  const [prUrl, headSha, reportPath, inputFlag] = argv;
   if (!PR_URL_PATTERN.test(prUrl))
     return { usage: "the PR URL does not match https://<host>/<owner>/<repo>/pull/<n>" };
   if (!SHA_PATTERN.test(headSha))
     return { usage: "the head SHA is not a 40-character lowercase hex commit SHA" };
-  if (checkoutFlag !== AT_HEAD) return { usage: `the checkout flag is not ${AT_HEAD}` };
+  if (!CHECKOUT_FLAGS.has(inputFlag))
+    return { usage: "the at-head flag is not at-head or off-head" };
 
   let report;
   try {
@@ -168,7 +184,8 @@ function parseArguments(argv) {
   const verdict = VERDICT_LINE_PATTERN.exec(firstLine)?.[1];
   if (!verdict) return { usage: "the report's first line is not a **Verdict: ...** line" };
 
-  return { args: { pullRequest: parsePullRequestUrl(prUrl), prUrl, headSha, report, verdict } };
+  const pullRequest = parsePullRequestUrl(prUrl);
+  return { args: { pullRequest, prUrl, headSha, report, verdict, inputFlag } };
 }
 
 function parsePullRequestUrl(url) {
@@ -190,6 +207,28 @@ async function runGh(args, input) {
   } catch (error) {
     const exitCode = typeof error.code === "number" ? error.code : (error.signal ?? error.code);
     return { ok: false, error, exitCode, stderr: error.stderr ?? "" };
+  }
+}
+
+// A failed `git` call fails the check, so it can only lower an APPROVE.
+async function checkoutIsAtHead(headSha) {
+  const head = await runGit(["rev-parse", "HEAD"]);
+  // --no-optional-locks keeps `git status` from rewriting the index it reads.
+  const status = await runGit([
+    "--no-optional-locks",
+    "status",
+    "--porcelain",
+    "--untracked-files=no",
+  ]);
+  return head.ok && status.ok && head.stdout.trim() === headSha && status.stdout === "";
+}
+
+async function runGit(args) {
+  try {
+    const { stdout } = await execFileAsync("git", args);
+    return { ok: true, stdout };
+  } catch {
+    return { ok: false };
   }
 }
 
@@ -312,8 +351,9 @@ async function main(argv) {
     process.stderr.write(`${SCRIPT}: ${parsed.usage}\n`);
     return EXIT_USAGE;
   }
-  const { pullRequest, prUrl, headSha, report, verdict } = parsed.args;
+  const { pullRequest, prUrl, headSha, report, verdict, inputFlag } = parsed.args;
 
+  const postTimeCheckPassed = await checkoutIsAtHead(headSha);
   const read = await readPullRequestFacts(pullRequest);
   if (read.failure) {
     process.stderr.write(`${SCRIPT}: ${read.reason}\n`);
@@ -321,7 +361,13 @@ async function main(argv) {
     return EXIT_FAILURE;
   }
 
-  const decision = decideReview({ ...read.facts, verdict, reviewedHeadSha: headSha });
+  const decision = decideReview({
+    ...read.facts,
+    verdict,
+    reviewedHeadSha: headSha,
+    inputFlag,
+    postTimeCheckPassed,
+  });
   if (decision.notPosted) {
     printLines([`not-posted ${decision.notPosted}`]);
     return EXIT_FAILURE;

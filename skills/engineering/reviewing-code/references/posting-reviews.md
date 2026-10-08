@@ -117,16 +117,17 @@ heading-deviation or restricted-subagent lines. The body reaches GitHub on
 the script's stdin, never in command text
 ([never interpolate](shared/external-data.md)). Then run the script, where
 `<skill-dir>` is this skill's absolute directory and the other values are
-the validated canonical URL, the head SHA, and the file path:
+the validated canonical URL, the head SHA, the file path, and `at-head` or
+`off-head` from the at-head flag:
 
 ```bash
-node "<skill-dir>/scripts/post-review.mjs" "<pr-url>" "<head-sha>" "<report-file>" at-head
+node "<skill-dir>/scripts/post-review.mjs" "<pr-url>" "<head-sha>" "<report-file>" <at-head|off-head>
 ```
 
-The script reads the verdict from the file's first line, reads the PR from
-GitHub again, applies the downgrades, posts one review pinned to the head
-SHA, and reads it back by review id. It never retries. The report file can
-be deleted after the run.
+The script reads the verdict from the file's first line, checks the
+checkout, and reads the PR from GitHub again. It applies the downgrades,
+posts one review pinned to the head SHA, and reads it back by review id. It
+never retries. The report file can be deleted after the run.
 
 ## Session lines
 
@@ -146,11 +147,11 @@ Placeholders in angle brackets take one value each. When several
 | `downgraded <EVENT> self-authored`                                                                    | `Review event changed from <EVENT> to COMMENT: GitHub does not allow <EVENT> on your own PR.`                                                                   |
 | `downgraded APPROVE auto-merge`                                                                       | `Review event changed from APPROVE to COMMENT: auto-merge is on, and an approval can merge the PR with no human review. Approve by hand to merge.`              |
 | `downgraded APPROVE head-moved`                                                                       | `Review event changed from APPROVE to COMMENT: the PR head moved after the review.`                                                                             |
+| `downgraded APPROVE off-head`                                                                         | `Review event changed from APPROVE to COMMENT: the checkout was not at the PR head for the whole review. Check out the PR head for a test-backed verdict.`      |
 | `head-moved <sha>`                                                                                    | `The PR head moved to <sha>. The review is pinned to <reviewed-sha>.`                                                                                           |
 | Exit 2                                                                                                | `Not posted: <stderr reason>.`                                                                                                                                  |
 | Step 3 fails twice on a PR target                                                                     | `Not posted: the report failed the verdict contract.`                                                                                                           |
 | Step 2 granted no shell                                                                               | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                              |
-| At-head flag no                                                                                       | `Not posted: the checkout is not at PR #<n>'s head, or it has uncommitted or untracked changes. Check out the PR head to post.`                                 |
 | Working tree, commit range, branch, or path target                                                    | `Not posted: the target is <kind>, not a PR. Pass the PR number or URL to post.` with `<kind>` as `the working tree`, `a commit range`, `a branch`, or `a path` |
 | Input failure, PR number or URL                                                                       | `Stopped before review: <reason>.` plus the failing command's stderr verbatim                                                                                   |
 
