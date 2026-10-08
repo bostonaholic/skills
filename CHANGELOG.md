@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Stop `composing-agent-prompts` at the printed prompt even when the user asks to run it, instead of dispatching it to an agent. [#77](https://github.com/bostonaholic/skills/pull/77)
+
 ## [0.21.11] - 2026-10-10
 
 ### Fixed

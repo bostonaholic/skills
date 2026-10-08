@@ -8,9 +8,10 @@ argument-hint: "[<task description>] [--repo <path>] [--out <path>]"
 # Agent Prompt
 
 Compose a self-contained prompt that another coding agent can execute, in a
-different repository or on a bounded change here. Emit the prompt and stop:
-never dispatch, execute, or schedule the work it describes, and edit nothing
-except the optional `--out` file.
+different repository or on a bounded change here. Emit the prompt and stop,
+even when the user asks to run it: never pass the prompt or its work to
+`Agent`, a subagent, or a plugin agent, never execute or schedule it, and edit
+nothing except the optional `--out` file.
 
 ## Input
 
@@ -52,6 +53,10 @@ fill a section.
 Print the prompt in one fenced code block tagged `markdown`, with a fence
 longer than any backtick run inside the prompt and nothing else inside the
 fence, so the host shows the source instead of rendering it.
+
+After the fence and any open questions, the reply ends. If the user asked to
+run, dispatch, or schedule the prompt, add one line saying this skill does not
+run it and the next step is theirs: hand the printed prompt to the target agent.
 
 With `--out`, also write the prompt there without the fence. If the file
 already exists, do not overwrite it unless the user explicitly asked to;
