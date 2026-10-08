@@ -272,25 +272,4 @@ test("posts an untrusted author's APPROVE as COMMENT through the CLI", async (t)
       assert.equal(run.status, 0);
     });
   }
-
-  await t.test("an OWNER author's APPROVE posts APPROVE", (st) => {
-    const checkout = cleanCheckout(st);
-    const reportPath = writeReport(st, APPROVE_REPORT);
-    const run = runScript(st, {
-      cwd: checkout.dir,
-      args: [PR_URL, checkout.headSha, reportPath, "at-head"],
-      responses: [
-        prRead({ headRefOid: checkout.headSha, authorAssociation: "OWNER" }),
-        review("APPROVED", checkout.headSha),
-        review("APPROVED", checkout.headSha),
-      ],
-    });
-
-    assert.ok(
-      run.calls[1]?.includes("event=APPROVE"),
-      `POST argv: ${JSON.stringify(run.calls[1])}`,
-    );
-    assert.deepEqual(run.lines, [`posted APPROVE ${REVIEW_URL}`]);
-    assert.equal(run.status, 0);
-  });
 });

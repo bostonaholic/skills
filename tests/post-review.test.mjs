@@ -325,7 +325,7 @@ function hostnameOf(argv) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Slice 1: post a PR review at the PR head
+// Post a PR review at the PR head
 // ---------------------------------------------------------------------------------------
 
 const POSTED_ROWS = [
@@ -450,7 +450,7 @@ const DECISION_ROWS = [
   },
 ];
 
-// Slice 2 rows of the decision test.
+// Off-head rows of the decision test.
 const OFF_HEAD_DECISION_ROWS = [
   {
     name: "the off-head flag caps APPROVE at COMMENT",
@@ -514,7 +514,6 @@ const USAGE_FAULT_ROWS = [
     name: "a report whose first line is not a verdict line exits 2 with no gh call",
     args: ({ headingFirstPath }) => [PR_URL, REVIEWED_SHA, headingFirstPath, "at-head"],
   },
-  // Slice 2 row.
   {
     name: "an at-head value other than at-head or off-head exits 2 with no gh call",
     args: ({ reportPath }) => [PR_URL, REVIEWED_SHA, reportPath, "yes"],
@@ -694,7 +693,7 @@ test("reports a refused, failed, or unverified post without a posted line", asyn
 });
 
 // ---------------------------------------------------------------------------------------
-// Slice 2: post a review made from another checkout
+// Post a review made from another checkout
 // ---------------------------------------------------------------------------------------
 
 const LEFT_HEAD_ROWS = [
