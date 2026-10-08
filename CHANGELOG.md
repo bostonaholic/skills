@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Require `writing-technical-design-docs` to name an owner and a calendar date for every open question, never TBD. [#61](https://github.com/bostonaholic/skills/pull/61)
+- Make `writing-technical-design-docs` run `reviewing-design-docs` before returning a draft, and explain how to run it when it cannot run in the session. [#61](https://github.com/bostonaholic/skills/pull/61)
+
 ## [0.21.12] - 2026-10-10
 
 ### Fixed

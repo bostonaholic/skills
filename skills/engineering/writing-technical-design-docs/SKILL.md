@@ -45,14 +45,19 @@ A default to adapt; fold it into the team's own template where one exists.
    detail.
 3. **Mark depth:** `[deep]` on sections that warrant rigor, `[sketch]` on
    sections deliberately light, so reviewers know where to push.
-4. **Open Questions:** numbered, each with an owner and the date its answer
-   is needed. Five honest open questions beat zero.
+4. **Open Questions:** numbered, each with an owner and the calendar date
+   its answer is needed. Five honest open questions beat zero. An owner is
+   an assignment, not an unknown fact: when no person can be named, name
+   the owning team, the role, or the author, and propose the date from the
+   doc's date. Never write TBD for either.
 5. **Close with a Reversibility table:** each major decision rated one-way
-   or two-way.
+   or two-way. No section follows it.
 
-For an adversarial review of the draft, call the Skill tool with
-`reviewing-design-docs`. If it is not installed, say that no independent
-review was done.
+Before returning the draft, call the Skill tool with `reviewing-design-docs`
+on it for an adversarial review. If it is not installed or cannot run here
+(for example, it cannot save the draft to a file), then below a separator
+after the doc, say that no independent review was done, why, and the next
+step: save the draft to a file, then run `/reviewing-design-docs <path>`.
 
 ## When not to use this skill
 
