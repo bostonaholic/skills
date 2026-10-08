@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Post `reviewing-code` reviews to the PR as APPROVE, REQUEST CHANGES, or COMMENT without asking first; APPROVE posts only on PRs by repository owners, members, or collaborators, and a report that looks like it holds a credential never posts. [#80](https://github.com/bostonaholic/skills/pull/80)
+- Post `reviewing-code` reviews to the PR as APPROVE, REQUEST CHANGES, or COMMENT without asking first; APPROVE posts only on PRs by repository owners, members, or collaborators, a report that looks like it holds a credential never posts, and each finding whose `file:` line falls on a diff line also posts as an inline Conventional Comment. [#80](https://github.com/bostonaholic/skills/pull/80)
 
 ## [0.20.0] - 2026-10-08
 

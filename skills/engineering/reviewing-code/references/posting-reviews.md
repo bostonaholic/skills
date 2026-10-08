@@ -155,6 +155,13 @@ nothing. Otherwise it checks the checkout and reads the PR from GitHub
 again. It applies the downgrades, posts one review pinned to the head SHA,
 and reads it back by review id. It never retries. The report file can be deleted after the run.
 
+The review body is always the whole report. When the PR head has not moved,
+each finding whose `file:` line names a repo-relative path and a line on
+the PR diff's new side also posts as an inline comment on that line,
+holding the finding's text. The script reads the PR's changed files to
+find those lines, sends at most 50 inline comments, and counts them on read
+back. A finding it cannot anchor stays in the body only.
+
 ## Session lines
 
 Every line the session prints after the report comes from this table.
@@ -177,6 +184,9 @@ Placeholders in angle brackets take one value each. When several
 | `downgraded APPROVE head-moved`                                                                       | `Review event changed from APPROVE to COMMENT: the PR head moved after the review.`                                                                          |
 | `downgraded APPROVE off-head`                                                                         | `Review event changed from APPROVE to COMMENT: the checkout was not at the PR head for the whole review. Check out the PR head for a test-backed verdict.`   |
 | `head-moved <sha>`                                                                                    | `The PR head moved to <sha>. The review is pinned to <reviewed-sha>.`                                                                                        |
+| `inline <k> <n>`                                                                                      | `Inline comments: <k> of <n> located findings anchored to the diff; the review body holds every finding.`                                                    |
+| `inline-skipped head-moved`                                                                           | `Inline comments skipped: the PR head moved after the review, so the findings are in the review body only.`                                                  |
+| `inline-skipped files-read-failed`                                                                    | `Inline comments skipped: reading the PR's changed files failed, so the findings are in the review body only.`                                               |
 | Exit 2                                                                                                | `Not posted: <stderr reason>.`                                                                                                                               |
 | Verdict check fails twice on a PR target                                                              | `Not posted: the report failed the verdict contract.`                                                                                                        |
 | Reviewer had no shell                                                                                 | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                           |

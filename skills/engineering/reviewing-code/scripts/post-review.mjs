@@ -7,8 +7,10 @@
  *
  *     node "<skill-dir>/scripts/post-review.mjs" <pr-url> <head-sha> <report-file> <at-head|off-head>
  *
- *     import { decideReview } from "<skill-dir>/scripts/post-review.mjs";
+ *     import { decideReview, parseFindings, planInlineComments, rightSideLines }
+ *       from "<skill-dir>/scripts/post-review.mjs";
  *     const { notPosted, event, notes } = decideReview(facts);
+ *     const comments = planInlineComments(parseFindings(report, toplevel), rightSideLines(files));
  *
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>` on the base
  * repository, matching `PR_URL_PATTERN`, with no owner or repository of `.`
@@ -47,6 +49,21 @@
  *   off-head          APPROVE when the flag is `off-head` or the post-time
  *                     check fails
  *
+ * The review body is always the whole report. Each finding under
+ * `### Findings` that opens with a Conventional Comments label line
+ * (`**<label>:**` or `**<label> (<decoration>):**`) and carries a
+ * `file: <path>:<line>` or `file: <path>:<start>-<end>` line (the first of
+ * several comma-separated locations) is a located finding when its path is
+ * repo-relative after normalizing: a leading `./` is dropped, an absolute path
+ * under `git rev-parse --show-toplevel` becomes relative, and any other
+ * absolute path or a `..` segment drops the finding. When at least one finding
+ * is located and the PR head is still `<head-sha>`, the script reads the PR's
+ * changed files and posts each located finding whose line is on the right
+ * side of the diff as an inline comment holding that finding's text. A range
+ * anchors to all its lines when every one is in a single hunk, else to its end
+ * line alone. At most `MAX_INLINE_COMMENTS` post inline; every finding stays
+ * in the body.
+ *
  * Stdout, one token line each. The outcome line always comes first:
  *
  *   posted <EVENT> <review-url>    posted and read back
@@ -58,17 +75,30 @@
  *   failed http-<status>           from gh's "(HTTP <status>)" stderr
  *   failed gh-exit-<code>          gh failed with no HTTP status
  *   unverified no-review-id        the POST response names no review id
- *   unverified read-back-failed    the GET of the new review failed
+ *   unverified read-back-failed    the GET of the new review or its comments
+ *                                  failed
  *   unverified state-mismatch      the review state is not the posted event's
  *   unverified commit-mismatch     the review is not on `<head-sha>`
  *   unverified author-mismatch     the review author is not the viewer
  *   unverified url-mismatch        the review url is not on `<pr-url>`
+ *   unverified inline-comments-mismatch
+ *                                  the review holds a different number of
+ *                                  inline comments than were sent
  *
  * After a `posted`, `failed`, or `unverified` outcome, one note line per
  * downgrade reason, in the order above, then the new head when it moved:
  *
  *   downgraded <APPROVE|REQUEST_CHANGES> <reason>
  *   head-moved <current-sha>
+ *
+ * Last, after a `posted` outcome for a report with a located finding, one
+ * inline line:
+ *
+ *   inline <posted> <located>          <posted> inline comments of <located>
+ *                                      located findings
+ *   inline-skipped head-moved          the PR head moved; no inline comments
+ *   inline-skipped files-read-failed   the changed-files read failed; no
+ *                                      inline comments
  *
  * No stdout line carries a report byte. Stderr carries gh's own stderr, then
  * `post-review.mjs: <reason>`.
@@ -84,7 +114,8 @@
  *
  * Constraints:
  *
- *   - The body travels on gh's stdin (`-F body=@-`), never in argv.
+ *   - The body travels on gh's stdin, never in argv: as `-F body=@-` with no
+ *     inline comment, else inside the `--input -` JSON payload with them.
  *   - GitHub rejects a body of 65,536 characters or more with HTTP 422.
  *   - The PR can merge, close, move its head, or enable auto-merge between
  *     the read and the POST: GitHub has no conditional create-review call.
@@ -142,6 +173,14 @@ const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 const NOT_POSTED_STATES = { MERGED: "pr-merged", CLOSED: "pr-closed" };
 const PR_STATES = new Set(["OPEN", ...Object.keys(NOT_POSTED_STATES)]);
 
+const FINDINGS_HEADING = "### Findings";
+const FINDING_LABEL_PATTERN = /^\*\*[a-z]+(?: \([^)]*\))?:\*\*/;
+const FILE_LINE_PATTERN = /^\s*file:\s*(.*)$/;
+const LOCATION_PATTERN = /^(.+):([1-9][0-9]*)(?:-([1-9][0-9]*))?$/;
+const HUNK_HEADER_PATTERN = /^@@ -[0-9]+(?:,[0-9]+)? \+([0-9]+)(?:,[0-9]+)? @@/;
+// Bounds one review's inline comments; the body still carries every finding.
+const MAX_INLINE_COMMENTS = 50;
+
 const EXIT_OK = 0;
 const EXIT_FAILURE = 1;
 const EXIT_USAGE = 2;
@@ -196,6 +235,109 @@ function downgradeReasons(verdictEvent, facts, headMoved) {
     ["off-head", approve && offHead],
   ];
   return reasons.filter(([, applies]) => applies).map(([reason]) => reason);
+}
+
+/**
+ * Returns `{body, path, line, startLine?}` for each finding under the report's
+ * `### Findings` heading that has a usable `file:` location. `toplevel` is the
+ * checkout's top-level directory, or null; an absolute path outside it is
+ * dropped. For a range, `line` is its end and `startLine` its start.
+ */
+export function parseFindings(report, toplevel = null) {
+  return findingBlocks(report).flatMap((lines) => {
+    const location = findingLocation(lines, toplevel);
+    return location ? [{ body: lines.join("\n"), ...location }] : [];
+  });
+}
+
+function findingBlocks(report) {
+  const lines = report.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trimEnd() === FINDINGS_HEADING);
+  if (start === -1) return [];
+  const blocks = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("### ")) break;
+    if (FINDING_LABEL_PATTERN.test(line)) blocks.push([line]);
+    else blocks.at(-1)?.push(line);
+  }
+  return blocks.map(trimTrailingBlankLines);
+}
+
+function trimTrailingBlankLines(lines) {
+  let end = lines.length;
+  while (end > 0 && lines[end - 1].trim() === "") end -= 1;
+  return lines.slice(0, end);
+}
+
+function findingLocation(lines, toplevel) {
+  const fileLine = lines.map((line) => FILE_LINE_PATTERN.exec(line)).find(Boolean);
+  const match = fileLine && LOCATION_PATTERN.exec(fileLine[1].split(",")[0].trim());
+  if (!match) return null;
+  const path = repoRelativePath(match[1], toplevel);
+  const start = Number(match[2]);
+  const end = Number(match[3] ?? match[2]);
+  if (!path || end < start) return null;
+  return end > start ? { path, line: end, startLine: start } : { path, line: end };
+}
+
+function repoRelativePath(rawPath, toplevel) {
+  let path = rawPath.startsWith("./") ? rawPath.slice(2) : rawPath;
+  if (path.startsWith("/")) {
+    if (!toplevel || !path.startsWith(`${toplevel}/`)) return null;
+    path = path.slice(toplevel.length + 1);
+  }
+  if (path === "" || path.split("/").includes("..")) return null;
+  return path;
+}
+
+/**
+ * `files`: `[{filename, patch}]` from the PR files API. Returns a Map from each
+ * filename with a patch to the set of right-side line numbers its hunks show,
+ * added and context lines alike. A file with no patch (binary or too large) has
+ * no entry.
+ */
+export function rightSideLines(files) {
+  const map = new Map();
+  for (const { filename, patch } of files) {
+    if (typeof patch === "string") map.set(filename, patchRightSideLines(patch));
+  }
+  return map;
+}
+
+function patchRightSideLines(patch) {
+  const lines = new Set();
+  let next = null;
+  for (const text of patch.split("\n")) {
+    const hunk = HUNK_HEADER_PATTERN.exec(text);
+    if (hunk) next = Number(hunk[1]);
+    else if (next !== null && (text.startsWith("+") || text.startsWith(" "))) lines.add(next++);
+  }
+  return lines;
+}
+
+/**
+ * Returns the review API's `comments` for the findings whose line is in the
+ * diff, at most `MAX_INLINE_COMMENTS`, in finding order. A range keeps its
+ * start only when every line of it is in the diff: hunks never touch, so that
+ * holds only within one hunk, as GitHub requires.
+ */
+export function planInlineComments(findings, diffLines) {
+  const comments = [];
+  for (const { body, path, line, startLine } of findings) {
+    const lines = diffLines.get(path);
+    if (!lines?.has(line)) continue;
+    const comment = { path, line, side: "RIGHT", body };
+    if (startLine !== undefined && rangeInDiff(lines, startLine, line))
+      Object.assign(comment, { start_line: startLine, start_side: "RIGHT" });
+    comments.push(comment);
+  }
+  return comments.slice(0, MAX_INLINE_COMMENTS);
+}
+
+function rangeInDiff(lines, start, end) {
+  if (end - start + 1 > lines.size) return false;
+  for (let line = start; line <= end; line += 1) if (!lines.has(line)) return false;
+  return true;
 }
 
 // Returns `{ args }` or `{ usage }`, the clause naming the fault.
@@ -262,6 +404,11 @@ async function checkoutIsAtHead(headSha) {
     "--untracked-files=no",
   ]);
   return head.ok && status.ok && head.stdout.trim() === headSha && status.stdout === "";
+}
+
+async function checkoutTopLevel() {
+  const result = await runGit(["rev-parse", "--show-toplevel"]);
+  return result.ok ? result.stdout.trim() : null;
 }
 
 async function runGit(args) {
@@ -333,7 +480,54 @@ async function readPullRequestFacts({ host, owner, repo, number }) {
   };
 }
 
-async function postReview({ host, owner, repo, number }, event, headSha, report) {
+// Returns `{ comments, notes }`: the inline comments to send and the inline stdout line.
+async function inlineComments(pullRequest, findings, headMoved) {
+  if (findings.length === 0) return { comments: [], notes: [] };
+  if (headMoved) return { comments: [], notes: ["inline-skipped head-moved"] };
+  const files = await readChangedFiles(pullRequest);
+  if (!files) {
+    process.stderr.write(`${SCRIPT}: the PR files read failed; posting without inline comments\n`);
+    return { comments: [], notes: ["inline-skipped files-read-failed"] };
+  }
+  const comments = planInlineComments(findings, rightSideLines(files));
+  return { comments, notes: [`inline ${comments.length} ${findings.length}`] };
+}
+
+// The projection keeps everything but each file's name and patch out of memory.
+async function readChangedFiles({ host, owner, repo, number }) {
+  const result = await runGh([
+    "api",
+    "--hostname",
+    host,
+    "--paginate",
+    `repos/${owner}/${repo}/pulls/${number}/files`,
+    "--jq",
+    ".[] | {filename, patch}",
+  ]);
+  if (!result.ok) {
+    process.stderr.write(result.stderr);
+    return null;
+  }
+  const files = nonEmptyLines(result.stdout).map(parseJsonObject);
+  const valid = files.every(
+    (file) =>
+      typeof file?.filename === "string" && (file.patch == null || typeof file.patch === "string"),
+  );
+  return valid ? files : null;
+}
+
+function nonEmptyLines(text) {
+  return text.split("\n").filter((line) => line.trim() !== "");
+}
+
+async function postReview({ host, owner, repo, number }, event, headSha, report, comments) {
+  const [fields, input] =
+    comments.length === 0
+      ? [["-f", `event=${event}`, "-f", `commit_id=${headSha}`, "-F", "body=@-"], report]
+      : [
+          ["--input", "-"],
+          JSON.stringify({ event, commit_id: headSha, body: report.toString("utf8"), comments }),
+        ];
   const result = await runGh(
     [
       "api",
@@ -342,14 +536,9 @@ async function postReview({ host, owner, repo, number }, event, headSha, report)
       "--method",
       "POST",
       `repos/${owner}/${repo}/pulls/${number}/reviews`,
-      "-f",
-      `event=${event}`,
-      "-f",
-      `commit_id=${headSha}`,
-      "-F",
-      "body=@-",
+      ...fields,
     ],
-    report,
+    input,
   );
   if (result.ok) return { reviewId: parseJsonObject(result.stdout)?.id };
 
@@ -377,7 +566,29 @@ async function readBackReview({ host, owner, repo, number }, reviewId, expected)
   if (review.user?.login !== expected.viewerLogin) return { unverified: "author-mismatch" };
   if (typeof review.html_url !== "string" || !reviewUrlPattern.test(review.html_url))
     return { unverified: "url-mismatch" };
+  if (expected.commentCount > 0) {
+    const count = await readReviewCommentCount({ host, owner, repo, number }, reviewId);
+    if (count === null) return { unverified: "read-back-failed" };
+    if (count !== expected.commentCount) return { unverified: "inline-comments-mismatch" };
+  }
   return { reviewUrl: review.html_url };
+}
+
+// Each page prints its own length, so the count is their sum.
+async function readReviewCommentCount({ host, owner, repo, number }, reviewId) {
+  const result = await runGh([
+    "api",
+    "--hostname",
+    host,
+    "--paginate",
+    `repos/${owner}/${repo}/pulls/${number}/reviews/${reviewId}/comments`,
+    "--jq",
+    "length",
+  ]);
+  if (!result.ok) process.stderr.write(result.stderr);
+  const pages = result.ok ? nonEmptyLines(result.stdout).map((line) => line.trim()) : [];
+  if (pages.length === 0 || !pages.every((page) => /^[0-9]+$/.test(page))) return null;
+  return pages.reduce((sum, page) => sum + Number(page), 0);
 }
 
 function escapeRegExp(text) {
@@ -403,6 +614,7 @@ async function main(argv) {
     return EXIT_FAILURE;
   }
 
+  const findings = parseFindings(report.toString("utf8"), await checkoutTopLevel());
   const postTimeCheckPassed = await checkoutIsAtHead(headSha);
   const read = await readPullRequestFacts(pullRequest);
   if (read.failure) {
@@ -423,7 +635,8 @@ async function main(argv) {
     return EXIT_FAILURE;
   }
 
-  const post = await postReview(pullRequest, decision.event, headSha, report);
+  const inline = await inlineComments(pullRequest, findings, read.facts.currentHeadSha !== headSha);
+  const post = await postReview(pullRequest, decision.event, headSha, report, inline.comments);
   if (post.failed) {
     process.stderr.write(`${SCRIPT}: the review POST failed\n`);
     printLines([`failed ${post.failed}`, ...decision.notes]);
@@ -435,6 +648,7 @@ async function main(argv) {
     headSha,
     state: REVIEW_STATES[decision.event],
     viewerLogin: read.facts.viewerLogin,
+    commentCount: inline.comments.length,
   });
   if (readBack.unverified) {
     process.stderr.write(`${SCRIPT}: the posted review did not read back as sent\n`);
@@ -442,7 +656,11 @@ async function main(argv) {
     return EXIT_FAILURE;
   }
 
-  printLines([`posted ${decision.event} ${readBack.reviewUrl}`, ...decision.notes]);
+  printLines([
+    `posted ${decision.event} ${readBack.reviewUrl}`,
+    ...decision.notes,
+    ...inline.notes,
+  ]);
   return EXIT_OK;
 }
 
