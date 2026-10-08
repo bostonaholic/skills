@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Have `pricing-creativity` ask for the decision makers, desired future state, its worth, and the budget before giving any figure for a deal, including placeholders and guesses. [#70](https://github.com/bostonaholic/skills/pull/70)
+
 ## [0.21.8] - 2026-10-10
 
 ### Fixed

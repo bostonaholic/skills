@@ -13,8 +13,9 @@ them to the firm and client at hand.
 
 For a specific deal, get the facts the rules depend on before pricing: the
 decision makers, the desired future state, what reaching it is worth, and the
-stated budget. Ask for whichever are missing. For depth, read the chapter the
-[chapter index](#chapter-index) points to.
+stated budget. Ask for whichever are missing, and treat none as known until the
+client states it. For depth, read the chapter the [chapter index](#chapter-index)
+points to.
 
 ## Contents
 
@@ -40,9 +41,11 @@ both sides sincerely thank each other.
 
 1. **Price the client, not the job.** Willingness to pay differs by client, so
    let those who can pay more do so. Never answer a request for the price of a
-   service with a number. Publish guidance only, such as a minimum level of
-   engagement (MLOE, about 10% of the annual AGI target), never per-service
-   prices, unless the firm is productized.
+   service with a number. Instead, ask the client for the four deal facts
+   above, and give no figure for this deal until all four are in: no
+   placeholder, example price, typical range, or guess. Publish guidance only,
+   such as a minimum level of engagement (MLOE, about 10% of the annual AGI
+   target), never per-service prices, unless the firm is productized.
 2. **Offer options.** Three, four at most, with the highest price last on the
    page. Options change the client's question from whether the price is worth it
    to which option is the best value. Never add a cheaper option to play it
@@ -81,10 +84,10 @@ during the value conversation, or the proposal shrinks to rates and dates.
 
 ### The value conversation
 
-Early in qualifying, ask Dan Sullivan's three-year question: the client imagines
-meeting you three years from now, delighted with the progress since, and
-describes what happened. Enns advises using Sullivan's exact wording. Then run
-four steps:
+Early in qualifying, learn who the decision makers are, then ask Dan Sullivan's
+three-year question: the client imagines meeting you three years from now,
+delighted with the progress since, and describes what happened. Enns advises
+using Sullivan's exact wording. Then run four steps:
 
 1. **Commit the client to the desired future state.** Recap their organizational
    needs and personal wants, then confirm the recap is right and complete.
@@ -94,10 +97,11 @@ four steps:
 4. **Give pricing guidance** as a range from $X to $Y. The firm owns $Y and says
    it first, by anchoring against guaranteed value: ask whether a share of
    first-year profit (for example, a third) would be fair if the outcome were
-   guaranteed. The client's budget is $X. If the client counters with a small
-   share, ask whether they would really turn down an investment guaranteed to
-   return several times its cost. Keep the guarantee hypothetical: if asked
-   whether the firm will really guarantee it, stay open but noncommittal.
+   guaranteed. Ask for the client's budget; that is $X. If the client counters
+   with a small share, ask whether they would really turn down an investment
+   guaranteed to return several times its cost. Keep the guarantee
+   hypothetical: if asked whether the firm will really guarantee it, stay open
+   but noncommittal.
    Other benchmarks for $Y: 20% of value or a 5:1 return (Alan Weiss), or half
    of first-year savings (large consultancies).
 
