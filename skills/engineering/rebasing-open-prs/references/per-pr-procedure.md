@@ -1,100 +1,58 @@
 # Per-PR procedure
 
-## Contents
-
-- Steps: 1 prepare the worktree, 2 rebase, 3 check for no-ops, 4 verify,
-  5 compare before pushing, 6 push, 7 persist the result, 8 clean up, 9 return
-
-## Steps
-
 You own one PR: `<n>`, `<branch>`, `<base>`, and `<pre_oid>` (the remote OID
-before the rebase), with the shared run directory `<run>` and the skill
-directory `<skill-dir>`. Act only inside your worktree through
-`git -C <worktree>`. Run the scripts from the main checkout.
+before the rebase), with the run directory `<run>` and the skill directory
+`<skill-dir>`. Act only inside your worktree through `git -C <worktree>`; run
+the scripts from the main checkout. Never fetch.
 
-1. **Prepare the worktree.**
+1. **Prepare the worktree** with `"<skill-dir>/scripts/prepare-worktree.sh" <branch>`.
+   Keep its `WORKTREE_PATH`, `CREATED`, and `BRANCH_CREATED` for cleanup. Exit
+   3 or 4 (branch missing, or stale, ahead, or dirty): record `skipped` with
+   its stderr reason and stop. Any other failure: record `error` and stop
+   without cleanup, since it printed nothing to clean up with.
 
-   ```bash
-   "<skill-dir>/scripts/prepare-worktree.sh" <branch>
-   ```
+2. **Rebase** with `git -C <worktree> rebase origin/<base>`. Keep its output:
+   step 4 needs any `skipped previously applied commit` and
+   `dropping ... -- patch contents already upstream` lines. Resolve conflicts
+   by the [conflict resolution](references/conflict-resolution.md) rules and continue
+   with `GIT_EDITOR=true git -C <worktree> rebase --continue`; on a stop
+   condition, `rebase --abort` and record `conflicts-flagged`. A non-zero exit
+   with no conflicted file (`diff --name-only --diff-filter=U` is empty) is
+   another failure, such as an untracked file in the way: abort and record
+   `error` with git's message.
 
-   It prints `WORKTREE_PATH` (call it `<worktree>`), `CREATED`,
-   `BRANCH_CREATED`, and `BRANCH`. Exit 3 or 4 means the branch is missing or
-   unsafe to reuse (stale, carrying unpushed commits, or dirty): record
-   `skipped` with the script's stderr reason as the note (step 7) and stop;
-   there is nothing to clean up. Any other non-zero exit means the script
-   failed: record `error` with its stderr message as the note (step 7) and
-   stop without cleanup, since it printed no values to clean up with.
+   `HEAD` equal to `<pre_oid>` afterwards means `already-up-to-date`. No commits
+   left in `origin/<base>..HEAD` means `skipped`, "emptied by base; suggest
+   closing". Neither pushes.
 
-2. **Rebase.**
+3. **Verify** only when conflicts were resolved and a fast check exists (a
+   typecheck, the linter on changed files, or the most relevant test), not the
+   full suite. Fold each fix into the replayed commit it corrects
+   (`commit --amend --no-edit` for the tip, otherwise `commit --fixup=<commit>`
+   then `GIT_SEQUENCE_EDITOR=true git -C <worktree> rebase -i --autosquash origin/<base>`),
+   so step 4 sees no new commit. After 3 failed fixes the resolution needs a
+   human: record `conflicts-flagged` with `verify: failed(<reason>)`. A failure
+   unrelated to the resolution is noted, not fixed.
 
-   ```bash
-   git -C <worktree> rebase origin/<base>
-   ```
-
-   Keep its output for step 5, which needs any
-   `skipped previously applied commit <sha>` and
-   `dropping <sha> <subject> -- patch contents already upstream` lines.
-
-   On a conflict, read
-   [conflict resolution](references/conflict-resolution.md), then loop: list
-   conflicted files with `git -C <worktree> diff --name-only --diff-filter=U`,
-   resolve each, `git -C <worktree> add <file>`, and continue with
-   `GIT_EDITOR=true git -C <worktree> rebase --continue`, until the rebase
-   completes or a stop condition applies. On a stop condition, run
-   `git -C <worktree> rebase --abort` and record `conflicts-flagged`.
-
-   When `rebase` or `rebase --continue` exits non-zero and that diff lists no
-   conflicted file, the rebase failed for another reason, such as an untracked
-   file in the way. Run `git -C <worktree> rebase --abort` (it fails harmlessly
-   when no rebase is in progress), record `error` with git's message, and skip
-   to step 7.
-
-3. **Check for no-ops.** `git -C <worktree> rev-parse HEAD` equal to
-   `<pre_oid>` means it was already up to date: record `already-up-to-date`
-   and skip to step 7. `git -C <worktree> rev-list --count origin/<base>..HEAD`
-   of `0` means the rebase emptied the PR: record `skipped` with the note
-   "emptied by base; suggest closing" and skip to step 7.
-
-4. **Verify** only when conflicts were resolved and a fast check exists: a
-   typecheck or compile, the linter on changed files, or the single most
-   relevant test. Do not run full slow suites. If a check fails because of the
-   resolution, fix it and re-run that check. Fold each fix into the replayed
-   commit it corrects, so step 5 sees no new commit:
-   `git -C <worktree> commit --amend --no-edit` for the tip commit, otherwise
-   `git -C <worktree> commit --fixup=<commit>` followed by
-   `GIT_SEQUENCE_EDITOR=true git -C <worktree> rebase -i --autosquash origin/<base>`.
-   After 3 failed fixes, which means the resolution needs a human, record
-   `conflicts-flagged` with `verify: failed(<reason>)` and do not push. A
-   failure unrelated to the resolution is noted, not fixed.
-
-5. **Compare before pushing.**
+4. **Prove no commit was dropped** before pushing:
 
    ```bash
    git -C <worktree> range-diff origin/<base> <pre_oid> HEAD
    ```
 
-   Every old commit must pair with a new one (`=` unchanged or `!` changed). An
-   old-only commit (`< -:`) is acceptable only when step 2's output named it as
-   already in the base. Any other old-only commit means the rebase dropped PR
-   work: do not push; record `conflicts-flagged` with that note. A new-only
-   commit (`-: >`) should not exist, since step 1 refuses a branch with
-   unpushed commits and step 4 folds fixes into replayed commits: do not push;
-   record `error` with that note.
+   Every old commit must pair with a new one (`=` or `!`). An old-only commit
+   (`< -:`) is acceptable only when step 2's output named it as already in the
+   base; any other means the rebase dropped PR work, so record
+   `conflicts-flagged` and do not push. A new-only commit (`-: >`) should not
+   exist: record `error` and do not push.
 
-6. **Push** with the exact lease:
+5. **Push** with `git -C <worktree> push --force-with-lease=<branch>:<pre_oid> origin <branch>`.
+   On any rejection, never retry with force: record `push-rejected` with git's
+   message.
 
-   ```bash
-   git -C <worktree> push --force-with-lease=<branch>:<pre_oid> origin <branch>
-   ```
-
-   On any rejection (stale lease, protected branch, permission denied), never
-   retry with force: record `push-rejected` with git's message.
-
-7. **Persist the result, always,** including after a skip, flag, or failure,
-   and before cleanup. The file is the system of record; your returned message
-   is a convenience. Keep the note to plain words and paths, with no quotes,
-   `$`, or backticks:
+6. **Persist the result, always,** including after a skip, flag, or failure,
+   and before cleanup. The file is the system of record; reconcile reads it.
+   Keep the note to plain words and paths, with no quotes, `$`, or backticks:
 
    ```bash
    jq -n --argjson pr <n> --arg branch '<branch>' --arg base '<base>' \
@@ -109,13 +67,7 @@ directory `<skill-dir>`. Act only inside your worktree through
      >"<run>/<n>.json"
    ```
 
-8. **Clean up** from the main checkout, passing the values step 1 printed:
-
-   ```bash
-   "<skill-dir>/scripts/cleanup-worktree.sh" <worktree> <branch> <CREATED> <BRANCH_CREATED>
-   ```
-
-   It removes only what step 1 created. If it exits non-zero, rewrite the
-   result file with its error appended to `note`.
-
-9. **Return** a one-line summary: PR, status, conflicts, verify, note.
+7. **Clean up** with
+   `"<skill-dir>/scripts/cleanup-worktree.sh" <worktree> <branch> <CREATED> <BRANCH_CREATED>`,
+   which removes only what step 1 created. If it fails, rewrite the result
+   file with its error appended to `note`. Return a one-line summary.

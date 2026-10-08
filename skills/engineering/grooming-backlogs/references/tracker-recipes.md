@@ -5,14 +5,13 @@
 - Issues, milestones, and closures
 - Dependency links
 - Board column
-- Other trackers (unverified): check `--help` first
+- Other trackers
 
 ## Issues, milestones, and closures
 
-GitHub Projects, the worked example. Every prose value travels by file, per
-[hard rule 2](references/hard-rules.md). Labels and columns come from the
-[board settings](SKILL.md#board-settings), in the variables its table names.
-Milestones live on the repository, not the project:
+Every prose value travels by file, per [hard rule 2](references/hard-rules.md).
+Labels and columns come from the board settings variables. Milestones live on
+the repository, not the project:
 
 ```bash
 # Create one. Re-describing an existing one is the same shape: build a JSON body
@@ -31,14 +30,14 @@ gh issue edit "$N" --repo "$OWNER/$REPO" --milestone "$MILESTONE_TITLE"
 gh issue view "$N" --repo "$OWNER/$REPO" --json body --jq .body \
   > "$RUN_DIR/original-body-$N.md"
 gh issue edit "$N" --repo "$OWNER/$REPO" --body-file "$RUN_DIR/body-$N.md"
-# A new issue — only against a question the user answered explicitly.
+# A new issue: only against a question the user answered explicitly.
 gh issue create --repo "$OWNER/$REPO" --title "$NEW_ISSUE_TITLE" \
   --body-file "$RUN_DIR/new-issue-1.md" --label "$NEW_ISSUE_LABEL"
 # A comment. `-F body=@<path>` reads the file and `-F body=@-` the same flag's stdin.
 gh api --method POST "repos/$OWNER/$REPO/issues/$N/comments" \
   -F body=@"$RUN_DIR/comment-$N.md"
 gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "$LABEL"  # additive only
-# An approved closure. Pre-close re-read first — no pre-image, no close.
+# An approved closure. Pre-close re-read first: no pre-image, no close.
 gh issue view "$N" --repo "$OWNER/$REPO" --json state,body,labels,updatedAt \
   > "$RUN_DIR/pre-close-$N.json"
 # The evidence comment travels whole by file. A re-run matches it by content
@@ -63,12 +62,12 @@ so a number passed as an id resolves to some unrelated issue rather than fail:
 jq -e --argjson b "$BLOCKER" --arg repo "$OWNER/$REPO" 'any(.items[];
   .content.type == "Issue" and .content.number == $b
   and .content.repository == $repo)' "$RUN_DIR/board.json" \
-  || { echo "blocker #$BLOCKER is not on the loaded board — stopping" >&2; exit 1; }
-# Resolve the blocker's database id — not its number, and not the `id` on the
+  || { echo "blocker #$BLOCKER is not on the loaded board: stopping" >&2; exit 1; }
+# Resolve the blocker's database id: not its number, and not the `id` on the
 # cached link nodes, which is a GraphQL node id.
 BLOCKER_ID=$(gh api "repos/$OWNER/$REPO/issues/$BLOCKER" --jq .id)
 # `-F` types its value, so issue_id lands as a JSON integer; `-f` sends the
-# string "123" and the endpoint rejects it 422 — the inverse of the GraphQL
+# string "123" and the endpoint rejects it 422: the inverse of the GraphQL
 # rule below, where ids must travel over `-f` to stay strings.
 gh api --method POST "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by" \
   -F issue_id="$BLOCKER_ID"
@@ -76,7 +75,7 @@ gh api --method POST "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by" \
 gh issue view "$N" --repo "$OWNER/$REPO" --json blockedBy \
   --jq '.blockedBy.nodes[].number'
 # Removal takes the same database id, in the path. Decomposition is a separate
-# endpoint — POST ".../issues/$PARENT/sub_issues" -F sub_issue_id="$CHILD_ID".
+# endpoint: POST ".../issues/$PARENT/sub_issues" -F sub_issue_id="$CHILD_ID".
 gh api --method DELETE \
   "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by/$BLOCKER_ID"
 ```
@@ -108,18 +107,10 @@ gh api graphql -f query='mutation($project: ID!, $item: ID!, $field: ID!,
   -f option="$OPTION_ID"
 ```
 
-## Other trackers (unverified): check `--help` first
+## Other trackers
 
-Every non-GitHub tracker runs a `--help` preflight before its first mutation. One that does
-not show the expected flag stops before the mutation and reports the gap. The preflight must
-also find the CLI's file-or-stdin route for prose, such as a `--body-file`,
-`--description-file`, or `--input` equivalent. A CLI that offers none takes its bodies
-through a file that the API accepts, never an interpolated argument.
-
-On **Linear**, use the team's Linear CLI or the GraphQL API. Milestones are
-`projectMilestone`. Priority `0` means unset rather than urgent. Dependencies are typed issue
-relations (`issueRelationCreate`, type `blocks`), and which issue is the relation's source
-carries the direction. On **Jira**, set status through a transition rather than by a write
-to the field. The REST API (`/rest/api/3/issue/{key}`) is the escape hatch. Jira dependency
-links are `/rest/api/3/issueLink`, whose `inwardIssue`/`outwardIssue` pair encodes the
-direction.
+Unverified. Before the first mutation, check the CLI's `--help` for the
+expected flag and a file or stdin route for prose; stop and report a gap. On
+Linear, priority `0` means unset, and the source of a `blocks` relation carries
+its direction. On Jira, status changes through a transition, and an issue
+link's `inwardIssue`/`outwardIssue` pair carries the direction.

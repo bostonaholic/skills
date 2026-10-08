@@ -1,6 +1,6 @@
 ---
 name: simplifying-ruby-code
-description: Identifies over-engineered Ruby (stateless command objects, behaviorless value objects, class-method-only classes, deep inheritance, missing protocols) and rewrites it with Hash, Struct, Data, modules, and pure functions. Use when writing, refactoring, or reviewing Ruby classes or service objects, or when tests need heavy mocking.
+description: Finds over-engineered Ruby and Rails code (stateless service objects, behaviorless value objects, class-method-only classes, deep inheritance, needless metaprogramming) and rewrites it with Hash, Struct, Data, modules, and pure functions, or reports findings when asked to review. Use when writing, refactoring, or reviewing Ruby or Rails classes, service objects, gems, or a branch diff, or when tests need heavy mocking. Not for a broad Rails tech-debt audit; use auditing-rails-tech-debt.
 ---
 
 # Simplifying Ruby Code
@@ -11,91 +11,89 @@ takes data and returns data; an effect does I/O (database, network, files,
 time). Keep them in separate methods or modules so decisions test without
 mocks.
 
-Cite patterns by number ("Pattern 1") in reviews.
+When the user asks for a review, report findings and edit nothing unless
+they ask. Cite patterns by number ("Pattern 1") or by anti-pattern name.
 
-## Pattern 1: Command objects to module functions
+## Patterns
 
-Detect: a class whose only public method is `call`, `perform`, `run`, or
-`execute`, with no state beyond its constructor arguments, or a service that
-wraps a single operation.
+1. **Command objects to module functions.** A class whose only public
+   method is `call`, `perform`, `run`, or `execute`, holding nothing beyond
+   its constructor arguments, becomes a direct call or a module function
+   (`UserCreator.new(params).call` becomes `User.create(params)`). Keep the
+   object when it holds state across calls, runs a multi-step algorithm
+   worth naming, or must be serialized, as a background job is.
+2. **Value objects to Data, Struct, or Hash.** A class that only stores
+   attributes, with hand-written `initialize`, readers, or `==` and no
+   behavior or validation:
 
-```ruby
-# Before
-class UserCreator
-  def initialize(params); @params = params; end
-  def call; User.create(@params); end
-end
+   | Use          | When                                                 |
+   | ------------ | ---------------------------------------------------- |
+   | Hash         | Transient data, varying keys, JSON in or out         |
+   | Struct       | Fixed attributes, mutation acceptable                |
+   | Data         | Fixed attributes, immutable (check `ruby -v` >= 3.2) |
+   | Custom class | Validation, invariants, or real domain behavior      |
 
-# After
-User.create(params)
-```
+3. **Class-method-only classes to modules.** A class never instantiated,
+   defining only `self.` methods, becomes a module with `module_function`.
+4. **Deep inheritance to composition.** More than 2 levels counting only the
+   project's own classes (framework and stdlib bases such as
+   `ApplicationRecord` or `StandardError` do not count), or an abstract base
+   with a single subclass.
+5. **Missing Ruby protocols.** Callers unpack a collection-like or
+   value-like class by hand instead of it implementing `each` with
+   `Enumerable`, `to_h`, `<=>` with `Comparable`, or `hash` and `eql?`.
+6. **Mixed decisions and effects.** Tests need heavy mocks, or a method
+   computes and writes in one body. Extract the computation into a pure
+   function and leave a thin method for the I/O.
 
-Keep the object when it holds state across calls, runs a multi-step algorithm
-worth naming, or must be serialized (a background job).
+## Rails anti-patterns
 
-## Pattern 2: Value objects to Data, Struct, or Hash
+- **Service objects:** a single-method, stateless service belongs in a model
+  method or module function (Pattern 1). Keep complex orchestration as a
+  service but separate decisions from effects (Pattern 6). Jobs are
+  legitimate objects because they serialize.
+- **Models:** keep ActiveRecord models as classes; move business
+  calculations into pure functions.
+- **Concerns:** a concern shares behavior across models; flag one used as a
+  dumping ground for a single model.
+- **Helpers:** view formatting only; business rules go in a module.
+- **Reinvented Rails:** custom DSLs or base classes that duplicate scopes,
+  validations, callbacks, enums, or `ActiveModel`.
 
-Detect: a class that only stores attributes, with hand-written `initialize`,
-readers, or `==`, and no behavior or validation.
+## Plain Ruby anti-patterns
 
-```ruby
-Point = Data.define(:x, :y)   # immutable, value equality; Ruby 3.2+
-Point = Struct.new(:x, :y)    # mutable
-point = { x: 10, y: 20 }      # transient data or a JSON boundary
-```
+- **Template methods:** a base class with hook methods where a block would do.
+- **Builders:** for objects that keyword arguments or `Data.define` build
+  directly.
+- **Wrappers:** classes that wrap Array, Hash, Set, or another stdlib type
+  and forward most calls.
+- **Metaprogramming:** `method_missing`, `define_method`, or `instance_eval`
+  DSLs where plain methods work.
+- **Dependencies:** a gem pulled in for a few lines of stdlib code.
 
-| Use          | When                                                 |
-| ------------ | ---------------------------------------------------- |
-| Hash         | Transient data, varying keys, JSON in or out         |
-| Struct       | Fixed attributes, mutation acceptable                |
-| Data         | Fixed attributes, immutable (check `ruby -v` >= 3.2) |
-| Custom class | Validation, invariants, or real domain behavior      |
+In a gem, every public constant is API that other projects may call.
 
-## Pattern 3: Class-method-only classes to modules
+## Before removing or inlining a class
 
-Detect: a class that is never instantiated and defines only `self.` methods.
-Replace it with a module using `module_function`.
+Account for every caller, not only constant references
+(`rg -n '\bClassName\b'`). Also search string references (`"ClassName"`,
+`constantize`, `const_get`, `send`), `perform_later` and job config,
+`config/routes.rb`, `config/*.yml`, and gemspec and executable files. In a
+review, drop or downgrade a finding whose callers you cannot account for.
 
-## Pattern 4: Deep inheritance to composition
+## Review findings
 
-Detect: an inheritance chain more than 2 levels deep counting only the
-project's own classes (framework and stdlib bases such as `ApplicationRecord`
-or `StandardError` do not count), or an abstract base class with a single
-subclass. Share behavior through modules, or collapse the single-subclass
-hierarchy.
+Default shape, to adapt: findings grouped as **Critical** (causes or hides
+bugs, forces heavy mocking, or is copied across many files) then
+**Improvement**. Each finding gives its pattern, `file:line`, the problem
+and its callers, before and after code, complexity (S: one file, no caller
+changes; M: several files, same public API; L: public API, many callers, or
+persisted data or jobs), and migration steps. End with a recommended order:
+critical first, then lowest complexity.
 
-## Pattern 5: Missing Ruby protocols
+## Refactoring
 
-Detect: collection-like or value-like classes that callers unpack by hand.
-Implement the protocol instead:
-
-- `each` plus `include Enumerable` for collections
-- `to_h`, `to_a`, `to_s`, `to_json` for conversion
-- `<=>` plus `include Comparable` for ordering
-- `hash` and `eql?` for use as Hash keys
-
-## Pattern 6: Mixed decisions and effects
-
-Detect: tests that need extensive mocks or stubs, or methods that compute and
-write in the same body. Extract the computation into a pure function that
-takes data and returns data, and leave a thin method that performs the I/O.
-
-## Refactor safely
-
-Steps 1 and 2 run in subagents, launched together, per the
-[step delegation rules](shared/step-delegation.md); steps 3 and 4 are an edit
-and re-run loop and stay inline.
-
-1. Find every caller before inlining or deleting a class:
-   `rg -n '\bClassName\b'`, plus string references (`"ClassName"`,
-   `constantize`, job and YAML config). Use one read-only `sonnet` subagent per
-   class, at most 4 in flight, given the class name and its `file:line`; each
-   returns every reference with `file:line` and its kind (constant, string,
-   config).
-2. Run the test suite for a green baseline in one read-only subagent given the
-   test command. It returns the pass, fail, and error counts and each failing
-   test with `file:line` and its first error line.
-3. Apply one pattern at a time. Run the suite after each step; on failure, fix
-   or revert that step before continuing.
-4. Update tests that mocked the removed layer to call the pure function or the
-   direct API instead.
+Get a green test baseline first. Apply one pattern at a time and run the
+suite after each; on failure, fix or revert that step before continuing.
+Update tests that mocked the removed layer to call the pure function or the
+direct API instead.

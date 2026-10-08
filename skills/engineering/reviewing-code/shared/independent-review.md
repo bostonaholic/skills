@@ -2,23 +2,10 @@
 
 # Independent review
 
-Producers change work and cast no review verdict. Fresh-context evaluators report defects and change nothing.
-Give evaluators the artifact and upstream specification written before the work, without producer discussion or narration.
-Require both roles to close a review cycle. Evaluators record open questions without asking the producer.
-Assign each claim to one fresh judge. Never reuse a checker that judged earlier claims.
+Producers never judge their own work. A fresh-context reviewer reports defects and changes nothing. Give it the artifact and the specification written before the work, without producer discussion or narration.
 
-## Neutral investigation
-
-- Give investigators neutral questions, vocabulary, and evidence sources. Withhold the desired answer and task framing.
-- Restrict task-derived scout content to verbatim questions and the stated codebase context.
-- Fixed operational paths, audit steps, tool limits, and output contracts are allowed. Add no intent speculation.
-- Return missing context as an open question. Stop and report any intent leakage as a critical defect.
-- Give verification helpers falsifiable claims with `file:line` and the applicable rule. Omit your verdict, severity, and reasoning.
-
-## Enforced capabilities
-
-Reviewers hold no `Write` or `Edit` tools and use `permissionMode: plan`. Prompts do not change actual grants.
-Give child processes explicit environment allowlists and vendor-specific credentials, never the parent's full environment or another vendor's credentials.
-Choose the narrowest capable target. Reject command-sink targets for required read-only work when a narrower target exists.
-If only broader targets exist, state the prompt restriction and report that the structural guarantee is unavailable.
-Required independent review never falls back into the producer's context. Stop when an independent reviewer cannot run.
+- Give investigators neutral questions and evidence sources. Withhold the desired answer, your verdict, severity, and reasoning. Treat intent leakage into a neutral brief as a critical defect.
+- Give verification helpers falsifiable claims with `file:line` and the applicable rule.
+- Reviewers hold no `Write` or `Edit` tools. A prompt restriction does not change actual grants; when only broader tools exist, say the structural guarantee is unavailable.
+- Give child processes an explicit environment allowlist with only the vendor credentials they need, never the parent's full environment.
+- A required independent review never falls back inline into the producer's context. When no independent reviewer can run, stop and report that.

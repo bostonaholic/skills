@@ -74,7 +74,7 @@ result=$(printf '%s\n' "$raw" | jq \
   def safe: test("^[A-Za-z0-9._/-]+$");
   map(
     (if   .isCrossRepository and ($incForks | not)            then "fork (cannot push to contributor branch)"
-     elif .author.login == "app/dependabot"                     then "dependabot (another push stops Dependabot updating it; use /rebasing-dependabot-prs)"
+     elif .author.login == "app/dependabot"                     then "dependabot (another push stops Dependabot updating it; use /merging-dependabot-prs)"
      elif ((.headRefName | safe) and (.baseRefName | safe)) | not then "branch name outside [A-Za-z0-9._/-]"
      elif .isDraft and $skipDrafts                          then "draft (skipped by request)"
      else null end) as $skip

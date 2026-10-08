@@ -3,7 +3,6 @@
 ## Contents
 
 - Read the plan this conversation printed
-- Why one question covers the class
 - Per item: the precondition that makes the undo true
 - Where a write may land
 - How a skill edit is authored
@@ -18,14 +17,12 @@ stop and ask for the absolute plan path rather than guessing at one.
 Apply only the items the approval answer named. Nothing is written for an item
 the answer left out.
 
-## Why one question covers the class
-
-One question covers the file-write class only **because of the precondition
-below**: every write is a new file (undone by deleting it) or an edit to a file
-that was tracked and clean (undone by `git restore -- <path>`), so neither undo
-can reach the user's own work. Never skip the precondition.
-
 ## Per item: the precondition that makes the undo true
+
+One approval question covers the whole file-write class only because of this
+precondition: every write is a new file (undone by deleting it) or an edit to a
+tracked, clean file (undone by `git restore -- <path>`), so neither undo can
+reach the user's own work. Never skip it.
 
 **An edit** is applied only while its target is tracked and clean:
 

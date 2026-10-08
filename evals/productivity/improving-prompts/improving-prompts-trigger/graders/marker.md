@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: '<decompose>'
+pattern: '\bI\d+\b[^\n]*\bI\d+\b'
 target: last_message
 ---

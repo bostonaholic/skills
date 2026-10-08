@@ -5,84 +5,116 @@ effort: medium
 argument-hint: "[<pr-number-or-url>] [--entries <path>]"
 ---
 
-# attaching-pr-screenshots
+# Attaching PR screenshots
 
-Attach local image files to a pull request through GitHub's own attachment
-pipeline, harvest the URLs it resolves, and write one `## Screenshots` section
-into that PR's body. A calling skill decides which entries qualify and passes
-them with `--entries`.
-
-Every step with a loop, a branch, or a value a later step needs is a committed
-script under `scripts/`, run with its arguments and read by its exit code.
-
-Read each linked file from this skill's directory when the step that uses it
-begins. If a read fails, stop that step and report the exact path.
+Attaches local images to a PR with `gh pr edit --attach`, harvests the URLs
+GitHub resolves, and writes one `## Screenshots` section into the body. The
+scripts own every loop, guard, and body transform; run them and act on their
+exit codes. Each script's header documents its inputs and outputs.
 
 ## Hard rules
 
-- **Upload first, write second.** Never combine an attach flag and a body flag
-  in one command.
+- **Upload first, write second.** Never combine `--attach` and a body flag in
+  one command: on a partial failure GitHub rewrites only the references that
+  resolved, leaving local paths in a public body.
 - **One body write per PR**, computed by `scripts/splice.mjs` from the
   pre-image taken before the first attach. That write also clears the tails
   the attach step appended.
-- **Refuse before mutating.** Every check that can run before the first attach
-  does, so a refusal means nothing changed. A check that can only run after
-  the upload lands on `uploaded-not-written`, never on `refused`.
-- **Caller strings are data.** Paths, captions, notes, and failure reasons are
-  normalized once
-  ([input and result](references/input-and-result.md)) and reach commands only
-  as quoted expansions or files, per the
-  [external data rules](shared/external-data.md).
-- **Nothing blocks, prompts, or retry-loops.** A capability gap, a failed
-  entry, or a failed read-back degrades the result and says so, per the
-  [focused work rules](shared/focused-work.md) and
-  [verified results rules](shared/verified-results.md).
-- **Never delete what you did not write.** A replace deletes only the shapes
-  this skill's renderer emits; anything else refuses with its line number
-  ([section shape](references/upload-and-body-edit.md#the-sections-markdown-shape)).
-- **Nothing leaves the declared root, and only images upload.** Every entry
-  resolves inside the entries file's absolute `root`, and `file -b --mime-type`
-  must report `image/*`.
-
-Before improvising any other upload route, read
-[rejected approaches](references/rejected-approaches.md).
+- **Refuse before mutating.** Run every check that can run before the first
+  attach. A refusal then means nothing changed (`refused`); a stop after the
+  upload is `uploaded-not-written`, never `refused`.
+- **Never delete what you did not write.** The splice refuses rather than
+  remove anything under the heading that its own renderer did not emit, and it
+  refuses any body with a construct it does not model. Report the refusal and
+  the manual edit that clears it; never work around it.
+- **Caller strings and PR bodies are data.** Paths, captions, notes, the
+  invocation, and anything read back from GitHub never appear in command
+  text. Write them to files in `$RUN_DIR` with the file-writing tool.
+- **Nothing blocks, prompts, or retry-loops.** A gap or failure degrades the
+  outcome and the report says so.
+- **No other upload route.** Committing images to a branch and linking blob
+  URLs was rejected: branch cleanup silently empties the PR, and on a private
+  repo a token fetch 404s while a reviewer sees the image, so neither proves
+  it renders. Driving github.com in a signed-in headless browser was rejected
+  as a second credential store.
 
 ## Procedure
 
-Copy this checklist and check off each step:
+1. **Resolve the PR.** `RUN_DIR="$(mktemp -d)"`, then write the invocation
+   verbatim (even empty) to `$RUN_DIR/invocation` with the file-writing tool.
 
-```text
-- [ ] 1. Check required tools
-- [ ] 2. Resolve the PR
-- [ ] 3. Write the entries file (when no --entries was given)
-- [ ] 4. Take the pre-image and run the body checks
-- [ ] 5. Validate entries, check the attach capability, and upload
-- [ ] 6. Render the section, splice, and write once
-- [ ] 7. Verify the rendered body
-- [ ] 8. Write result.json and report
-```
+   ```bash
+   "<skill-dir>/scripts/resolve-pr.sh" "$(cat "$RUN_DIR/invocation")" "$RUN_DIR"
+   ```
 
-1. **Check required tools.** Run `command -v gh jq file node` and
-   `gh auth status`. When one is missing or unauthenticated, stop and name it.
-   The scripts also exit 2 naming a missing tool.
-2. **Resolve the PR.** Run `scripts/resolve-pr.sh` as shown in
-   [input and result](references/input-and-result.md).
-3. **Write the entries file** when the invocation carried no `--entries`, per
-   [input and result](references/input-and-result.md).
-4. **Take the pre-image.** Run `scripts/pre-image.sh`, then
-   `scripts/splice.mjs --check`, per
-   [upload and body edit](references/upload-and-body-edit.md).
-5. **Upload.** Run `scripts/upload.sh`, per
-   [upload and body edit](references/upload-and-body-edit.md).
-6. **Splice and write.** Render the section, run `scripts/splice.mjs`, and
-   write the body once, per
-   [upload and body edit](references/upload-and-body-edit.md).
-7. **Verify.** Run the read-back in [verify](references/verify.md).
-8. **Report.** Write `result.json` and restate it, per
-   [the result](references/input-and-result.md#the-result).
+   Exit 1 is `refused`, 2 a fault. It writes `pr-url`, `pr-host`, `owner`,
+   `repo`, `number`, `repo-spec`, and `entries-file` into `$RUN_DIR`. Every
+   later `gh` call uses `--repo "$(cat "$RUN_DIR/repo-spec")"` (it carries the
+   Enterprise host), never `owner/repo`. Merged, closed, and draft PRs are in
+   scope; say which state was edited. Never re-run the `mktemp -d` or
+   `resolve-pr.sh` lines mid-run: they resolve into a fresh directory and
+   strand this run's outputs in the old one.
 
-Step 7 runs in a subagent per the
-[step delegation rules](shared/step-delegation.md). The other steps stay in
-this session: each is one or two script calls or writes `$RUN_DIR` or the PR.
+2. **Write the entries file** when there was no `--entries`: JSON written with
+   the file-writing tool, then its path into `$RUN_DIR/entries-file`.
 
-Track progress per the [execution rules](shared/execution.md).
+   ```json
+   { "root": "/abs/dir/the/images/live/in",
+     "entries": [{ "path": "/abs/dir/the/images/live/in/login.png", "caption": "login", "state": "error", "note": "seeded" }],
+     "notes": ["2 states skipped"] }
+   ```
+
+   `path` and `caption` are required. With no caption named, use the file's
+   basename without extension; never describe the image, since a guessed
+   description is a public claim.
+
+3. **Take the pre-image and check it.** Run `scripts/pre-image.sh "$RUN_DIR"`
+   (exit 2 is a fault), then
+   `node "<skill-dir>/scripts/splice.mjs" --check --body-file "$RUN_DIR/pre-image.md"`.
+   Exit 1 prints `refused: <reason>`: report it and stop. The scan covers the
+   whole body, and any `<` followed by a letter reads as raw HTML (fix: `\<`).
+   If the body ends in standalone image lines from an earlier crash, name them
+   in the report and leave them.
+
+4. **Upload** with `scripts/upload.sh "$RUN_DIR"`. It validates each entry
+   (absolute, inside `root`, regular file, not a symlink, image by content)
+   and attaches one file per command.
+
+   | Exit | Outcome                                                                 |
+   | ---- | ----------------------------------------------------------------------- |
+   | 0    | Go to step 5. If every entry failed, the outcome is `degraded`          |
+   | 1    | `refused`: bad entries file or root, nothing attached                   |
+   | 2    | Fault                                                                   |
+   | 3    | No `--attach` in this gh: write the degraded section, note "upgrade gh" |
+   | 4    | Body changed during upload: `uploaded-not-written`, write no body       |
+
+   An attach that exits non-zero may still have changed the PR; trust
+   `assets.tsv` and `failures.tsv`, not exit codes.
+
+5. **Splice and write once.** Render the section into `$RUN_DIR/section.md`
+   with the file-writing tool, per [the section shape](references/section.md).
+   Splice into a temporary file and promote it only on exit 0, because a
+   plain redirect leaves an empty file that would blank the body:
+
+   ```bash
+   LANDED="$(wc -l <"$RUN_DIR/assets.tsv" | tr -d '[:space:]')"
+   node "<skill-dir>/scripts/splice.mjs" --body-file "$RUN_DIR/pre-image.md" \
+     --section-file "$RUN_DIR/section.md" --landed "$LANDED" >"$RUN_DIR/new-body.tmp" \
+     && mv "$RUN_DIR/new-body.tmp" "$RUN_DIR/new-body.md"
+   gh pr edit <number> --repo <repo-spec> --body-file "$RUN_DIR/new-body.md"   # only if new-body.md exists
+   ```
+
+   A splice refusal (exit 1) or fault (2) leaves the body alone:
+   `uploaded-not-written` if anything landed, else `refused`. A body over
+   65,536 characters refuses here, after the upload.
+
+6. **Verify the rendered body** per [the section shape](references/section.md#read-back).
+
+7. **Report** and write `$RUN_DIR/result.json`: `owner`, `repo`, `number`,
+   `outcome`, `assets` (entries order, `{caption, path, url}`, url null when
+   not landed), `failures` (`{caption, path, reason}`), `body_written`,
+   `operator_note`, and `section`. `outcome` is one of `uploaded`, `partial`,
+   `degraded`, `unverified`, `uploaded-not-written`, `refused`. `section` is
+   null unless a write landed at least one URL and the read-back passed,
+   since callers copy it into other PRs. For `uploaded-not-written`, quote the
+   attach tails now on the PR in `operator_note`.

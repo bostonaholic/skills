@@ -10,9 +10,6 @@ Turn merged pull requests into a grouped, linked record of shipped work. The
 report serves two uses: a short status update for a team, and a running brag
 document for review time.
 
-**Requirements:** an authenticated `gh` and `jq`
-(`command -v gh jq && gh auth status`). Stop and report any that is missing.
-
 ## Scope
 
 Ask nothing up front. Search within the owners (users or organizations) the
@@ -20,25 +17,13 @@ user names; with none named, search all of the user's merged PRs. When the
 user asks for work only, leave out personal and trivial repositories and name
 them in one line at the end of the report.
 
-Steps 3 and 4 run in one subagent per the
-[step delegation rules](shared/step-delegation.md); the rest stays inline.
+## Timeframe
 
-## 1. Resolve the timeframe
+Resolve the request to inclusive `START` and `END` dates (`YYYY-MM-DD`) and
+state them in the report heading. Weeks start on Monday; a current week, month,
+or quarter ends today. With no timeframe, use this week.
 
-Turn the request into inclusive `START` and `END` dates (`YYYY-MM-DD`), and
-state them in the report heading.
-
-- "this week": Monday of the current week through today
-- "last week": the previous Monday through the previous Sunday
-- "this month" or a named month: its first day through its last day, or
-  through today for the current month
-- "last month": the first through the last day of the previous month
-- a quarter ("Q3"): July 1 to September 30 of the current year, and likewise
-  for the others, ending today for the current quarter
-- "since" a date: that date through today
-- no timeframe: this week
-
-## 2. Fetch merged PRs
+## Fetch merged PRs
 
 Resolve `<skill-dir>` to this skill's absolute directory, pick a scratch
 directory `<out>` for this run, and run `scripts/fetch-shipped-prs.sh` with
@@ -48,24 +33,15 @@ any owners as trailing arguments:
 "<skill-dir>/scripts/fetch-shipped-prs.sh" START END [OWNER...] > <out>/shipped.jsonl; echo "rc=$?"
 ```
 
-Each line is one PR: `repo`, `number`, `merged`, `title`, `url`,
-`issue_links`, `title_ticket_keys`, and the first 400 characters of `body`
-with HTML comments removed. The script queries in 31-day chunks and waits out
-GitHub's secondary rate limit.
+Each line is one PR with `repo`, `number`, `merged`, `title`, `url`,
+`issue_links`, `title_ticket_keys`, and the first 400 characters of `body`.
 
-On a non-zero exit, report the script's error and stop. Never summarize
-partial data as complete. Exit 64 means a bad date or argument: fix the call
-and rerun. After a search-cap error, rerun over shorter ranges and combine
-the files.
+On a non-zero exit, report the script's error and stop: lines already printed
+are partial, and partial data is never summarized as complete. Exit 64 means a
+bad date or argument: fix the call and rerun. After a search-cap error, rerun
+over shorter ranges and combine the files.
 
-For a long range (more than about 150 PRs), read the file in slices with `jq`
-rather than all at once.
-
-## 3. Group and summarize
-
-A writer subagent that may write only `<out>/report.md` does steps 3 and 4. It
-gets `<out>/shipped.jsonl`, `START`, `END`, whether the request is work only,
-and any product names from the user's notes, and returns the report path and any title key it left unlinked.
+## Group and summarize
 
 **Group by product or system, not by repository.** One feature often spans
 repositories: a `deploy-service` change, its screen in `web-console`, and its
@@ -97,7 +73,7 @@ first, then the issues.
 - A title key with no URL in `issue_links`: leave it unlinked, unless an issue
   tracker tool available in the session confirms the issue and gives its URL.
 
-## 4. Write the report
+## Report
 
 Markdown. This shape is a default to adapt: keep the section order, and fit
 the areas, themes, and counts to the work.
@@ -140,17 +116,10 @@ Left out as personal or trivial: <repos>.
 
 Write plainly: no metaphors, no intensifiers, no "just".
 
-Show the user the report from `<out>/report.md`.
+## Brag document
 
-## 5. Offer the brag document update
-
-After showing the report, offer to add the highlights to the user's brag
-document when the user names one or one is recorded in their AGENTS.md or
-memory. With neither, end with the report.
-
-1. Read the document and match its existing structure: where entries go,
-   their order, and their format.
-2. Show the exact proposed diff.
-3. Write only after the user approves. Add text; never overwrite or remove
-   existing text.
-4. Read the document back and confirm only the approved lines changed.
+After the report, offer to add the highlights to the user's brag document when
+the user names one or one is recorded in their AGENTS.md or memory; otherwise
+end with the report. Match the document's existing structure, show the exact
+proposed diff, and write only after approval. Add text; never overwrite or
+remove existing text.

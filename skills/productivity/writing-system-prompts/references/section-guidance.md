@@ -60,17 +60,26 @@ genuinely blocked; otherwise state assumptions and proceed.
 ## 4. Core workflow
 
 Define the process, not just the goal: for example read, plan, execute, verify.
-Add phase gates ("before editing, confirm the plan"), mode transitions, and a
-verification step ("run tests before submitting").
+Add phase gates ("before editing, confirm the plan") and a verification step
+("run tests before submitting"). Name the moments the agent must stop and reason
+first: history rewrites, deletions, moving from reading to writing, and claiming
+completion.
+
+If the tool both explores and executes, make the default mode explicit and
+define the transition:
+
+```text
+Default to discussion. Implement only when the user asks with words such as
+"implement", "build", "create", "fix", or "change".
+```
 
 ## 5. Tool usage rules
 
+State which tool to use for which job, and only where the product's choice
+differs from the obvious one. Give a retry limit and what to do at it:
+
 ```text
-Call independent tools in parallel.
-Prefer Read over cat, Search over grep, and Edit over sed.
-Never edit a file you have not read in this conversation.
 If an approach fails 3 times, stop and explain the blocker.
-Describe actions to the user in plain words, not tool names.
 ```
 
 ## 6. Domain-specific rules

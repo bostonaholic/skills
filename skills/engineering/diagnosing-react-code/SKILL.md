@@ -7,67 +7,44 @@ metadata:
 
 # Diagnosing React code
 
-react-doctor scans a React package and prints a 0-100 score plus diagnostics in
-categories such as security, performance, correctness, and architecture.
+react-doctor scans a React package and prints a 0-100 score plus diagnostics
+for security, performance, correctness, and architecture. It needs Node
+`^20.19.0 || >=22.13.0`.
 
-## Requirements
+## Before the first run
 
-- Node `^20.19.0 || >=22.13.0` and `npx`. Check with
-  `node --version && command -v npx`. If either is missing, stop and report it.
-- Network access: `npx` downloads the package from npm, the score comes from the
-  react-doctor score API, and the supply-chain scan queries Socket.dev. When the
-  user wants nothing sent off the machine, add `--no-score --no-supply-chain`;
-  the run then reports diagnostics without a score.
-- The first run in a session downloads and executes a third-party package. Ask
-  the user before it, naming the pinned version below.
+The first run in a session downloads and executes a third-party package from
+npm. Ask the user before it, naming the pinned version. By default the score
+comes from the react-doctor score API and the supply-chain scan queries
+Socket.dev; when the user wants nothing sent off the machine, add
+`--no-score --no-supply-chain` (the run then reports no score).
 
 ## Run
 
-Run from the package whose `package.json` lists `react` in `dependencies` or
-`peerDependencies`. In a monorepo, run inside that package; at the workspace
-root the tool prompts for a project.
+Run inside the package whose `package.json` lists `react` in `dependencies`
+or `peerDependencies`; at a monorepo root the tool prompts for a project.
 
 ```bash
 npx -y react-doctor@0.9.17 --verbose --scope changed
 ```
 
-- `-y` before the package name lets `npx` install it without a prompt.
-- `@0.9.17` pins the version so scores compare across runs. To upgrade, check
-  `npm view react-doctor version` and change the pin deliberately.
-- `--verbose` lists every rule and file; the default shows only the top 3 rules.
-- `--scope changed` reports only new findings in files changed against the base
-  ref, which the tool auto-detects (set it with `--base <ref>`). For a
-  whole-package health check, use `--scope full`. It replaces the deprecated
-  `--diff` flag.
-
-If a flag is rejected, run `npx -y react-doctor@0.9.17 --help` and adjust the
-command. Never fall back to `@latest`.
+- The pin keeps scores comparable across runs. Never fall back to `@latest`;
+  upgrade only by changing the pin deliberately. If a flag is rejected, check
+  `npx -y react-doctor@0.9.17 --help` and adjust.
+- `--verbose` lists every rule and file; the default shows only the top 3.
+- `--scope changed` reports only new findings in files changed against the
+  auto-detected base ref (`--base <ref>` to set it). Use `--scope full` for a
+  whole-package health check. It replaces the deprecated `--diff`.
 
 ## Fix loop
 
-Step 1 runs in a subagent per the
-[step delegation rules](shared/step-delegation.md), after the user approves the
-first run; steps 2 to 4 are an edit and re-run loop and stay inline.
-
-1. Baseline: run once and record the score and the error and warning counts.
-   Use one read-only subagent given the package path and the exact command; it
-   returns the score, the error and warning counts, and each diagnostic as
-   `<severity> <rule> <file>:<line>`.
-2. Fix error diagnostics in this order: security, correctness (state, effects,
-   hooks), performance, then architecture and maintainability. Fix warnings only
+1. Record the baseline score and error and warning counts.
+2. Fix error diagnostics, security and correctness first. Fix warnings only
    in code the current task changed.
-3. Re-run the same command.
-4. Repeat steps 2 and 3 until the run reports no errors and the score is at
+3. Re-run the same command until it reports no errors and the score is at
    least the baseline. Stop after three fix rounds that leave errors, or when a
    fix would change behavior outside the task, and report what remains.
 
-## Report
-
-Use this shape; fill every line:
-
-```text
-react-doctor 0.9.17, scope: <changed|full>
-Score: <baseline> -> <final> (or "not computed: --no-score")
-Fixed: <severity> <rule> <file>:<line>, one per line, or "none"
-Remaining: <severity> <rule> <file>:<line> <reason not fixed>, one per line, or "none"
-```
+Report the version and scope, the score from baseline to final (or "not
+computed: --no-score"), each fixed diagnostic, and each remaining one with
+why it was not fixed, as `<severity> <rule> <file>:<line>`.

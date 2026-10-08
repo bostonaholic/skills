@@ -1,12 +1,6 @@
 # Reading sources
 
-## Contents
-
-- 2. Open the run cache
-- 3. Resolve and normalize this session's transcript
-- 4. Gather the other sources the prompt names
-
-## 2. Open the run cache
+## Open the run cache
 
 Create the run's cache directory first and print its absolute path:
 
@@ -21,7 +15,7 @@ memory. With a prompt, write it to `<run cache>/prompt.md` now.
 
 The printed path is **this run's marker**: the host records command output
 inline in the transcript, so the path appears in this session's records and in
-no other file on disk. Step 3 searches for it on a host that exports no session
+no other file on disk. The transcript resolver searches for it on a host that exports no session
 id of its own.
 
 A **run** is one invocation plus every later turn that answers its approval
@@ -29,11 +23,10 @@ questions, named by the one run cache path this conversation printed. Later
 commands take that absolute path literally. The cache is **never deleted**, so
 the report stays auditable after the run ends.
 
-## 3. Resolve and normalize this session's transcript
+## Resolve this session's transcript
 
-Run this step when the sources include this session: always without a prompt,
-and with one that names this session or names no source. Otherwise skip to
-step 4; the marker is unused.
+Do this when the sources include this session: always without a prompt, and
+with one that names this session or names no source.
 
 ```bash
 node "<skill-dir>/scripts/resolve-transcript.mjs" "<the printed run cache path>"
@@ -44,53 +37,27 @@ host variable into it: `${CLAUDE_PLUGIN_ROOT}` exists on Claude Code alone, so
 a command carrying it breaks on every other host.
 
 The script writes `transcript.jsonl` into the run cache. **The lenses read only
-that normalized file**, in consecutive chunks until its end. Do not select only
-recent records or truncate long entries to fit a single tool response or
-context window. Track the last record read when continuing across chunks.
+that normalized file.**
 
 The script reads the store of the host running this session: Claude Code,
 Codex, or OpenCode. A Conductor session resolves as whichever of those it runs.
 It identifies the session by the id the host exported, or, where the host
-exports none, by a fixed-string search for the marker. It never returns an
-unmatched session's content, takes the newest file, guesses from the working
-directory, or picks among candidates. In this step, a named failure stops the
-run instead:
+exports none, by a fixed-string search for the marker. It never takes the newest
+file, guesses from the working directory, or picks among candidates. A named
+failure (exit 1, the name on the first stderr line, then `tried:` and `note:`
+lines) stops the run; report all three.
 
-| Failure                    | What it means                                                                                                       | What to report                                                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `unsupported-host`         | neither supported agent exported a session id here                                                                  | the host, and that retro reads Claude Code, Codex, and OpenCode stores — Conductor through whichever of those it runs |
-| `ambiguous-host`           | two agents claim this process — one is running inside the other's shell — and the marker settled neither transcript | both hosts named; no pick was made                                                                                    |
-| `ambiguous-session`        | more than one childless OpenCode session carries this run's marker                                                  | every session id matched, and no pick                                                                                 |
-| `invalid-session-id`       | the exported id is not a session id shape                                                                           | the value seen                                                                                                        |
-| `no-session-store`         | the host records no transcripts here                                                                                | the path tried                                                                                                        |
-| `no-match`                 | neither the session id nor the marker reached the store after one retry                                             | every pattern tried                                                                                                   |
-| `multiple-matches`         | an invariant violation, since both signals are unique to this run                                                   | every path matched, and no pick                                                                                       |
-| `sqlite-unavailable`       | this runtime cannot load the built-in `node:sqlite` module                                                          | the database path tried                                                                                               |
-| `unreadable-session-store` | the OpenCode store lacks a required table or column, or a read of it failed                                         | the database path tried                                                                                               |
-| `unsupported-format`       | the resolved store holds no records any supported host writes                                                       | the store, and the unrecognized-record count                                                                          |
-| `unreadable-transcript`    | the resolved or named transcript file is missing, a directory, or not readable                                      | the path tried and the error code                                                                                     |
-| `unwritable-run-cache`     | the normalized output could not be written into the run cache                                                       | the directory tried and the error code                                                                                |
+Report the script's printed counts with the sources, and any prior history the
+file does not carry: a Codex thread forked from another one leaves its earlier
+turns in the parent's file, which this run does not read.
 
-Copy the script's counts into the report: the host, whether the session was
-resolved by id or by marker, the format, records kept, records dropped per
-type, malformed lines skipped, unrecognized records, and any prior history the
-file does not carry. A Codex thread forked from another one leaves its earlier
-turns in the parent's file, which this run does not read. If a lens cannot
-finish reading, report its unread record range.
-
-## 4. Gather the other sources the prompt names
+## Gather the other sources
 
 Each source lands as a file under `<run cache>/sources/`, and each gets one line
 in `<run cache>/sources.md`: what it is, where it came from (a path or URL), how
 many items it holds, and what was asked for but not read. Gather read-only, with
 whatever this host already holds; never authenticate, never write to a remote,
 and never widen a source past what the prompt asked.
-
-Gather each source in its own writer subagent, per the
-[step delegation rules](shared/step-delegation.md), launched together and
-allowed to write only that source's files under `<run cache>/sources/`. It gets
-the run cache path, the source's allowlisted scalars, and this file's path, and
-returns its `sources.md` line and counts; the session writes `sources.md`.
 
 - **Past agent sessions**: find the files in the host's own store, newest first,
   for the repository this run is in (Claude Code keeps them in
@@ -99,7 +66,7 @@ returns its `sources.md` line and counts; the session writes `sources.md`.
   `node "<skill-dir>/scripts/resolve-transcript.mjs" "<the printed run cache path>" --file "<transcript path>"`,
   which writes `sources/<name>.jsonl` (suffixed `-2`, `-3`, ... when a
   different earlier source took the name; the same transcript normalized again
-  reuses its path) and prints the same counts as step 3. A named failure here,
+  reuses its path) and prints the same counts as above. A named failure here,
   such as `unreadable-transcript` or `unsupported-format`, does not stop the
   run: mark that session unread in `sources.md` with the failure name. Exclude
   this session's own file unless the prompt asked for it. OpenCode's past

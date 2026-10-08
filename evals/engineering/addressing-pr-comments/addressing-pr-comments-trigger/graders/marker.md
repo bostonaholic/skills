@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'Reaction[*_]*:[*_\s]*(?:```[\w-]*\s*|`)?none yet'
+pattern: '\b(?:STILL RELEVANT|ALREADY ADDRESSED|STALE|INACCURATE)\b'
 target: last_message
 ---

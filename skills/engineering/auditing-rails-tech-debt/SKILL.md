@@ -1,199 +1,90 @@
 ---
 name: auditing-rails-tech-debt
-description: Audits a Rails app for tech debt, citing each finding to PoEAA, SOLID, or the Rails guides with file:line evidence and before/after code. Use when auditing Rails for anti-patterns, fat models or controllers, callback abuse, or N+1 queries. Not for over-engineering; use reviewing-rails-code.
+description: Audits a Rails app for tech debt, citing each finding to PoEAA, SOLID, or the Rails guides with file:line evidence and before/after code. Use when auditing Rails for anti-patterns, fat models or controllers, callback abuse, or N+1 queries. Not for over-engineering; use simplifying-ruby-code.
 ---
 
 # Rails tech debt audit
 
-Audit a Rails codebase for anti-patterns and tech debt. Report only; edit code
-only if the user asks. Every finding must point at specific code, name the
-practice or pattern it violates, and link the authoritative source that defines
-that practice. No finding without evidence and a citation.
+Audit a Rails codebase for anti-patterns and tech debt. Report only; edit
+code only if the user asks. A short report of confirmed problems beats a
+long report of maybes.
 
-Copy this checklist and check off each step:
+## Every finding
 
-```text
-- [ ] 1. Map the app
-- [ ] 2. Hunt by category
-- [ ] 3. Verify each candidate finding
-- [ ] 4. Write the report from the template
-```
-
-Steps 1, 3, and 4 run in subagents per the
-[step delegation rules](shared/step-delegation.md); step 2 follows its own
-fan-out rule.
-
-## Non-negotiables
-
-1. **Evidence-rooted.** Every finding cites `file:line` from the codebase. Never
-   report a smell you did not read in the code.
-2. **Resource-linked.** Every finding links at least one source from
+1. **Cites code.** `file:line` for code you read. Never report a smell you
+   did not read.
+2. **Cites a named source.** Link at least one source from
    [citation resources](references/resources.md) or a pattern page from the
-   PoEAA reference files. If you cannot name the violated principle and its
-   source, it is an opinion, not a finding: drop it.
-3. **Before and after.** Every finding shows the offending code and a concrete
-   refactoring adapted to this codebase's names and style, modeled on the
-   examples in the reference files.
-4. **No false positives.** A short report of confirmed problems beats a long
-   report of maybes. Read enough surrounding code (callers, associations,
-   schema) to confirm each finding.
-5. **Simplest After.** Prefer the smallest change that removes the smell: a
-   model method, a module function, or a query scope. Introduce a new class only
-   when it holds state or orchestrates several models; a finding whose After
-   adds a class must say why a method or module function would not do. Call the
-   Skill tool with `simplifying-ruby-code` and cite its pattern numbers in the
-   finding; if it is missing, apply this rule as written.
+   PoEAA reference files, preferring the most specific (a pattern page over
+   a book). If you cannot name the violated principle and its source, it is
+   an opinion, not a finding: drop it.
+3. **Shows before and after.** The offending code and a concrete
+   refactoring in this codebase's names and style.
+4. **Uses the simplest After.** Prefer the smallest change that removes the
+   smell: a model method, a module function, or a query scope. Introduce a
+   new class only when it holds state or orchestrates several models, and
+   say why a method or module function would not do. Call the Skill tool
+   with `simplifying-ruby-code` and cite its pattern numbers; if it is
+   missing, apply this rule as written.
+5. **Is verified independently.** Before a candidate reaches the report,
+   a different agent than the one that found it confirms it from the code
+   (is it invoked, does a concern or other structure already mitigate it,
+   does the schema or a test justify the design), so the finder never
+   grades its own claim. Drop anything not confirmed.
 
 ## Reference files
 
-Read a file when a step-2 category sends you to it, or when classifying a
-finding it covers. The PoEAA files document every pattern in Fowler's
-[Catalog of Patterns of Enterprise Application Architecture](https://martinfowler.com/eaaCatalog/),
-each with its link, definition, Rails mapping, before/after Ruby, and finding
-rule.
+Read a file when hunting its category or citing a pattern it covers. Each
+PoEAA file gives every pattern in Fowler's
+[catalog](https://martinfowler.com/eaaCatalog/) with its link, definition,
+Rails mapping, fix, and finding rule.
 
-- [Domain logic patterns](references/poeaa-domain-logic.md): Transaction Script,
-  Domain Model, Table Module, Service Layer. Read for logic placement.
-- [Data source patterns](references/poeaa-data-source.md): Table Data Gateway,
-  Row Data Gateway, Active Record, Data Mapper. Read for god models and raw SQL.
-- [Object-relational patterns](references/poeaa-object-relational.md): Unit of
-  Work, Identity Map, Lazy Load, Identity Field, Inheritance Mappers, Foreign
-  Key Mapping, Association Table Mapping, Dependent Mapping, Embedded Value,
-  Serialized LOB, Single, Class, and Concrete Table Inheritance, Metadata
-  Mapping, Query Object, Repository. Read for model, schema, and query findings.
-- [Web presentation patterns](references/poeaa-web-presentation.md): Model View
-  Controller, Page Controller, Front Controller, Template View, Transform View,
-  Two Step View, Application Controller. Read for controllers, views, and JSON
-  rendering.
-- [Distribution, concurrency, and session patterns](references/poeaa-distribution-concurrency-session.md):
-  Remote Facade, Data Transfer Object, Optimistic, Pessimistic, Coarse-Grained,
-  and Implicit Lock, Client, Server, and Database Session State. Read for API
-  shape, job arguments, locking, and session use.
-- [Base patterns](references/poeaa-base.md): Gateway, Service Stub, Record Set,
-  Mapper, Layer Supertype, Separated Interface, Registry, Value Object, Money,
-  Special Case, Plugin. Read for external calls, globals, and primitives.
-- [Rails anti-patterns](references/rails-antipatterns.md): fat controller, fat
-  model, callback abuse, N+1, Law of Demeter, `default_scope`, SQL injection in
-  scopes, and other Rails-specific smells. Read for any Rails smell not named by
-  a PoEAA pattern.
-- [SOLID and idiomatic Ruby](references/solid-ruby.md): SOLID principles and
-  idiomatic-Ruby violations. Read for type switches, monkey patches, and
-  metaprogramming.
-- [Citation resources](references/resources.md): every resource linked from
-  Fowler's
-  [Enterprise Application Patterns guide](https://martinfowler.com/articles/enterprisePatterns.html)
-  plus the Ruby and Rails canon. Read before writing the report to pick each
-  finding's citation.
+- [Domain logic](references/poeaa-domain-logic.md): Transaction Script,
+  Domain Model, Table Module, Service Layer. Logic placement.
+- [Data source](references/poeaa-data-source.md): gateways, Active Record,
+  Data Mapper. God models and raw SQL.
+- [Object-relational](references/poeaa-object-relational.md): Unit of Work,
+  Lazy Load, inheritance mappings, Query Object, Repository, and the rest.
+  Model, schema, and query findings.
+- [Web presentation](references/poeaa-web-presentation.md): MVC, controller
+  and view patterns. Controllers, views, and JSON rendering.
+- [Distribution, concurrency, and session](references/poeaa-distribution-concurrency-session.md):
+  Remote Facade, DTO, locking, session state. API shape, job arguments,
+  locking, and sessions.
+- [Base patterns](references/poeaa-base.md): Gateway, Service Stub,
+  Registry, Value Object, Money, Special Case, and the rest. External calls,
+  globals, and primitives.
+- [Rails anti-patterns](references/rails-antipatterns.md): Rails smells no
+  PoEAA pattern names (callback abuse, N+1, `default_scope`, SQL
+  interpolation in scopes, and more).
+- [SOLID and idiomatic Ruby](references/solid-ruby.md): type switches,
+  monkey patches, metaprogramming, mutable constants.
+- [Citation resources](references/resources.md): Fowler's enterprise
+  patterns literature plus the Ruby and Rails canon.
 
-## 1. Map the app
+Start from `Gemfile`, `config/routes.rb`, `db/schema.rb`, and the largest
+models and controllers; debt concentrates in the biggest files, and a
+missing layer is as diagnostic as a bloated one.
 
-Build a model of the app before judging anything:
+## Severity
 
-- Run `bin/rails stats` (or count by hand) for size and shape; note the
-  test-to-code ratio.
-- Read `Gemfile`, `config/routes.rb`, and `db/schema.rb`. They reveal the
-  architecture faster than any model file.
-- Inventory the layers: `app/models`, `app/controllers`, `app/services`,
-  `app/jobs`, `app/serializers`, `lib/`, and any nonstandard directories.
-  Missing layers are as diagnostic as bloated ones.
-- List the 10 largest models and controllers, since tech debt concentrates in
-  the biggest files:
-  `find app/models app/controllers -name '*.rb' | xargs wc -l | sort -rn | head`.
-
-Run this step in one read-only subagent given the app root. It returns total
-Ruby lines, the test-to-code ratio, layers present and missing, the 10 largest
-models and controllers with line counts, and architecture notes from `Gemfile`,
-routes, and schema.
-
-## 2. Hunt by category
-
-Sweep each category. The reference files list the concrete greps and smells.
-
-1. **Domain logic placement:** business logic in controllers, views, jobs, or
-   rake tasks instead of the domain layer
-   ([domain logic](references/poeaa-domain-logic.md)).
-2. **Model layer:** god models, callback chains with side effects, missing Value
-   Objects or Extract Class, misused STI
-   ([object-relational](references/poeaa-object-relational.md),
-   [Rails anti-patterns](references/rails-antipatterns.md)).
-3. **Query hygiene:** N+1 queries, raw SQL string interpolation, duplicated
-   scopes, missing Query Objects
-   ([object-relational](references/poeaa-object-relational.md),
-   [Rails anti-patterns](references/rails-antipatterns.md)).
-4. **Presentation:** logic-heavy views, controllers making rendering decisions
-   that models should own, missing presenters or serializers
-   ([web presentation](references/poeaa-web-presentation.md)).
-5. **Boundaries:** third-party API calls scattered through models and jobs
-   instead of Gateways; hashes crossing layer boundaries instead of DTOs or
-   Value Objects ([base](references/poeaa-base.md),
-   [distribution](references/poeaa-distribution-concurrency-session.md)).
-6. **Concurrency and state:** missing locking on contended records, session
-   bloat ([distribution](references/poeaa-distribution-concurrency-session.md)).
-7. **SOLID and idiomatic Ruby:** case-statement type switches, monkey patches,
-   `method_missing` abuse, mutable constants
-   ([SOLID](references/solid-ruby.md)).
-
-Whatever the app's size, fan out read-only subagents, one per category,
-launched together with at most 4 in flight. Give each its category, reference
-files, and these non-negotiables, and have it return candidate findings in the
-report template with `file:line` evidence. Subagents edit nothing. Merge their
-candidates and pass each to step 3; never let a candidate into the final
-report until a step 3 verifier confirms it.
-
-## 3. Verify
-
-For each candidate finding, read the surrounding code and confirm: is it
-invoked? Does a mitigating structure exist elsewhere (for example, a concern
-that already extracts the logic)? Does the schema or a test justify the design?
-Drop anything you cannot confirm.
-
-Verify in read-only `sonnet` subagents, one per candidate and never the one that
-found it, launched together with at most 4 in flight, each given the claim with
-its `file:line` and violated rule under the
-[independent review rules](shared/independent-review.md). Each returns confirmed
-or refuted with the `file:line` evidence for its answer.
-
-## 4. Report
-
-Use this template exactly: keep the field labels and their order, order findings
-by severity, and omit **Why a class** when the After adds no class.
-
-Draft the report in one writer subagent that may write only
-`<out>/rails-tech-debt-audit.md` in a temporary directory, given the confirmed
-findings, their verifier reports, and this file's path; it reads each cited
-location and reference file and returns the path. Check the draft against the
-template and the non-negotiables, then present it.
-
-```markdown
-### [SEVERITY] <short title naming the anti-pattern>
-
-- **Where:** `<path>:<start>-<end>` (and other locations)
-- **Smell:** <what the code does wrong, in one or two sentences>
-- **Violates:** <named principle or pattern with link(s), e.g. [Service Layer](https://martinfowler.com/eaaCatalog/serviceLayer.html), [SRP](https://en.wikipedia.org/wiki/Single-responsibility_principle)>
-- **Evidence:** <the offending code, quoted>
-- **Before → After:** <minimal refactoring to the target pattern, using this codebase's real names>
-- **Why a class:** <the state it holds or the models it orchestrates, and why a method or module function would not do>
-- **Effort:** <S | M | L>, <incremental or all at once>
-
-## Summary
-
-| Finding | Severity | Effort |
-| ------- | -------- | ------ |
-
-Remediation order: <finding titles>
-```
-
-Severity:
-
-- **CRITICAL:** corrupts data, opens a security hole, or blocks correctness (SQL
-  injection in scopes, missing locks on money paths, callbacks with cross-record
-  side effects).
+- **CRITICAL:** corrupts data, opens a security hole, or blocks correctness
+  (SQL injection in scopes, missing locks on money paths, callbacks with
+  cross-record side effects).
 - **HIGH:** taxes every change in the area (god model, business logic in
   controllers, N+1 on hot paths).
 - **MEDIUM:** localized debt that hurts when the area next changes (missing
   Value Object, duplicated scopes, logic in views).
 - **LOW:** style or idiom drift; fix opportunistically.
 
-Order remediation cheapest-highest-severity first, and put refactorings that
-unlock others earlier (for example, extract the Service Layer before Query
-Objects).
+## Report
+
+Default shape per finding, to adapt: a `### [SEVERITY] <title>` heading,
+then Where (`file:line` ranges), Smell, Violates (named principle with
+link), Evidence (quoted code), Before and After, Why a class (only when the
+After adds one), and Effort (S, M, or L, incremental or all at once).
+Order findings by severity and end with a summary table.
+
+Order remediation cheapest highest-severity first, and put refactorings
+that unlock others earlier (for example, extract the Service Layer before
+Query Objects).

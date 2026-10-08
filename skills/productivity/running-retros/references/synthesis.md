@@ -1,11 +1,7 @@
 # Synthesis: one list, sorted once
 
 Merge the passes' findings into one list, collapsing findings that name the
-same cause. One writer subagent does this, per the
-[step delegation rules](shared/step-delegation.md), allowed to write only
-`plan.md`, `title-<n>.txt`, and `issue-<n>.md` in the run cache. It gets the run
-cache path and every pass's findings list, and returns the plan's absolute path
-and its Accepted, Rejected, and Backlog counts.
+same cause.
 
 Every item lands in exactly one bucket:
 
@@ -41,7 +37,7 @@ names where judgment lands, not where a check is skipped.
 Write the plan to `<run cache>/plan.md` and print its absolute path. It is the
 artifact the apply turn reads, so it is self-contained: a later turn needs no
 memory of what this turn reasoned. Record each edit target's pre-image as its
-blob id from `git hash-object -- <path>`, which step 8 compares before writing.
+blob id from `git hash-object -- <path>`, which the apply turn compares before writing.
 Write each backlog item's title to `<run cache>/title-<n>.txt` and body to
 `<run cache>/issue-<n>.md` with the file-writing tool.
 

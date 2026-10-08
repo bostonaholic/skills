@@ -25,10 +25,8 @@ else:
   sleep 1860; <the poll command>
   ```
 
-  Run it with `run_in_background: true`. Per
-  [execution rules](execution.md), a foreground wait is
-  killed at the harness ceiling (600 s in Claude Code) and spends a turn
-  per fragment.
+  Run it with `run_in_background: true` and rely on the completion
+  notification.
 
 - **Soft cap: 3 cycles** (~90 minutes). At cycle 3, if nothing has
   stopped the loop already, end the interactive session — do not sleep
@@ -41,8 +39,14 @@ else:
   wait into foreground sleeps sized under that harness's ceiling — the
   cycle count is what must hold.
 
-The cap convention is [execution rules](execution.md): declare the
-bound with the loop; hitting it is a loud, terminal, reported outcome.
+## Long waits
+
+Claude Code kills a foreground Bash call at 600 seconds; `timeout 1800`
+still dies there with exit 143, and `sleep 590` only wastes a turn per
+fragment. So any wait longer than about a minute runs as one
+`run_in_background: true` call with the `sleep` inside it, and the harness
+completion notification ends the wait. Never poll a background task's output
+file with `sleep` loops.
 
 ## Stop conditions this reference owns
 

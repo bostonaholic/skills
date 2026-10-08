@@ -27,25 +27,11 @@ clear. Ask once what to explain, and do no work until the user answers.
 - **Brief** (the default): follow the Brief section below.
 - **Full** (ELIE): selected by a leading `elie` or `eliet` token, or by a
   request for ELIE, an explanation "for an engineer" or "for a reviewer", an
-  "in depth" explanation, or the full explanation. After gathering context,
-  read [full explanation](references/full-explanation.md) and follow it instead
-  of the Brief section.
+  "in depth" explanation, or the full explanation. Read
+  [full explanation](references/full-explanation.md) and follow it instead of
+  the Brief section.
 
 Drop the depth token before reading the subject.
-
-## Gathering context
-
-Understand the subject before explaining it:
-
-- **PR number or URL**: run `gh pr view <pr>` for the description and
-  `gh pr diff <pr>` for the changes. Read key files when the diff alone is
-  unclear.
-- **File path or function**: read the code. When it is part of a larger flow,
-  trace one level up to learn its role.
-- **Branch**: diff against the base branch with
-  `git --no-pager diff <base>...<branch>`.
-- **Module or concept**: explore the directory structure, read the entry
-  points, and identify the core responsibility.
 
 ## Brief
 

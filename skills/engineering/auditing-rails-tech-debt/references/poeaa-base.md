@@ -26,35 +26,7 @@ Source: the Base Patterns in Fowler's
   is untestable and unswappable, and every timeout and retry decision is
   duplicated.
 
-**Before (smell: external access inline, everywhere):**
-
-```ruby
-class Order < ApplicationRecord
-  def notify_slack!
-    Net::HTTP.post(URI("https://hooks.slack.com/services/#{ENV['SLACK_HOOK']}"),
-                   { text: "Order #{id} placed" }.to_json,
-                   "Content-Type" => "application/json")
-  end
-end
-# ...another Net::HTTP.post to Slack in RefundJob, another in SignupsController
-```
-
-**After (one gateway owns the protocol, configuration, errors, and retries):**
-
-```ruby
-class SlackGateway
-  Error = Class.new(StandardError)
-
-  def initialize(webhook_url: Rails.application.credentials.slack_webhook_url)
-    @webhook_url = webhook_url
-  end
-
-  def post(text)
-    response = Net::HTTP.post(URI(@webhook_url), { text: }.to_json, "Content-Type" => "application/json")
-    raise Error, response.body unless response.is_a?(Net::HTTPSuccess)
-  end
-end
-```
+**Fix:** One gateway owns the protocol, configuration, errors, and retries.
 
 A class fits here: the gateway holds its endpoint configuration, and tests
 substitute a fake for it (see Service Stub).
@@ -71,30 +43,7 @@ substitute a fake for it (see Service Stub).
   rate-limited), or stub at the HTTP-string level everywhere because no Gateway
   seam exists.
 
-**Before (smell: raw HTTP stubs sprayed across specs):**
-
-```ruby
-it "notifies slack" do
-  stub_request(:post, %r{hooks\.slack\.com}).to_return(status: 200)  # repeated in 40 specs
-  ...
-end
-```
-
-**After (stub the gateway seam once):**
-
-```ruby
-class FakeSlackGateway
-  attr_reader :messages
-  def initialize = @messages = []
-  def post(text) = @messages << text
-end
-
-it "notifies slack" do
-  gateway = FakeSlackGateway.new
-  Fulfillment.confirm_order(order, slack: gateway)
-  expect(gateway.messages).to include(/Order/)
-end
-```
+**Fix:** Stub the gateway seam once.
 
 **Finding rule:** flag WebMock or VCR fixtures duplicated across many specs (the
 seam is missing). Cite Service Stub and Gateway.
@@ -107,17 +56,8 @@ seam is missing). Cite Service Stub and Gateway.
   Smell: materializing whole tables into arrays to filter or sort in Ruby what
   the database does better.
 
-**Before (smell: an in-memory table scan):**
-
-```ruby
-Order.all.to_a.select { |order| order.status == "paid" }.sort_by(&:created_at).first(10)
-```
-
-**After:**
-
-```ruby
-Order.paid.order(:created_at).limit(10)
-```
+**Fix:** Push filtering, sorting, and limits into the query
+(`Order.paid.order(:created_at).limit(10)`).
 
 **Finding rule:** flag `.all.to_a`, `select` or `sort_by` blocks on unbounded
 relations, and iteration over large tables without `find_each`. Cite Record Set
@@ -131,31 +71,7 @@ and the Rails querying guide.
   objects. Smell: external payload vocabulary (webhook JSON keys, CSV headers)
   leaking through the whole codebase because no mapper translates at the edge.
 
-**Before (smell: the external schema leaks everywhere):**
-
-```ruby
-# the payment provider's field names threaded through domain code
-charge = event["data"]["object"]
-Payment.create!(stripe_amt: charge["amount"], stripe_cur: charge["currency"])
-notify(charge["billing_details"]["email"])
-```
-
-**After (a mapper translates at the boundary; the domain speaks its own
-language):**
-
-```ruby
-module StripeChargeMapper
-  module_function
-
-  def to_payment_attributes(event)
-    charge = event.dig("data", "object")
-    { amount_cents: charge["amount"], currency: charge["currency"],
-      payer_email: charge.dig("billing_details", "email") }
-  end
-end
-
-Payment.create!(StripeChargeMapper.to_payment_attributes(event))
-```
+**Fix:** A mapper translates at the boundary; the domain speaks its own language.
 
 **Finding rule:** flag external key strings (`["data"]["object"]`-style digs)
 appearing outside boundary code. Cite Mapper and Gateway.
@@ -170,18 +86,7 @@ appearing outside boundary code. Cite Mapper and Gateway.
   (`< ActiveRecord::Base` directly), or the inverse, the supertype as a dumping
   ground of methods only a few subclasses use.
 
-**Before (smell: a bypassed supertype, and a bloated one):**
-
-```ruby
-class LegacyImport < ActiveRecord::Base; end   # misses ApplicationRecord behavior
-
-class ApplicationController < ActionController::Base
-  def calculate_shipping_estimate(order) ... end   # used by exactly one controller
-end
-```
-
-**After:** inherit from the layer supertype, and keep only layer-wide behavior
-in it: pull single-consumer methods down to the consumer.
+**Fix:** inherit from the layer supertype, and keep only layer-wide behavior in it: pull single-consumer methods down to the consumer.
 
 **Finding rule:** grep `< ActiveRecord::Base` and `< ActionController::Base`
 outside the `Application*` definitions; flag `Application*` methods with one
@@ -196,29 +101,7 @@ caller. Cite Layer Supertype and ISP.
   domain code naming concrete infrastructure classes so implementations cannot
   vary (also DIP).
 
-**Before (smell: domain code hard-wired to one implementation):**
-
-```ruby
-module Fulfillment
-  module_function
-
-  def confirm_order(order)
-    TwilioClient.new(ENV["TWILIO_SID"]).sms(order.user.phone, "Confirmed!")
-  end
-end
-```
-
-**After (depend on a role; inject the implementation):**
-
-```ruby
-module Fulfillment
-  module_function
-
-  def confirm_order(order, notifier: SmsNotifier.new)
-    notifier.deliver(order.user.phone, "Confirmed!")
-  end
-end
-```
+**Fix:** Depend on a role; inject the implementation.
 
 **Finding rule:** flag concrete third-party classes referenced inside domain
 operations. Cite Separated Interface and the Dependency Inversion Principle.
@@ -233,25 +116,7 @@ operations. Cite Separated Interface and the Dependency Inversion Principle.
   (`$redis`, class-variable caches, `Thread.current` stashes) as hidden data
   channels between layers.
 
-**Before (smell: `Thread.current` as a covert parameter):**
-
-```ruby
-Thread.current[:current_tenant] = tenant          # set in middleware
-class Order < ApplicationRecord
-  default_scope { where(tenant_id: Thread.current[:current_tenant]&.id) }  # read at a distance
-end
-```
-
-**After (explicit passing, or Rails' sanctioned registry with reset
-semantics):**
-
-```ruby
-class Current < ActiveSupport::CurrentAttributes   # reset per request by the framework
-  attribute :tenant
-end
-
-Order.where(tenant: Current.tenant)   # explicit at query sites, no default_scope
-```
+**Fix:** Explicit passing, or Rails' sanctioned registry with reset semantics.
 
 **Finding rule:** grep `$` globals, `@@` class variables, and `Thread.current`
 writes. Cite Registry, including its last-resort guidance.
@@ -266,22 +131,9 @@ writes. Cite Registry, including its last-resort guidance.
   ranges, coordinates, phone numbers) as loose primitives, with validation,
   formatting, and comparison logic re-implemented at every use site.
 
-**Before (smell: a domain concept smeared across primitives):**
-
-```ruby
-def overlaps?(start_a, end_a, start_b, end_b)
-  start_a <= end_b && start_b <= end_a
-end
-# every caller must keep four args straight, in order
-```
-
-**After:**
-
-```ruby
-DateRange = Data.define(:starts_on, :ends_on) do   # Ruby 3.2+
-  def overlaps?(other) = starts_on <= other.ends_on && other.starts_on <= ends_on
-end
-```
+**Fix:** A value object that owns the logic, such as
+`DateRange = Data.define(:starts_on, :ends_on)` with an `overlaps?(other)`
+method (Ruby 3.2+).
 
 **Finding rule:** flag repeated primitive-tuple parameters and duplicated format
 or compare logic. Cite Value Object and Replace Primitive with Object
@@ -295,24 +147,7 @@ or compare logic. Cite Value Object and Replace Primitive with Object
   (rounding drift), amounts without a currency, and arithmetic on raw decimals
   across the codebase.
 
-**Before (smell: float money, no currency):**
-
-```ruby
-add_column :orders, :total, :float
-order.total = 19.99 * 3 * 1.0825   # 65.11720249999999
-```
-
-**After (integer cents and a currency behind a Money value object, for example
-from the money-rails gem):**
-
-```ruby
-add_column :orders, :total_cents, :integer, null: false, default: 0
-add_column :orders, :total_currency, :string, null: false, default: "USD"
-
-class Order < ApplicationRecord
-  monetize :total_cents   # order.total => Money; arithmetic, rounding, formatting handled once
-end
-```
+**Fix:** Integer cents and a currency behind a Money value object, for example from the money-rails gem.
 
 **Finding rule:** grep the schema for `float` or `decimal` money-named columns
 without currency companions; flag `to_f` on money. Severity HIGH (CRITICAL if
@@ -327,31 +162,8 @@ float). Cite Money.
   absent thing repeated across the codebase (`user&.name || "Guest"` in 30
   places).
 
-**Before (smell: nil handling duplicated at every call site):**
-
-```ruby
-post.author ? post.author.name : "Anonymous"
-post.author&.avatar_url || "default-avatar.png"
-if post.author && post.author.premium? ...
-```
-
-**After:**
-
-```ruby
-class GuestAuthor
-  def name = "Anonymous"
-  def avatar_url = "default-avatar.png"
-  def premium? = false
-end
-
-class Post < ApplicationRecord
-  belongs_to :author, optional: true
-
-  def author
-    super || GuestAuthor.new
-  end
-end
-```
+**Fix:** A `GuestAuthor` class answering the same messages (`name`,
+`avatar_url`, `premium?`), returned by `Post#author` as `super || GuestAuthor.new`.
 
 A class fits here: callers send the guest the same messages as a real author,
 which a method or module function cannot do.
@@ -368,28 +180,7 @@ association or attribute. Cite Special Case.
   differs across environments in ways configuration never declares, and staging
   paths never run in test.
 
-**Before (smell: environment switches inside domain logic):**
-
-```ruby
-def deliver_sms(phone, body)
-  if Rails.env.production?
-    TwilioClient.send(phone, body)
-  elsif Rails.env.staging?
-    FakeSms.log(phone, body)
-  end   # test/dev: silently does nothing
-end
-```
-
-**After (configuration selects the implementation once):**
-
-```ruby
-# config/environments/production.rb: config.x.sms_client = TwilioClient.new
-# config/environments/test.rb:       config.x.sms_client = FakeSmsClient.new
-
-def deliver_sms(phone, body)
-  Rails.configuration.x.sms_client.send(phone, body)
-end
-```
+**Fix:** Configuration selects the implementation once.
 
 **Finding rule:** grep `Rails.env.` outside `config/` and initializers. Cite
 Plugin and OCP.

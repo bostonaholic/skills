@@ -2,96 +2,36 @@
 
 # Code Standards
 
-The design and implementation bar for planning, implementing, and reviewing production code.
-Read this file before planning, implementing, or reviewing production code.
+The bar for planning, implementing, and reviewing production code, where it is stricter than the usual reading.
 
-## Core Philosophy
+## Design
 
-- **Hickey:** simple immutable data and pure functions.
-- **Carmack:** direct implementation with a way to measure performance.
-- **Armstrong:** isolate failures so one module cannot propagate faults.
-- **Knuth:** clarity before cleverness.
-- **Liskov:** honor contracts; subtypes substitute for base types.
-- **Ousterhout:** deep modules with simple interfaces; keep complexity inside.
-
-Weigh benefit against maintenance, runtime, false-positive, and cognitive costs.
-Apply Rule of Three: tolerate the second duplication; extract on the third.
-
-## SOLID design principles
-
-Apply SOLID when writing new code and reviewing diffs. These points are where
-this bar is stricter than the usual reading:
-
-- **Single Responsibility:** a function you cannot name without "and" has too
-  many jobs.
+- **Single Responsibility:** a function you cannot name without "and" has too many jobs.
 - **Open/Closed:** add implementations behind an interface instead of branches.
-- **Dependency Inversion:** business logic never imports database, HTTP, or
-  filesystem APIs directly.
+- **Dependency Inversion:** business logic never imports database, HTTP, or filesystem APIs directly.
+- **Construct with collaborators, call with work.** Constructors take long-lived dependencies (clock, DB, logger, HTTP client) and do no I/O; methods take per-request work. Prefer `ReportGenerator(reportingDb, clock).generate(startDate, endDate)`.
+- Catch only the exact throwing call and the specific exception, and chain the original cause.
+- Never combine refactoring and feature work in one commit.
 
-## Code Comments
+## Minimum scoped change
 
-These rules govern source comments; review findings use the [finding
-format](findings.md). Comments never explain WHAT
-code does. Permit only non-obvious WHY—constraints, workarounds, surprising
-requirements—when names, structure, and tests cannot carry it.
+Remove what the change replaces or leaves unused before adding its replacement.
+Add no validator, guard, option, or parallel mechanism that the design, plan, or tests do not demand. Record wider opportunities instead of implementing them.
 
-- **Rewrite first.** Before adding a comment, try a named function or variable.
+## Code comments
+
+Comments never explain WHAT code does. Permit only a non-obvious WHY (a constraint, workaround, or surprising requirement) that names, structure, and tests cannot carry. Review findings use the [finding format](findings.md).
+
 - **No ticket/issue IDs, plan/slice/phase markers, or doc-section references.** A public upstream-issue URL that is itself the why is allowed; internal trackers and pipeline artifacts are not.
-- **No process narration.** State current code constraints. Never mention dates, corrections, edit history, users/prompts, review feedback, ticket discussion, or agent instructions. "Previously," "Originally," "As of," "Correction," "Temporary fix from," and "This was changed because" are detection hints, not the rule.
-- **No incidentals.** A comment carries its constraint, not the context that led to it. Delete background, discovered-aside notes, and anything the reader does not need to understand or change this code.
-- **Document deliberate constraints.** Name the consequence of removing odd code: API limits, compatibility, security, performance, ordering, concurrency, or framework behavior.
-- **Be local, concise, precise, verified.** Use symbols/stable identifiers, not line numbers or layout. Never say only "handle edge case."
-- **Do not duplicate** types, tests, names, or public docs. Link an external spec only for a precise contract.
-- **No commented-out code. No TODO/FIXME in delivered code.** Deferred work belongs in the implementer report.
-- Remove obsolete comments in the same diff; preserve repo style.
-- The why-only rule covers in-body comments. Doc comments on exported/public interfaces must add contract facts absent from the signature; restating a signature is a WHAT comment.
+- **No process narration.** State current constraints. Never mention dates, corrections, edit history, users or prompts, review feedback, ticket discussion, or agent instructions. "Previously," "Originally," "As of," and "This was changed because" are detection hints, not the rule.
+- **No incidentals.** A comment carries its constraint, not the background or discovered asides that led to it.
+- **Document deliberate constraints.** Name the consequence of removing odd code: API limits, compatibility, security, ordering, concurrency, or framework behavior.
+- **Be precise.** Refer to symbols and stable identifiers, not line numbers or layout.
+- No commented-out code. No TODO/FIXME in delivered code; deferred work goes in the report.
+- Doc comments on public interfaces must add contract facts absent from the signature; one that restates the signature is a WHAT comment.
 
-Decision test: Does this explain why? Can code/tests carry it? Is it true now without process context? Will it remain true as nearby code changes?
+Decision test: Does this explain why? Can code or tests carry it? Is it true now without process context?
 
-## Design-First Workflow
+## Reviewing
 
-1. **Understand Requirements.** Enumerate boundary values (empty, zero, max), invalid inputs, timeouts/partial writes, concurrency, authorization, and resource limits.
-2. **Design First.** Sketch interfaces, data structures, and module boundaries.
-3. **Implement Incrementally.** Use small verified steps; commit working checkpoints.
-4. **Self-Review.** Apply every Quality Checklist item to every touched file.
-5. **Explain Decisions.** State decisions, trade-offs, and non-obvious choices.
-
-## Type contracts
-
-Define interfaces so their accepted values and valid states match runtime behavior. Validate untrusted values at the boundary that owns them, then rely on that guarantee. Avoid unchecked conversions, forced assertions, and optional values that conceal a required input. Use the language's type or contract mechanisms to distinguish valid alternatives when they rule out an invalid state.
-
-## Quality Checklist
-
-Every item gates progress: **Single Responsibility**; **Clear Naming**; **No Magic Numbers**; **Explicit Error Handling**; **Low Coupling**; **Testability**; **Readability** (new developer understands in 5 minutes); **DRY** under Rule of Three; **Performance Awareness**; **Functional Core, Imperative Shell**; **No Primitive Obsession** (Money, Duration, EmailAddress, OrderId instead of raw `string`/`int`); **Failures are actionable** (prefer `assert_eq(actual, expected)` over opaque `assert(predicate)`); **Comment Discipline**.
-
-## When Implementing
-
-- **Construct with collaborators, call with work.** Constructors take long-lived clock, DB, logger, or HTTP client dependencies; methods take per-request work. Constructors do no I/O, static lookup, or expensive work. Prefer `ReportGenerator(reportingDb, clock).generate(startDate, endDate)` over putting the date range in the constructor. Never instantiate collaborators inside work methods.
-- Keep one abstraction level per function; extract lower-level work behind names at the caller's level. A function calls functions one level below its own, never two or more.
-- Catch only the exact throwing call and specific exception; chain the original cause. Never wrap a large block in `catch (Exception e)`.
-- Follow neighboring project style, naming, and patterns.
-- Remove what the change replaces or leaves unused before adding its replacement; add no guard the spec does not demand ([focused work rules](focused-work.md)).
-
-## When Reviewing
-
-- Apply every Quality Checklist item to every changed file and cite its name in findings, e.g. `**issue (blocking):** Clear Naming: the variable d does not reveal intent`.
-- Check for Design-First evidence in interfaces and boundaries.
-- Rank failure isolation (Armstrong) and interface contracts (Liskov) above formatting (Knuth).
-- Name the SOLID principle, cite `file:line`, and state the current consequence. A finding that names no principle and no consequence is not actionable.
-- Flag validators, guards, options, and parallel mechanisms that no design, plan, or test demands ([focused work rules](focused-work.md)).
-
-## When to refactor
-
-Refactor before an imminent change that current structure obstructs, on the third duplication (Rule of Three tolerates the second), or before debugging unreadable code. Do not refactor while tests fail, without an imminent need, or under a live deadline; record the smell and continue.
-
-Change internal structure without changing observable behavior. Every step keeps tests green. Never combine refactoring and feature work in one commit.
-
-## Safe refactoring procedure
-
-1. Confirm tests pass; otherwise stop.
-2. Make one smallest structural change.
-3. Run tests; undo immediately on failure.
-4. Commit the passing checkpoint.
-5. Repeat to the required structure.
-
-Refactor first in its own commit, then add the feature. Touch only code required by current scope. Name the smell/refactoring in the commit, e.g. `refactor: extract user validation into UserValidator (Long Method)`. When uncertain, leave it.
+A finding names the principle it violates, cites `file:line`, and states the current consequence. A finding that names no principle and no consequence is not actionable.

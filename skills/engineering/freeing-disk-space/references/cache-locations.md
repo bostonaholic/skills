@@ -2,7 +2,7 @@
 
 Where developer tools keep regenerable files, and the command that clears each.
 Check only the sections for tools installed on the machine. Classes match the
-skill's step 3: **regenerates** (the tool refills it on demand), **rebuildable**
+skill's classes: **regenerates** (the tool refills it on demand), **rebuildable**
 (costs a rebuild or re-download), and **keep** (report only).
 
 Before removing a toolchain version, list the versions projects pin, for

@@ -5,8 +5,7 @@ description: Finds what fills a developer machine's disk and frees space by clea
 
 # Freeing disk space
 
-Find where the space went, then remove only what a tool can recreate. Every
-deletion runs after the user approves its exact command.
+Find where the space went, then remove only what a tool can recreate.
 
 ## Rules
 
@@ -19,89 +18,47 @@ deletion runs after the user approves its exact command.
   trees with uncommitted or unpushed work, container volumes, VM disks, and
   databases are reported with their size and left to the user.
 - **Never empty the Trash.** Report its size and tell the user to empty it.
-- **Stop at the target.** The goal is enough free space to work, not every
-  reclaimable byte.
+- **Keep pinned toolchain versions.** Before removing an old Ruby, Node,
+  Python, or similar version, check which versions projects pin.
+- **Stop at the target.** The user's number when they give one, otherwise
+  whichever is larger of 20 GB or 10% of the volume free, which leaves room
+  for a large build or image pull. Stop once it is met, even with approved
+  rows left, and say which rows you skipped.
 
-Steps 2 and 3, and urgent recovery step 1, run in read-only subagents per the
-[step delegation rules](shared/step-delegation.md). Measuring, the plan's
-approval, and every deletion stay in this session.
+## Find where the space went
 
-## 1. Measure
+Measure the full volume first (on macOS, `df -h /System/Volumes/Data`). Then
+descend with `du -x` from the home directory until totals reach directories a
+tool owns, and check [cache locations](references/cache-locations.md) for each
+toolchain present. Run slow `du` passes in the background rather than skipping
+a tree.
 
-Run `df -h` on the full volume (on macOS, `df -h /System/Volumes/Data`) and
-record used and available space. Set the target: the user's number when they
-give one, otherwise whichever is larger of 20 GB or 10% of the volume free,
-which leaves room for a large build or image pull.
+Add up what you found and compare it with the used space. When much is
+unexplained, size the volume root and `/private/var` (or `/var` on Linux),
+other users' home directories, and, on macOS, local Time Machine snapshots
+(`tmutil listlocalsnapshots /`). Never present a plan that covers a small share
+of the used space without saying where the rest is.
 
-When less than 5 GB is free and builds or containers are already failing, go
-to [Urgent recovery](#urgent-recovery) first.
+When less than 5 GB is free and work is blocked, skip the full survey: size
+only the regenerable caches that exist, propose them as one batch for a single
+approval, then survey if the target is still unmet.
 
-## 2. Find where the space went
+## Plan and run
 
-A `sonnet` subagent runs this step, given the volume, its used space, and the
-target. It returns `path | size | owning tool or user data` rows, largest
-first, and the unexplained remainder with the places it checked.
-
-1. Size the home directory one level deep, largest first:
-   `du -xhd 1 ~ 2>/dev/null | sort -rh | head -20`.
-2. Descend into each large entry the same way until the totals reach files or
-   directories a tool owns. `du` over large trees is slow; run it in the
-   background rather than skipping a tree.
-3. Check the locations in [cache locations](references/cache-locations.md)
-   for each toolchain present on the machine. Read that file now.
-4. Add up what you found and compare it with the used space from step 1. When
-   much of it is unexplained, size the volume root and `/private/var` (or
-   `/var` on Linux), other users' home directories, and, on macOS, local Time
-   Machine snapshots (`tmutil listlocalsnapshots /`). Name any remainder you
-   cannot explain; never present a plan that covers a small share of the used
-   space without saying where the rest is.
-
-## 3. Classify
-
-Put each candidate in one class:
-
-- **Regenerates on its own:** download and build caches the tool refills on
-  demand. Costs only time.
-- **Rebuildable:** build outputs, simulators, emulator images, container
-  images, old toolchain versions. Costs a rebuild or re-download, and may break
-  something offline.
-- **Keep:** user data, anything with state that no tool recreates, and
-  anything a running process holds open (`lsof +D <path>` on a directory).
-
-Only the first two classes enter the plan.
-
-A `sonnet` subagent classifies, given step 2's rows. It returns each row with
-its class, what recreates it, the command that clears it, and any process
-holding it open.
-
-## 4. Plan
+Classify each candidate as **regenerates** (the tool refills it on demand),
+**rebuildable** (costs a rebuild or re-download, may break something offline),
+or **keep** (user data, state no tool recreates, or held open by a running
+process). Only the first two enter the plan.
 
 Present one table, largest first, and stop for approval:
 
 | Path | Size | Class | Recreated by | Command |
 | ---- | ---- | ----- | ------------ | ------- |
 
-Mark rows that need a tool or app closed first, such as an IDE, the Gradle
-daemon, or a simulator. Show the sum against the target.
+Mark rows that need a tool or app closed first (an IDE, the Gradle daemon, a
+simulator) and show the sum against the target.
 
-## 5. Run and verify
-
-Run the approved commands one at a time. After each, re-run the step 1 `df`
-and record the space it freed; a command that freed far less than its row's
-size usually left the space in a VM disk or a snapshot, so say which. Stop
-once the target is met, even with approved rows left, and say which rows you
-skipped.
-
-Report the free space before and after, each command's result, and the
-largest remaining items in the Keep class.
-
-## Urgent recovery
-
-When the disk is nearly full and work is blocked, skip the full survey:
-
-1. Size only the regenerable caches from
-   [cache locations](references/cache-locations.md) that exist on this machine.
-   A subagent does this and returns `path | size | command` rows.
-2. Propose them as one batch, with the commands, for a single approval.
-3. Run them, measure with `df`, and continue at step 2 if the target is not
-   met.
+Run approved commands one at a time and re-measure with `df` after each. A
+command that freed far less than its row's size usually left the space in a VM
+disk or a snapshot; say which. Report free space before and after, and the
+largest remaining items in the keep class.

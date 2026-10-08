@@ -6,39 +6,31 @@ description: Compresses and clarifies an existing LLM prompt through concept ele
 
 # Improve Prompt Using Concept Elevation
 
-Concept elevation takes stock of disparate yet connected instructions in a
-prompt, then finds a higher-level, clearer way to express their sum. The result
-is shorter and lets the model adapt to new situations instead of relying on
-specific examples or instructions.
+Concept elevation finds the higher-level rule that expresses the sum of
+several connected instructions. The result is shorter and lets the model adapt
+to new situations instead of relying on specific cases.
 
 The argument is prompt text or a path to a file containing it. Print the
 improved prompt by default. Edit the file in place only when the user asks.
 
 ## Process
 
-Perform each step inside its named tag so the reasoning is auditable.
-
-1. `<decompose>`: Number every instruction, constraint, and example in the
-   original prompt (I1, I2, ...). This numbered list is the intent inventory.
-2. `<group>`: Cluster inventory items that serve the same underlying purpose.
-3. `<elevate>`: For each group, find the single higher-level rule that captures
-   the sum of its items. Iterate on candidates until the rule is shorter and
-   clearer than the items it replaces. Prefer principles over rigid examples.
-   Keep an item as written when no rule captures it without loss.
-4. `<synthesize>`: Combine the elevated rules into a draft, then remove any
-   remaining redundancy or vagueness.
-5. `<validate>`: Map every inventory item to the draft line that carries its
-   intent. Restore each unmapped item, then map again. Repeat until every item
-   maps. Then confirm the draft is shorter than the original and leaves fewer
-   cases unaddressed, not more.
+1. Number every instruction, constraint, and example in the original (I1, I2,
+   ...). This is the intent inventory.
+2. Group items that serve one purpose, and replace each group with the single
+   rule that captures all of it. Keep an item as written when no rule captures
+   it without loss.
+3. Map every inventory item to the draft line that carries its intent. Restore
+   each unmapped item, then map again, until every item maps. The draft must be
+   shorter than the original and leave no case unaddressed that the original
+   covered.
 
 Never drop an item silently. When two items conflict or one looks obsolete, keep
 both in the draft and flag the conflict.
 
 ## Deliverable
 
-After the tagged steps, end with this format (adapt the list labels; keep the
-order):
+End with this format (adapt the list labels; keep the order):
 
 ````markdown
 ```text

@@ -153,8 +153,8 @@ summary() { printf '%s\n' "$out" | jq -r 'map("\(.number):\(.rebaseable)") | joi
 
 run 0 "$scripts/list-prs.sh" --limit 5
 [ "$(summary)" = 1:true,2:false,3:false,4:true,5:false ] || fail "rebaseable flags: $(summary)"
-printf '%s\n' "$out" | jq -e '.[] | select(.number == 5) | .skipReason | test("rebasing-dependabot-prs")' >/dev/null ||
-  fail "Dependabot skip reason does not name rebasing-dependabot-prs: $out"
+printf '%s\n' "$out" | jq -e '.[] | select(.number == 5) | .skipReason | test("merging-dependabot-prs")' >/dev/null ||
+  fail "Dependabot skip reason does not name merging-dependabot-prs: $out"
 case "$err" in *warning*) ;; *) fail "no truncation warning at the limit: $err" ;; esac
 run 0 "$scripts/list-prs.sh" --skip-drafts
 [ "$(summary)" = 1:true,2:false,3:false,4:false,5:false ] || fail "--skip-drafts flags: $(summary)"
