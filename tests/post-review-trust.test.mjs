@@ -244,32 +244,20 @@ test("lowers APPROVE to COMMENT unless the PR author is an owner, member, or col
   }
 });
 
-const TRUST_CLI_ROWS = [
-  { name: "a CONTRIBUTOR author", authorAssociation: "CONTRIBUTOR" },
-  { name: "a read with no authorAssociation", authorAssociation: undefined },
-];
+test("an APPROVE on a PR read with no authorAssociation posts COMMENT through the CLI", (t) => {
+  const checkout = cleanCheckout(t);
+  const reportPath = writeReport(t, APPROVE_REPORT);
+  const run = runScript(t, {
+    cwd: checkout.dir,
+    args: [PR_URL, checkout.headSha, reportPath, "at-head"],
+    responses: [
+      prRead({ headRefOid: checkout.headSha, authorAssociation: undefined }),
+      review("COMMENTED", checkout.headSha),
+      review("COMMENTED", checkout.headSha),
+    ],
+  });
 
-test("posts an untrusted author's APPROVE as COMMENT through the CLI", async (t) => {
-  for (const row of TRUST_CLI_ROWS) {
-    await t.test(row.name, (st) => {
-      const checkout = cleanCheckout(st);
-      const reportPath = writeReport(st, APPROVE_REPORT);
-      const run = runScript(st, {
-        cwd: checkout.dir,
-        args: [PR_URL, checkout.headSha, reportPath, "at-head"],
-        responses: [
-          prRead({ headRefOid: checkout.headSha, authorAssociation: row.authorAssociation }),
-          review("COMMENTED", checkout.headSha),
-          review("COMMENTED", checkout.headSha),
-        ],
-      });
-
-      assert.ok(
-        run.calls[1]?.includes("event=COMMENT"),
-        `POST argv: ${JSON.stringify(run.calls[1])}`,
-      );
-      assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, ...UNTRUSTED]);
-      assert.equal(run.status, 0);
-    });
-  }
+  assert.ok(run.calls[1]?.includes("event=COMMENT"), `POST argv: ${JSON.stringify(run.calls[1])}`);
+  assert.deepEqual(run.lines, [`posted COMMENT ${REVIEW_URL}`, ...UNTRUSTED]);
+  assert.equal(run.status, 0);
 });
