@@ -1,6 +1,6 @@
 # Posting reviews
 
-Read this at Input to resolve a PR target, and again at step 5 to post the
+Read this at Target to resolve a PR target, and again at Post to post the
 review. Invoking the skill on a PR target is the request to post the review
 on that PR, so nothing here asks the user first.
 
@@ -29,7 +29,7 @@ Classify `$ARGUMENTS` before any shell use. Three forms get a PR lookup:
   lookup, and the branch review runs without a post.
 
 A commit range, a path, or no argument gets no lookup, keeps the resolution
-in `SKILL.md` Input, and never posts.
+in `SKILL.md` Target, and never posts.
 
 Even a validated URL never appears in a shell word, because double quotes
 do not stop `$(...)` ([never interpolate](shared/external-data.md)). Split a
@@ -77,8 +77,8 @@ repository fields name the contributor's fork.
 
 ## State
 
-`OPEN` can post. `MERGED` or `CLOSED` marks the target not posted, and step
-5 runs no script. For a PR number or URL, the review still runs on the SHA
+`OPEN` can post. `MERGED` or `CLOSED` marks the target not posted, and Post
+runs no script. For a PR number or URL, the review still runs on the SHA
 pair, because the user asked for a review. For a branch, the branch review
 runs.
 
@@ -86,7 +86,7 @@ runs.
 
 A branch is a PR target only when its PR is `OPEN` and
 `git rev-parse --verify refs/heads/<branch>^{commit}` prints `headRefOid`.
-Otherwise the branch review runs without a post, and step 5 prints the
+Otherwise the branch review runs without a post, and Post prints the
 `Not posted:` line for the reason. A branch that passes the gate continues
 as a PR number does, from Local commits on.
 
@@ -122,11 +122,11 @@ it with the SHA pair.
 An Input failure stops a PR number or URL before dispatch with the
 `Stopped before review:` line below. For a branch, an Input failure only
 marks the target not posted, and the branch review runs with the base and
-head refs that `SKILL.md` Input resolves. The session lines close the set of
+head refs that `SKILL.md` Target resolves. The session lines close the set of
 reasons.
 
 The session holds the canonical URL, the state, both SHAs, the at-head
-flag, and the step 2 shell grant for the life of the run. The fetch adds
+flag, and the reviewer's shell grant for the life of the run. The fetch adds
 git objects and can update `FETCH_HEAD` and remote-tracking refs. It
 changes no local branch, index, or working-tree file.
 
@@ -137,7 +137,7 @@ missing, print the `<tool> is not installed` line and run nothing.
 
 Write the report alone to a file in the host's temporary directory with the
 file-writing tool. The file holds the report from its verdict line to its
-last line, byte for byte as step 4 printed it, without the
+last line, byte for byte as the relay printed it, without the
 heading-deviation or restricted-subagent lines. The body reaches GitHub on
 the script's stdin, never in command text
 ([never interpolate](shared/external-data.md)). Then run the script, where
@@ -178,8 +178,8 @@ Placeholders in angle brackets take one value each. When several
 | `downgraded APPROVE off-head`                                                                         | `Review event changed from APPROVE to COMMENT: the checkout was not at the PR head for the whole review. Check out the PR head for a test-backed verdict.`   |
 | `head-moved <sha>`                                                                                    | `The PR head moved to <sha>. The review is pinned to <reviewed-sha>.`                                                                                        |
 | Exit 2                                                                                                | `Not posted: <stderr reason>.`                                                                                                                               |
-| Step 3 fails twice on a PR target                                                                     | `Not posted: the report failed the verdict contract.`                                                                                                        |
-| Step 2 granted no shell                                                                               | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                           |
+| Verdict check fails twice on a PR target                                                              | `Not posted: the report failed the verdict contract.`                                                                                                        |
+| Reviewer had no shell                                                                                 | `Not posted: the reviewer had no shell, so it could not diff or read the PR head.`                                                                           |
 | Working tree, commit range, or path target                                                            | `Not posted: the target is <kind>, not a PR. Pass the PR number or URL to post.` with `<kind>` as `the working tree`, `a commit range`, or `a path`          |
 | Branch tip differs from the PR head                                                                   | `Not posted: local branch <branch> is at <tip>, but PR #<n>'s head is <head>.`                                                                               |
 | Input failure, PR number or URL                                                                       | `Stopped before review: <reason>.` plus the failing command's stderr verbatim                                                                                |
@@ -203,7 +203,7 @@ Input failure `<reason>` is one of this closed set:
 The session prints lines in the script's order. The word "Posted" appears
 only for the `posted` outcome. A `downgraded` line names the event the
 script sent, so it stays true when the POST fails
-([verified results rules](shared/verified-results.md)).
+(never success wording for an unfinished post).
 
 ## Exit codes
 
