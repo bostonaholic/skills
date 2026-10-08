@@ -36,9 +36,14 @@ do not stop `$(...)` ([never interpolate](shared/external-data.md)). Split a
 matched URL with parameter expansion into `$ARG_HOST`, `$ARG_OWNER`,
 `$ARG_REPO`, and `$ARG_NUMBER`, so the argument string itself reaches no
 command. Use parameter expansion, not `$BASH_REMATCH`: zsh matches the same
-pattern but leaves `$BASH_REMATCH` unset.
+pattern but leaves `$BASH_REMATCH` unset. A bare number sets only
+`$ARG_NUMBER`, because the checkout supplies the repository.
 
 ```bash
+# Bare PR number (it matched ^[0-9]+$):
+ARG_NUMBER="$ARGUMENTS"
+
+# PR URL:
 REST="${ARGUMENTS#https://}"
 ARG_HOST="${REST%%/*}"  ; REST="${REST#*/}"
 ARG_OWNER="${REST%%/*}" ; REST="${REST#*/}"
