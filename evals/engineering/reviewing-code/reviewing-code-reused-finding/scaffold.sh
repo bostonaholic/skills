@@ -10,7 +10,7 @@ cat >src/cart/discount.js <<'SOURCE'
 "use strict";
 function applyCoupon(subtotalCents, coupon) {
   const percentOffCents = Math.round((subtotalCents * coupon.percentOff) / 100);
-  return subtotalCents - Math.min(percentOffCents, coupon.maxOffCents);
+  return subtotalCents - Math.max(percentOffCents, coupon.maxOffCents);
 }
 module.exports = { applyCoupon };
 SOURCE
@@ -28,14 +28,29 @@ test("a large discount stops at the cap", () => {
 });
 TESTS
 
+git init -q -b main --object-format=sha1
+git -c core.autocrlf=false add -- package.json src test
+GIT_AUTHOR_DATE='2026-01-01T00:00:00Z' GIT_COMMITTER_DATE='2026-01-01T00:00:00Z' \
+  git -c user.name='Eval Fixture' -c user.email='eval@example.invalid' \
+  -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -qm 'Coupon cap before fix'
+git update-ref refs/remotes/origin/main HEAD
+
+sed 's/Math.max/Math.min/' src/cart/discount.js >src/cart/discount.js.next
+mv src/cart/discount.js.next src/cart/discount.js
+git add -- src/cart/discount.js
+GIT_AUTHOR_DATE='2026-01-01T00:01:00Z' GIT_COMMITTER_DATE='2026-01-01T00:01:00Z' \
+  git -c user.name='Eval Fixture' -c user.email='eval@example.invalid' \
+  -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -qm 'Fix coupon cap'
+
 cat >external-review.md <<'REVIEW'
 **Verdict: REQUEST CHANGES**
 
 **issue (blocking):** The coupon cap acts as a minimum discount.
 `src/cart/discount.js:4` uses `Math.max`, so a 10% discount on 10000 cents with a 5000-cent cap incorrectly subtracts 5000 cents.
-Reviewed commit: 1111111111111111111111111111111111111111.
-Permalink: https://github.com/acme/checkout/blob/1111111111111111111111111111111111111111/src/cart/discount.js#L4
+Reviewed commit: BASE_COMMIT.
+Permalink: https://github.com/acme/checkout/blob/BASE_COMMIT/src/cart/discount.js#L4
 REVIEW
 
-git init -q
-git add -A
+base_commit=$(git rev-parse origin/main)
+sed "s/BASE_COMMIT/$base_commit/g" external-review.md >external-review.md.next
+mv external-review.md.next external-review.md
