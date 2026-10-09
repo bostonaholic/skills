@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Verify reused review findings against current code before reporting them as current. [#87](https://github.com/bostonaholic/skills/pull/87)
+
 ## [0.20.0] - 2026-10-08
 
 ### Changed
