@@ -49,7 +49,7 @@ Cover what and why, not how. Summarize the effect instead of listing every file
 touched. Match the scope of the explanation to the question: asked about one
 function, explain that function, not the whole system.
 
-Fit the shape to the subject; there is no fixed template. A PR gets
+Fit the shape to the subject. A PR gets
 before/after framing, a concept may be one paragraph, and a module overview may
 list its responsibilities. An illustrative Brief explanation of a PR:
 

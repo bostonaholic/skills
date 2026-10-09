@@ -93,8 +93,7 @@ stop starts at the defaults unless the user restates them.
 - The viewer's own review summaries and conversation comments are never
   feedback. Everyone else's count, bots included.
 - Each arm starts with empty CI state (reported failures, attempt counts, fix
-  commits), so a re-arm reports current failures once more. There is no
-  cross-session state.
+  commits), so a re-arm reports current failures once more.
 - Already approved at arm: run the approval hand-off and do not loop.
 
 ## Each cycle
