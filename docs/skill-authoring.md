@@ -2,9 +2,14 @@
 
 Every active skill follows Anthropic's
 [skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
-This page catalogs the practices this collection applies with stable IDs for commits, reviews, and
-lint output. Never renumber an ID or reuse one. Before you add a row, run `git log -S'| <ID> ' --oneline -- docs/skill-authoring.md` in a full clone. If it prints a commit, that ID was used before. Try the next number. Rules marked **lint** are enforced by `npm run lint:skills`
-(`scripts/lint-skills.mjs`), which runs in CI. The rest are review criteria.
+This page catalogs, with stable IDs for commits, reviews, and lint output, the
+practices this collection applies. Rules marked **lint** are enforced by
+`npm run lint:skills` (`scripts/lint-skills.mjs`), which runs in CI. The rest
+are review criteria.
+
+Never renumber an ID or reuse one. Before you add a row, run
+`git log -S'| <ID> ' --oneline -- docs/skill-authoring.md` in a full clone. If
+it prints a commit, that ID was used before. Try the next number.
 
 ## Contents
 
