@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-10-09
+
+### Fixed
+
+- Verify reused review findings against current code before reporting them as current. [#87](https://github.com/bostonaholic/skills/pull/87)
+
 ## [0.20.0] - 2026-10-08
 
 ### Changed
@@ -298,5 +304,7 @@
 
 [0.19.0]: https://github.com/bostonaholic/skills/compare/v0.18.0...v0.19.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.20.0...HEAD
 [0.20.0]: https://github.com/bostonaholic/skills/compare/v0.19.0...v0.20.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.20.1...HEAD
+[0.20.1]: https://github.com/bostonaholic/skills/compare/v0.20.0...v0.20.1
