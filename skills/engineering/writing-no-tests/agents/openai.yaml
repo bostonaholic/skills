@@ -1,0 +1,6 @@
+interface:
+  display_name: "Writing No Tests"
+  short_description: "Write no tests. I dare you."
+  default_prompt: "Use $writing-no-tests."
+policy:
+  allow_implicit_invocation: false

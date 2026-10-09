@@ -48,6 +48,7 @@
     "./skills/engineering/verifying-production-changes",
     "./skills/engineering/watching-authored-prs",
     "./skills/engineering/watching-reviewed-prs",
+    "./skills/engineering/writing-no-tests",
     "./skills/engineering/writing-technical-design-docs",
     "./skills/productivity/being-extremely-fucking-brief",
     "./skills/productivity/composing-agent-prompts",
