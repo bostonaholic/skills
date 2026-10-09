@@ -3,7 +3,7 @@
 Every active skill follows Anthropic's
 [skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
 This page catalogs the practices this collection applies with stable IDs for commits, reviews, and
-lint output. Rules marked **lint** are enforced by `npm run lint:skills`
+lint output. Never renumber an ID or reuse one. Before you add a row, run `git log -S'| <ID> ' --oneline -- docs/skill-authoring.md` in a full clone. If it prints a commit, that ID was used before. Try the next number. Rules marked **lint** are enforced by `npm run lint:skills`
 (`scripts/lint-skills.mjs`), which runs in CI. The rest are review criteria.
 
 ## Contents
@@ -78,7 +78,6 @@ only what a frontier model would otherwise get wrong.
 | ID  | Rule                                                                                                                                                                           |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | D1  | Number steps only where order or a gate matters.                                                                                                                               |
-| D2  | (retired)                                                                                                                                                                      |
 | D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.                                                                   |
 | D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                                                                                  |
 | D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact.                                                      |
@@ -114,7 +113,6 @@ only what a frontier model would otherwise get wrong.
 | G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). |
 | G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                             |
 | G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.         |
-| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                              |
 
 ### Running the evals
 
