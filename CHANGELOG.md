@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add `writing-no-tests`, an explicit-invocation skill that dares the agent to write no tests. [#86](https://github.com/bostonaholic/skills/pull/86)
+- Add `writing-no-tests`, a skill that dares the agent to write no tests. [#86](https://github.com/bostonaholic/skills/pull/86)
 
 ## [0.20.1] - 2026-10-09
 
