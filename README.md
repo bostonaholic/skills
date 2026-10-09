@@ -50,6 +50,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[verifying-production-changes](./skills/engineering/verifying-production-changes/SKILL.md)**: Confirm a merged change took effect in production.
 - **[watching-authored-prs](./skills/engineering/watching-authored-prs/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `addressing-pr-comments`.
 - **[watching-reviewed-prs](./skills/engineering/watching-reviewed-prs/SKILL.md)**: Watch a PR you reviewed and approve once feedback settles. Explicit invocation only.
+- **[writing-no-tests](./skills/engineering/writing-no-tests/SKILL.md)**: Write no tests. I dare you. Explicit invocation only.
 - **[writing-technical-design-docs](./skills/engineering/writing-technical-design-docs/SKILL.md)**: Draft a directionally correct technical design doc. Calls: `reviewing-design-docs`.
 
 ### Productivity
