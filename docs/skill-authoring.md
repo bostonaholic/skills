@@ -2,7 +2,7 @@
 
 Every active skill follows Anthropic's
 [skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
-This page catalogs those practices with stable IDs for commits, reviews, and
+This page catalogs the practices this collection applies with stable IDs for commits, reviews, and
 lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 (`scripts/lint-skills.mjs`), which runs in CI. The rest are review criteria.
 
@@ -86,13 +86,14 @@ only what a frontier model would otherwise get wrong.
 
 ## E. Content
 
-| ID  | Rule                                                                                           |
-| --- | ---------------------------------------------------------------------------------------------- |
-| E1  | No time-sensitive or machine-specific facts. Keep history in a collapsed "Old patterns" block. |
-| E2  | One term per concept across a skill and its references.                                        |
-| E3  | Output templates state their strictness: exact, or a default to adapt.                         |
-| E4  | Concrete input and output examples where style matters.                                        |
-| E5  | Offer one default with an escape hatch, not a menu of options.                                 |
+| ID  | Rule                                                                                                                                                                                                                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | No time-sensitive or machine-specific facts.                                                                                                                                                                                                                         |
+| E2  | One term per concept across a skill and its references.                                                                                                                                                                                                              |
+| E3  | Output templates state their strictness: exact, or a default to adapt.                                                                                                                                                                                               |
+| E4  | Concrete input and output examples where style matters.                                                                                                                                                                                                              |
+| E5  | Offer one default with an escape hatch, not a menu of options.                                                                                                                                                                                                       |
+| E6  | Document only what exists. Delete placeholders for removed rules, rules marked not applicable, and notes about absent or removed features that change nothing the reader does. Keep a condition or limit that directs an action ("omit it when there is no ticket"). |
 
 ## F. Scripts and tools
 
