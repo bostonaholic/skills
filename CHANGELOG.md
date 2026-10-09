@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Drop the note about the deprecated `--diff` flag from `diagnosing-react-code`. [#85](https://github.com/bostonaholic/skills/pull/85)
+
 ## [0.84.0] - 2026-11-07
 
 ### Added
