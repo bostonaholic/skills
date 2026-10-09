@@ -50,4 +50,4 @@ failure during review do not authorize versioning. Read `docs/versioning.md`.
 
 Preparation does not push, merge, tag, or publish. After merge, the release
 workflow checks shared copies, verifies versions and notes, creates and verifies
-a signed tag, then publishes a GitHub release. No separate version PR exists.
+a signed tag, then publishes a GitHub release.
