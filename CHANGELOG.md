@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Drop notes about absent or deprecated features from `explaining-code`, `watching-authored-prs`, and `diagnosing-react-code`. [#85](https://github.com/bostonaholic/skills/pull/85)
+
 ## [0.20.0] - 2026-10-08
 
 ### Changed

@@ -3,8 +3,7 @@
 Assign versions immediately before merging, on explicit land intent. One PR
 lands at a time. During review, keep a plain conventional PR title. For changes
 requiring a release, put user-facing changelog bullets under `## [Unreleased]`.
-Development-only PRs need no changelog entry. There are no Changesets files,
-separate version PRs, or npm package publications.
+Development-only PRs need no changelog entry.
 
 ## What releases
 
@@ -73,8 +72,8 @@ the plugin manifest also excludes it. It remains available to repository maintai
 
 The check deliberately fails on an unversioned runtime PR during review; it is
 a merge precondition. Regular CI checks script behavior and packaging without
-requiring a release to be prepared early. There is no shell interception hook:
-a raw terminal or GitHub UI merge can bypass the declared pre-merge procedure.
+requiring a release to be prepared early.
+A raw terminal or GitHub UI merge can bypass the declared pre-merge procedure.
 The release job refuses invalid release inputs, but cannot undo such a merge.
 
 The PR title workflow is a backup: it compares against the branch's merge-base
