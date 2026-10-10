@@ -15,10 +15,15 @@ reimplement it from scratch with the simplest design that meets them.
    a senior engineer with full context would accept, say so and stop; never
    rewrite for its own sake. Otherwise describe the new approach in 3 to 5
    sentences: fewer moving parts, less indirection.
-2. **Get approval.** Present the design, what changes, and why it is
-   better. List the files the attempt touched in two groups: tracked files
-   it changed or committed, and untracked files it created. Step 4 resets
-   or deletes exactly these. Wait for approval.
+2. **Get approval.** Open the reply with the step 1 design as one
+   paragraph of 3 to 5 sentences that holds only the design; count them
+   before replying. After the paragraph, a list or code sketch gives what
+   changes, why it is better, and every further detail (edge cases, line
+   numbers, ordering). List the files the attempt touched in two groups:
+   tracked files it changed or committed, and untracked files it created.
+   Step 4 resets or deletes exactly these. Keep every touched file in one of
+   the two groups; to propose keeping one out of the save and reset, ask
+   after the lists. Wait for approval.
 3. **Record the baseline.** Run every check the current implementation
    passes (tests, linters, type checks, manual checks from the conversation)
    and note each result.
@@ -28,6 +33,9 @@ reimplement it from scratch with the simplest design that meets them.
    outside the working tree (`mktemp -d`).
    - Record `<base>`, the commit the attempt started from: `HEAD` when the
      attempt committed nothing, otherwise the parent of its first commit.
+     On a branch with no commits (`git rev-parse --verify HEAD` fails), use
+     the empty tree, `git hash-object -t tree /dev/null`, as `<base>` and in
+     place of `HEAD` below.
    - Committed part, when there is one: `git branch redo-previous-<topic>`.
    - Uncommitted changes to tracked files, staged or not:
      `git diff --binary --default-prefix HEAD -- <files> > <out>/previous-attempt.patch`.
