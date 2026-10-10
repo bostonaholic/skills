@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.4] - 2026-10-10
+
 ### Fixed
 
 - Load `freeing-disk-space` for full-disk requests that ask to empty the Trash or free a target amount of space. [#75](https://github.com/bostonaholic/skills/pull/75)
@@ -340,5 +342,7 @@
 
 [0.21.2]: https://github.com/bostonaholic/skills/compare/v0.21.1...v0.21.2
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.3...HEAD
 [0.21.3]: https://github.com/bostonaholic/skills/compare/v0.21.2...v0.21.3
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.4...HEAD
+[0.21.4]: https://github.com/bostonaholic/skills/compare/v0.21.3...v0.21.4
