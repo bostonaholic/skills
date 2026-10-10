@@ -82,3 +82,10 @@ gap reason and per `Not measured` status; one line per `skipped` record and
 skipped check. When a lane was measured by a subagent that holds write tools,
 say its read-only rule held by prompt only. For a large scope, suggest named
 paths for the next run.
+
+When `report.json` cannot be written or `render-report.mjs` cannot run, still
+give every item above. Mark each of the three `<out>/...` paths `written` or
+`not written`. Give the exact
+`node <skill-dir>/scripts/render-report.mjs <out>/report.json` command that
+would run, and why it did not. List each `scope.exclude` record with its
+reason yourself, because no rendered summary carries them.

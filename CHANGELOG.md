@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.21.11] - 2026-10-10
+
+### Fixed
+
+- Keep the report paths, exclusions, and render command in the `auditing-complexity` reply when the report cannot be written or rendered. [#76](https://github.com/bostonaholic/skills/pull/76)
+
 ## [0.21.10] - 2026-10-10
 
 ### Fixed
@@ -392,5 +398,7 @@
 
 [0.21.9]: https://github.com/bostonaholic/skills/compare/v0.21.8...v0.21.9
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.10...HEAD
 [0.21.10]: https://github.com/bostonaholic/skills/compare/v0.21.9...v0.21.10
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.11...HEAD
+[0.21.11]: https://github.com/bostonaholic/skills/compare/v0.21.10...v0.21.11
