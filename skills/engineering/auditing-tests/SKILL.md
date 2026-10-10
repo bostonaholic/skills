@@ -95,6 +95,6 @@ directory. The renderer needs Node.js.
 Reply with the rendered summary table, both report paths, and the verified
 **D** and **C** candidates by lane, marking each test with its letter. Report
 a **C** or **D** with any empty or unverified field as "kept **R**,
-candidate, missing: <fields>", never as deletable, not even on the user's
+candidate, missing: `<fields>`", never as deletable, not even on the user's
 own judgment, whatever the user asked for. Name every skipped check,
 unplaced file, and downgraded candidate on its own line.
