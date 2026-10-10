@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.21.8] - 2026-10-10
+
+### Fixed
+
+- Make `learning-from-mistakes` propose a new `## Learned Rules` section at the approval step when no existing section fits, instead of a made-up heading. [#69](https://github.com/bostonaholic/skills/pull/69)
+
 ## [0.21.7] - 2026-10-10
 
 ### Fixed
@@ -368,5 +374,7 @@
 
 [0.21.6]: https://github.com/bostonaholic/skills/compare/v0.21.5...v0.21.6
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.7...HEAD
 [0.21.7]: https://github.com/bostonaholic/skills/compare/v0.21.6...v0.21.7
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.8...HEAD
+[0.21.8]: https://github.com/bostonaholic/skills/compare/v0.21.7...v0.21.8
