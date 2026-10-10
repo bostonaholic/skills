@@ -37,9 +37,11 @@ Each line is one PR with `repo`, `number`, `merged`, `title`, `url`,
 `issue_links`, `title_ticket_keys`, and the first 400 characters of `body`.
 
 On a non-zero exit, report the script's error and stop: lines already printed
-are partial, and partial data is never summarized as complete. Exit 64 means a
-bad date or argument: fix the call and rerun. After a search-cap error, rerun
-over shorter ranges and combine the files.
+are partial. Do not summarize, list, or group any PR from the partial file, and
+do not offer to, even labeled as partial. Exit 64 means a bad date or argument:
+fix the call and rerun. After a search-cap error, rerun over shorter ranges and
+combine the files. For any other error, such as an HTTP 5xx, tell the user to
+rerun once it clears.
 
 ## Group and summarize
 

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.21.7] - 2026-10-10
+
+### Fixed
+
+- Stop `summarizing-shipped-work` from summarizing or offering partial results after a failed fetch, and tell the user to rerun after a server error. [#65](https://github.com/bostonaholic/skills/pull/65)
+
 ## [0.21.6] - 2026-10-10
 
 ### Fixed
@@ -67,7 +73,6 @@
 
 - Retire `rebasing-dependabot-prs`, `reviewing-rails-code`, `reviewing-ruby-code`, and `using-jq`. [#81](https://github.com/bostonaholic/skills/pull/81)
 - Remove the `clean-code-architect` subagent. [#81](https://github.com/bostonaholic/skills/pull/81)
-||||||| parent of 89da734 (fix(watching-authored-prs): hand off instead of merging when asked to merge on approval)
 
 ## [0.18.0] - 2026-10-08
 
@@ -361,5 +366,7 @@
 
 [0.21.5]: https://github.com/bostonaholic/skills/compare/v0.21.4...v0.21.5
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.6...HEAD
 [0.21.6]: https://github.com/bostonaholic/skills/compare/v0.21.5...v0.21.6
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.7...HEAD
+[0.21.7]: https://github.com/bostonaholic/skills/compare/v0.21.6...v0.21.7
