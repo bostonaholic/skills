@@ -74,9 +74,9 @@ patterns with `file:line`.
 
 Before reporting that a class can be removed or inlined, run
 `rg -n '\bClassName\b'` and check string references (`"ClassName"`,
-`const_get`, `send`, gemspec and executable files). For a gem, treat every
-public constant as API that other projects may call. Drop or downgrade a
-finding whose callers you cannot account for.
+`const_get`, `send`, gemspec and executable files). For a gem, every public
+constant is API that other projects may call, and removing or renaming one is
+Complexity L. Drop a finding whose callers you cannot account for.
 
 Run this check in read-only `sonnet` subagents, one per candidate class, launched
 together with at most 4 in flight, given the class name and its `file:line`.
@@ -88,9 +88,11 @@ config) and names any it cannot account for.
 - **Critical:** causes or hides bugs, blocks testing (needs heavy mocking), or
   is a pattern copied across many files.
 - **Improvement:** any other finding.
-- **Complexity:** S changes one file with no caller changes; M touches several
-  files or call sites but keeps the public API; L changes a public API, many
-  callers, or persisted data or jobs.
+- **Complexity:** check the public API first. L removes, renames, or changes
+  the signature of a public constant or method, even after a deprecation
+  release, or changes many callers or persisted data or jobs. M touches several
+  files or call sites and leaves the public API unchanged. S changes one file
+  with no caller changes.
 
 ## 6. Report template
 
