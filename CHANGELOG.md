@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Trim `using-gh-cli` to gh CLI gotchas: drop the branch-commit review, the PR body layout, and the landing hand-off, which belong to the repository's PR template and `landing-prs`. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Trim `using-gh-cli` to gh CLI gotchas: drop the branch-commit review, the PR body layout, and the landing hand-off, which belong to the repository's PR template and `landing-prs`. [#90](https://github.com/bostonaholic/skills/pull/90)
 
 ## [0.21.14] - 2026-10-10
 
