@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Make `auditing-tests` keep every unverified or incomplete candidate at **R** instead of reporting it as deletable, and give the render plan when the report cannot be written. [#79](https://github.com/bostonaholic/skills/pull/79)
+
 ## [0.21.14] - 2026-10-10
 
 ### Fixed
