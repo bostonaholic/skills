@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `scripts/install-grok-bot.sh`, which copies the active skills into a Grok Bot skill library and takes `--set strategy` for the non-coding subset, with a Grok Bot section in `INSTALL.md`. [#91](https://github.com/bostonaholic/skills/pull/91)
+- Add shared skill call rules so a skill that calls another skill reads that skill's `SKILL.md` in a harness with no Skill tool, linked from every calling skill. [#91](https://github.com/bostonaholic/skills/pull/91)
+
 ## [0.22.0] - 2026-10-10
 
 ### Changed
