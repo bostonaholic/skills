@@ -1,6 +1,6 @@
 ---
 name: freeing-disk-space
-description: Finds what fills a developer machine's disk and frees space by clearing caches, build outputs, and other regenerable files, running each deletion only after approval. Use when a disk is full or nearly full, builds or containers fail for lack of space, or the user asks to clean up or reclaim disk space.
+description: Finds what fills a developer machine's disk and frees space by clearing caches, build outputs, and other regenerable files, running each deletion only after approval and never emptying the Trash. Use when a disk is full or nearly full, the user is running out of disk space, builds or containers fail for lack of space, or the user asks for a disk cleanup plan, to free a target amount of space, or to clean up, reclaim space, or delete caches, build outputs, or the Trash to make room.
 ---
 
 # Freeing disk space
