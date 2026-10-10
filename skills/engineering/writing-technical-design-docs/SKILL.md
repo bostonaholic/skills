@@ -58,6 +58,7 @@ on it for an adversarial review. If it is not installed or cannot run here
 (for example, it cannot save the draft to a file), then below a separator
 after the doc, say that no independent review was done, why, and the next
 step: save the draft to a file, then run `/reviewing-design-docs <path>`.
+Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 
 ## When not to use this skill
 

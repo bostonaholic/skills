@@ -12,7 +12,8 @@ two depths.
 When the question is how a whole subsystem works (its architecture, data flow,
 and file map), call the Skill tool with `explaining-architecture` instead. If
 that skill is not installed, explain at the chosen depth, scoped to the
-question.
+question. Without a Skill tool, follow the
+[skill call rules](shared/skill-calls.md).
 
 ## Input
 

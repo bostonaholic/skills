@@ -38,7 +38,8 @@ description; if that is ambiguous, ask one question before emitting.
 Before emitting, compress the draft: call the Skill tool with
 `improving-prompts` on it. If that skill is not installed, merge each group of
 instructions that serve one purpose into one higher-level rule that keeps
-every member.
+every member. Without a Skill tool, follow the
+[skill call rules](shared/skill-calls.md).
 
 Then check the draft against the ledger. Every fact with its source, every
 exact command, path, and identifier, every constraint, and every acceptance

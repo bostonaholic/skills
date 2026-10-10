@@ -14,7 +14,8 @@ edges, not annotated source code.
 When the question is about motivation, rejected alternatives, or history
 rather than mechanics, call the Skill tool with
 `investigating-design-rationale` instead. If that skill is not installed, say
-so and answer the mechanics only.
+so and answer the mechanics only. Without a Skill tool, follow the
+[skill call rules](shared/skill-calls.md).
 
 The skill is read-only: it writes no files and changes no state.
 
