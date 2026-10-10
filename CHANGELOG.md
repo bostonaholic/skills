@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.15] - 2026-10-10
+
 ### Fixed
 
 - Make `auditing-tests` keep every unverified or incomplete candidate at **R** instead of reporting it as deletable, and give the render plan when the report cannot be written. [#79](https://github.com/bostonaholic/skills/pull/79)
@@ -431,5 +433,7 @@
 
 [0.21.13]: https://github.com/bostonaholic/skills/compare/v0.21.12...v0.21.13
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.14...HEAD
 [0.21.14]: https://github.com/bostonaholic/skills/compare/v0.21.13...v0.21.14
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.15...HEAD
+[0.21.15]: https://github.com/bostonaholic/skills/compare/v0.21.14...v0.21.15
