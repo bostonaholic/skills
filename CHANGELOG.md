@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.5] - 2026-10-10
+
 ### Fixed
 
 - Make `watching-authored-prs` hand off to `/landing-prs` instead of merging when a watch request asks to merge once approved. [#62](https://github.com/bostonaholic/skills/pull/62)
@@ -349,5 +351,7 @@
 
 [0.21.3]: https://github.com/bostonaholic/skills/compare/v0.21.2...v0.21.3
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.4...HEAD
 [0.21.4]: https://github.com/bostonaholic/skills/compare/v0.21.3...v0.21.4
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.5...HEAD
+[0.21.5]: https://github.com/bostonaholic/skills/compare/v0.21.4...v0.21.5
