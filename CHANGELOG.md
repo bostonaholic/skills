@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.14] - 2026-10-10
+
 ### Fixed
 
 - Load `verifying-production-changes` before reporting whether a merged change is live, including from deploy output already in hand, state the "No stale instance observed" bound verbatim, and limit every claim about what production runs to the sampled requests. [#63](https://github.com/bostonaholic/skills/pull/63)
@@ -423,5 +425,7 @@
 
 [0.21.12]: https://github.com/bostonaholic/skills/compare/v0.21.11...v0.21.12
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.13...HEAD
 [0.21.13]: https://github.com/bostonaholic/skills/compare/v0.21.12...v0.21.13
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.14...HEAD
+[0.21.14]: https://github.com/bostonaholic/skills/compare/v0.21.13...v0.21.14
