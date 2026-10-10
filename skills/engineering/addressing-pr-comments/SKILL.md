@@ -132,7 +132,8 @@ number.
 
 - **A. Apply the change.** If the ask is an image, capture it and call the
   Skill tool with `attaching-pr-screenshots`; if it is not installed, say so
-  and leave the description alone.
+  and leave the description alone. Without a Skill tool, follow the
+  [skill call rules](shared/skill-calls.md).
 - **B. Apply a variation** that meets the concern differently.
 - **C. Reply with the answer.**
 - **D. Decline**, with a one-line rationale.
