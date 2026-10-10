@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-10
+
+### Changed
+
+- Trim `using-gh-cli` to gh CLI gotchas: drop the branch-commit review, the PR body layout, and the landing hand-off, which belong to the repository's PR template and `landing-prs`. [#90](https://github.com/bostonaholic/skills/pull/90)
+
 ## [0.21.15] - 2026-10-10
 
 ### Fixed
@@ -435,5 +441,7 @@
 
 [0.21.14]: https://github.com/bostonaholic/skills/compare/v0.21.13...v0.21.14
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.15...HEAD
 [0.21.15]: https://github.com/bostonaholic/skills/compare/v0.21.14...v0.21.15
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/bostonaholic/skills/compare/v0.21.15...v0.22.0
