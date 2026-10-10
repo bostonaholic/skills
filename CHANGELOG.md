@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.21.13] - 2026-10-10
+
+### Fixed
+
+- Require `writing-technical-design-docs` to name an owner and a calendar date for every open question, never TBD. [#61](https://github.com/bostonaholic/skills/pull/61)
+- Make `writing-technical-design-docs` run `reviewing-design-docs` before returning a draft, and explain how to run it when it cannot run in the session. [#61](https://github.com/bostonaholic/skills/pull/61)
+
 ## [0.21.12] - 2026-10-10
 
 ### Fixed
@@ -410,5 +417,7 @@
 
 [0.21.11]: https://github.com/bostonaholic/skills/compare/v0.21.10...v0.21.11
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.12...HEAD
 [0.21.12]: https://github.com/bostonaholic/skills/compare/v0.21.11...v0.21.12
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.13...HEAD
+[0.21.13]: https://github.com/bostonaholic/skills/compare/v0.21.12...v0.21.13
