@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.2] - 2026-10-10
+
 - Keep `explaining-code` Brief replies to at most seven sentences with no headings or lists, leaving tests, reviewer notes, and implementation detail to the full explanation. [#71](https://github.com/bostonaholic/skills/pull/71)
 
 ## [0.21.1] - 2026-10-10
@@ -324,5 +326,7 @@
 
 [0.21.0]: https://github.com/bostonaholic/skills/compare/v0.20.1...v0.21.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.1...HEAD
 [0.21.1]: https://github.com/bostonaholic/skills/compare/v0.21.0...v0.21.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.2...HEAD
+[0.21.2]: https://github.com/bostonaholic/skills/compare/v0.21.1...v0.21.2
