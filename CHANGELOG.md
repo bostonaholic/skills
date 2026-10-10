@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Open the `redoing-implementations` approval reply with a 3 to 5 sentence design paragraph, keep every touched file in the tracked or untracked group, and save and reset on a branch with no commits. [#66](https://github.com/bostonaholic/skills/pull/66)
+
 ## [0.21.14] - 2026-10-10
 
 ### Fixed
