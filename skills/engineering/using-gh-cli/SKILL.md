@@ -1,6 +1,6 @@
 ---
 name: using-gh-cli
-description: Runs GitHub work through the gh CLI and verifies each result, opening PRs only after reviewing every branch commit. Use when opening a PR, checking CI or failed logs, or handling GitHub issues from a terminal. Merges, closes, reviews, comments, and force operations need an explicit request. Not for landing a PR; use landing-prs.
+description: Runs GitHub work through the gh CLI and verifies each result. Use when opening a PR, checking CI or failed logs, or handling GitHub issues from a terminal. Merges, closes, reviews, comments, and force operations need an explicit request. Not for landing a PR; use landing-prs.
 ---
 
 # GitHub CLI
@@ -17,34 +17,10 @@ approved, green, stale, or finished-looking PR or issue is not a request.
 - `gh pr review` in any mode, `gh pr comment`, `gh issue comment`, `gh issue create`
 - any delete, any force push, any write to a repository the user does not own
 
-## Opening a pull request
+## Gotchas
 
-Before opening a PR, fetch the base and review every commit in
-`origin/<base>..HEAD`. Stop and tell the user when the branch has wip or debug
-commits, mixes unrelated purposes, or adds behavior without tests. Never open
-a PR from the base branch itself.
-
-The ticket reference (`Closes #<n>`, `Fixes #<n>`, `Part of <ref>`) is the
-body's first line, above `## Summary`; omit it when there is no ticket. Then
-`## Summary` (bullets: change and why), `## Test plan` (checkboxes), and
-`## Pre-merge` with this item:
-
-```markdown
-- [ ] Documentation matches this change. <docs updated, or why none were needed>
-```
-
-Check it only after confirming that every doc the change makes stale (README,
-contributor and agent instructions, docs, changelog) is updated or
-regenerated; otherwise leave it unchecked and say what remains. Pass the body
-with `--body-file`, which skips the repository's PR template, so when the
-repository has one (`.github/pull_request_template.md` or similar), fill in its
-sections and checkboxes as well, merging any duplicate items.
-
-`gh pr checks` exits 8 while any check is pending, which is expected right
-after creation; 1 means a failure.
-
-## Landing
-
-To merge on request, call the Skill tool with `landing-prs`. If it is not
-installed, run `gh pr merge <n> --squash` only after `gh pr checks <n>` exits
-0 and `mergeStateStatus` is `CLEAN`.
+- `gh pr create --body` and `--body-file` skip the repository's PR template
+  (`.github/pull_request_template.md` or similar). When the repository has
+  one, fill in its sections and checkboxes in the body you pass.
+- `gh pr checks` exits 8 while any check is pending, which is expected right
+  after creation; 1 means a failure.

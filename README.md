@@ -46,7 +46,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[reviewing-design-docs](./skills/engineering/reviewing-design-docs/SKILL.md)**: Adversarially review a technical design document.
 - **[simplifying-ruby-code](./skills/engineering/simplifying-ruby-code/SKILL.md)**: Find or fix over-engineered Ruby and Rails code.
 - **[summarizing-friction-logs](./skills/engineering/summarizing-friction-logs/SKILL.md)**: Prioritize frog friction logs across a workspace.
-- **[using-gh-cli](./skills/engineering/using-gh-cli/SKILL.md)**: Open PRs, check CI, and handle issues through gh, verifying each result. Calls: `landing-prs`.
+- **[using-gh-cli](./skills/engineering/using-gh-cli/SKILL.md)**: Open PRs, check CI, and handle issues through gh, verifying each result.
 - **[verifying-production-changes](./skills/engineering/verifying-production-changes/SKILL.md)**: Confirm a merged change took effect in production.
 - **[watching-authored-prs](./skills/engineering/watching-authored-prs/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `addressing-pr-comments`.
 - **[watching-reviewed-prs](./skills/engineering/watching-reviewed-prs/SKILL.md)**: Watch a PR you reviewed and approve once feedback settles. Explicit invocation only.
