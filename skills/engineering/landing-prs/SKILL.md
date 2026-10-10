@@ -1,6 +1,6 @@
 ---
 name: landing-prs
-description: Lands a reviewed pull request by running the project's declared pre-merge steps, pushing, waiting for green CI, and squash-merging. Use when the user explicitly asks to land, ship, or merge a reviewed PR. Never infer from approval, green CI, or completion. Not for rebasing a behind branch; use rebasing-branches.
+description: Lands a reviewed pull request by running the project's declared pre-merge steps, pushing, waiting for green CI, and squash-merging. Use when the user explicitly asks to land, ship, or merge a reviewed PR. Never infer from approval, green CI, or completion. Not for a watch that should merge on approval; use watching-authored-prs. Not for rebasing a behind branch; use rebasing-branches.
 effort: medium
 argument-hint: "[<pr-number>]"
 ---

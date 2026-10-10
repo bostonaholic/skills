@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.21.5] - 2026-10-10
+
+### Fixed
+
+- Make `watching-authored-prs` hand off to `/landing-prs` instead of merging when a watch request asks to merge once approved. [#62](https://github.com/bostonaholic/skills/pull/62)
+
 ## [0.21.4] - 2026-10-10
 
 ### Fixed
@@ -55,6 +61,7 @@
 
 - Retire `rebasing-dependabot-prs`, `reviewing-rails-code`, `reviewing-ruby-code`, and `using-jq`. [#81](https://github.com/bostonaholic/skills/pull/81)
 - Remove the `clean-code-architect` subagent. [#81](https://github.com/bostonaholic/skills/pull/81)
+||||||| parent of 89da734 (fix(watching-authored-prs): hand off instead of merging when asked to merge on approval)
 
 ## [0.18.0] - 2026-10-08
 
@@ -344,5 +351,7 @@
 
 [0.21.3]: https://github.com/bostonaholic/skills/compare/v0.21.2...v0.21.3
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.4...HEAD
 [0.21.4]: https://github.com/bostonaholic/skills/compare/v0.21.3...v0.21.4
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.5...HEAD
+[0.21.5]: https://github.com/bostonaholic/skills/compare/v0.21.4...v0.21.5

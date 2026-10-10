@@ -6,7 +6,7 @@ The user decides what to build and what to ship. Accepted intent authorizes the 
 
 ## Authority and scope
 
-- Use stated intent for merges, published-history rewrites, public closes, deletions, and publication. Green, behind, or stale state grants no authority.
+- Use stated intent for merges, published-history rewrites, public closes, deletions, and publication. Green, behind, or stale state grants no authority. A merge-on-approval clause in a watch request is not stated intent for the watch to merge.
 - Apply authorization to its named operation and targets. A named set authorizes that set, without adjacent items or change classes.
 - Finish already-authorized work after its gates pass. Do not ask again for the same authority.
 - Keep operation-specific approval gates and stricter entry guards. Invocation grants only the effects its command declares.
