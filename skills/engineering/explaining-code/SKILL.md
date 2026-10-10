@@ -41,17 +41,22 @@ not abstract ones ("the component", "the module"). Use an everyday analogy only
 when one fits naturally.
 
 Follow with 3 to 6 sentences that answer the implicit follow-ups: what the
-situation was before, what changed, and why. Write more only on request. Spell
-out and define an unavoidable term or acronym inline at its first use, as in
-"the SLA (service-level agreement) checker".
+situation was before, what changed, and why. The whole Brief reply is the lead
+plus those sentences, at most seven sentences in one or two paragraphs, with no
+headings, bold labels, or bullet lists. Count the sentences before replying.
+Write more only on request. Spell out and define an unavoidable term or acronym
+inline at its first use, as in "the SLA (service-level agreement) checker".
 
-Cover what and why, not how. Summarize the effect instead of listing every file
-touched. Match the scope of the explanation to the question: asked about one
-function, explain that function, not the whole system.
+Cover what and why, not how. Leave out the tests, reviewer notes, risks, edge
+cases, and implementation detail such as algorithms, comparisons, headers,
+status codes, and function names; those belong to Full. If they would help, end
+with one line offering the full explanation. Summarize the effect instead of
+listing every file touched. Match the scope of the explanation to the question:
+asked about one function, explain that function, not the whole system.
 
-Fit the shape to the subject; there is no fixed template. A PR gets
-before/after framing, a concept may be one paragraph, and a module overview may
-list its responsibilities. An illustrative Brief explanation of a PR:
+Fit the sentence order to the subject. A PR's sentences run before, then
+after; a concept may be one paragraph; and a module overview may name its
+responsibilities in prose. An illustrative Brief explanation of a PR:
 
 > The search page now remembers recent results for one minute, so repeat
 > searches load instantly. Before, every search queried the database, even
