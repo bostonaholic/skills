@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Load `explaining-architecture` for single-flow questions, and keep its section headings and `file:line` citations on every claim outside the file map. [#78](https://github.com/bostonaholic/skills/pull/78)
+
 ## [0.21.14] - 2026-10-10
 
 ### Fixed
