@@ -1,6 +1,6 @@
 ---
 name: using-jq
-description: Writes, explains, and debugs jq programs that filter, reshape, aggregate, merge, and convert JSON. Use when the user asks to parse, filter, transform, query, or merge JSON, convert JSON to CSV or TSV, edit a JSON file in place, or process JSON output from curl, gh, or another CLI.
+description: Writes and debugs jq programs and guards in-place JSON edits with a temp file and a one-value type check before the original is replaced. Use when the user asks for a jq command, even a one-liner, that edits a JSON file in place, or to parse, filter, transform, query, or merge JSON, convert it to CSV or TSV, or process JSON output from curl, gh, or another CLI.
 ---
 
 # jq
