@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.3] - 2026-10-10
+
 ### Changed
 
 - Make `investigating-design-rationale` fire on Sonnet for "why is this code shaped this way" questions, even when commits or PR text are already in context. [#73](https://github.com/bostonaholic/skills/pull/73)
@@ -332,5 +334,7 @@
 
 [0.21.1]: https://github.com/bostonaholic/skills/compare/v0.21.0...v0.21.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.2...HEAD
 [0.21.2]: https://github.com/bostonaholic/skills/compare/v0.21.1...v0.21.2
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.3...HEAD
+[0.21.3]: https://github.com/bostonaholic/skills/compare/v0.21.2...v0.21.3
