@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-10
+
+### Added
+
+- Add `writing-no-tests`, a skill that dares the agent to write no tests. [#86](https://github.com/bostonaholic/skills/pull/86)
+
 ## [0.20.1] - 2026-10-09
 
 ### Fixed
@@ -306,5 +312,7 @@
 
 [0.20.0]: https://github.com/bostonaholic/skills/compare/v0.19.0...v0.20.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.20.1...HEAD
 [0.20.1]: https://github.com/bostonaholic/skills/compare/v0.20.0...v0.20.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/bostonaholic/skills/compare/v0.20.1...v0.21.0
