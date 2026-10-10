@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.10] - 2026-10-10
+
 ### Fixed
 
 - Make simplifying-ruby-code load for direct Ruby refactor requests by leading its description with the rewrite. [#74](https://github.com/bostonaholic/skills/pull/74)
@@ -388,5 +390,7 @@
 
 [0.21.8]: https://github.com/bostonaholic/skills/compare/v0.21.7...v0.21.8
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.9...HEAD
 [0.21.9]: https://github.com/bostonaholic/skills/compare/v0.21.8...v0.21.9
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.21.10...HEAD
+[0.21.10]: https://github.com/bostonaholic/skills/compare/v0.21.9...v0.21.10
