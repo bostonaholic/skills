@@ -1,6 +1,6 @@
 ---
 name: verifying-production-changes
-description: Verifies a merged change took effect in production by revision ancestry and cohort sampling. Use when confirming a merged change is live, gating on a deploy reaching the fleet, sequencing deploys, or verifying a one-time migration, backfill, or cleanup. Not for CI or build state; use using-gh-cli.
+description: Verifies a merged change took effect in production by revision ancestry and cohort sampling, and reports a bound over sampled requests rather than "fully deployed". Use when asked to confirm or report whether a merged change is live or deployed in production, before answering, even when the build-info, status, or deploy output is already in hand; also when gating on a deploy reaching the fleet, sequencing deploys, or verifying a one-time migration, backfill, or cleanup. Not for CI or build state; use using-gh-cli.
 ---
 
 # Verify a production change
@@ -29,9 +29,12 @@ Merged is not deployed, and deployed is not verified.
   instance. Take several samples per poll, require every one on target, and
   require several consecutive clean polls. Report a mixed result as a rollout
   in progress with counts, not a failure.
-- **State the bound honestly:** "no stale instance observed across N sampled
-  requests", not "fully deployed". Where the platform reports instance
-  revisions directly, prefer that and say so.
+- **State the bound honestly:** when every sample is on target, write "No
+  stale instance observed across N sampled requests" word for word, with N
+  filled in, also when the ancestry check is still pending. Limit every claim
+  about what production runs to the samples: never "fully deployed" or "prod
+  is no longer on the old sha". Where the platform reports instance revisions
+  directly, prefer that and say so.
 
 ## Verify the resulting data
 
