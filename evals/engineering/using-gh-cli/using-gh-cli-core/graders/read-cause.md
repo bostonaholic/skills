@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: '\bwip\b'
+pattern: '\bpending\b'
 flags: i
 target: last_message
 ---
