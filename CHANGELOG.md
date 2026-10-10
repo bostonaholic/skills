@@ -64,6 +64,8 @@
 
 ## [0.21.2] - 2026-10-10
 
+### Fixed
+
 - Keep `explaining-code` Brief replies to at most seven sentences with no headings or lists, leaving tests, reviewer notes, and implementation detail to the full explanation. [#71](https://github.com/bostonaholic/skills/pull/71)
 
 ## [0.21.1] - 2026-10-10
