@@ -46,6 +46,7 @@ Triage runs through another skill: call the Skill tool with
 `addressing-pr-comments`. When it is not installed, stop before arming and tell
 the user to run
 `npx skills@latest add bostonaholic/skills --skill addressing-pr-comments`.
+Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 Each triage pass ends with that skill's review re-request step, which can
 notify the reviewer.
 

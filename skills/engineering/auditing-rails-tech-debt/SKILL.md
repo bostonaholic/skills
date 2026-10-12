@@ -25,7 +25,8 @@ long report of maybes.
    new class only when it holds state or orchestrates several models, and
    say why a method or module function would not do. Call the Skill tool
    with `simplifying-ruby-code` and cite its pattern numbers; if it is
-   missing, apply this rule as written.
+   missing, apply this rule as written. Without a Skill tool, follow the
+   [skill call rules](shared/skill-calls.md).
 5. **Is verified independently.** Before a candidate reaches the report,
    a different agent than the one that found it confirms it from the code
    (is it invoked, does a concern or other structure already mitigate it,
