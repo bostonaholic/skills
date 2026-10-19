@@ -34,6 +34,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[fixing-root-causes](./skills/engineering/fixing-root-causes/SKILL.md)**: Trace each symptom to its root and fix it there.
 - **[freeing-disk-space](./skills/engineering/freeing-disk-space/SKILL.md)**: Find what fills the disk and clear regenerable files.
 - **[grooming-backlogs](./skills/engineering/grooming-backlogs/SKILL.md)**: Plan backlog grooming changes for approval.
+- **[hillclimbing](./skills/engineering/hillclimbing/SKILL.md)**: Iterate on measured changes until the criteria pass.
 - **[investigating-design-rationale](./skills/engineering/investigating-design-rationale/SKILL.md)**: Investigate why code is shaped as it is. Calls: `explaining-architecture`.
 - **[landing-prs](./skills/engineering/landing-prs/SKILL.md)**: Land a reviewed pull request on explicit request.
 - **[merging-dependabot-prs](./skills/engineering/merging-dependabot-prs/SKILL.md)**: Plan and merge safe Dependabot updates one at a time, or only request rebases. Explicit invocation only.
