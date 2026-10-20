@@ -1,5 +1,5 @@
 ---
-type: regex
-pattern: 'Next[*_]*:[*_\s]*(?:```[\w-]*\s*|`)?/(?:[\w-]+:)?rebasing-branches'
-target: last_message
+type: tool_used
+tool: Skill
+input_match: '"skill"\s*:\s*"(?:[\w-]+:)?rebasing-branches"'
 ---
