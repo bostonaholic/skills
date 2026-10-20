@@ -34,7 +34,7 @@ npx -y react-doctor@0.9.17 --verbose --scope changed
 - `--verbose` lists every rule and file; the default shows only the top 3.
 - `--scope changed` reports only new findings in files changed against the
   auto-detected base ref (`--base <ref>` to set it). Use `--scope full` for a
-  whole-package health check. It replaces the deprecated `--diff`.
+  whole-package health check.
 
 ## Fix loop
 
