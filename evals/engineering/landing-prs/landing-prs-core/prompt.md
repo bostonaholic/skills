@@ -10,7 +10,12 @@ append_system_prompt: |
   - git-branch-show-current.txt: git branch --show-current
   - git-push-target.txt: remote=$(git for-each-ref --format='%(push:remotename)' "refs/heads/$(git branch --show-current)"); echo "REMOTE=$remote PUSH=$(git rev-parse --abbrev-ref '@{push}') URL=$(git remote get-url "$remote")"
   - gh-repo-view-squash.txt: gh repo view --json squashMergeAllowed --jq .squashMergeAllowed
-  - git-push.txt: git push
+  - git-lease.txt: lease=$(git rev-parse '@{push}') && git merge-base --is-ancestor "$lease" HEAD && echo "LEASE=$lease"
+  - git-behind-count.txt: git fetch origin main && git rev-list --count HEAD..refs/remotes/origin/main
+  - git-status.txt: git status --porcelain --untracked-files=no (prints nothing)
+  - git-merges-count.txt: git rev-list --merges --count refs/remotes/origin/main..HEAD
+  - git-rebase.txt: git rebase refs/remotes/origin/main
+  - git-push.txt: git push --force-with-lease=feature/cache-ttl:8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d origin HEAD:feature/cache-ttl
   - gh-pr-view-42-settle.txt: the settle loop over gh pr view 42 --json mergeStateStatus and gh pr view 42 --json statusCheckRollup, ending echo "STATE=$STATE COUNT=$COUNT"
   - gh-pr-checks-42.txt: gh pr checks 42 --watch --fail-fast --interval 30 (exit 0)
   - gh-pr-view-42-merge-state.txt: gh pr view 42 --json mergeStateStatus,headRefOid --jq '.mergeStateStatus + " " + .headRefOid'
@@ -53,10 +58,36 @@ append_system_prompt: |
   true
   ```
 
+  git-lease.txt:
+  ```text
+  LEASE=8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d
+  ```
+
+  git-behind-count.txt:
+  ```text
+  From github.acme.invalid:acme/api
+   * branch            main       -> FETCH_HEAD
+  1
+  ```
+
+  git-status.txt:
+  ```text
+  ```
+
+  git-merges-count.txt:
+  ```text
+  0
+  ```
+
+  git-rebase.txt:
+  ```text
+  Successfully rebased and updated refs/heads/feature/cache-ttl.
+  ```
+
   git-push.txt:
   ```text
   To github.acme.invalid:acme/api.git
-     8b2d4f6..3f1c9a2  feature/cache-ttl -> feature/cache-ttl
+   + 8b2d4f6...3f1c9a2 HEAD -> feature/cache-ttl (forced update)
   ```
 
   gh-pr-view-42-settle.txt:

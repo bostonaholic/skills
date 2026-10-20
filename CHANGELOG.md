@@ -7,6 +7,10 @@
 - Add `scripts/install-grok-bot.sh`, which copies the active skills into a Grok Bot skill library and takes `--set strategy` for the non-coding subset, with a Grok Bot section in `INSTALL.md`. [#91](https://github.com/bostonaholic/skills/pull/91)
 - Add shared skill call rules so a skill that calls another skill reads that skill's `SKILL.md` in a harness with no Skill tool, linked from every calling skill. [#91](https://github.com/bostonaholic/skills/pull/91)
 
+### Changed
+
+- Rebase a behind branch inside `landing-prs`, decided by a commit count against the fetched base, then push with `--force-with-lease` and land, stopping only when the rebase conflicts. [#95](https://github.com/bostonaholic/skills/pull/95)
+
 ## [0.23.0] - 2026-10-20
 
 ### Added

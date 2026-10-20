@@ -10,10 +10,12 @@ append_system_prompt: |
   - git-branch-show-current.txt: git branch --show-current
   - git-push-target.txt: remote=$(git for-each-ref --format='%(push:remotename)' "refs/heads/$(git branch --show-current)"); echo "REMOTE=$remote PUSH=$(git rev-parse --abbrev-ref '@{push}') URL=$(git remote get-url "$remote")"
   - gh-repo-view-squash.txt: gh repo view --json squashMergeAllowed --jq .squashMergeAllowed
-  - git-push.txt: git push
-  - gh-pr-view-42-settle.txt: the settle loop over gh pr view 42 --json mergeStateStatus and gh pr view 42 --json statusCheckRollup, ending echo "STATE=$STATE COUNT=$COUNT"
-  - gh-pr-checks-42.txt: gh pr checks 42 --watch --fail-fast --interval 30 (exit 0)
-  - gh-pr-view-42-merge-state.txt: gh pr view 42 --json mergeStateStatus,headRefOid --jq '.mergeStateStatus + " " + .headRefOid'
+  - git-lease.txt: lease=$(git rev-parse '@{push}') && git merge-base --is-ancestor "$lease" HEAD && echo "LEASE=$lease"
+  - git-behind-count.txt: git fetch origin main && git rev-list --count HEAD..refs/remotes/origin/main
+  - git-status.txt: git status --porcelain --untracked-files=no (prints nothing)
+  - git-merges-count.txt: git rev-list --merges --count refs/remotes/origin/main..HEAD
+  - git-rebase.txt: git rebase refs/remotes/origin/main
+  - git-rebase-abort.txt: git rebase --abort (prints nothing)
 
   gh-auth-status.txt:
   ```text
@@ -53,30 +55,32 @@ append_system_prompt: |
   true
   ```
 
-  git-push.txt:
+  git-lease.txt:
   ```text
-  To github.acme.invalid:acme/api.git
-     8b2d4f6..3f1c9a2  feature/cache-ttl -> feature/cache-ttl
+  LEASE=8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d
   ```
 
-  gh-pr-view-42-settle.txt:
+  git-behind-count.txt:
   ```text
-  STATE=BEHIND COUNT=2
+  From github.acme.invalid:acme/api
+   * branch            main       -> FETCH_HEAD
+  1
   ```
 
-  gh-pr-checks-42.txt:
+  git-status.txt:
   ```text
-  All checks were successful
-  0 cancelled, 0 failing, 2 successful, 0 skipped, and 0 pending checks
-
-     NAME        DESCRIPTION  ELAPSED  URL
-  ✓  lint                     41s      https://github.acme.invalid/acme/api/actions/runs/7101/job/9201
-  ✓  unit-tests               2m12s    https://github.acme.invalid/acme/api/actions/runs/7101/job/9202
   ```
 
-  gh-pr-view-42-merge-state.txt:
+  git-merges-count.txt:
   ```text
-  BEHIND 3f1c9a2e7b4d5c6a8e9f0b1c2d3e4f5a6b7c8d9e
+  0
+  ```
+
+  git-rebase.txt:
+  ```text
+  Auto-merging src/pricing/cache.ts
+  CONFLICT (content): Merge conflict in src/pricing/cache.ts
+  error: could not apply 3f1c9a2... Expire pricing cache entries after one signature rotation
   ```
 ---
 
