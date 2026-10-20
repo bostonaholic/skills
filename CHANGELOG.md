@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-10-20
+
+### Fixed
+
+- Open the `redoing-implementations` approval reply with a 3 to 5 sentence design paragraph, keep every touched file in the tracked or untracked group, and save and reset on a branch with no commits. [#66](https://github.com/bostonaholic/skills/pull/66)
+
 ## [0.22.0] - 2026-10-10
 
 ### Changed
@@ -443,5 +449,7 @@
 
 [0.21.15]: https://github.com/bostonaholic/skills/compare/v0.21.14...v0.21.15
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.22.0...HEAD
 [0.22.0]: https://github.com/bostonaholic/skills/compare/v0.21.15...v0.22.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.22.1...HEAD
+[0.22.1]: https://github.com/bostonaholic/skills/compare/v0.22.0...v0.22.1
