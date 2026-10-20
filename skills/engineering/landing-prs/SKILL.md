@@ -1,20 +1,23 @@
 ---
 name: landing-prs
-description: Lands a reviewed pull request by running the project's declared pre-merge steps, pushing, waiting for green CI, and squash-merging. Use when the user explicitly asks to land, ship, or merge a reviewed PR. Never infer from approval, green CI, or completion. Not for a watch that should merge on approval; use watching-authored-prs. Not for rebasing a behind branch; use rebasing-branches.
+description: Lands a reviewed pull request by rebasing onto the base when the branch is behind, running the project's declared pre-merge steps, pushing, waiting for green CI, and squash-merging. Use when the user explicitly asks to land, ship, or merge a reviewed PR. Never infer from approval, green CI, or completion. Not for a watch that should merge on approval; use watching-authored-prs. Not for rebasing without landing; use rebasing-branches.
 effort: medium
 argument-hint: "[<pr-number>]"
 ---
 
 # Landing PRs
 
-Lands one open PR: the project's pre-merge steps, push, CI wait, squash-merge.
+Lands one open PR: rebase if behind, the project's pre-merge steps, push, CI
+wait, squash-merge.
 The PR title becomes the commit subject. No versioning, changelog, release, or
 tracker work beyond what the project declares as a pre-merge step; ticket
 completion comes from the PR body's `Closes #<n>`.
 
 `gh pr merge` is irreversible. Run only on a direct "ship it", "land the PR",
 or `/landing-prs`; an approved, green, or finished-looking PR is not ship
-intent. Once the CI gate below passes, merge without asking again.
+intent. That request also authorizes the rebase and the lease-guarded
+force-push a behind branch needs; never stop to hand either back to the user.
+Once the CI gate below passes, merge without asking again.
 
 ## Before pushing
 
@@ -36,14 +39,40 @@ echo "PUSH=$(git rev-parse --abbrev-ref '@{push}') URL=$(git remote get-url "$re
 ```
 
 `PUSH` must be `<remote>/<headRefName>` and `URL` must name the PR's
-`<owner>/<repo>`; otherwise stop.
+`<owner>/<repo>`; otherwise stop. `<remote>` is that push remote.
+
+### Rebase when behind
+
+Whether to rebase is a count, never a judgment. Record the lease first, since
+the fetch moves the remote-tracking ref:
+
+```bash
+lease=$(git rev-parse '@{push}') && git merge-base --is-ancestor "$lease" HEAD && echo "LEASE=$lease"
+git fetch <remote> <baseRefName> && git rev-list --count HEAD..refs/remotes/<remote>/<baseRefName>
+```
+
+A failed ancestry check means the remote has commits this branch lacks; stop
+and report that. A count of `0` means skip to the pre-merge steps. Above `0`,
+rebase:
+
+1. Stop if `git status --porcelain --untracked-files=no` prints anything.
+2. `git rebase refs/remotes/<remote>/<baseRefName>`, adding `--rebase-merges`
+   when `git rev-list --merges --count refs/remotes/<remote>/<baseRefName>..HEAD`
+   is above `0`.
+3. On a conflict, `git rebase --abort`, name the conflicting paths, and end
+   with `Next: /rebasing-branches <n>, then /landing-prs <n>`. Resolving
+   conflicts by intent is that skill's job, not this one's.
+
+### Pre-merge steps and push
 
 If the project's agent instructions declare a step to run before merging (for
 example, a version bump), run it now. If it stops, stop.
 
-Then `git push`. Never force-push from this skill. If the push is rejected,
-report git's message verbatim; after a local rebase, end with
-`Next: /rebasing-branches <n>, then /landing-prs <n>`.
+Then push. Without a rebase this run, `git push`. After one,
+`git push --force-with-lease=<headRefName>:<lease> <remote> HEAD:<headRefName>`;
+never a bare `--force`. If the push is rejected, report git's message verbatim
+and stop without retrying; a lease rejection means someone else pushed to the
+branch.
 
 ## CI gate
 
@@ -66,12 +95,12 @@ spawns. So:
    - `CLEAN` or `HAS_HOOKS`: still check the base, because GitHub reports
      `BEHIND` only when branch protection requires up-to-date branches:
      `gh api --hostname <host> 'repos/<owner>/<repo>/compare/<baseRefName>...<head-oid>' --jq .behind_by`.
-     `0` means merge; above `0` means stop as for `BEHIND`.
+     `0` means merge; above `0` means rebase as for `BEHIND`.
    - `UNSTABLE`: watch once more; a second `UNSTABLE` on the same head is a
      failure.
-   - `BEHIND`: stop and end with
-     `Next: /rebasing-branches <n>, then /landing-prs <n>`. Do not call it;
-     it is user-invoked only.
+   - `BEHIND`: the base moved. Return to
+     [Rebase when behind](#rebase-when-behind), push, and rerun this gate from
+     Settle. After three rebases in one run, stop: "base keeps moving".
    - `UNKNOWN`: re-read once.
    - Anything else (`BLOCKED`, `DIRTY`, `DRAFT`, ...): stop and report it
      verbatim. Never merge on an unnamed status.
