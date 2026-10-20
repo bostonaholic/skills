@@ -157,11 +157,12 @@ test("whole-suite run uses the recorded-run caps and grants Edit and git only to
   assert.deepEqual(readonly.cases, ["alpha-trigger", "beta-guard"]);
   assert.ok(!readonly.args.includes("--allow-tools"));
   const grant = bash.args.indexOf("--allow-tools");
-  assert.deepEqual(bash.args.slice(grant, grant + 4), [
+  assert.deepEqual(bash.args.slice(grant, grant + 5), [
     "--allow-tools",
     "Edit",
     "Bash(git status:*)",
     "Bash(git diff:*)",
+    "Bash(npm test:*)",
   ]);
   assert.equal(bash.args[bash.args.indexOf("--max-cost-usd") + 1], "10");
 });

@@ -4,9 +4,9 @@
 // Every default is in DEFAULTS and has a flag that overrides it; see USAGE.
 // With no target it runs the whole suite at --runs 1; with a skill or case name it runs those
 // cases at --runs 3. Each tag runs as its own command, readonly then bash, so only bash cases get
-// the Edit and git grants. A tag with no selected case is skipped. Each command writes to
-// evals/results/<timestamp>-<model>-<tag>/, and scripts/eval-verdict.mjs then prints one line per
-// case; a selected case with no line prints as incomplete.
+// the Edit, git, and npm test grants. A tag with no selected case is skipped. Each command writes
+// to evals/results/<timestamp>-<model>-<tag>/, and scripts/eval-verdict.mjs then prints one line
+// per case; a selected case with no line prints as incomplete.
 // --check runs the free load check ($0 cap) and compiles every grader regex. It starts no run.
 // --dry-run prints the commands and runs nothing. Arguments after -- go to every claude command.
 // Exit 0 when every case passes (or the check is clean), 1 on any failing or incomplete case, a
@@ -44,7 +44,13 @@ const DEFAULTS = {
   dryRun: false,
   passthrough: [],
 };
-const BASH_GRANTS = ["--allow-tools", "Edit", "Bash(git status:*)", "Bash(git diff:*)"];
+const BASH_GRANTS = [
+  "--allow-tools",
+  "Edit",
+  "Bash(git status:*)",
+  "Bash(git diff:*)",
+  "Bash(npm test:*)",
+];
 // Per-command caps in USD, from docs/skill-authoring.md: recorded runs for the whole suite,
 // before-and-after caps for one skill or case.
 const SUITE_CAPS = {

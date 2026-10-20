@@ -186,11 +186,13 @@ Every case carries one of two run tags:
 - `readonly`: no Bash, Edit, or Write. The `agent` and `no-agent` tags split
   these cases by whether the skill dispatches subagents, so you can run them
   as two commands with separate caps.
-- `bash`: the command line grants Edit and two read-only `git` patterns.
-  Edit can write the workspace's git config, and `git status` or `git diff`
-  then runs any command that config names, such as `core.fsmonitor`, inside
-  the Bash sandbox. Run `bash` cases, like `--scaffold`, only on this repository's
-  own reviewed cases.
+- `bash`: the command line grants Edit, two read-only `git` patterns, and
+  `npm test`, so a case can rerun its scaffolded tests. Edit can write the
+  workspace's git config, and `git status` or `git diff` then runs any
+  command that config names, such as `core.fsmonitor`, inside the Bash
+  sandbox. Edit can likewise rewrite the `test` script in `package.json`, and
+  `npm test` then runs it inside the same sandbox. Run `bash` cases, like
+  `--scaffold`, only on this repository's own reviewed cases.
 
 A case of a skill that calls `gh` also carries `github-mock`. Its prompt
 holds saved `gh` output in place of live GitHub, so `--tag github-mock`
@@ -267,7 +269,7 @@ claude plugin eval . --tag readonly --runs 1 --threshold 0 --model sonnet \
   --judge-model haiku -j 4 --scaffold --keep-temp --max-cost-usd 85 --no-publish
 claude plugin eval . --tag bash --runs 1 --threshold 0 --model sonnet \
   --judge-model haiku -j 4 --scaffold --keep-temp \
-  --allow-tools Edit "Bash(git status:*)" "Bash(git diff:*)" \
+  --allow-tools Edit "Bash(git status:*)" "Bash(git diff:*)" "Bash(npm test:*)" \
   --max-cost-usd 10 --no-publish
 ```
 
@@ -394,7 +396,7 @@ Opus $30.
      --model <model> --judge-model haiku -j 4 --scaffold --max-cost-usd <cap> --no-publish
    claude plugin eval . --tag bash --case '<skill>-*' --runs 3 --threshold 0 \
      --model <model> --judge-model haiku -j 4 --scaffold \
-     --allow-tools Edit "Bash(git status:*)" "Bash(git diff:*)" \
+     --allow-tools Edit "Bash(git status:*)" "Bash(git diff:*)" "Bash(npm test:*)" \
      --max-cost-usd <cap> --no-publish
    ```
 

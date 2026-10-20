@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hillclimbing"
+  short_description: "Iterate on measured changes until the criteria pass"
+  default_prompt: "Use $hillclimbing to iterate toward the goal until a fresh run of the check proves the completion criteria met."
