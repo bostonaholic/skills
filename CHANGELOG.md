@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-20
+
 ### Added
 
 - Add `hillclimbing`, a skill that iterates toward a goal one measured change at a time and keeps going until a fresh run of the check proves the completion criteria met. [#94](https://github.com/bostonaholic/skills/pull/94)
@@ -455,5 +457,7 @@
 
 [0.22.0]: https://github.com/bostonaholic/skills/compare/v0.21.15...v0.22.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.22.1...HEAD
 [0.22.1]: https://github.com/bostonaholic/skills/compare/v0.22.0...v0.22.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/bostonaholic/skills/compare/v0.22.1...v0.23.0
