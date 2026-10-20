@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Resolve rebase conflicts in `landing-prs` by calling `rebasing-branches`, which is now model-invocable for that call, so a conflicting branch still lands. [#96](https://github.com/bostonaholic/skills/pull/96)
+
 ## [0.24.0] - 2026-10-20
 
 ### Added

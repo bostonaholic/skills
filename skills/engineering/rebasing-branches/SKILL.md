@@ -1,17 +1,17 @@
 ---
 name: rebasing-branches
-description: Rebases the current branch onto its PR or default base, resolves conflicts by intent, re-runs the project's checks, and force-pushes with an explicit lease. Use when the user explicitly asks to rebase the current branch. Never infer from a behind branch. Not for rebasing every open PR; use rebasing-open-prs.
+description: Rebases the current branch onto its PR or default base, resolves conflicts by intent, re-runs the project's checks, and force-pushes with an explicit lease. Use when the user explicitly asks to rebase the current branch, or when landing-prs calls it on a rebase conflict. Never infer from a behind branch alone. Not for rebasing every open PR; use rebasing-open-prs.
 effort: high
 argument-hint: "[<pr-number-or-url>]"
-disable-model-invocation: true
 ---
 
 # Rebasing Branches
 
 Rebase the current branch onto the latest base, resolve conflicts from both
 sides' intent, and confirm the branch still works before publishing it. The
-explicit invocation authorizes the history rewrite and the force-push; do not
-stop to confirm them. This skill does not wait for CI and does not merge.
+explicit invocation, or a call from `landing-prs` whose land request covers
+it, authorizes the history rewrite and the force-push; do not stop to confirm
+them. This skill does not wait for CI and does not merge.
 
 ## Before starting
 
