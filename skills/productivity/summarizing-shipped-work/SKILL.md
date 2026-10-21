@@ -19,29 +19,35 @@ them in one line at the end of the report.
 
 ## Timeframe
 
-Resolve the request to inclusive `START` and `END` dates (`YYYY-MM-DD`) and
-state them in the report heading. Weeks start on Monday; a current week, month,
-or quarter ends today. With no timeframe, use this week.
+Resolve `<skill-dir>` to this skill's absolute directory. Map the request to
+one `PERIOD` token from the script's header (`this-week`, `last-month`,
+`2026-09`, `2026-Q3`, `since:2026-08-15`, `2026-08-01..2026-08-20`, and so on),
+`this-week` when the user names none, and run `scripts/resolve-timeframe.mjs`:
+
+```sh
+node "<skill-dir>/scripts/resolve-timeframe.mjs" PERIOD
+```
+
+It prints `START END`; use both below and in the report heading. Exit 64 means
+the token is wrong: fix it and rerun. Mapping the user's words to a token stays
+with you, since phrasing varies without bound.
 
 ## Fetch merged PRs
 
-Resolve `<skill-dir>` to this skill's absolute directory, pick a scratch
-directory `<out>` for this run, and run `scripts/fetch-shipped-prs.sh` with
-any owners as trailing arguments:
+Pick a scratch directory `<out>` for this run, and run
+`scripts/fetch-shipped-prs.sh` with any owners as trailing arguments:
 
 ```sh
 "<skill-dir>/scripts/fetch-shipped-prs.sh" START END [OWNER...] > <out>/shipped.jsonl; echo "rc=$?"
 ```
 
-Each line is one PR with `repo`, `number`, `merged`, `title`, `url`,
-`issue_links`, `title_ticket_keys`, and the first 400 characters of `body`.
+Each line is one PR; its fields are listed in the script's header.
 
 On a non-zero exit, report the script's error and stop: lines already printed
 are partial. Do not summarize, list, or group any PR from the partial file, and
 do not offer to, even labeled as partial. Exit 64 means a bad date or argument:
-fix the call and rerun. After a search-cap error, rerun over shorter ranges and
-combine the files. For any other error, such as an HTTP 5xx, tell the user to
-rerun once it clears.
+fix the call and rerun. For any other error, such as an HTTP 5xx, tell the user
+to rerun once it clears.
 
 ## Group and summarize
 
@@ -65,15 +71,15 @@ whose only content is fixing the previous PR.
 **Links go at the end of each line**, in parentheses, comma-separated: the PRs
 first, then the issues.
 
-- PR label: `repo#number`, without the owner.
+- PR label: `pr_label`.
 - Issue label: the ticket key (`OPS-123`), or `repo#number` for a GitHub
   issue.
-- Issue source, in order: the title's ticket key, matched to its URL in
-  `issue_links`; otherwise the `issue_links` the body cites as the PR's own
-  ticket. Skip tickets the body mentions only as related context or follow-up
-  work.
-- A title key with no URL in `issue_links`: leave it unlinked, unless an issue
-  tracker tool available in the session confirms the issue and gives its URL.
+- Issue source, in order: the URLs in `title_ticket_links`; otherwise the
+  `issue_links` the body cites as the PR's own ticket. Skip tickets the body
+  mentions only as related context or follow-up work.
+- A `title_ticket_links` key whose URL is null: leave it unlinked, unless an
+  issue tracker tool available in the session confirms the issue and gives its
+  URL.
 
 ## Report
 
