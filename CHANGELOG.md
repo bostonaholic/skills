@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Collect, bound, sort, and render the `summarizing-friction-logs` dashboard with `scripts/collect-friction.mjs`, leaving only the per-entry gists to the model. [#100](https://github.com/bostonaholic/skills/pull/100)
+
 ## [0.28.0] - 2026-10-21
 
 ### Changed
