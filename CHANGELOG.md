@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Document the script exit codes that ten skills' instructions left out, such as usage errors and missing tools, so an agent knows what each exit means. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Document the script exit codes that ten skills' instructions left out, such as usage errors and missing tools, so an agent knows what each exit means. [#126](https://github.com/bostonaholic/skills/pull/126)
 
 ## [0.53.0] - 2026-10-21
 
