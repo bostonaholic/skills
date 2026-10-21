@@ -26,7 +26,8 @@ and edit inside it; never widen the scope when a finding points elsewhere.
 With no argument, run `"<skill-dir>/scripts/changed-files.sh" > <scope>`
 from inside the repository. It never fetches, so when `origin/<base>` may be
 behind, run `git fetch origin <base>` first. On exit 1, relay its stderr
-line and stop. An empty scope is a successful no-op.
+line and stop. Exit 2 is a usage error, because the script takes no
+arguments. An empty scope is a successful no-op.
 
 Note the pre-review working-tree state so the changes can be undone.
 

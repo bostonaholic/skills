@@ -32,8 +32,8 @@ directory. Parse arguments per [input](references/input.md).
    [report schema](references/report-schema.md), then run
    `node <skill-dir>/scripts/inventory.mjs <out>/report.json`. User paths
    reach the script only through `report.json`, never the command text. On
-   exit 1, relay its stderr line and stop. Stop when no file has
-   `status: "text"`. Never edit `inventory.json`; rerun instead.
+   exit 1, relay its stderr line and stop; exit 2 is a usage error. Stop when
+   no file has `status: "text"`. Never edit `inventory.json`; rerun instead.
 3. **Probe the coverage file** when given, before measuring. Stop if the
    first 200 lines hold no per-line record under a source path, if one text
    line holds records for two or more source files, or if the whole file has
@@ -51,7 +51,8 @@ directory. Parse arguments per [input](references/input.md).
 7. **Render** with `node <skill-dir>/scripts/render-report.mjs <out>/report.json`,
    never by hand-writing `report.md`. On exit 1, fix `report.json` and
    render again; stop after 3 rejections and report the remaining errors.
-   When an error says HEAD moved, tell the user to rerun the audit.
+   When an error says HEAD moved, tell the user to rerun the audit. Exit 2 is
+   a usage error.
 
 ## Reply
 

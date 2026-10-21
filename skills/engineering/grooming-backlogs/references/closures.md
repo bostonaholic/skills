@@ -26,5 +26,6 @@ Only against its own answer. Run
   can comment but not close, so this is expected there.
 - Exit 4 or 64: a missing cache file or an issue off the board; stop and
   report it.
+- Exit 69: gh or jq is missing; stop and report it.
 
 Never move the card by hand; board automation lands it in its done column.

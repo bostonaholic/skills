@@ -22,7 +22,7 @@ Run each script from outside the clone with the clone's path as its argument.
 
 1. Run `bash <skill-dir>/scripts/scan-patterns.sh <clone>` once; its output
    serves Phases 1 and 4. On exit 1, fix the named tool or grep and rerun;
-   never retype the greps. Read hits with the
+   never retype the greps. Exit 64 is a usage error. Read hits with the
    [detection patterns](references/detection-patterns.md).
 2. Read each `inventory` hidden file the ecosystem does not explain. An
    unexplained binary or executable, or a symlink out of the clone, is a
@@ -38,7 +38,7 @@ Run each script from outside the clone with the clone's path as its argument.
 
 Run `node <skill-dir>/scripts/scan-deps.mjs <clone>`. Exit 1 means a scanner
 failed: record `Not run: <scanner> failed on <path>` with its `reason`; the
-rest of the JSON stands.
+rest of the JSON stands. Exit 2 is a usage error.
 
 1. **Lockfiles.** All `missingLockfile` entries together count as one Medium
    finding. Drop an entry only when the manifest declares no dependencies.
@@ -82,5 +82,6 @@ the exact code.
 Rate each verified finding with [report format](references/report-format.md),
 then pipe them as `[{"id": "F1", "severity": "Critical"}, ...]` into
 `node <skill-dir>/scripts/score.mjs` and copy its `score`, `grade`, and
-`safeToRun` into the report. Write the report with the report format's
+`safeToRun` into the report. Exit 1 names each malformed finding: fix the list
+and rerun. Exit 2 is a usage error. Write the report with the report format's
 template.

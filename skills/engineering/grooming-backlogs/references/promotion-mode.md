@@ -15,6 +15,7 @@ An issue listed in `unloaded-threads.txt` has more comments to read.
 - Exit 3: several repositories hold an issue `$N` on this board, or another
   owner holds it; ask which.
 - Exit 1: stop and report its error.
+- Exit 64 or 69: a usage error, or gh or jq is missing; stop and report it.
 
 `links unavailable` follows the [hard rules](references/hard-rules.md) edge
 case.
