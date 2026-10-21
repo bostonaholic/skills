@@ -31,8 +31,8 @@
 # Exit codes, each with a reason on stderr:
 #
 #   0  ready to rebase onto refs/remotes/<BASE_REMOTE>/<BASE>
-#   1  a required tool is missing, or a git or gh command failed (its stderr
-#      is passed through)
+#   1  a required tool is missing, no temporary file for gh's stderr can be
+#      created, or a git or gh command failed (its stderr is passed through)
 #   2  the argument is neither a PR number nor an https:// PR URL
 #   3  HEAD is detached, tracked files are modified (each is listed), or a
 #      rebase or merge is in progress
@@ -124,11 +124,18 @@ else
   lease=none
   # A PR with no tracked remote copy means the push target is unknown, and a
   # first push would create a second branch instead of updating the PR's.
+  # gh's stderr goes to a file, apart from stdout, because gh can write to
+  # stderr on success (GH_DEBUG, for example), and that text must not become
+  # the PR number.
+  gh_err=$(mktemp) || die 1 "cannot create a temporary file for gh's stderr"
+  trap 'rm -f "$gh_err"' EXIT
   # gh reports a branch with no PR as an error; any other error is a failure.
-  if found=$(gh pr view --json number --jq .number 2>&1); then
+  if found=$(gh pr view --json number --jq .number 2>"$gh_err"); then
+    cat "$gh_err" >&2
     die 7 "branch has PR #$found but no tracked remote copy; run gh pr checkout $found or set the upstream"
-  elif [[ $found != *"no pull requests found"* ]]; then
-    printf '%s\n' "$found" >&2
+  fi
+  if ! grep -q "no pull requests found" "$gh_err"; then
+    cat "$gh_err" >&2
     die 1 "gh pr view failed"
   fi
 fi

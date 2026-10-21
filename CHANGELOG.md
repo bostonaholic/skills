@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.53.2] - 2026-10-21
+
+### Fixed
+
+- Keep gh's stderr out of the PR number that rebasing-branches' `prepare-rebase.sh` reports, so a gh warning or debug line no longer corrupts its exit 7 message. [#127](https://github.com/bostonaholic/skills/pull/127)
+
 ## [0.53.1] - 2026-10-21
 
 ### Fixed
@@ -718,5 +724,7 @@
 
 [0.53.0]: https://github.com/bostonaholic/skills/compare/v0.52.0...v0.53.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.53.1...HEAD
 [0.53.1]: https://github.com/bostonaholic/skills/compare/v0.53.0...v0.53.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.53.2...HEAD
+[0.53.2]: https://github.com/bostonaholic/skills/compare/v0.53.1...v0.53.2

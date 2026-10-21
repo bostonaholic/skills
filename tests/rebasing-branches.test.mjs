@@ -57,7 +57,10 @@ function commit(cwd, file, content = file) {
 //   GH_REPO_VIEW   output of `gh repo view ...` ("<default-branch> <owner/repo>")
 //   GH_PR_VIEW     output of `gh pr view <arg> ...` ("<baseRefName> <url>")
 //   GH_PR_CURRENT  `gh pr view` for the current branch: a PR number, `none`
-//                  for gh's no-PR error, or `fail` for any other gh error
+//                  for gh's no-PR error, `fail` for any other gh error, or
+//                  `silent` for a gh error with empty stderr
+//   GH_PR_WARN     a line `gh pr view` for the current branch writes to stderr
+//                  before it succeeds, as GH_DEBUG makes gh do
 const FAKE_GH = `#!/usr/bin/env bash
 printf '%s\\n' "$*" >>"$GH_LOG"
 case "$1 $2" in
@@ -67,7 +70,11 @@ case "$1 $2" in
       case $GH_PR_CURRENT in
         none) echo "no pull requests found for branch \\"x\\"" >&2; exit 1 ;;
         fail) echo "HTTP 401: Bad credentials" >&2; exit 1 ;;
-        *) printf '%s\\n' "$GH_PR_CURRENT" ;;
+        silent) exit 1 ;;
+        *)
+          if [[ -n \${GH_PR_WARN:-} ]]; then printf '%s\\n' "$GH_PR_WARN" >&2; fi
+          printf '%s\\n' "$GH_PR_CURRENT"
+          ;;
       esac
     else
       printf '%s\\n' "$GH_PR_VIEW"
@@ -231,11 +238,26 @@ test("prepare-rebase.sh exits 7 without fetching when a branch with no remote co
   assert.deepEqual(w.ghCalls().at(-1), "pr view --json number --jq .number");
 });
 
+test("prepare-rebase.sh keeps gh's stderr out of the PR number when gh succeeds", (t) => {
+  const w = world(t);
+  const result = run(w, PREPARE, [], { GH_PR_CURRENT: "42", GH_PR_WARN: "gh-debug-sentinel" });
+  assert.equal(result.status, 7);
+  assert.match(result.stderr, /^gh-debug-sentinel$/m);
+  assert.match(result.stderr, /^prepare-rebase: branch has PR #42 but .* gh pr checkout 42 /m);
+});
+
 test("prepare-rebase.sh exits 1 when gh fails for a reason other than no PR", (t) => {
   const w = world(t);
   const result = run(w, PREPARE, [], { GH_PR_CURRENT: "fail" });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Bad credentials/);
+});
+
+test("prepare-rebase.sh prints no blank line when gh fails with empty stderr", (t) => {
+  const w = world(t);
+  const result = run(w, PREPARE, [], { GH_PR_CURRENT: "silent" });
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr.split("\n")[0], "prepare-rebase: gh pr view failed");
 });
 
 test("prepare-rebase.sh records the lease before fetching only the base", (t) => {
