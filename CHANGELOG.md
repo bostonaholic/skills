@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Move the `verifying-production-changes` deploy gate into `scripts/deploy-gate.sh`, which fetches, checks ancestry per sample, self-checks both ways, polls until consecutive clean polls, and prints the bound sentence. [#98](https://github.com/bostonaholic/skills/pull/98)
+
 ## [0.26.0] - 2026-10-21
 
 ### Added
