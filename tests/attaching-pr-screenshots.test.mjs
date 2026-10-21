@@ -290,6 +290,15 @@ test("upload.sh exits 2 naming a missing node before any gh call", (t) => {
   assert.equal(ghCalls, "");
 });
 
+test("upload.sh exits 2 when the run directory does not exist", (t) => {
+  const dir = scratch(t);
+  const { bin } = fakeBin(dir, { tools: [...UPLOAD_TOOLS, "file"] });
+  const result = run("upload.sh", [join(dir, "missing-run")], bin);
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stderr, /run directory has no pr-host/);
+  assert.doesNotMatch(result.stderr, /upload-exit/);
+});
+
 // One PNG entry against a fake `gh` whose PR body lives in a file: each attach
 // appends `tail` to it, and each view returns it.
 function uploadOne(t, tail) {
