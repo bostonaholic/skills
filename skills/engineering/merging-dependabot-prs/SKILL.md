@@ -19,12 +19,15 @@ disable-model-invocation: true
 Merge Dependabot PRs that pass every gate below, one at a time, after the user
 approves a plan. Report everything else with its reason.
 
+`<skill-dir>` is this skill's directory and `<out>` a scratch directory for
+this run. Every script needs `node` and a signed-in `gh` (check with
+`command -v node gh && gh auth status`), runs in the target repository's
+checkout, and documents its output and exit codes in its header.
+
 ## Arguments
 
-- **PR numbers** (optional): space-separated; refuse any that is not all
-  digits. Without them, use every open Dependabot PR
-  (`gh pr list --author app/dependabot --state open --limit 200`; if exactly
-  200 come back, warn that the list may be truncated).
+- **PR numbers** (optional): space-separated. Without them, the analysis uses
+  every open Dependabot PR.
 - **--rebase-only** (optional): skip analysis and merging; see
   [Rebase-only mode](#rebase-only-mode). A request to rebase or refresh
   Dependabot PRs that does not ask to merge selects this mode without the flag.
@@ -32,9 +35,9 @@ approves a plan. Report everything else with its reason.
 
 ## Policy and boundaries
 
-- Only patch and minor updates merge, and only by squash (stop if the repo
-  disallows squash merges). A major update, or any version this skill cannot
-  classify, is reported with its breaking changes and never merged here.
+- Only patch and minor updates merge, and only by squash. A major update, or
+  any version the analysis cannot classify, is reported with its breaking
+  changes and never merged here.
 - A security fix raises a PR's priority but relaxes no gate.
 - CI is the only gate for conflicts between dependencies, such as an unmet
   peer range. This skill does not resolve the dependency graph.
@@ -51,60 +54,42 @@ approves a plan. Report everything else with its reason.
 
 ## Analyze each PR
 
-Read each PR's state, author, head SHA, `mergeStateStatus`, commit authors,
-checks, body, and Dependabot's comments. `gh pr list` cannot include commits
-(GitHub rejects that many nodes), so read commits per PR with `gh pr view`.
-Read open Dependabot security alerts once per run
-(`repos/{owner}/{repo}/dependabot/alerts?state=open`); a 403 or 404 means
-security is `unknown` for every PR, so continue.
+Run `node <skill-dir>/scripts/analyze.mjs [<n>...] > <out>/analysis.json`.
+Exit 2: a PR argument is not all digits; refuse it. Exit 3: the repository
+disallows squash merges; stop. Exit 1 or 127: report stderr and stop. A stderr
+warning that the list may be truncated goes into the report.
 
-- **Level.** Take every `from <old> to <new>` pair in the title and body (a
-  grouped PR lists one per package). Strip a leading `v`; pad missing parts
-  with `0`. Major part changed: **major**. Major part is `0` and minor changed:
-  **major**, since semver allows `0.x` minors to break. Otherwise minor changed:
-  **minor**; else **patch**. A non-numeric part, prerelease suffix, or commit
-  SHA: **unknown**. The PR's level is the highest across its pairs.
-- **CI.** `gh pr checks` exit 0: pass. 8: pending. 1 with "no checks
-  reported": none. Any other 1: fail.
-- **Security.** An open alert for the same ecosystem and package whose first
-  patched version is at or below the PR's new version: `yes`, with GHSA ID and
-  severity.
-- **Breaking notes.** Look in the body's release notes, changelog, and commits
-  for "BREAKING", removed or renamed public API, dropped runtime or platform
-  support, a raised minimum runtime or engine version, or changed defaults.
-  When the notes are truncated or missing, read the upstream release with
-  `gh release view <tag> -R <owner>/<repo>`. Both values come from the body, so
-  first check them under `LC_ALL=C`: `<tag>` against `^[A-Za-z0-9._+/-]+$` with
-  no leading `-`, and `<owner>/<repo>` against
-  `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`; skip the read and say why if either
-  fails. Quote each signal in one line.
-- **Usage** (major, unknown, or any breaking note). After checking the package
-  name against `^[A-Za-z0-9@/._-]+$`, find uses with `git grep -nF -- '<package>'`.
+The analysis gives each PR's version pairs, level, CI, merge state, security,
+and a decision from every row of the decision table but one: a breaking note
+in a patch or minor update. That row needs reading, so it stays with you.
+
+- **Breaking notes** (every PR with `needsNotes`, and every major or unknown
+  one). Read the body's release notes, changelog, and commits for "BREAKING",
+  removed or renamed public API, dropped runtime or platform support, a raised
+  minimum runtime or engine version, or changed defaults. When the notes are
+  truncated or missing, read the upstream release with
+  `gh release view <tag> -R <upstreamRepo>` using a pair's `tag` and
+  `upstreamRepo`; a `null` in either means it was missing or failed the
+  allowlist, so skip the read and say why. A keyword list would miss renamed
+  APIs and flag harmless mentions, so this is not scripted.
+- **Usage** (major, unknown, or any breaking note). For each pair with
+  `grepSafe`, find uses with `git grep -nF -- '<pkg>'` and judge whether the
+  breaking change touches them.
 - **Dependabot comments** explain state only, such as Dependabot refusing to
-  rebase an edited PR.
+  rebase an edited PR. Read them with
+  `gh api 'repos/{owner}/{repo}/issues/<n>/comments' --paginate`, keeping only
+  `dependabot[bot]` authors of type `Bot`.
 
-Decide one action per PR:
-
-| Condition, first match wins                                   | Decision                                                                                                         |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Author is not `app/dependabot`, state is not `OPEN`, or draft | skip                                                                                                             |
-| A commit author other than `dependabot[bot]`                  | skip: edited by `<others>`; `@dependabot recreate` would discard their commits, so post it only if the user asks |
-| Level is major or unknown                                     | skip: report the breaking notes and usage                                                                        |
-| A breaking note in a patch or minor                           | skip: quote the note                                                                                             |
-| CI is fail or none                                            | skip                                                                                                             |
-| CI is pending                                                 | skip: re-run when CI finishes                                                                                    |
-| Merge state is `BEHIND`, or `DIRTY` from conflicts            | rebase: comment `@dependabot rebase`                                                                             |
-| Merge state is `CLEAN` or `HAS_HOOKS` and CI passes           | merge                                                                                                            |
-| Anything else                                                 | skip: report the merge state verbatim                                                                            |
+Write one line per PR that has a note to `<out>/notes.json` as
+`{"<n>": "<quoted breaking note, usage hits>"}` with the file-writing tool. A
+note on a `needsNotes` PR turns it into skip.
 
 ## Plan and approval
 
-Show one row per PR, security first, then patch, then minor, then the rest;
-ascending PR number within each group:
-
-```text
-| PR | Update | Level | CI | Merge state | Security | Notes | Decision |
-```
+Run `node <skill-dir>/scripts/render-plan.mjs <out>/analysis.json [<out>/notes.json]`
+(exit 1 or 2: report stderr and stop). Show its table, whose header is
+`| PR | Update | Level | CI | Merge state | Security | Notes | Decision |`, as
+is. Its trailing `act` lines are for the next step, not the user.
 
 With `--dry-run`, stop here. Otherwise ask the user to approve all rows, a
 subset by PR number, or none, and act only on approved `merge` and `rebase`
@@ -113,23 +98,18 @@ that PR if it falls behind during the run.
 
 ## Execute one at a time
 
-Each merge moves the base, so re-check state, author, head, merge state, and
-checks immediately before acting on each PR. Every action, including a rebase
-comment, requires `OPEN` and `app/dependabot`.
+Each merge moves the base, so act on the approved rows one at a time, in the
+plan's `act` line order: run `node <skill-dir>/scripts/act.mjs <n> <head> merge|rebase`
+with that line's arguments. It re-checks the PR, acts, and verifies, and
+prints one line:
 
-For a `merge` row:
-
-- Head matches the plan, `CLEAN` or `HAS_HOOKS`, and checks pass: run
-  `gh pr merge <n> --squash --match-head-commit <head>`, then re-query. Only
-  state `MERGED` with a merge commit OID counts as merged.
-- Head differs from the plan: skip, "changed since approval; re-run".
-- `BEHIND`: post `@dependabot rebase`, "rebase requested; re-run after CI".
-- Checks pending: skip, "CI pending; re-run".
-- Anything else, or a failed merge: record the state or gh's message verbatim
-  and continue.
-
-For a `rebase` row that passes the re-check, run
-`gh pr comment <n> --body "@dependabot rebase"`.
+- `merged <oid>`: merged.
+- `rebase-requested <url>`: for a `merge` row, the PR had fallen behind; say
+  "rebase requested; re-run after CI". Never rerun `act.mjs` for that PR in
+  this run, since a rerun posts a second comment.
+- `skipped <reason>`: record the reason.
+- `failed <message>` (exit 1): record gh's message and continue. Exit 2 or
+  127: stop and report stderr.
 
 Report each PR as merged `<oid>`, rebase requested, skipped: `<reason>`, not
 approved, or failed: `<gh message>`, with counts per result, and list each
@@ -138,17 +118,13 @@ skipped major or security update the user should handle by hand.
 ## Rebase-only mode
 
 With `--rebase-only`, ask Dependabot to rebase its PRs without analyzing or
-merging them. Classify each PR:
+merging them. Run `node <skill-dir>/scripts/analyze.mjs --rebase-only [<n>...] > <out>/analysis.json`,
+then `node <skill-dir>/scripts/render-plan.mjs <out>/analysis.json`, with the
+exit codes above. A `needs-recreate` row was edited by someone else, so only
+the user decides to post `@dependabot recreate`, which discards those commits.
 
-- Author is not `app/dependabot`, or state is not `OPEN`: skip, naming the
-  author or state.
-- A commit author other than `dependabot[bot]`: Dependabot ignores
-  `@dependabot rebase`, so report it as needs recreate. `@dependabot recreate`
-  discards those commits, so only the user decides to post it.
-- Otherwise: rebase.
-
-Show one table (PR, title, action, reason) and say that each comment is public
-and re-runs CI. With `--dry-run`, stop there. Otherwise wait for a clear
-go-ahead, which covers only the listed rebase rows, then comment
-`@dependabot rebase` on each and continue past failures. Report each PR as
-commented (with URL), needs recreate, skipped, or failed (with gh's message).
+Show the table and say that each comment is public and re-runs CI. With
+`--dry-run`, stop there. Otherwise wait for a clear go-ahead, which covers only
+the `act` lines, then run `act.mjs` for each and continue past failures.
+Report each PR as commented (with URL), needs recreate, skipped, or failed
+(with gh's message).
