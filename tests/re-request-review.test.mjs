@@ -1520,3 +1520,112 @@ test("CLI passes --hostname on follow-up reads for a non-github.com host", (t) =
   assert.equal(run.calls[1].includes("after=opinionated-cursor-1"), true);
   assert.equal(run.status, 0);
 });
+
+function render(lines, reason) {
+  assert.equal(
+    typeof scriptModule.renderReport,
+    "function",
+    `re-request-review.mjs must export renderReport (load error: ${scriptModule.loadError?.message ?? "none"})`,
+  );
+  return scriptModule.renderReport(lines, reason);
+}
+
+test("renderReport turns each token line into its report line", () => {
+  const cases = [
+    [
+      "re-requested alice",
+      "re-requested @alice (no feedback awaits a response, latest review CHANGES_REQUESTED)",
+    ],
+    ["already-requested bob", "@bob already has a pending review request"],
+    ["skipped dependabot not-a-user", "skipped @dependabot, not a user account"],
+    ["skipped invalid-login", "skipped a reviewer whose login failed validation"],
+    ["skipped author-unavailable", "skipped a reviewer whose account is unavailable"],
+    ["not-requested review-decision APPROVED", "not sent, the PR is approved"],
+    ["not-requested no-changes-requested-reviewer", "not sent, no reviewer needs a new request"],
+    [
+      "not-requested review-state-incomplete",
+      "not sent, the PR has more feedback than the script reads",
+    ],
+    ["not-requested gh-unavailable", "not sent, gh could not be run"],
+    ["failed alice http-422", "failed for @alice (HTTP 422)"],
+    ["failed alice gh-exit-4", "failed for @alice (gh exit 4)"],
+  ];
+  for (const [token, text] of cases) {
+    assert.deepEqual(render([token]), [`Review re-request: ${text}`]);
+  }
+  assert.deepEqual(render(["not-requested review-state-read-failed"], "gh api graphql exited 1"), [
+    "Review re-request: not sent, the review-state read failed: gh api graphql exited 1",
+  ]);
+});
+
+test("renderReport folds pending lines into one line", async (t) => {
+  await t.test("one pending url", () => {
+    assert.deepEqual(
+      render([`pending ${PR_URL}#discussion_r1`, "not-requested pending-feedback"]),
+      [`Review re-request: not sent, 1 item awaits a response: ${PR_URL}#discussion_r1`],
+    );
+  });
+  await t.test("urls, an unusable url, more, and an empty changes request", () => {
+    assert.deepEqual(
+      render([
+        "already-requested bob",
+        `pending ${PR_URL}#discussion_r1`,
+        "pending url-unavailable",
+        "pending-more 3",
+        "pending empty-changes-request carol",
+        "not-requested pending-feedback",
+      ]),
+      [
+        "Review re-request: @bob already has a pending review request",
+        `Review re-request: not sent, 5 items await a response: ${PR_URL}#discussion_r1, an item with no usable URL, and 3 more`,
+        "Review re-request: not sent, @carol requested changes with no comment. Ask what they want.",
+      ],
+    );
+  });
+  await t.test("only an empty changes request prints no await line", () => {
+    assert.deepEqual(
+      render(["pending empty-changes-request carol", "not-requested pending-feedback"]),
+      [
+        "Review re-request: not sent, @carol requested changes with no comment. Ask what they want.",
+      ],
+    );
+  });
+  await t.test("an unknown token throws", () => {
+    assert.throws(() => render(["bogus token"]), /no report text for token line: bogus token/);
+  });
+});
+
+test("CLI --report prints report lines in place of tokens", async (t) => {
+  await t.test("a re-request", (st) => {
+    const run = runScript(st, {
+      args: ["--report", PR_URL],
+      responses: [
+        pageOneResponse({
+          latestOpinionatedReviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
+          reviews: connection([ALICE_CHANGES_REQUESTED_WITH_THREADS]),
+        }),
+        POST_SUCCEEDED,
+      ],
+    });
+    assert.deepEqual(run.lines, [
+      "Review re-request: re-requested @alice (no feedback awaits a response, latest review CHANGES_REQUESTED)",
+    ]);
+    assert.equal(run.status, 0);
+  });
+  await t.test("a read failure carries the stderr reason and exits 1", (st) => {
+    const run = runScript(st, {
+      args: ["--report", PR_URL],
+      responses: [{ stdout: "not json", stderr: "", exitCode: 0 }],
+    });
+    assert.deepEqual(run.lines, [
+      "Review re-request: not sent, the review-state read failed: gh printed output that is not JSON",
+    ]);
+    assert.equal(run.status, 1);
+  });
+  await t.test("--report after the URL is a usage fault", (st) => {
+    const run = runScript(st, { args: [PR_URL, "--report"], responses: [] });
+    assert.equal(run.status, 2);
+    assert.match(run.stderr, /usage: re-request-review\.mjs \[--report\] /);
+    assert.deepEqual(run.calls, []);
+  });
+});

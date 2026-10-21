@@ -4,9 +4,9 @@
  * Re-request review from each reviewer whose latest opinionated review is
  * CHANGES_REQUESTED, but only when no feedback on the PR awaits a response.
  *
- *     node "<skill-dir>/scripts/re-request-review.mjs" "<pr-url>"
+ *     node "<skill-dir>/scripts/re-request-review.mjs" [--report] "<pr-url>"
  *
- *     import { deriveReRequest } from "<skill-dir>/scripts/re-request-review.mjs";
+ *     import { deriveReRequest, renderReport } from "<skill-dir>/scripts/re-request-review.mjs";
  *     const { lines, logins } = deriveReRequest(reviewState, pullRequest);
  *
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>` on the base
@@ -39,6 +39,10 @@
  *   failed <login> http-<status>                  from gh's "(HTTP <status>)" stderr
  *   failed <login> gh-exit-<code>                 gh failed with no HTTP status
  *
+ * `--report` prints, in place of the tokens, the finished report lines that
+ * `renderReport` derives from them, each starting `Review re-request: `
+ * (see "Report lines"). Exit codes do not change.
+ *
  * No stdout line carries a comment or review body byte. Every printed URL
  * comes from a structural `url` field and must match the input PR. A read
  * failure prints `re-request-review.mjs: <reason>` on stderr, after any
@@ -69,12 +73,34 @@
  * or malformed page fails the read and never counts as an empty page. In both
  * cases nothing is sent.
  *
+ * Report lines, in token order, except that the pending urls, `pending-more`,
+ * and `not-requested pending-feedback` fold into one line printed where
+ * `not-requested pending-feedback` stands, with the empty-changes-request
+ * lines after it:
+ *
+ *   re-requested @<login> (no feedback awaits a response, latest review CHANGES_REQUESTED)
+ *   @<login> already has a pending review request
+ *   skipped @<login>, not a user account
+ *   skipped a reviewer whose login failed validation
+ *   skipped a reviewer whose account is unavailable
+ *   not sent, <n> items await a response: <url>, <url>[, and <m> more]
+ *       (`1 item awaits` for one; `an item with no usable URL` stands in
+ *       for each `pending url-unavailable`; no line when n is 0)
+ *   not sent, @<login> requested changes with no comment. Ask what they want.
+ *   not sent, the PR is approved
+ *   not sent, no reviewer needs a new request
+ *   not sent, the review-state read failed: <the stderr reason>
+ *   not sent, the PR has more feedback than the script reads
+ *   not sent, gh could not be run
+ *   failed for @<login> (HTTP <status>)
+ *   failed for @<login> (gh exit <code>)
+ *
  * Exit codes:
  *
  *   0  no failure: re-requested, nothing to do, or feedback still pending
  *   1  a read failure, an incomplete read, `gh` unavailable, or at least one
  *      failed POST. The other logins still get their POST
- *   2  usage fault: wrong argument count or a malformed URL. Nothing ran
+ *   2  usage fault: a wrong argument or a malformed URL. Nothing ran
  *
  * Constraints:
  *
@@ -292,6 +318,75 @@ function pullRequestItemUrlPattern({ host, owner, repo, number }) {
   );
 }
 
+const REPORT_PREFIX = "Review re-request: ";
+
+const FIXED_REPORT_TEXT = {
+  "skipped invalid-login": "skipped a reviewer whose login failed validation",
+  "skipped author-unavailable": "skipped a reviewer whose account is unavailable",
+  "not-requested review-decision APPROVED": "not sent, the PR is approved",
+  "not-requested no-changes-requested-reviewer": "not sent, no reviewer needs a new request",
+  "not-requested review-state-incomplete":
+    "not sent, the PR has more feedback than the script reads",
+  "not-requested gh-unavailable": "not sent, gh could not be run",
+};
+
+const LOGIN_REPORT_TEXT = [
+  [
+    /^re-requested (\S+)$/,
+    (login) =>
+      `re-requested @${login} (no feedback awaits a response, latest review CHANGES_REQUESTED)`,
+  ],
+  [/^already-requested (\S+)$/, (login) => `@${login} already has a pending review request`],
+  [/^skipped (\S+) not-a-user$/, (login) => `skipped @${login}, not a user account`],
+  [
+    /^pending empty-changes-request (\S+)$/,
+    (login) => `not sent, @${login} requested changes with no comment. Ask what they want.`,
+  ],
+  [/^failed (\S+) http-(\d+)$/, (login, status) => `failed for @${login} (HTTP ${status})`],
+  [/^failed (\S+) gh-exit-(\S+)$/, (login, code) => `failed for @${login} (gh exit ${code})`],
+];
+
+/**
+ * Turns the stdout token lines into the report lines documented in the header.
+ * `readFailureReason` fills the review-state-read-failed line. Throws on a line
+ * this script never prints.
+ */
+export function renderReport(lines, readFailureReason = "") {
+  const report = [];
+  const pendingUrls = [];
+  const deferred = [];
+  let morePending = 0;
+  for (const line of lines) {
+    if (line === "pending url-unavailable") pendingUrls.push("an item with no usable URL");
+    else if (line.startsWith("pending https://")) pendingUrls.push(line.slice("pending ".length));
+    else if (/^pending-more \d+$/.test(line))
+      morePending = Number(line.slice("pending-more ".length));
+    else if (line.startsWith("pending empty-changes-request ")) deferred.push(renderLine(line));
+    else if (line === "not-requested pending-feedback") {
+      const count = pendingUrls.length + morePending;
+      if (count > 0) {
+        const more = morePending > 0 ? `, and ${morePending} more` : "";
+        const items = count === 1 ? "1 item awaits" : `${count} items await`;
+        report.push(`not sent, ${items} a response: ${pendingUrls.join(", ")}${more}`);
+      }
+      report.push(...deferred.splice(0));
+    } else if (line === "not-requested review-state-read-failed") {
+      report.push(`not sent, the review-state read failed: ${readFailureReason}`);
+    } else report.push(renderLine(line));
+  }
+  report.push(...deferred);
+  return report.map((text) => `${REPORT_PREFIX}${text}`);
+}
+
+function renderLine(line) {
+  if (line in FIXED_REPORT_TEXT) return FIXED_REPORT_TEXT[line];
+  for (const [pattern, render] of LOGIN_REPORT_TEXT) {
+    const match = pattern.exec(line);
+    if (match) return render(...match.slice(1));
+  }
+  throw new Error(`${SCRIPT}: no report text for token line: ${line}`);
+}
+
 const execFileAsync = promisify(execFile);
 
 async function runGh(args) {
@@ -429,29 +524,42 @@ async function requestReview(pullRequest, login) {
 }
 
 async function main(argv) {
-  if (argv.length !== 1 || !PR_URL_PATTERN.test(argv[0])) {
-    process.stderr.write(`${SCRIPT}: usage: ${SCRIPT} https://<host>/<owner>/<repo>/pull/<n>\n`);
+  const report = argv[0] === "--report";
+  const args = report ? argv.slice(1) : argv;
+  if (args.length !== 1 || !PR_URL_PATTERN.test(args[0])) {
+    process.stderr.write(
+      `${SCRIPT}: usage: ${SCRIPT} [--report] https://<host>/<owner>/<repo>/pull/<n>\n`,
+    );
     return EXIT_USAGE;
   }
-  const pullRequest = parsePullRequestUrl(argv[0]);
+  const pullRequest = parsePullRequestUrl(args[0]);
+  // The report folds lines together, so it prints once at the end; tokens print as they occur.
+  const lines = [];
+  const emit = (line) => (report ? lines.push(line) : process.stdout.write(`${line}\n`));
+  const finish = (exitCode, readFailureReason) => {
+    if (report) {
+      for (const text of renderReport(lines, readFailureReason)) process.stdout.write(`${text}\n`);
+    }
+    return exitCode;
+  };
 
   const read = await readReviewState(pullRequest);
   if (read.failure) {
     process.stderr.write(`${SCRIPT}: ${read.reason}\n`);
-    process.stdout.write(`not-requested ${read.failure}\n`);
-    return EXIT_FAILURE;
+    emit(`not-requested ${read.failure}`);
+    return finish(EXIT_FAILURE, read.reason);
   }
 
-  const { lines, logins } = deriveReRequest(read.reviewState, pullRequest);
-  for (const line of lines) process.stdout.write(`${line}\n`);
+  const derived = deriveReRequest(read.reviewState, pullRequest);
+  for (const line of derived.lines) emit(line);
 
   let anyPostFailed = false;
-  for (const login of logins) {
+  for (const login of derived.logins) {
     const outcome = await requestReview(pullRequest, login);
-    process.stdout.write(`${outcome.line}\n`);
+    emit(outcome.line);
     if (!outcome.ok) anyPostFailed = true;
   }
-  return anyPostFailed ? EXIT_FAILURE : EXIT_OK;
+  return finish(anyPostFailed ? EXIT_FAILURE : EXIT_OK);
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.

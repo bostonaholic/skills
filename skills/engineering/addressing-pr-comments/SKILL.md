@@ -68,20 +68,19 @@ number.
 
 ## Triage
 
-1. **Resolve the PR** from the argument (number or URL) or the current
-   branch; stop on a malformed or unresolvable one. Record
-   `git status --porcelain=v1 --untracked-files=all`. Pass `--hostname` to
-   every `gh api` call for Enterprise hosts.
+1. **Record** `git status --porcelain=v1 --untracked-files=all`.
 2. **Fetch** with the [comment retrieval](shared/pull-request-comments.md)
-   script. `gh pr view --json reviews` and REST `pulls/{n}/comments`
-   do not expose thread resolution. When `watching-authored-prs` passes its
-   poll result, use it, do not refetch, and drop its already-triaged ids.
-3. **Build the set.** Keep outdated threads and flag them: outdated is not
-   resolved. Drop a conversation comment only when the viewer wrote it and its
-   first line starts with a review-record marker (`<!-- <producer>:pr-comment`
-   and a space);
-   count the drops. The same marker from anyone else stays. Every remaining
-   item appears in the report exactly once.
+   script, passing the argument (number or URL) or nothing for the current
+   branch, and redirect its stdout to `<tmp>/feedback.json`. Its exit codes
+   say when to stop. When `watching-authored-prs` passes its poll result, use
+   that file, or write the result to `<tmp>/feedback.json` with the
+   file-writing tool, and do not refetch.
+3. **Build the set.** Run
+   `node <skill-dir>/scripts/build-items.mjs <tmp>/feedback.json > <tmp>/items.json`,
+   adding `--exclude-ids <file>` (one id per line) for the ids
+   `watching-authored-prs` has already triaged. Exit 2 names a bad input;
+   stop and report it. Its `items` are the set: each appears in the report
+   exactly once, flagged `OUTDATED` when `isOutdated`.
 4. **Verify each item.** Read the current code at the anchor (compare with
    `diffHunk`) and the whole thread, and check `git log`/`git diff` since the
    comment. A runtime-behavior claim needs a named test with its run result:
@@ -119,7 +118,8 @@ number.
    ```
 
    Group by file, PR-level after files, clarification items last; number
-   blocks globally. End with `Skipped <n> review-record comments.` when n > 0.
+   blocks globally. End with `Skipped <n> review-record comments.` when
+   `skippedReviewRecords` is above 0.
 
 8. **Re-request review** per [review re-request](references/review-re-request.md).
 9. **Stop.** Delete leftover throwaway tests, rerun the recorded `git status`,
@@ -144,8 +144,7 @@ number.
 
 Reactions on the item's opening comment when the option lands: 👍 for A, B,
 E, F; 👎 for D only when it rests on an `INACCURATE` verdict; none for C, G,
-or a D about priority or scope. Never react to the viewer's own comment. See
-[reaction mechanics](shared/reaction-mechanics.md).
+a D about priority or scope, or the viewer's own comment.
 
 ## Applying
 
@@ -157,22 +156,19 @@ For each A or B, whether auto-applied, authorized, or picked:
    throwaway test.
 3. Show the planned diff, stage only the touched files (never `git add -A`),
    commit, and push.
-4. Reply citing the exact commit SHA as bare text, ending with the item's
-   outcome marker on its own line:
-
-   ```text
-   <!-- feedback-outcome: <item url> -->
-   ```
-
-   `<item url>` is the item's `url` from retrieval, unchanged (a thread's
-   first-comment url). Every A-F outcome reply carries it, one line per item
-   when one reply answers several; a G reply never does. Without it,
-   `scripts/re-request-review.mjs` counts the item as pending. Reply to a
-   thread with `in_reply_to` set to its first comment's `databaseId`; to a
-   PR-level item with a top-level comment linking its url.
-
-5. Resolve threads only (`resolveReviewThread`), react, then re-query: the
-   reply exists and the thread `isResolved`. Report done only after that.
+4. Write the reply to a temp file: for A or B it cites the exact commit SHA
+   as bare text, and a PR-level reply links the item's url.
+5. Run
+   `node <skill-dir>/scripts/settle-item.mjs <tmp>/items.json <item-id> --reply-file <file> --react <THUMBS_UP|THUMBS_DOWN|none> [--resolve]`,
+   with the reaction from [Options](#options) and `--resolve` for a thread
+   whose option resolves it. Every option that replies settles through it;
+   a G reply passes `--no-marker` and `--react none`, since only an outcome
+   reply carries the marker `scripts/re-request-review.mjs` counts. Exit 0
+   (`verified`) is the only done. Exit 1 names the failed step on stderr:
+   report it, and rerun the same command after fixing the cause, since
+   completed writes are skipped. Exit 2 is a usage fault; nothing was
+   written. A `reaction-failed` line is a warning on the item's report line,
+   never an exclusion.
 
 A later turn that acts on items from an earlier report runs the
 [review re-request](references/review-re-request.md) again after the last
