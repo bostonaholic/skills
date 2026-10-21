@@ -4,11 +4,11 @@
 
 ### Added
 
-- Add `reviewing-security`, a skill that reviews a diff for exploitable vulnerabilities in a fresh-context read-only subagent and reports only high-confidence findings with an exploit scenario and fix. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Add `reviewing-security`, a skill that reviews a diff for exploitable vulnerabilities in a fresh-context read-only subagent and reports only high-confidence findings with an exploit scenario and fix. [#122](https://github.com/bostonaholic/skills/pull/122)
 
 ### Changed
 
-- Route security review of a diff or PR from `auditing-repo-security` and `reviewing-code` to `reviewing-security`. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Route security review of a diff or PR from `auditing-repo-security` and `reviewing-code` to `reviewing-security`. [#122](https://github.com/bostonaholic/skills/pull/122)
 
 ## [0.50.0] - 2026-10-21
 
