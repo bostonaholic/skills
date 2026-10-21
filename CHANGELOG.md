@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Resolve the instructions file in `learning-from-mistakes` with `scripts/resolve-instructions-file.sh`, which follows symlinks and import-only files and stops on a loop. [#119](https://github.com/bostonaholic/skills/pull/119)
+
 ## [0.47.0] - 2026-10-21
 
 ### Changed
