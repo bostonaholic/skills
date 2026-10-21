@@ -12,13 +12,11 @@ append_system_prompt: |
   - git-behind-count.txt: git fetch origin main && git rev-list --count HEAD..refs/remotes/origin/main
   - git-rebase.txt: git rebase refs/remotes/origin/main
   - git-rebase-abort.txt: git rebase --abort (prints nothing)
-  - git-rebase-preflight.txt: git branch --show-current; git status --porcelain --untracked-files=no; for p in rebase-merge rebase-apply MERGE_HEAD; do [ -e "$(git rev-parse --git-path "$p")" ] && echo "in progress: $p"; done
-  - git-recovery.txt: the recovery point and lease block that prints RECOVERY, PUSH_REMOTE, PUSH_BRANCH, and LEASE
+  - prepare-rebase.txt: rebasing-branches's scripts/prepare-rebase.sh 42 (exit 0)
   - npm-test.txt: npm test, the project's only check (exit 0); every later run prints the same (exit 0)
   - git-show-stages.txt: git show :1:src/pricing/cache.ts; git show :2:src/pricing/cache.ts; git show :3:src/pricing/cache.ts (each run of git rebase refs/remotes/origin/main stops with the same conflict as git-rebase.txt)
   - git-rebase-continue.txt: git add src/pricing/cache.ts && GIT_EDITOR=true git rebase --continue, after the resolved file is written
-  - git-push-lease.txt: git push --force-with-lease=feature/cache-ttl:8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d origin feature/cache-ttl:feature/cache-ttl
-  - git-ls-remote.txt: git ls-remote origin refs/heads/feature/cache-ttl; git rev-parse HEAD
+  - publish.txt: rebasing-branches's scripts/publish.sh feature/cache-ttl origin feature/cache-ttl 8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d (exit 0; git's push output on stderr, then PUSHED on stdout)
   - ci-gate.txt: node "<skill-dir>/scripts/ci-gate.mjs" https://github.acme.invalid/acme/api/pull/42, run in the background (exit 0)
   - merge.txt: "<skill-dir>/scripts/merge.sh" https://github.acme.invalid/acme/api/pull/42 5d7e9b1c3a2f4e6d8b0c1a3e5f7d9b2c4e6a8f0d (exit 0)
 
@@ -79,15 +77,16 @@ append_system_prompt: |
   error: could not apply 3f1c9a2... Expire pricing cache entries after one signature rotation
   ```
 
-  git-rebase-preflight.txt:
+  prepare-rebase.txt:
   ```text
-  feature/cache-ttl
-  ```
-
-  git-recovery.txt:
-  ```text
-  RECOVERY=8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d PUSH_REMOTE=origin
-  PUSH_BRANCH=feature/cache-ttl LEASE=8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d
+  BRANCH=feature/cache-ttl
+  RECOVERY=8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d
+  PUSH_REMOTE=origin
+  PUSH_BRANCH=feature/cache-ttl
+  LEASE=8b2d4f6a1c3e5b7d9f0a2c4e6b8d0f1a3c5e7b9d
+  BASE=main
+  BASE_REMOTE=origin
+  MERGES=0
   ```
 
   npm-test.txt:
@@ -112,16 +111,11 @@ append_system_prompt: |
   Successfully rebased and updated refs/heads/feature/cache-ttl.
   ```
 
-  git-push-lease.txt:
+  publish.txt:
   ```text
   To github.acme.invalid:acme/api.git
    + 8b2d4f6...5d7e9b1 feature/cache-ttl -> feature/cache-ttl (forced update)
-  ```
-
-  git-ls-remote.txt:
-  ```text
-  5d7e9b1c3a2f4e6d8b0c1a3e5f7d9b2c4e6a8f0d	refs/heads/feature/cache-ttl
-  5d7e9b1c3a2f4e6d8b0c1a3e5f7d9b2c4e6a8f0d
+  PUSHED=5d7e9b1c3a2f4e6d8b0c1a3e5f7d9b2c4e6a8f0d
   ```
 
   ci-gate.txt:
