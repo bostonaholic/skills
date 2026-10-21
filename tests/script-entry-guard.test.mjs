@@ -407,3 +407,22 @@ for (const script of ["poll.mjs", "ci-fix-preflight.mjs"]) {
     assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
   });
 }
+
+for (const script of ["arm.mjs", "poll.mjs", "render-approval.mjs", "verify-approval.mjs"]) {
+  const dir = "skills/engineering/watching-reviewed-prs/scripts";
+
+  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
+    const run = spawnSync(
+      process.execPath,
+      [join(symlinkedDir(t, dir), script), "a", "b", "c", "d"],
+      { encoding: "utf8" },
+    );
+    assert.equal(run.status, 2);
+    assert.ok(run.stderr.startsWith(`${script}: usage: ${script} `), run.stderr);
+  });
+
+  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
+    const run = importModule(t, join(symlinkedDir(t, dir), script));
+    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+  });
+}

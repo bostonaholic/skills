@@ -50,9 +50,3 @@ Never reach for rejected merely because an item is unanswered; that is
 pending. Rejected publicly disputes the author's settlement and blocks the
 approval, while pending only waits. Reserve rejected for a settlement that
 actively contradicts the concern.
-
-## Voiding
-
-A thread that reopens loses its verdict, and a later re-resolution is reviewed
-fresh. A PR-level item's passing verdict is voided when the head advances past
-it again.
