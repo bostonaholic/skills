@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-10-21
+
 ### Changed
 
 - Move `rebasing-open-prs` run setup, the dropped-commit check, result-file writing, and reconcile status derivation into tested scripts, so workers no longer retype commands or parse `range-diff` output. [#106](https://github.com/bostonaholic/skills/pull/106)
@@ -556,5 +558,7 @@
 
 [0.33.0]: https://github.com/bostonaholic/skills/compare/v0.32.0...v0.33.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.34.0...HEAD
 [0.34.0]: https://github.com/bostonaholic/skills/compare/v0.33.0...v0.34.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.35.0...HEAD
+[0.35.0]: https://github.com/bostonaholic/skills/compare/v0.34.0...v0.35.0
