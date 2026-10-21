@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Move the save and reset in `redoing-implementations` into `scripts/save-and-reset-attempt.sh`, which checks both saves before resetting only the attempt's files and prints the exact restore commands. [#99](https://github.com/bostonaholic/skills/pull/99)
+
 ## [0.27.0] - 2026-10-21
 
 ### Changed
