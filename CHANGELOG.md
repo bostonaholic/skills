@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-10-21
+
 ### Changed
 
 - Build the `addressing-pr-comments` item set, settle each item (reply, resolve, react, verify), and print the review re-request report with scripts, so reruns never double-post. [#114](https://github.com/bostonaholic/skills/pull/114)
@@ -620,5 +622,7 @@
 
 [0.41.0]: https://github.com/bostonaholic/skills/compare/v0.40.0...v0.41.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.42.0...HEAD
 [0.42.0]: https://github.com/bostonaholic/skills/compare/v0.41.0...v0.42.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.43.0...HEAD
+[0.43.0]: https://github.com/bostonaholic/skills/compare/v0.42.0...v0.43.0
