@@ -1,5 +1,5 @@
 ---
 type: regex
-pattern: 'APPROVED|Approval'
+pattern: 'APPROV(?:ED|AL)|[Aa]pprov(?:ed|al)'
 target: last_message
 ---

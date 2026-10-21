@@ -6,70 +6,53 @@ argument-hint: "[timeframe] [owner...]"
 
 # Summarizing shipped work
 
-Turn merged pull requests into a grouped, linked record of shipped work. The
-report serves two uses: a short status update for a team, and a running brag
-document for review time.
-
 ## Scope
 
-Ask nothing up front. Search within the owners (users or organizations) the
-user names; with none named, search all of the user's merged PRs. When the
+Ask nothing up front. Search only the owners the user names, if any. When the
 user asks for work only, leave out personal and trivial repositories and name
 them in one line at the end of the report.
 
 ## Timeframe
 
 Resolve `<skill-dir>` to this skill's absolute directory. Map the request to
-one `PERIOD` token from the script's header (`this-week`, `last-month`,
-`2026-09`, `2026-Q3`, `since:2026-08-15`, `2026-08-01..2026-08-20`, and so on),
-`this-week` when the user names none, and run `scripts/resolve-timeframe.mjs`:
+one `PERIOD` token from the header of `scripts/resolve-timeframe.mjs`
+(`this-week` when the user names none) and run:
 
 ```sh
 node "<skill-dir>/scripts/resolve-timeframe.mjs" PERIOD
 ```
 
-It prints `START END`; use both below and in the report heading. Exit 64 means
-the token is wrong: fix it and rerun. Mapping the user's words to a token stays
-with you, since phrasing varies without bound.
+It prints `START END`. On exit 64, fix the token and rerun.
 
 ## Fetch merged PRs
 
-Pick a scratch directory `<out>` for this run, and run
-`scripts/fetch-shipped-prs.sh` with any owners as trailing arguments:
+With `<out>` a scratch directory, run:
 
 ```sh
 "<skill-dir>/scripts/fetch-shipped-prs.sh" START END [OWNER...] > <out>/shipped.jsonl; echo "rc=$?"
 ```
 
-Each line is one PR; its fields are listed in the script's header.
-
-On a non-zero exit, report the script's error and stop: lines already printed
-are partial. Do not summarize, list, or group any PR from the partial file, and
-do not offer to, even labeled as partial. Exit 64 means a bad date or argument:
-fix the call and rerun. For any other error, such as an HTTP 5xx, tell the user
-to rerun once it clears.
+On a non-zero exit, report the script's error and stop: the file is partial.
+Do not summarize, list, or group any PR from it, and do not offer to, even
+labeled as partial. Exit 64 means a bad date or argument: fix the call and
+rerun. For any other error, such as an HTTP 5xx, tell the user to rerun once
+it clears.
 
 ## Group and summarize
 
-**Group by product or system, not by repository.** One feature often spans
-repositories: a `deploy-service` change, its screen in `web-console`, and its
-docs are one item. Name areas after the products in the user's own notes or
-the repositories' READMEs when one matches.
+**Group by product or system, not by repository**: a service change, its UI
+screen, and its docs are one item. Within each area, add bold theme
+sub-headers, and put refactors, test infrastructure, CI, and lint fixes under
+a final **Engineering health** sub-header for that area.
 
-Within each area, add bold sub-headers for themes (for example **Rollout
-behavior**, **Approvals and UI**). Put refactors, test infrastructure, CI, and
-lint fixes under a final **Engineering health** sub-header for that area.
-
-**One sentence per change.** Say what changed for the people who use the
-system, in plain words. Merge PRs that ship one change into one line. Collapse
-a run of similar PRs into one line with a count ("Cut the complexity of 6
-heavily branched methods").
+**One sentence per change**, in plain words for the system's users. Merge PRs
+that ship one change into one line; collapse a run of similar PRs into one
+line with a count.
 
 **Drop** version bumps, reverts of work merged in the same window, and PRs
 whose only content is fixing the previous PR.
 
-**Links go at the end of each line**, in parentheses, comma-separated: the PRs
-first, then the issues.
+**Links end each line**, in parentheses, comma-separated: PRs, then issues.
 
 - PR label: `pr_label`.
 - Issue label: the ticket key (`OPS-123`), or `repo#number` for a GitHub
@@ -77,14 +60,12 @@ first, then the issues.
 - Issue source, in order: the URLs in `title_ticket_links`; otherwise the
   `issue_links` the body cites as the PR's own ticket. Skip tickets the body
   mentions only as related context or follow-up work.
-- A `title_ticket_links` key whose URL is null: leave it unlinked, unless an
-  issue tracker tool available in the session confirms the issue and gives its
-  URL.
+- A `title_ticket_links` key with a null URL stays unlinked unless an issue
+  tracker tool in the session gives its URL.
 
 ## Report
 
-Markdown. This shape is a default to adapt: keep the section order, and fit
-the areas, themes, and counts to the work.
+Markdown. Keep the section order; fit areas, themes, and counts to the work.
 
 ```markdown
 # Shipped <START> to <END>
@@ -98,31 +79,23 @@ the areas, themes, and counts to the work.
 
 **<Theme>**
 
-- Delayed rollouts now continue one step at a time instead of jumping ahead. ([deploy-service#781](…), [OPS-123](…))
+- …
 
 **Engineering health**
 
 - …
 
-## <Next area>
-
-…
-
 ## Themes
 
-- 2 to 4 bullets naming patterns across the period, such as "most deploy-service work hardened recovery after incidents".
+- 2 to 4 bullets naming patterns across the period.
 
 Left out as personal or trivial: <repos>.
 ```
 
-- **Highlights** rank by effect on users or the business: new capabilities,
-  fixes for incidents or wrong behavior, and automation that removes manual
-  work rank above refactors and docs.
-- **Areas** are ordered by how much shipped in each.
-- **Themes** make only claims the PR list supports.
-- The left-out line appears only for a work-only request.
-
-Write plainly: no metaphors, no intensifiers, no "just".
+Rank highlights by effect on users or the business, above refactors and docs.
+Order areas by how much shipped. Themes claim only what the PR list supports.
+The left-out line is only for a work-only request. Write plainly: no
+metaphors, no intensifiers, no "just".
 
 ## Brag document
 

@@ -87,7 +87,7 @@ for.
 
 ## Review findings
 
-Default shape, to adapt: findings grouped as **Critical** (causes or hides
+Group findings as **Critical** (causes or hides
 bugs, forces heavy mocking, or is copied across many files) then
 **Improvement**. Each finding gives its pattern, `file:line`, the problem
 and its callers, before and after code, complexity (S: one file, no caller
