@@ -6,6 +6,7 @@
 - What to read
 - What to report
 - Severity and confidence
+- Exclusions
 - Report format
 
 Resolve every link below from this skill's directory.
@@ -106,6 +107,34 @@ login.
 
 Confidence is 0.9 to 1.0 when you traced a complete exploit path, and 0.8 to
 0.9 for a clear pattern with known exploitation. Below 0.8, do not report.
+
+## Exclusions
+
+Drop each candidate in these classes, and do not list dropped candidates:
+
+1. Denial of service, resource exhaustion, and unbounded loops or recursion.
+2. Missing rate limiting.
+3. Resource or memory leaks.
+4. Open redirects.
+5. Regex injection and regular-expression denial of service (ReDoS).
+6. Memory-safety flaws outside C and C++ files.
+7. SSRF in client-side-only files, such as HTML or browser-only code.
+8. Loading a secret at runtime from a file or environment variable that the
+   change does not commit. This covers only the load: a route, response, or
+   log line that exposes the secret stays judged as data exposure. A
+   committed fallback for an unset variable is not a load; the
+   committed-credential and accepted-default rules in What to report judge
+   it.
+9. Missing validation on a field with no security use, without a shown
+   exploit.
+10. Known CVEs in dependency versions. A changed dependency entry is a
+    coverage gap instead (Report format).
+11. Flaws only in tests, fixtures, examples, or docs that nothing ships or
+    runs in production. The committed-credential rule in What to report still
+    applies in these files. A CI workflow file is code that runs, so this
+    class does not cover it, but a test or fixture that CI runs stays here.
+12. Pre-existing flaws that the change does not make newly reachable (the
+    pre-existing rule in What to report).
 
 ## Report format
 
