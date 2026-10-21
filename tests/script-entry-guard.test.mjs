@@ -223,3 +223,18 @@ for (const script of ["analyze.mjs", "render-plan.mjs", "act.mjs"]) {
     assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
   });
 }
+test("ci-gate.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/landing-prs/scripts"), "ci-gate.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^ci-gate\.mjs: usage: ci-gate\.mjs /);
+});
+
+test("importing ci-gate.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/landing-prs/scripts"), "ci-gate.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
