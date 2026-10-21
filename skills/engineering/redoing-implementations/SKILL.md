@@ -27,42 +27,23 @@ reimplement it from scratch with the simplest design that meets them.
 3. **Record the baseline.** Run every check the current implementation
    passes (tests, linters, type checks, manual checks from the conversation)
    and note each result.
-4. **Save, then reset only the attempt's files.** Run every command from the
-   repository root, with `<files>` the whole step 2 list,
-   `<tracked files>` its tracked group, and `<out>` a new scratch directory
-   outside the working tree (`mktemp -d`).
-   - Record `<base>`, the commit the attempt started from: `HEAD` when the
-     attempt committed nothing, otherwise the parent of its first commit.
-     On a branch with no commits (`git rev-parse --verify HEAD` fails), use
-     the empty tree, `git hash-object -t tree /dev/null`, as `<base>` and in
-     place of `HEAD` below.
-   - Committed part, when there is one: `git branch redo-previous-<topic>`.
-   - Uncommitted changes to tracked files, staged or not:
-     `git diff --binary --default-prefix HEAD -- <files> > <out>/previous-attempt.patch`.
-     `--binary` keeps binary files, and `--default-prefix` overrides a
-     `diff.noprefix` setting that would make `git apply` misread the paths.
-   - New untracked files, with their directories:
-     `git ls-files -z --others -- <files> | tar --null -T - -cf <out>/untracked.tar`.
-
-   Reset nothing until both saves check out:
-   `git apply -R --check <out>/previous-attempt.patch` passes, and
-   `tar -tf <out>/untracked.tar` lists every new file. Skip a save and its
-   check only when the attempt has nothing of that kind. If a check fails,
-   stop and report it.
-
-   Then run
-   `git restore --source=<base> --staged --worktree -- <tracked files>`,
-   which also removes files the attempt added. Give it only tracked files:
-   it refuses the whole list if one path is untracked. Delete the new
-   untracked files with
-   `git ls-files -z --others -- <files> | xargs -0 rm -f --`. Never reset or
-   clean the whole working tree; other work stays as it is.
-
-   Tell the user where the saves are and how to bring the attempt back,
-   from the repository root:
-   `git restore --source=redo-previous-<topic> --staged --worktree -- <tracked files>`
-   when there is a committed part, then
-   `git apply <out>/previous-attempt.patch` and `tar -xf <out>/untracked.tar`.
+4. **Save, then reset only the attempt's files.** From the repository root,
+   run
+   `scripts/save-and-reset-attempt.sh <base> <topic> <out> -- <files>`,
+   with `<base>` the commit the attempt started from (`HEAD` when it
+   committed nothing, otherwise the parent of its first commit), `<topic>` a
+   short branch-name word for the work, `<out>` a new directory outside the
+   working tree (`mktemp -d`), and `<files>` every file in the step 2 list.
+   Never reset or clean the whole working tree; other work stays as it is.
+   - Exit 0: tell the user the `branch=`, `patch=`, and `tar=` saves that
+     are not `none`, and give the `restore=` commands, in order, as the way
+     to bring the attempt back.
+   - Exit 1: a save failed its check and nothing was reset. Stop and report
+     the stderr line.
+   - Exit 2 or 3: fix the named argument or install the named tool, then
+     rerun with a new `<out>`.
+   - Exit 4: the saves are intact but the reset failed. Stop and report the
+     stderr line and `<out>`.
 
 5. **Implement cleanly.** Write the new design from scratch rather than
    patching, carrying forward no abstraction, workaround, or dead code from
