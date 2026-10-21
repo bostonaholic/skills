@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-10-21
+
+### Changed
+
+- Run each `watching-authored-prs` poll, failed-job log read, and CI fix branch check through scripts, with poll state kept in a file that survives compaction. [#115](https://github.com/bostonaholic/skills/pull/115)
+
 ## [0.43.0] - 2026-10-21
 
 ### Changed
@@ -624,5 +630,7 @@
 
 [0.42.0]: https://github.com/bostonaholic/skills/compare/v0.41.0...v0.42.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.43.0...HEAD
 [0.43.0]: https://github.com/bostonaholic/skills/compare/v0.42.0...v0.43.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.44.0...HEAD
+[0.44.0]: https://github.com/bostonaholic/skills/compare/v0.43.0...v0.44.0
