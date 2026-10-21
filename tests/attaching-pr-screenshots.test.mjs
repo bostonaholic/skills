@@ -22,7 +22,7 @@ import test from "node:test";
 const SCRIPTS = resolve("skills/engineering/attaching-pr-screenshots/scripts");
 const BASH = spawnSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
 // Every external command upload.sh runs besides `gh` and `file`.
-const UPLOAD_TOOLS = ["jq", "cat", "wc", "tr", "rm", "dirname", "basename", "grep"];
+const UPLOAD_TOOLS = ["jq", "cat", "wc", "tr", "rm", "dirname", "basename", "grep", "node"];
 
 function scratch(t) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "attaching-pr-screenshots-")));
@@ -198,4 +198,473 @@ test("splice.mjs prints the same refused: prefix in splice mode as in --check mo
   assert.equal(check.status, 1);
   assert.match(check.stderr, /^refused: the body carries an HTML image tag/);
   assert.equal(check.stdout, "");
+});
+
+// --- asset-url.mjs: the one attachment-origin rule ---------------------------
+
+const assetUrl = await import(join(SCRIPTS, "asset-url.mjs"));
+const writeBody = await import(join(SCRIPTS, "write-body.mjs"));
+const spliceModule = await import(join(SCRIPTS, "splice.mjs"));
+
+const ASSET = "https://github.com/user-attachments/assets/5f0c2a9e-7d41";
+const ASSET_2 = "https://github.com/user-attachments/assets/9a63-2c1d";
+
+test("isAttachmentUrl passes only the attachment origin for the PR host", () => {
+  const pass = (url, host = "github.com", extra) => assetUrl.isAttachmentUrl(url, host, extra);
+  assert.ok(pass(ASSET));
+  assert.ok(pass("https://private-user-images.githubusercontent.com/123/456-abc.png?jwt=x"));
+  assert.ok(pass("https://ghe.example.com/user-attachments/assets/1", "ghe.example.com"));
+  assert.ok(pass("https://private-user-images.ghe.example.com/1/2.webp", "ghe.example.com"));
+  assert.ok(
+    pass(
+      "https://assets.example.com/user-attachments/assets/1",
+      "github.com",
+      "assets.example.com",
+    ),
+  );
+  for (const url of [
+    "http://github.com/user-attachments/assets/1",
+    "https://raw.githubusercontent.com/user-attachments/assets/1",
+    "https://github.com@evil.example/user-attachments/assets/1",
+    "https://github.com:443/user-attachments/assets/1",
+    "https://github.com/user-attachments/assets/../../evil/x.png",
+    "https://github.com/user-attachments/assets/%2e%2e/x.png",
+    "https://github.com/evil/repo/x.png",
+    "https://private-user-images.githubusercontent.com/1/2/3.png",
+    "https://private-user-images.githubusercontent.com/1/2.svg",
+    "https://evil.example/user-attachments/assets/1",
+  ]) {
+    assert.equal(pass(url), false, url);
+  }
+});
+
+test("asset-url.mjs filters stdin to passing URLs in order, and exits 2 on bad usage", () => {
+  const run = (args, input) =>
+    spawnSync(process.execPath, [join(SCRIPTS, "asset-url.mjs"), ...args], {
+      encoding: "utf8",
+      input,
+      env: {},
+    });
+  const result = run(["github.com"], `https://evil.example/x.png\n${ASSET_2}\n${ASSET}\n`);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `${ASSET_2}\n${ASSET}\n`);
+  assert.equal(run(["github.com"], "").stdout, "");
+  for (const args of [[], ["github.com@evil"], ["a", "b"]]) {
+    const bad = run(args, "");
+    assert.equal(bad.status, 2, args.join(" "));
+    assert.match(bad.stderr, /^asset-url\.mjs: usage: /);
+  }
+});
+
+// --- upload.sh: entry shape refusals, harvest, exit marker -------------------
+
+// The smallest byte run `file` reads as image/png: the signature and an IHDR.
+const PNG = Buffer.from(
+  "89504e470d0a1a0a0000000d494844520000000100000001080600000000000000",
+  "hex",
+);
+
+test("upload.sh refuses a blank caption, a non-string state, or non-string notes before any gh call", (t) => {
+  for (const [entries, reason] of [
+    [{ entries: [{ path: "/x/a.png", caption: " \n " }] }, /entry 0 has a blank caption/],
+    [{ entries: [{ path: "/x/a.png", caption: "a", state: 3 }] }, /entry 0 has a state/],
+    [{ entries: [{ path: "/x/a.png", caption: "a" }], notes: "x" }, /notes that are not an array/],
+    [{ entries: [{ path: "/x/a.png", caption: "a" }], notes: [1] }, /notes that are not an array/],
+  ]) {
+    const { result, ghCalls, runDir } = uploadRun(t, entries);
+    assert.equal(result.status, 1, JSON.stringify(entries));
+    assert.match(result.stderr, reason);
+    assert.equal(ghCalls, "");
+    assert.equal(readFileSync(join(runDir, "upload-exit"), "utf8"), "1\n");
+  }
+});
+
+test("upload.sh exits 2 naming a missing node before any gh call", (t) => {
+  const { result, ghCalls } = uploadRun(
+    t,
+    { entries: [{ path: "/x/a.png", caption: "a" }] },
+    { tools: [...UPLOAD_TOOLS, "file"].filter((tool) => tool !== "node") },
+  );
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /missing required tool: node/);
+  assert.equal(ghCalls, "");
+});
+
+// One PNG entry against a fake `gh` whose PR body lives in a file: each attach
+// appends `tail` to it, and each view returns it.
+function uploadOne(t, tail) {
+  const dir = scratch(t);
+  const state = join(dir, "body.txt");
+  writeFileSync(state, "Body.\n");
+  writeFileSync(join(dir, "tail.txt"), tail);
+  const root = join(dir, "img");
+  mkdirSync(root);
+  const image = join(root, "login.png");
+  writeFileSync(image, PNG);
+  const cases = [
+    `  "pr edit --help") echo "  -A, --attach file" ;;`,
+    `  "pr edit 7 --repo github.com/o/r --attach "*) cat '${join(dir, "tail.txt")}' >>'${state}' ;;`,
+    `  "pr view 7 --repo github.com/o/r --json body") printf '{"body":%s}' "$(jq -Rs . <'${state}')" ;;`,
+  ].join("\n");
+  return uploadRun(t, JSON.stringify({ root, entries: [{ path: image, caption: "login" }] }), {
+    cases,
+  });
+}
+
+test("upload.sh harvests the one attachment URL an attach appended", (t) => {
+  const { result, runDir } = uploadOne(t, `\n![login.png](${ASSET})`);
+  assert.equal(result.status, 0, result.stderr);
+  const [url, path] = readFileSync(join(runDir, "assets.tsv"), "utf8").trimEnd().split("\t");
+  assert.equal(url, ASSET);
+  assert.match(path, /\/login\.png$/);
+  assert.equal(readFileSync(join(runDir, "failures.tsv"), "utf8"), "");
+  assert.equal(readFileSync(join(runDir, "upload-exit"), "utf8"), "0\n");
+});
+
+test("upload.sh fails an entry whose tail holds two attachment URLs, or none on the origin", (t) => {
+  for (const [tail, reason] of [
+    [`\n![a](${ASSET}) ![b](${ASSET_2})`, "ambiguous attachment URL"],
+    ["\n![a](https://raw.githubusercontent.com/o/r/main/a.png)", "no attachment URL"],
+  ]) {
+    const { result, runDir } = uploadOne(t, tail);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(join(runDir, "assets.tsv"), "utf8"), "");
+    assert.match(readFileSync(join(runDir, "failures.tsv"), "utf8"), new RegExp(`^${reason}\t`));
+  }
+});
+
+// --- write-body.mjs: render, splice, write once -------------------------------
+
+function landed(entry, url) {
+  return { entry, status: "landed", url, reason: null };
+}
+
+function failed(entry, reason) {
+  return { entry, status: "failed", url: null, reason };
+}
+
+test("renderSection escapes caller text, numbers alts, and separates notes", () => {
+  const paired = [
+    landed({ path: "/s/a.png", caption: "log[in]  <b>\nform", state: "error (dark)" }, ASSET),
+    failed({ path: "/s/b.png", caption: "b" }, "not an image"),
+    landed({ path: "/s/c.png", caption: "c!" }, ASSET_2),
+  ];
+  assert.equal(
+    writeBody.renderSection(paired, ["first", "  ", "second\\"]),
+    [
+      "## Screenshots",
+      "",
+      "**log\\[in\\] \\<b\\> form** (error dark)",
+      `![screenshot-01](${ASSET})`,
+      "",
+      "**c\\!**",
+      `![screenshot-02](${ASSET_2})`,
+      "",
+      "> _note:_ first",
+      ">",
+      "> _note:_ second\\\\",
+      "",
+      "Not uploaded: b — not an image",
+      "",
+    ].join("\n"),
+  );
+});
+
+test("renderSection writes the degraded form with basenames when nothing landed", () => {
+  const paired = [
+    failed({ path: "/home/me/s/a b.png", caption: "a", state: "x" }, "file missing"),
+    { entry: { path: "/home/me/s/c.png", caption: "c" }, status: "not-attempted", url: null },
+  ];
+  assert.equal(
+    writeBody.renderSection(paired, []),
+    "## Screenshots\n\n**a** (x) — captured, not yet uploaded: a b.png\n\n" +
+      "**c** — captured, not yet uploaded: c.png\n",
+  );
+});
+
+test("a rendered section splices clean and reads as this skill's own on the next run", () => {
+  for (const paired of [
+    [
+      landed({ path: "/s/a.png", caption: "a (b) [c]", state: "s (t" }, ASSET),
+      failed({ path: "/s/b.png", caption: "<b>" }, "attach failed"),
+    ],
+    [{ entry: { path: "/s/a.png", caption: "a", state: "s" }, status: "not-attempted", url: null }],
+  ]) {
+    const section = writeBody.renderSection(paired, ["one", "two"]);
+    const count = paired.filter((item) => item.status === "landed").length;
+    const body = "## Summary\n\nBody.\n\n## How to Verify\n\n1. Look.\n";
+    const first = spliceModule.splice(body, section, { landed: count });
+    assert.equal(first.reason, "");
+    assert.equal(spliceModule.bodyRefusal(first.body), "");
+  }
+});
+
+test("pairEntries walks both TSVs in entries order and throws on anything unaccounted", () => {
+  const entries = [{ path: "/a" }, { path: "/b" }, { path: "/a" }];
+  const paired = writeBody.pairEntries(
+    entries,
+    `${ASSET}\t/a\n${ASSET_2}\t/a\n`,
+    "file missing\t/b\n",
+  );
+  assert.deepEqual(
+    paired.map((item) => [item.status, item.url ?? item.reason]),
+    [
+      ["landed", ASSET],
+      ["failed", "file missing"],
+      ["landed", ASSET_2],
+    ],
+  );
+  assert.deepEqual(
+    writeBody.pairEntries([{ path: "/a" }], "", "").map((item) => item.status),
+    ["not-attempted"],
+  );
+  assert.throws(() => writeBody.pairEntries(entries, `${ASSET}\t/a\n`, ""), /entry 1/);
+  assert.throws(
+    () => writeBody.pairEntries([{ path: "/a" }], `${ASSET}\t/a\n${ASSET}\t/z\n`, ""),
+    /no entry/,
+  );
+  assert.throws(
+    () => writeBody.pairEntries([{ path: "/a" }], `${ASSET}\t/a\n`, "x\t/a\n"),
+    /both landed and failed/,
+  );
+});
+
+// A run directory as `upload.sh` leaves it, with `files` overriding any
+// default and a null value removing that file.
+function finishedRun(t, files = {}, cases = "") {
+  const dir = scratch(t);
+  const runDir = join(dir, "run");
+  mkdirSync(runDir);
+  const entriesFile = join(dir, "entries.json");
+  writeFileSync(
+    entriesFile,
+    JSON.stringify({
+      root: "/s",
+      entries: [
+        { path: "/s/login.png", caption: "login", state: "error" },
+        { path: "/s/b.png", caption: "b" },
+      ],
+      notes: ["seeded"],
+    }),
+  );
+  const defaults = {
+    "pr-host": "github.com\n",
+    owner: "o\n",
+    repo: "r\n",
+    number: "7\n",
+    "repo-spec": "github.com/o/r\n",
+    "entries-file": `${entriesFile}\n`,
+    "pre-image.md": "## Summary\n\nBody.\n\nCloses #3\n",
+    "assets.tsv": `${ASSET}\t/s/login.png\n`,
+    "failures.tsv": "file missing\t/s/b.png\n",
+    "upload-exit": "0\n",
+  };
+  for (const [name, value] of Object.entries({ ...defaults, ...files })) {
+    if (value !== null) writeFileSync(join(runDir, name), value);
+  }
+  const { bin, log } = fakeBin(dir, { tools: ["cat"], cases });
+  const node = (script, args = []) =>
+    spawnSync(process.execPath, [join(SCRIPTS, script), runDir, ...args], {
+      encoding: "utf8",
+      env: { PATH: bin },
+    });
+  const read = (name) => readFileSync(join(runDir, name), "utf8");
+  return { dir, runDir, node, read, ghCalls: () => readFileSync(log, "utf8") };
+}
+
+const EDIT_OK = `  "pr edit 7 --repo github.com/o/r --body-file "*) exit 0 ;;`;
+
+test("write-body.mjs renders, splices, and writes the body once", (t) => {
+  const run = finishedRun(t, {}, EDIT_OK);
+  const result = run.node("write-body.mjs");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "written\n");
+  assert.equal(
+    run.ghCalls(),
+    `pr edit 7 --repo github.com/o/r --body-file ${join(run.runDir, "new-body.md")}\n`,
+  );
+  assert.match(run.read("section.md"), /^\*\*login\*\* \(error\)\n!\[screenshot-01\]/m);
+  assert.match(
+    run.read("new-body.md"),
+    /^Body\.\n\n## Screenshots\n[\s\S]*Not uploaded: b — file missing\n\nCloses #3\n$/m,
+  );
+  assert.equal(run.read("write-exit"), "0\n");
+});
+
+test("write-body.mjs exits 1 on a splice refusal without editing the PR", (t) => {
+  const run = finishedRun(t, { "pre-image.md": 'Body <img src="x">\n' }, EDIT_OK);
+  const result = run.node("write-body.mjs");
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^refused: the body carries an HTML image tag/);
+  assert.equal(run.ghCalls(), "");
+  assert.equal(existsSync(join(run.runDir, "new-body.md")), false);
+  assert.equal(run.read("write-exit"), "1\n");
+});
+
+test("write-body.mjs exits 3 when gh pr edit fails", (t) => {
+  const run = finishedRun(t);
+  const result = run.node("write-body.mjs");
+  assert.equal(result.status, 3);
+  assert.match(result.stderr, /gh pr edit failed/);
+  assert.equal(run.read("write-exit"), "3\n");
+});
+
+test("write-body.mjs faults before any gh call on a bad upload exit, run file, or URL", (t) => {
+  for (const [files, reason] of [
+    [{ "upload-exit": "4\n" }, /upload\.sh ended with exit 4/],
+    [{ "upload-exit": null }, /cannot read upload-exit/],
+    [{ "assets.tsv": `${ASSET}\t/s/other.png\n` }, /do not account for entry 0/],
+    [{ "assets.tsv": "https://evil.example/x.png\t/s/login.png\n" }, /off the attachment origin/],
+    [{ "entries-file": "/nonexistent/entries.json\n" }, /cannot read the entries file/],
+  ]) {
+    const run = finishedRun(t, files, EDIT_OK);
+    const result = run.node("write-body.mjs");
+    assert.equal(result.status, 2, JSON.stringify(files));
+    assert.match(result.stderr, reason);
+    assert.equal(run.ghCalls(), "");
+    assert.equal(run.read("write-exit"), "2\n");
+  }
+});
+
+// --- write-result.mjs: outcome, read-back, result.json ------------------------
+
+const LANDED_HTML =
+  '<h2>Summary</h2><p>Body.</p><div class="markdown-heading">' +
+  '<h2 class="heading-element">Screenshots</h2></div><p><strong>login</strong> (error)<br>' +
+  `<a href="${ASSET}"><img src="${ASSET}" alt="screenshot-01" style="max-width: 100%;"></a></p>` +
+  '<h2>Pre-merge</h2><img src="https://evil.example/x.png">';
+
+// A finished run whose fake `gh api` returns `bodyHtml`, and `markdownHtml`
+// from `POST /markdown`, saving what it was sent.
+function resultRun(t, bodyHtml, files = {}, { body = "", markdownHtml = "" } = {}) {
+  const dir = scratch(t);
+  const pull = join(dir, "pull.json");
+  writeFileSync(pull, JSON.stringify({ body, body_html: bodyHtml }));
+  const rendered = join(dir, "rendered.html");
+  writeFileSync(rendered, markdownHtml);
+  const cases = [
+    `  "api --hostname github.com repos/o/r/pulls/7 -H Accept: application/vnd.github.full+json") cat '${pull}' ;;`,
+    `  "api --hostname github.com --method POST markdown --input -") cat >'${join(dir, "sent.json")}'; cat '${rendered}' ;;`,
+  ].join("\n");
+  const run = finishedRun(
+    t,
+    { "write-exit": "0\n", "section.md": "## Screenshots\n", ...files },
+    cases,
+  );
+  return { ...run, sent: () => JSON.parse(readFileSync(join(dir, "sent.json"), "utf8")) };
+}
+
+test("write-result.mjs verifies a written body and writes result.json", (t) => {
+  const run = resultRun(t, LANDED_HTML);
+  const note = join(run.dir, "note.txt");
+  writeFileSync(note, "b was missing on disk\n");
+  const result = run.node("write-result.mjs", ["--operator-note-file", note]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "outcome partial\n");
+  assert.deepEqual(JSON.parse(run.read("result.json")), {
+    owner: "o",
+    repo: "r",
+    number: 7,
+    outcome: "partial",
+    assets: [
+      { caption: "login", path: "/s/login.png", url: ASSET },
+      { caption: "b", path: "/s/b.png", url: null },
+    ],
+    failures: [{ caption: "b", path: "/s/b.png", reason: "file missing" }],
+    body_written: true,
+    operator_note: "b was missing on disk",
+    section: "## Screenshots\n",
+  });
+});
+
+test("write-result.mjs reports unverified with the failed assertion and a null section", (t) => {
+  for (const [html, assertion] of [
+    ["<h2>Summary</h2>", "the rendered body has no Screenshots heading"],
+    ["<h2>Screenshots</h2><p>login</p>", "screenshot-01 has no rendered image"],
+    [
+      '<h2>Screenshots</h2><img alt="screenshot-01" src="https://evil.example/user-attachments/assets/1">',
+      "image 1 in the section is not on the attachment origin",
+    ],
+  ]) {
+    const run = resultRun(t, html);
+    const result = run.node("write-result.mjs");
+    assert.equal(result.status, 1, html);
+    assert.equal(result.stdout, `outcome unverified\nfailed ${assertion}\n`);
+    const written = JSON.parse(run.read("result.json"));
+    assert.equal(written.section, null);
+    assert.equal(written.body_written, true);
+  }
+});
+
+test("write-result.mjs reports unverified when the read-back call fails", (t) => {
+  const run = finishedRun(t, { "write-exit": "0\n" });
+  const result = run.node("write-result.mjs");
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "outcome unverified\nfailed the body could not be read back\n");
+});
+
+test("write-result.mjs renders the stored body through POST /markdown when body_html is empty", (t) => {
+  const run = resultRun(t, "", {}, { body: "## Screenshots\n", markdownHtml: LANDED_HTML });
+  const result = run.node("write-result.mjs");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "outcome partial\n");
+  assert.deepEqual(run.sent(), { text: "## Screenshots\n", mode: "gfm", context: "o/r" });
+});
+
+test("write-result.mjs checks a degraded write as text", (t) => {
+  const files = { "assets.tsv": "", "failures.tsv": "", "upload-exit": "3\n" };
+  const degraded =
+    "<h2>Screenshots</h2><p><strong>login</strong> (error) — captured, not yet uploaded: " +
+    "login.png</p><p><strong>b</strong> — captured, not yet uploaded: b.png</p>";
+  const pass = resultRun(t, degraded, files);
+  const passed = pass.node("write-result.mjs");
+  assert.equal(passed.stdout, "outcome degraded\n", passed.stderr);
+  assert.equal(JSON.parse(pass.read("result.json")).section, null);
+
+  const fail = resultRun(t, degraded.replace("b.png", "other.png"), files);
+  assert.equal(
+    fail.node("write-result.mjs").stdout,
+    "outcome unverified\nfailed the basename of entry 1 does not appear as text\n",
+  );
+});
+
+test("write-result.mjs decides outcomes without a read-back when no body was written", (t) => {
+  const allFailed = { "assets.tsv": "", "failures.tsv": "x\t/s/login.png\ny\t/s/b.png\n" };
+  for (const [files, outcome] of [
+    [{ "upload-exit": null }, "refused"],
+    [{ "upload-exit": "1\n" }, "refused"],
+    [{ "upload-exit": "4\n" }, "uploaded-not-written"],
+    [{ "write-exit": "1\n" }, "uploaded-not-written"],
+    [{ "write-exit": "3\n" }, "uploaded-not-written"],
+    [{ "write-exit": "1\n", ...allFailed }, "refused"],
+  ]) {
+    const run = finishedRun(t, files);
+    const result = run.node("write-result.mjs");
+    assert.equal(result.status, 0, `${JSON.stringify(files)}: ${result.stderr}`);
+    assert.equal(result.stdout, `outcome ${outcome}\n`);
+    assert.equal(run.ghCalls(), "");
+    const written = JSON.parse(run.read("result.json"));
+    assert.equal(written.body_written, false);
+    assert.equal(written.section, null);
+  }
+});
+
+test("write-result.mjs faults and writes nothing on an unfinished or faulted run", (t) => {
+  for (const [files, args, reason] of [
+    [{}, [], /write-body\.mjs has not run/],
+    [{ "upload-exit": "2\n" }, [], /upload\.sh faulted/],
+    [{ "upload-exit": "9\n" }, [], /not an upload\.sh exit code/],
+    [{ "write-exit": "0\n" }, ["--operator-note-file"], /usage: /],
+    [
+      { "write-exit": "1\n" },
+      ["--operator-note-file", "/nonexistent/note"],
+      /cannot read the operator note file/,
+    ],
+  ]) {
+    const run = finishedRun(t, files);
+    const result = run.node("write-result.mjs", args);
+    assert.equal(result.status, 2, JSON.stringify(files));
+    assert.match(result.stderr, reason);
+    assert.equal(existsSync(join(run.runDir, "result.json")), false);
+  }
 });

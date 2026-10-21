@@ -17,6 +17,9 @@
 #   assets.tsv     truncated: one line per landed entry, and none has landed
 #   failures.tsv   truncated: one line per failed entry
 #
+# and removes a previous attempt's `upload-exit` and `write-exit`, which would
+# otherwise tell `write-result.mjs` how a run that never happened ended.
+#
 # Requires `gh` and `jq` on PATH.
 #
 # Exit codes:
@@ -77,4 +80,4 @@ printf '%s' "$PRE_IMAGE" >"$RUN_DIR/pre-image.md"
 printf '%s' "$PRE_IMAGE" >"$RUN_DIR/after.md"
 : >"$RUN_DIR/assets.tsv"
 : >"$RUN_DIR/failures.tsv"
-rm -f "$RUN_DIR/read-failed"
+rm -f "$RUN_DIR/read-failed" "$RUN_DIR/upload-exit" "$RUN_DIR/write-exit"
