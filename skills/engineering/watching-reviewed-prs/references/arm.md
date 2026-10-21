@@ -2,46 +2,24 @@
 
 ## Argument and PR
 
-Validate the argument before any GitHub call. Accept only a bare PR number
-(`^[0-9]+$`) or a URL matching
-`^https://[A-Za-z0-9.-]{1,253}/[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}/pull/[0-9]+$`
-(GitHub's identifier charset, never `[^/]+`); refuse anything else. Even a
-validated value never appears in a shell word: split it with parameter
-expansion into variables, not `$BASH_REMATCH`, which zsh leaves unset. A bare
-number with no local checkout has no repository: ask for the URL. Refuse a
-MERGED or CLOSED PR.
+Run `node <skill-dir>/scripts/arm.mjs [<pr-number-or-url>]`, passing the
+user's argument unchanged; the script validates it before any GitHub call.
 
-Resolve the PR with one projected call, never a bare `gh pr view`, whose
-default output prints the untrusted title and body:
+- **Exit 0:** armable. Bind `PR_URL` to `pr.url` and `HOST` to its host: the
+  **base repository**, where the threads live and the approval lands.
+- **Exit 3:** refuse, naming `refusal`. For `viewer-is-author`, say GitHub
+  rejects self-approval, and a delegated self-approval is a trust defect
+  anyway.
+- **Exit 2:** a malformed argument or a PR `gh` cannot resolve. A bare number
+  with no local checkout has no repository: ask for the URL.
+- **Exit 1:** the read failed; report stderr. **Exit 127:** `gh` is missing.
 
-```bash
-gh pr view "$ARG_NUMBER" --repo "$ARG_HOST/$ARG_OWNER/$ARG_REPO" \
-  --json url,number,state,isDraft,author,autoMergeRequest,headRefOid,latestReviews \
-  --jq '{url, number, state, isDraft,
-         authorLogin: .author.login,
-         autoMergeEnabled: (.autoMergeRequest != null),
-         headRefOid,
-         latestReviewStates: [.latestReviews[] | {login: .author.login, state}]}'
-```
-
-Drop `--repo` for a bare number, and the positional too with no argument. Take
-host, owner, repo, and number from the canonical `url`: that is the **base
-repository**, where the threads live and the approval lands. Never use
-head-repository fields, which name a fork's repository on a fork PR. Fetch the
-viewer login once (`viewer { login }`); it defines whose feedback is tracked.
-Never interpolate it into a GraphQL query string.
-
-Print `Armed at head <SHA>, auto-merge <on|off>` in the arm report. Run the
-poll once as cycle 0 and print its tracked count split by shape (threads,
-review summaries, conversation comments): the approval body compares against
-it.
+Print `Armed at head <pr.head>, auto-merge <on|off>` in the arm report.
 
 ## Classify the viewer's PR-level feedback
 
-This is one of the two places a body is read. Run the body-bearing comment
-retrieval once, completing both PR-level connections, and project it with
-`--jq` to the review summaries and conversation comments whose author is the
-viewer before any body reaches context; drop `reviewThreads`.
+This is one of the two places a body is read: `prLevel` holds only the
+viewer's own review summaries and conversation comments.
 
 Track one that raises a concern, asks a question about the code, or requests a
 change, including one that mixes an ask with chatter. Skip an approval note, a
@@ -54,16 +32,12 @@ correct the list by editing or deleting a comment and re-arming.
 
 ## Refusals
 
-- The viewer is the PR author: refuse. GitHub rejects self-approval, and a
-  delegated self-approval is a trust defect anyway.
-- Nothing is tracked: refuse. When every PR-level item was chatter, say so and
-  list them. When the viewer holds a PENDING review (query
-  `reviews(last: 1, states: [PENDING]) { nodes { state } }`), hint "submit
-  your pending review first".
-- The viewer's latest review is already `APPROVED` and nothing is tracked:
-  refuse. With new tracked feedback after a prior approval, arm and say a fresh
-  approval will be cast. A `CHANGES_REQUESTED` review arms, noting the
-  approval will supersede it.
+- Nothing is tracked (`threads.tracked` is zero and no item classified as
+  feedback): refuse. When every PR-level item was chatter, say so and list
+  them. When `pendingReview` is true, hint "submit your pending review first".
+- A `viewerLatestReview` of `APPROVED` with new tracked feedback arms; say a
+  fresh approval will be cast. `CHANGES_REQUESTED` arms, noting the approval
+  will supersede it.
 
 ## Arm-report warnings
 
@@ -76,14 +50,23 @@ correct the list by editing or deleting a comment and re-arming.
   no push addressed, which is expected; that an item the author answers only
   in prose always rides to the soft cap, so the user may approve by hand; and
   that settlement is judged against the branch, not read off a flag.
-- **Draft.** GitHub permits reviews on drafts; watch normally and name the
-  state.
+- **Draft** (`pr.isDraft`). GitHub permits reviews on drafts; watch normally
+  and name the state.
+
+## Write the state file
+
+Write the state file `scripts/poll.mjs` documents: `armHead` is `pr.head`,
+`autoMergeConfirmed` is whether the user confirmed an auto-merge run,
+`trackedItems` holds the ids classified as feedback, `armCounts` holds
+`threads.tracked` and the tracked count of each PR-level shape,
+`resolvedBySkill` is empty, and `verdicts` is empty. Then run the poll once
+as cycle 0 and print its tracked count split by shape (threads, review
+summaries, conversation comments): the approval body compares against it.
 
 ## Immediate path
 
-When every tracked thread is already resolved and the head has advanced past
-every tracked PR-level item, run the cycle-0 re-review over every item. If
-every verdict passes, approve without a loop; with auto-merge on, ask for
-explicit confirmation first, and a "no" or no answer is `Confirmation
-declined`. A rejected verdict rebuts and falls through to the loop (or stops as
+When the cycle-0 poll's `gate` is empty, re-review every trigger. If every
+verdict passes, approve without a loop; with auto-merge on, ask for explicit
+confirmation first, and a "no" or no answer is `Confirmation declined`. A
+rejected verdict rebuts and falls through to the loop (or stops as
 `Dispute stands`), and a pending one falls through to the loop.
