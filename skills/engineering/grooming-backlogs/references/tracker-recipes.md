@@ -37,75 +37,42 @@ gh issue create --repo "$OWNER/$REPO" --title "$NEW_ISSUE_TITLE" \
 gh api --method POST "repos/$OWNER/$REPO/issues/$N/comments" \
   -F body=@"$RUN_DIR/comment-$N.md"
 gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "$LABEL"  # additive only
-# An approved closure. Pre-close re-read first: no pre-image, no close.
-gh issue view "$N" --repo "$OWNER/$REPO" --json state,body,labels,updatedAt \
-  > "$RUN_DIR/pre-close-$N.json"
-# The evidence comment travels whole by file. A re-run matches it by content
-# before re-posting.
-gh api --method POST "repos/$OWNER/$REPO/issues/$N/comments" \
-  -F body=@"$RUN_DIR/closure-evidence-$N.md"
-# The fitting resolution label from the board settings, added additively.
-gh issue edit "$N" --repo "$OWNER/$REPO" --add-label "$RESOLUTION_LABEL"
-# "not planned", never "completed": the premise died, no work was delivered.
-gh issue close "$N" --repo "$OWNER/$REPO" --reason "not planned"
 ```
+
+An approved closure runs through `scripts/close-issue.sh`, per
+[closures](references/closures.md).
 
 ## Dependency links
 
-Dependency links are REST, keyed by **database id, not issue number**. Both are integers,
-so a number passed as an id resolves to some unrelated issue rather than fail:
+Run `scripts/link-blocked-by.sh "$RUN_DIR" "$OWNER/$REPO" <blocked> <blocker>`
+for each approved link, in plan order.
 
-```bash
-# $N is blocked by $BLOCKER. An undeclared blocker's number comes out of tracker
-# text, so match it against the loaded board before it reaches a path: a value
-# like `7/../../..` would re-target the request. Every mode caches board.json.
-jq -e --argjson b "$BLOCKER" --arg repo "$OWNER/$REPO" 'any(.items[];
-  .content.type == "Issue" and .content.number == $b
-  and .content.repository == $repo)' "$RUN_DIR/board.json" \
-  || { echo "blocker #$BLOCKER is not on the loaded board: stopping" >&2; exit 1; }
-# Resolve the blocker's database id: not its number, and not the `id` on the
-# cached link nodes, which is a GraphQL node id.
-BLOCKER_ID=$(gh api "repos/$OWNER/$REPO/issues/$BLOCKER" --jq .id)
-# `-F` types its value, so issue_id lands as a JSON integer; `-f` sends the
-# string "123" and the endpoint rejects it 422: the inverse of the GraphQL
-# rule below, where ids must travel over `-f` to stay strings.
-gh api --method POST "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by" \
-  -F issue_id="$BLOCKER_ID"
-# Verify from the blocked issue: make sure of the direction, not just the edge.
-gh issue view "$N" --repo "$OWNER/$REPO" --json blockedBy \
-  --jq '.blockedBy.nodes[].number'
-# Removal takes the same database id, in the path. Decomposition is a separate
-# endpoint: POST ".../issues/$PARENT/sub_issues" -F sub_issue_id="$CHILD_ID".
-gh api --method DELETE \
-  "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by/$BLOCKER_ID"
-```
+- Exit 0: linked and verified from the blocked issue, or already linked.
+- Exit 10: skipped (`closed`, `changed-since-load`, or `would-cycle`); report
+  it and draw nothing in its place.
+- Exit 4: an endpoint is not on the loaded board; report the blocker with its
+  owner, never linked.
+- Exit 1: stop (hard rule 12). Exit 64: a self link or a bad number; stop.
+
+Removing a link this run drew takes the blocker's database id (`gh api
+"repos/$OWNER/$REPO/issues/$BLOCKER" --jq .id`), never its number:
+`gh api --method DELETE "repos/$OWNER/$REPO/issues/$N/dependencies/blocked_by/$BLOCKER_ID"`.
+Decomposition is a separate endpoint:
+`POST ".../issues/$PARENT/sub_issues" -F sub_issue_id="$CHILD_ID"`.
 
 ## Board column
 
-The board column is a single-select field, so it needs GraphQL. Resolve the item, field, and
-option ids, write, then re-read. Every id goes over `-f`, which sends a string. `-F` types
-its value, so an all-digit id would fail the `String!` variable.
+Run
+`scripts/set-status.sh "$RUN_DIR" "$PROJECT" "$OWNER" "$OWNER/$REPO" <n> "$COLUMN" [--wip-limit <limit>]`,
+with `$READY_COLUMN` and `--wip-limit` for a promotion, and `$BACKLOG_COLUMN`
+without it for a displaced card.
 
-```bash
-# Ids: the project from `gh project view`, the Status field and its option from
-# `gh project field-list`, and the item from the cached board. $COLUMN is the
-# target column: $READY_COLUMN for a promotion, $BACKLOG_COLUMN for a displaced card.
-PROJECT_ID=$(gh project view "$PROJECT" --owner "$OWNER" --format json --jq .id)
-gh project field-list "$PROJECT" --owner "$OWNER" --format json --limit 100 \
-  > "$RUN_DIR/fields.json"
-FIELD_ID=$(jq -r '.fields[] | select(.name == "Status") | .id' "$RUN_DIR/fields.json")
-OPTION_ID=$(jq -r --arg column "$COLUMN" '.fields[] | select(.name == "Status")
-  | .options[] | select(.name == $column) | .id' "$RUN_DIR/fields.json")
-ITEM_ID=$(jq -r --argjson n "$N" --arg repo "$OWNER/$REPO" '.items[]
-  | select(.content.type == "Issue" and .content.number == $n
-    and .content.repository == $repo) | .id' "$RUN_DIR/board.json")
-gh api graphql -f query='mutation($project: ID!, $item: ID!, $field: ID!,
-  $option: String!) { updateProjectV2ItemFieldValue(input: { projectId: $project,
-  itemId: $item, fieldId: $field, value: { singleSelectOptionId: $option } })
-  { projectV2Item { id } } }' \
-  -f project="$PROJECT_ID" -f item="$ITEM_ID" -f field="$FIELD_ID" \
-  -f option="$OPTION_ID"
-```
+- Exit 0: moved and verified, or already there.
+- Exit 10: skipped (`changed-since-load`, `left-board`, or `wip-limit`);
+  report it.
+- Exit 4: the issue is off the board or the column is not a Status option;
+  stop and report it.
+- Exit 1: stop (hard rule 12).
 
 ## Other trackers
 

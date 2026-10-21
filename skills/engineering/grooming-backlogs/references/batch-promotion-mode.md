@@ -13,8 +13,9 @@ item's cached title, labels, and body. Record kept and dropped issue numbers,
 numbers only, in `$RUN_DIR/pool.md`. Verify the pool, which is also the closure
 pool, then rank it. An empty pool proposes nothing and asks nothing.
 
-Take the top `<count>` in rank order. Free Ready slots are the WIP limit minus
-the cards already there; a column already over its limit is a pre-existing
+Take the top `<count>` in rank order. Run
+`node scripts/ready-slots.mjs "$RUN_DIR" --ready "$READY_COLUMN" --wip <limit>`:
+`free` is the free Ready slots, and a `breach` of true is a pre-existing
 breach, so propose demotions and select nothing.
 
 **The limit stops the batch.** Each card move takes one slot. A blocked or
@@ -31,8 +32,9 @@ free slots. Ask one question per issue, demotion, closure, and link. A single
 yes never promotes or closes more than the one issue it answers.
 
 In a later turn, run each answered issue in rank order (rewrite, priority, card
-move last). Re-read the issue and the Ready column right before each card move;
-a move that would now exceed the limit is skipped, and so is every later one.
+move last). Each card move runs `scripts/set-status.sh` with `--wip-limit`, per
+[tracker recipes](references/tracker-recipes.md); after a `wip-limit` skip,
+every later move is skipped too.
 Board mode's re-read, pre-image, and verification rules bind every write.
 Report as board mode does, plus the focus area and pool, each issue that dropped
 move 4 and why, and each issue the limit left out. End with

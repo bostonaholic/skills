@@ -11,55 +11,40 @@
 
 ## Load once, in bulk
 
-The board loads first, because `$REPO` comes from it. Every paginated call
-gets an explicit limit. A board or issue shortfall stops the run: never groom a
-partial board. The comment and link caps can be hit on an ordinary board, so
-those record the affected issues instead.
+The board loads first, because `$REPO` comes from it. Run
+`scripts/load-board.sh "$RUN_DIR" "$PROJECT" "$OWNER"`.
 
-```bash
-# The board, then its milestones. No default: a missing key must fail.
-gh project item-list "$PROJECT" --owner "$OWNER" --format json --limit 10000 \
-  > "$RUN_DIR/board.json"
-jq -e '.totalCount == (.items | length)' "$RUN_DIR/board.json"
-gh api --paginate "repos/$OWNER/$REPO/milestones?state=all&per_page=100" \
-  > "$RUN_DIR/milestones.json"
-# Every open issue with its declared links, in one query, never per issue.
-ISSUE_FIELDS=number,title,body,labels,milestone,assignees,createdAt,updatedAt
-LINK_FIELDS=blockedBy,blocking,parent,subIssues
-gh issue list --repo "$OWNER/$REPO" --state open --limit 1000 \
-  --json "$ISSUE_FIELDS,$LINK_FIELDS" > "$RUN_DIR/issues.json"
-jq -e --argjson limit 1000 'length < $limit' "$RUN_DIR/issues.json"
-jq -r '.[] | select(any(.blockedBy, .blocking, .subIssues;
-  (.nodes | length) < .totalCount)) | .number' \
-  "$RUN_DIR/issues.json" > "$RUN_DIR/unloaded-links.txt"
-# Comment threads. A full page of 100 means the thread was read only in part.
-for n in $(jq -r '.[].number' "$RUN_DIR/issues.json"); do
-  gh api "repos/$OWNER/$REPO/issues/$n/comments?per_page=100" \
-    > "$RUN_DIR/comments-$n.json"
-  jq -e 'length < 100' "$RUN_DIR/comments-$n.json" > /dev/null \
-    || echo "$n" >> "$RUN_DIR/unloaded-threads.txt"
-done
-```
+- Exit 0: take `$REPO` from its `repo` line and the authenticated login from
+  `login`. `issues 0` means report "nothing to groom" and ask nothing.
+  `links unavailable` follows the [hard rules](references/hard-rules.md) edge
+  case.
+- Exit 3: stop and ask which repository to groom, listing the ones it names.
+- Exit 4: no board item belongs to a repository; say so and stop.
+- Exit 1: stop and report its error. Never groom a partial board.
 
-Comments are not optional. A `blockedBy` node in state `CLOSED` is a satisfied
-dependency, not a missing issue. A link node's `id` is a GraphQL node id, not
-the database id REST writes need. Also resolve the board settings and the
-authenticated login now.
+Issues in `unloaded-links.txt` and `unloaded-threads.txt` were read only in
+part; carry them to the report. A `blockedBy` node in state `CLOSED` is a
+satisfied dependency, not a missing issue. Also resolve the board settings
+now.
 
 ## Gap inventory
 
-Before forming any opinion, write `$RUN_DIR/gap-inventory.md`: one row per gap
-with a count and the issues it names.
+Before forming any opinion, run
+`node scripts/gap-inventory.mjs "$RUN_DIR" --ready "$READY_COLUMN" --wip <limit> --login <login> --in-flight <state>... > "$RUN_DIR/gap-inventory.json"`,
+one `--in-flight` per in-flight state. When board.json keys priority or
+estimate under another name, pass `--priority-field` or `--estimate-field`.
+Exit 1 or 2 stops with its error. Its rows are the mechanical gaps; a false
+`rollups_meaningful` means saying estimate rollups are not meaningful, and
+`links: unavailable` means the link rows are unknown, not empty.
 
-- no milestone, or still in a triage state; no priority set
-- milestones past due, complete, undescribed, or empty
+Then write `$RUN_DIR/gap-inventory.md`: those rows, plus one row per gap below
+with a count and the issues it names. These rest on reading prose or on
+names that are not board settings, so they stay with the model:
+
+- still in a triage state
 - missing problem, outcome, or acceptance criteria
 - labels outside the project's dominant set
-- estimate coverage; under a third, say rollups are not meaningful
 - cross-team or cross-repo work with nobody named on the other side
-- Ready or in-flight items with an open declared blocker
-- links that cycle, self-point, or point at a closed or deleted issue
-- blockers outside this repository or off the board
 
 ## Verify, rank, cluster
 
@@ -128,8 +113,10 @@ state/priority/label hygiene, new issues, closures, dependency links. Run
 serially. Re-read each item immediately before writing; one that changed since
 the cache is skipped and reported, not overwritten. Match a milestone or issue
 by title before creating one, so a re-run never duplicates. Cache
-`original-body-<n>.md` before any rewrite; no pre-image, no rewrite. Each link
-write re-reads both endpoints first and goes out from the blocked issue.
+`original-body-<n>.md` before any rewrite; no pre-image, no rewrite. Card
+moves, closures, and dependency links go through their scripts, per
+[tracker recipes](references/tracker-recipes.md) and
+[closures](references/closures.md), which re-read and verify on their own.
 
 A zero exit means the write was accepted, not that it landed. Re-read every
 value from the tracker, retry a timed-out write only after re-reading, verify a

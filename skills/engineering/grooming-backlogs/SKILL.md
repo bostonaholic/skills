@@ -42,10 +42,10 @@ check, and reports what was passed; never guess. One board per run. The focus ar
 prose: it narrows the pool by judgment and never reaches a command line.
 
 The board resolves `$PROJECT` and `$OWNER`. The repository is never passed:
-take it from the loaded board items' `content.repository`, and scope every
-repository call to `"$OWNER/$REPO"`. A board whose items span more than one
-repository, or whose repository owner differs from the project's, stops and
-asks which to groom.
+`scripts/load-board.sh` prints it as `repo`, and every repository call is
+scoped to `"$OWNER/$REPO"`. Its exit 3 (items span several repositories, or
+another owner holds the repository) stops and asks which to groom. The
+scripts need `gh`, `jq`, and `node` (`command -v gh jq node`).
 
 ## Board discovery
 

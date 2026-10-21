@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-10-21
+
+### Changed
+
+- Run the board load, the mechanical gap-inventory rows, Ready slot counts, card moves, dependency links, and closures in `grooming-backlogs` through tested scripts, leaving the model only judgment. [#109](https://github.com/bostonaholic/skills/pull/109)
+
 ## [0.37.0] - 2026-10-21
 
 ### Changed
@@ -576,5 +582,7 @@
 
 [0.36.0]: https://github.com/bostonaholic/skills/compare/v0.35.0...v0.36.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.37.0...HEAD
 [0.37.0]: https://github.com/bostonaholic/skills/compare/v0.36.0...v0.37.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.38.0...HEAD
+[0.38.0]: https://github.com/bostonaholic/skills/compare/v0.37.0...v0.38.0

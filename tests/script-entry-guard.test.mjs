@@ -304,3 +304,18 @@ test("importing find-leads.mjs through a symlinked directory has no side effects
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+for (const script of ["gap-inventory.mjs", "ready-slots.mjs"]) {
+  const dir = "skills/engineering/grooming-backlogs/scripts";
+
+  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
+    const run = runScript(join(symlinkedDir(t, dir), script));
+    assert.equal(run.status, 2);
+    assert.ok(run.stderr.startsWith(`${script}: usage: ${script} `), run.stderr);
+  });
+
+  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
+    const run = importModule(t, join(symlinkedDir(t, dir), script));
+    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+  });
+}

@@ -5,19 +5,19 @@ Ready column. It runs no board-mode step and creates no milestone.
 
 ## Load narrowly
 
-```bash
-gh project item-list "$PROJECT" --owner "$OWNER" --format json --limit 10000 \
-  > "$RUN_DIR/board.json"
-jq -e '.totalCount == (.items | length)' "$RUN_DIR/board.json"
-# The repositories holding an issue numbered $N on this board.
-jq -r --argjson n "$N" '.items[] | select(.content.type == "Issue"
-  and .content.number == $n) | .content.repository' "$RUN_DIR/board.json"
-```
+Run `scripts/load-board.sh "$RUN_DIR" "$PROJECT" "$OWNER" --issue "$N"`. It
+caches the board, the issue with its declared links and milestone in
+`issues.json`, its comments in `comments-<n>.json`, and `original-body-<n>.md`.
+An issue listed in `unloaded-threads.txt` has more comments to read.
 
-The last query must print exactly one `<owner>/<name>`. None means the issue is
-not on the board (stop non-zero); several means ask which; an owner other than
-`$OWNER` stops. Then load the issue with its body, every comment, its declared
-links, and its milestone, and cache `original-body-<n>.md`.
+- Exit 0: take `$REPO` from its `repo` line and the login from `login`.
+- Exit 4: the issue is not on the board; stop non-zero.
+- Exit 3: several repositories hold an issue `$N` on this board, or another
+  owner holds it; ask which.
+- Exit 1: stop and report its error.
+
+`links unavailable` follows the [hard rules](references/hard-rules.md) edge
+case.
 
 ## Four moves, in order
 
@@ -42,10 +42,10 @@ link (hard rule 11). A closed blocker blocks nothing: check state, not presence.
 
 ## Column rules
 
-- The Ready column holds at most its WIP limit. Promoting into a full column
-  means proposing which card goes back to the Backlog column.
-- A column already over its limit is a pre-existing breach: report it, propose
-  demotions, and add nothing.
+- Run `node scripts/ready-slots.mjs "$RUN_DIR" --ready "$READY_COLUMN" --wip <limit>`.
+  A `free` of 0 means proposing which card goes back to the Backlog column.
+- A `breach` of true is a pre-existing breach: report it, propose demotions,
+  and add nothing.
 - An issue with the excluded label is never promoted; its own column is its
   ready state.
 - Never add a status-like label; the Status field owns progress.
