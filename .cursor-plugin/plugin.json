@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic",
-  "version": "0.50.0",
+  "version": "0.51.0",
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston"
@@ -43,6 +43,7 @@
     "./skills/engineering/removing-comments",
     "./skills/engineering/reviewing-code",
     "./skills/engineering/reviewing-design-docs",
+    "./skills/engineering/reviewing-security",
     "./skills/engineering/simplifying-ruby-code",
     "./skills/engineering/summarizing-friction-logs",
     "./skills/engineering/using-gh-cli",

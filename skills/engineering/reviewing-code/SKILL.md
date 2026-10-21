@@ -1,6 +1,6 @@
 ---
 name: reviewing-code
-description: 'Reviews a code diff (PR, branch, commit range, working tree, or a diff already in the conversation) in a fresh-context read-only subagent, because a session holding the conversation is a biased reviewer, and returns Conventional Comments findings with an APPROVE, REQUEST CHANGES, or COMMENT verdict. Use when asked to review code, a diff, or a PR, including a pasted diff, a .diff or .patch file, or a diff shown earlier; never review it inline. Not for design docs; use reviewing-design-docs.'
+description: 'Reviews a code diff (PR, branch, commit range, working tree, or a diff already in the conversation) in a fresh-context read-only subagent, because a session holding the conversation is a biased reviewer, and returns Conventional Comments findings with an APPROVE, REQUEST CHANGES, or COMMENT verdict. Use when asked to review code, a diff, or a PR, including a pasted diff, a .diff or .patch file, or a diff shown earlier; never review it inline. Not for design docs; use reviewing-design-docs. Not for a security-focused review; use reviewing-security.'
 effort: high
 argument-hint: "[<diff target>]"
 ---
