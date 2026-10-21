@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-10-21
+
 ### Changed
 
 - Run `cutting-skills`'s Cut mode as a `hillclimbing` loop scored by the target `SKILL.md`'s character count, with the skill checks and any behavior evals as guardrails. [#124](https://github.com/bostonaholic/skills/pull/124)
@@ -706,5 +708,7 @@
 
 [0.51.0]: https://github.com/bostonaholic/skills/compare/v0.50.0...v0.51.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.52.0...HEAD
 [0.52.0]: https://github.com/bostonaholic/skills/compare/v0.51.0...v0.52.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.53.0...HEAD
+[0.53.0]: https://github.com/bostonaholic/skills/compare/v0.52.0...v0.53.0
