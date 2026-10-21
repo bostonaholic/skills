@@ -33,32 +33,10 @@ source line into a public tracker.
 
 ## File an approved issue
 
-Read the approved repository back from `<run cache>/repo.txt` and hold it to
-`owner/name` (letters, digits, `.`, `_`, `-`; an owner never starts with `.`,
-and a name is never `.` or `..`) in the same command that files the issue.
-Every prose value travels by file, the title included:
-
-```sh
-REPO="$(cat "<run cache>/repo.txt")"
-LC_ALL=C
-case "$REPO" in
-  '' | -* | .* | */. | */.. | */*/* | *[!A-Za-z0-9._/-]* | /* | */)
-    echo "refusing: the repository must be owner/name" >&2
-    exit 1
-    ;;
-  */*) ;;
-  *)
-    echo "refusing: the repository must be owner/name" >&2
-    exit 1
-    ;;
-esac
-TITLE="$(cat "<run cache>/title-<n>.txt")"
-gh issue create --repo "${REPO:?}" --title "${TITLE:?}" \
-  --body-file "<run cache>/issue-<n>.md"
-```
-
-Every `gh issue` call carries `--repo` explicitly. Record the issue URL the
-command prints for the report; a run that prints none counts as unfiled.
+Run `bash "<skill-dir>/scripts/file-issue.sh" "<run cache>" <n>`. On exit 0,
+record the URL from its `url:` line for the report. Exit 1, 2, or 3 leaves the
+item unfiled, with its stderr line as the reason. Any other `gh issue` call
+carries `--repo` explicitly.
 
 ## When filing fails
 

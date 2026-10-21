@@ -59,18 +59,19 @@ many items it holds, and what was asked for but not read. Gather read-only, with
 whatever this host already holds; never authenticate, never write to a remote,
 and never widen a source past what the prompt asked.
 
-- **Past agent sessions**: find the files in the host's own store, newest first,
-  for the repository this run is in (Claude Code keeps them in
-  `~/.claude/projects/<project-slug>/`; Codex in its dated `sessions/` tree,
-  matched by the working directory each rollout records). Normalize each with
+- **Past agent sessions**: run
+  `node "<skill-dir>/scripts/list-sessions.mjs" "$(git rev-parse --show-toplevel)" <count>`
+  with the count the prompt asked for. Report its `found:` count with the
+  sources. A named failure (exit 1, the name on the first stderr line) leaves
+  past sessions unread; report the name and its `note:` line, and say OpenCode's
+  SQLite store is not read when the name is `unsupported-store`. Normalize each
+  `session:` path with
   `node "<skill-dir>/scripts/resolve-transcript.mjs" "<the printed run cache path>" --file "<transcript path>"`,
   which writes `sources/<name>.jsonl` (suffixed `-2`, `-3`, ... when a
   different earlier source took the name; the same transcript normalized again
   reuses its path) and prints the same counts as above. A named failure here,
   such as `unreadable-transcript` or `unsupported-format`, does not stop the
-  run: mark that session unread in `sources.md` with the failure name. Exclude
-  this session's own file unless the prompt asked for it. OpenCode's past
-  sessions live in SQLite and are not read; say so.
+  run: mark that session unread in `sources.md` with the failure name.
 - **PR review comments, issues, and other tracker text**: fetch with the
   repository's authenticated `gh` (`gh api --paginate`), every call carrying
   the repository explicitly, and save the JSON response as the source file.

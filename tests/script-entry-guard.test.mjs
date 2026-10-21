@@ -49,6 +49,22 @@ test("write-target.mjs run through a symlinked directory reaches its usage error
   assert.match(run.stderr, /^usage: write-target\.mjs </);
 });
 
+test("list-sessions.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "list-sessions.mjs"),
+  );
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^usage: list-sessions\.mjs </);
+});
+
+test("importing list-sessions.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "list-sessions.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("splice.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
     join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "splice.mjs"),

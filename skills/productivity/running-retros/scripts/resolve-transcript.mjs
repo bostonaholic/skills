@@ -174,6 +174,14 @@ export function detectHost(env) {
   return candidates;
 }
 
+/**
+ * The directory name Claude Code gives a project under its store: the
+ * project's absolute path with each `/` and `.` replaced by `-`.
+ */
+export function projectSlug(directory) {
+  return String(directory).replace(/[/.]/g, "-");
+}
+
 /** The session store `host` keeps, honoring the host's own root override. */
 export function storeRootFor(host, env) {
   const environment = env ?? {};
@@ -202,7 +210,7 @@ function entriesOf(directory) {
 }
 
 /** Every `*.jsonl` exactly `depth` directory levels under `root`, and no deeper. */
-function transcriptsUnder(root, depth) {
+export function transcriptsUnder(root, depth) {
   if (depth === 0) {
     return entriesOf(root)
       .filter((entry) => !entry.isDirectory() && entry.name.endsWith(".jsonl"))
@@ -239,7 +247,7 @@ function filesContaining(files, marker) {
 }
 
 /** The transcript `host` would name `sessionId`, as a filename test. */
-function namesSession(host, file, sessionId) {
+export function namesSession(host, file, sessionId) {
   const name = basename(file);
   return HOSTS[host]?.suffixed
     ? name.endsWith(`-${sessionId}.jsonl`)
@@ -247,7 +255,7 @@ function namesSession(host, file, sessionId) {
 }
 
 /** The first `HEADER_PROBE_BYTES` of a file, without reading a huge transcript whole. */
-function readHead(path) {
+export function readHead(path) {
   let fd;
   try {
     fd = openSync(path, "r");
@@ -1004,7 +1012,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   // The slug of the directory this command runs in. It matches only when the
   // session also started here, so it is an optimization, never the mechanism.
-  const slug = process.cwd().replace(/[/.]/g, "-");
+  const slug = projectSlug(process.cwd());
 
   const resolved =
     namedFile !== null

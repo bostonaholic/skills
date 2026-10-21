@@ -24,21 +24,13 @@ precondition: every write is a new file (undone by deleting it) or an edit to a
 tracked, clean file (undone by `git restore -- <path>`), so neither undo can
 reach the user's own work. Never skip it.
 
-**An edit** is applied only while its target is tracked and clean:
-
-```sh
-git ls-files --error-unmatch -- "<path>"   # not tracked -> skip this item
-git status --porcelain -- "<path>"         # non-empty -> skip this item
-git hash-object -- "<path>"                # differs from the plan's pre-image -> skip this item
-```
-
-An item that fails any check is **skipped** with the reason reported, never
-written. A changed blob id covers a target that already carries the edit and a
-target that changed some other way.
-
-**A creation** is applied only while its named path does not exist. A path that
-does exist skips that item and reports it, because this skill overwrites
-nothing it did not create.
+Before each write, run
+`bash "<skill-dir>/scripts/check-edit-target.sh" "$(git rev-parse --show-toplevel)" "<target>" "<pre-image>"`
+with the target `write-target.mjs` printed and the plan's pre-image (a blob id,
+or `absent` for a creation). Write only on `apply` (exit 0). On
+`skip: <reason>` (exit 3), skip that item and report the reason; this skill
+overwrites nothing it did not create. Exit 1 is an error: skip the item and
+report the stderr line.
 
 After each write, re-read the file and confirm it carries the approved text.
 Report any item that does not as skipped, with what the file holds instead.
@@ -51,37 +43,12 @@ that is a skill goes by **name**; every other target goes by **repo-relative
 path**.
 
 **The value never appears in a command as a literal.** Write it into the run
-cache with the file-writing tool, then read it back and hold it to a character
-allowlist before it reaches anything else. For a skill name:
+cache with the file-writing tool, then pass the file:
 
 ```sh
-NAME="$(cat "<run cache>/name-<n>.txt")"   # substitution output is not re-parsed
-LC_ALL=C                     # in a UTF-8 locale the bracket set is collation-dependent
-case "$NAME" in
-  ''|-*|*[!a-z0-9-]*)
-    echo "refusing: a proposed name must be a skill name, lowercase and hyphenated" >&2
-    exit 1 ;;
-esac
-node "<skill-dir>/scripts/write-target.mjs" "$(git rev-parse --show-toplevel)" "${NAME:?}"
+node "<skill-dir>/scripts/write-target.mjs" "$(git rev-parse --show-toplevel)" --name-file "<run cache>/name-<n>.txt"
+node "<skill-dir>/scripts/write-target.mjs" "$(git rev-parse --show-toplevel)" --path-file "<run cache>/path-<n>.txt"
 ```
-
-For any other file, the same read-back with an allowlist of plain path
-characters:
-
-```sh
-TARGET="$(cat "<run cache>/path-<n>.txt")"
-LC_ALL=C
-case "$TARGET" in
-  ''|-*|/*|*[!A-Za-z0-9._/-]*)
-    echo "refusing: a proposed path must be plain and repo-relative" >&2
-    exit 1 ;;
-esac
-node "<skill-dir>/scripts/write-target.mjs" "$(git rev-parse --show-toplevel)" --path "${TARGET:?}"
-```
-
-The script also refuses `..`, `.`, and empty segments, and any path whose
-resolved real path leaves the repository. Reference the value only as `"$NAME"`
-or `"$TARGET"` within that same command.
 
 - **A refused name or path** drops only that one item, named in the report,
   while the others proceed.
