@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-10-21
+
 ### Changed
 
 - Resolve the instructions file in `learning-from-mistakes` with `scripts/resolve-instructions-file.sh`, which follows symlinks and import-only files and stops on a loop. [#119](https://github.com/bostonaholic/skills/pull/119)
@@ -660,5 +662,7 @@
 
 [0.46.0]: https://github.com/bostonaholic/skills/compare/v0.45.0...v0.46.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.47.0...HEAD
 [0.47.0]: https://github.com/bostonaholic/skills/compare/v0.46.0...v0.47.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.48.0...HEAD
+[0.48.0]: https://github.com/bostonaholic/skills/compare/v0.47.0...v0.48.0
