@@ -17,7 +17,8 @@
 #   entry-paths.txt  the JSON-to-shell bridge: one entry path per line
 #   candidates.txt   the URLs one attach's suffix held, rewritten per entry
 #   allowed.txt      the candidates `asset-url.mjs` passed, rewritten per entry
-#   upload-exit      this script's exit code, written on every exit, so
+#   upload-exit      this script's exit code, written on every exit while the
+#                    run directory exists, so
 #                    `write-body.mjs` and `write-result.mjs` know how it ended
 #
 # EVERY entry lands in exactly one of the two files. An entry in neither
@@ -53,8 +54,10 @@ if [ "$#" -ne 1 ]; then
   exit 2
 fi
 RUN_DIR="$1"
-# shellcheck disable=SC2154 # $? is the exit status the trap runs on
-trap 'printf "%s\n" "$?" >"$RUN_DIR/upload-exit"' EXIT
+# A run directory that does not exist gets no marker: the failed write would
+# print a redirect error and turn the exit into 1.
+# shellcheck disable=SC2154 # rc is assigned inside the trap string
+trap 'rc=$?; if [ -d "$RUN_DIR" ]; then printf "%s\n" "$rc" >"$RUN_DIR/upload-exit"; fi' EXIT
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 for TOOL in gh jq file node; do
   if ! command -v "$TOOL" >/dev/null 2>&1; then

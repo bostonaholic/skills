@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Make attaching-pr-screenshots' `upload.sh` exit 2, as documented, when its run directory does not exist, instead of exiting 1 with a redirect error. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.53.2] - 2026-10-21
 
 ### Fixed
