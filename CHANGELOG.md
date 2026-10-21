@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `choosing-determinism`, a skill that moves each step of an agent skill whose correct result is fixed by its inputs into a script the skill runs, leaving the model only judgment. [#97](https://github.com/bostonaholic/skills/pull/97)
+
 ## [0.25.0] - 2026-10-20
 
 ### Changed
