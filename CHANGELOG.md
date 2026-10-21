@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-21
+
 ### Changed
 
 - Move the save and reset in `redoing-implementations` into `scripts/save-and-reset-attempt.sh`, which checks both saves before resetting only the attempt's files and prints the exact restore commands. [#99](https://github.com/bostonaholic/skills/pull/99)
@@ -500,5 +502,7 @@
 
 [0.26.0]: https://github.com/bostonaholic/skills/compare/v0.25.0...v0.26.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.27.0...HEAD
 [0.27.0]: https://github.com/bostonaholic/skills/compare/v0.26.0...v0.27.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.28.0...HEAD
+[0.28.0]: https://github.com/bostonaholic/skills/compare/v0.27.0...v0.28.0
