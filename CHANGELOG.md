@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Run `merging-dependabot-prs` analysis, plan rendering, and each merge or rebase comment through tested scripts, leaving breaking-note and usage judgment to the model. [#101](https://github.com/bostonaholic/skills/pull/101)
+
 ## [0.29.0] - 2026-10-21
 
 ### Changed
