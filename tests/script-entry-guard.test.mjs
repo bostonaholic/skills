@@ -253,3 +253,38 @@ test("importing ci-gate.mjs through a symlinked directory has no side effects", 
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+test("scan-deps.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"), "scan-deps.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^scan-deps\.mjs: usage: scan-deps\.mjs /);
+});
+
+test("importing scan-deps.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"), "scan-deps.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("score.mjs run through a symlinked directory reaches its usage error", (t) => {
+  // score.mjs reads findings from stdin, so only an argument triggers its usage error.
+  const script = join(
+    symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"),
+    "score.mjs",
+  );
+  const run = spawnSync(process.execPath, [script, "findings.json"], { encoding: "utf8" });
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^score\.mjs: usage: score\.mjs /);
+});
+
+test("importing score.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"), "score.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
