@@ -20,6 +20,7 @@ points to.
 ## Contents
 
 - Core frameworks
+- Figures
 - Chapter index
 - Glossary
 - Limits
@@ -30,12 +31,12 @@ points to.
 
 Price before designing the work, in this order: Client, Value, Price, Cost,
 Solutions. Learn who the client is and what the desired future state is worth to
-them, set a price range, derive a cost ceiling (about 60% of the price), and
-only then design the solution. Estimating hours first is the root mistake. Sell
-value (the desired future state), not inputs (hours) or outputs (deliverables).
-Value and fairness are subjective; fairness is how the client feels about the
-price. The test of a maximal sustainable price is the double thank-you, where
-both sides sincerely thank each other.
+them, set a price range, derive a cost ceiling (`ceiling` in
+[Figures](#figures)), and only then design the solution. Estimating hours
+first is the root mistake. Sell value (the desired future state), not inputs
+(hours) or outputs (deliverables). Value and fairness are subjective; fairness
+is how the client feels about the price. The test of a maximal sustainable
+price is the double thank-you, where both sides sincerely thank each other.
 
 ### The six rules
 
@@ -44,20 +45,21 @@ both sides sincerely thank each other.
    service with a number. Instead, ask the client for the four deal facts
    above, and give no figure for this deal until all four are in: no
    placeholder, example price, typical range, or guess. Publish guidance only,
-   such as a minimum level of engagement (MLOE, about 10% of the annual AGI
-   target), never per-service prices, unless the firm is productized.
+   such as a minimum level of engagement (MLOE, set from the annual AGI
+   target with `mloe` in [Figures](#figures)), never per-service prices,
+   unless the firm is productized.
 2. **Offer options.** Three, four at most, with the highest price last on the
    page. Options change the client's question from whether the price is worth it
    to which option is the best value. Never add a cheaper option to play it
    safe.
 3. **Anchor high.** Include an anchor priced above where the client will buy,
    and present it first. People adjust too little away from the first number
-   they hear, and a high anchor causes no backlash. If the anchor sells 20% of
-   the time or more, raise every price. Build it with the money-no-object
-   exercise: what the firm would do with no budget limit, introduced as a
-   thought experiment. If the low option always wins, close the gap between
-   the low and middle options; if the anchor won't sell anyway, push it higher
-   to flatter the middle.
+   they hear, and a high anchor causes no backlash. When `anchor-rate` in
+   [Figures](#figures) prints `"raise_prices":true`, raise every price. Build
+   it with the money-no-object exercise: what the firm would do with no budget
+   limit, introduced as a thought experiment. If the low option always wins,
+   close the gap between the low and middle options; if the anchor won't sell
+   anyway, push it higher to flatter the middle.
 4. **Say a price before you show a price.** State the price or range aloud
    before it appears in writing, even for routine work with existing clients:
    call before sending the estimate. Early objections are cheap; late ones come
@@ -96,14 +98,14 @@ using Sullivan's exact wording. Then run four steps:
    value only slightly past your comfort.
 4. **Give pricing guidance** as a range from $X to $Y. The firm owns $Y and says
    it first, by anchoring against guaranteed value: ask whether a share of
-   first-year profit (for example, a third) would be fair if the outcome were
-   guaranteed. Ask for the client's budget; that is $X. If the client counters
-   with a small share, ask whether they would really turn down an investment
-   guaranteed to return several times its cost. Keep the guarantee
-   hypothetical: if asked whether the firm will really guarantee it, stay open
-   but noncommittal.
-   Other benchmarks for $Y: 20% of value or a 5:1 return (Alan Weiss), or half
-   of first-year savings (large consultancies).
+   first-year profit (`y-benchmarks --profit` in [Figures](#figures)) would
+   be fair if the outcome were guaranteed. Ask for the client's budget; that
+   is $X. If the client counters with a small share, ask whether they would
+   really turn down an investment guaranteed to return several times its
+   cost. Keep the guarantee hypothetical: if asked whether the firm will
+   really guarantee it, stay open but noncommittal.
+   Alan Weiss's and the large consultancies' benchmarks for $Y come from
+   `y-benchmarks --value` and `--savings`.
 
 Never discuss or think about solutions during this conversation. Senior
 clients join only for creative, transformative work; operational work tends to
@@ -131,9 +133,9 @@ decision maker.
   never as policy, and carry only risk you can sleep on. Pair a satisfaction
   guarantee with a tip clause for a single executive buyer; with many
   stakeholders, use the tip clause alone. Plant both at agreement.
-- **Price integrity.** Strategic prices are round and end in three zeros. Use a
-  charm price (for example, $19k instead of $20k) only to nudge toward the
-  middle option.
+- **Price integrity.** Strategic prices are round (`round` in
+  [Figures](#figures)). Use a charm price (for example, $19k instead of $20k)
+  only to nudge toward the middle option.
 
 ### Pricing models
 
@@ -216,6 +218,28 @@ about money, the labor theory of value (value equals effort), confusing equal
 treatment with fairness, and a scarcity mindset. Make up for weak belief with
 options: a pipeline larger than capacity, cash in the bank, and about a dozen
 clients.
+
+## Figures
+
+Run `node "<skill-dir>/scripts/price-calc.mjs" <subcommand> <args>` for each
+figure a deal needs instead of computing it:
+
+- `ceiling <price>`: the cost ceiling for the solution.
+- `mloe <annual-agi-target>`: the minimum level of engagement.
+- `y-benchmarks [--profit <n>] [--value <n>] [--savings <n>]`: $Y from
+  first-year profit, value created, or first-year savings.
+- `anchor-rate <anchor-sold> <deals>`: whether the anchor sells often enough
+  to raise every price.
+- `round <price>`: a strategic price rounded to three zeros.
+
+It prints JSON naming the rule and its chapter. Treat a figure with
+`"rule_of_thumb":true` as a starting point to scale to the firm and client,
+not an exact answer. Exit 1 names a bad number on stderr: ask the user for
+it. Exit 2 is a malformed call: fix it. Without a shell, read the rule's
+constant in the script.
+
+Where each option sits between $X and $Y, the monthly figure of a lease, and
+when to charm-price all depend on the client, so they stay judgment.
 
 ## Chapter index
 
