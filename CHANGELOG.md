@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Run `landing-prs`'s pre-push checks, CI gate, and squash-merge through tested scripts that report each outcome as an exit code. [#102](https://github.com/bostonaholic/skills/pull/102)
+
 ## [0.30.0] - 2026-10-21
 
 ### Changed
