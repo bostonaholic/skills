@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-10-21
+
 ### Changed
 
 - Run `watching-reviewed-prs`'s arm checks, poll, approval body, and approval verification as scripts, with a state file that keeps verdicts and baselines across a compaction. [#116](https://github.com/bostonaholic/skills/pull/116)
@@ -636,5 +638,7 @@
 
 [0.43.0]: https://github.com/bostonaholic/skills/compare/v0.42.0...v0.43.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.44.0...HEAD
 [0.44.0]: https://github.com/bostonaholic/skills/compare/v0.43.0...v0.44.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.45.0...HEAD
+[0.45.0]: https://github.com/bostonaholic/skills/compare/v0.44.0...v0.45.0
