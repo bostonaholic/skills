@@ -40,7 +40,9 @@ filter, a plumbing command) inside a script; a new script in the skill's
   an override so tests can pin it.
 - Print JSON or fixed-format lines in a defined order, with no prose.
 - Fail loud: check required tools first, name each error on stderr, and exit
-  non-zero. Never succeed on empty or malformed input.
+  non-zero. Never succeed on empty or malformed input. End each failure with a
+  pointer to the skill file that explains it, and let a wrapped tool's own
+  error text through.
 - Make writes idempotent. Test with synthetic inputs, each error path included.
 
 ## Wiring it into SKILL.md
