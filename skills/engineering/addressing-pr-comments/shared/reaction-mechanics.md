@@ -21,7 +21,7 @@ and `THUMBS_DOWN`.
 
 To capture what the mutation needs, select `id` and
 `reactionGroups { content viewerHasReacted }` on the comment nodes; the
-[comment retrieval query](pull-request-comments.md) selects both. Skip any subject whose `viewerHasReacted` is already
+[comment retrieval](pull-request-comments.md) output carries both. Skip any subject whose `viewerHasReacted` is already
 true for the reaction you would add — a second run over the same PR must
 not double-react.
 

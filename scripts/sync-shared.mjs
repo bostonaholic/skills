@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 // Copies each canonical shared/<f>.md into every tracked skill that links it, plus the files
-// those canonical files link, so a skill installed alone resolves its shared rules.
+// those canonical files link, so a skill installed alone resolves its shared rules. A canonical
+// file names a shared script as `scripts/<f>.mjs`, relative to shared/; a skill file may name one
+// as `shared/scripts/<f>.mjs`. Either copies shared/scripts/<f>.mjs to the skill's
+// shared/scripts/, keeping its executable bit.
 //   node scripts/sync-shared.mjs          write the copies, delete stale ones
 //   node scripts/sync-shared.mjs --check  write nothing; exit 1 listing missing, stale, or extra copies
 // Any other argument exits 1 with a usage line, writing nothing. Before reading any file in the
 // root shared/ or a skill, both modes exit 1 when that path would leave the repository: the root
 // shared/, a skill directory, a skill's shared/, or a tracked file in a skill is a symlink or
-// resolves elsewhere, or an entry in either shared/ is a symlink.
+// resolves elsewhere, or an entry in either shared/ or shared/scripts/ is a symlink.
 // Acts on the git repository at the working directory. Skills and their files come from
 // `git ls-files`, so staged files count and untracked skill directories are ignored.
 // Importing this module runs nothing; scripts/lint-skills.mjs imports `references`.
 import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
   copyFileSync,
   existsSync,
   lstatSync,
@@ -21,12 +25,14 @@ import {
   realpathSync,
   rmdirSync,
   rmSync,
+  statSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const SKILL_LINK = /^shared\/([a-z0-9-]+\.md)$/;
+const SKILL_LINK = /^shared\/([a-z0-9-]+\.md|scripts\/[a-z0-9-]+\.mjs)$/;
 const SIBLING_LINK = /^([a-z0-9-]+\.md)(?:#.*)?$/;
+const SCRIPT_LINK = /^(scripts\/[a-z0-9-]+\.mjs)$/;
 
 function lsFiles(...pathspecs) {
   return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" })
@@ -89,9 +95,14 @@ function derive(dir, files, errors) {
       return;
     }
     needed.set(file, from);
+    if (!file.endsWith(".md")) return;
     const text = readFileSync(join("shared", file), "utf8");
     for (const { line, target } of references(text, { spans: false })) {
       const match = target.match(SIBLING_LINK);
+      if (match) need(match[1], `shared/${file}:${line}`);
+    }
+    for (const { line, target } of references(text, { spans: true })) {
+      const match = target.split("#")[0].match(SCRIPT_LINK);
       if (match) need(match[1], `shared/${file}:${line}`);
     }
   };
@@ -129,10 +140,12 @@ function plan() {
   const tracked = new Map(skills.map((dir) => [dir, lsFiles(dir)]));
   const errors = [
     containmentError(root, "shared", { entries: true }),
+    containmentError(root, join("shared", "scripts"), { entries: true }),
     ...skills.map(
       (dir) =>
         containmentError(root, dir, { entries: false }) ??
         containmentError(root, join(dir, "shared"), { entries: true }) ??
+        containmentError(root, join(dir, "shared", "scripts"), { entries: true }) ??
         tracked
           .get(dir)
           .map((path) => containmentError(root, path, { entries: false }))
@@ -147,9 +160,19 @@ function plan() {
   return { errors, copies };
 }
 
+// Lists a copy directory's entries, with each entry of its scripts/ as `scripts/<f>`.
 function onDisk(dir) {
-  return existsSync(dir) ? readdirSync(dir).sort() : [];
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .flatMap((entry) =>
+      entry === "scripts" && lstatSync(join(dir, entry)).isDirectory()
+        ? readdirSync(join(dir, entry)).map((file) => `scripts/${file}`)
+        : [entry],
+    )
+    .sort();
 }
+
+const executable = (path) => statSync(path).mode & 0o111;
 
 function check(copies) {
   const problems = [];
@@ -157,7 +180,10 @@ function check(copies) {
     for (const file of files) {
       const copy = join(dir, file);
       if (!existsSync(copy)) problems.push(`missing: ${copy}`);
-      else if (!readFileSync(copy).equals(readFileSync(join("shared", file))))
+      else if (
+        !readFileSync(copy).equals(readFileSync(join("shared", file))) ||
+        executable(copy) !== executable(join("shared", file))
+      )
         problems.push(`stale: ${copy}`);
     }
     for (const file of onDisk(dir))
@@ -168,11 +194,16 @@ function check(copies) {
 
 function write(copies) {
   for (const { dir, files } of copies) {
-    if (files.length) mkdirSync(dir, { recursive: true });
-    for (const file of files) copyFileSync(join("shared", file), join(dir, file));
+    for (const file of files) {
+      mkdirSync(dirname(join(dir, file)), { recursive: true });
+      copyFileSync(join("shared", file), join(dir, file));
+      chmodSync(join(dir, file), statSync(join("shared", file)).mode & 0o777);
+    }
     for (const file of onDisk(dir))
       if (!files.includes(file)) rmSync(join(dir, file), { recursive: true, force: true });
-    if (existsSync(dir) && onDisk(dir).length === 0) rmdirSync(dir);
+    const scripts = join(dir, "scripts");
+    if (existsSync(scripts) && readdirSync(scripts).length === 0) rmdirSync(scripts);
+    if (existsSync(dir) && readdirSync(dir).length === 0) rmdirSync(dir);
   }
 }
 

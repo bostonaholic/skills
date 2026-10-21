@@ -3,12 +3,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -143,4 +146,91 @@ test("write mode removes a stale shared/ directory from a skill that links no sh
     readFileSync(join(root, "skills/engineering/gadget/shared/old-rule.md"), "utf8"),
     OLD_RULE,
   );
+});
+
+// ---------------------------------------------------------------------------------------------
+// Shared scripts
+
+const SCRIPT_TEXT = "#!/usr/bin/env node\nconsole.log('fetch');\n";
+const SCRIPT_RULE =
+  "# Rule with a script\n\nRun [`scripts/fetch.mjs`](scripts/fetch.mjs). Also see `scripts/other.mjs`.\n";
+
+function scriptFixture(t, extra = {}) {
+  const root = fixtureRepo(t, {
+    "shared/rule-script.md": SCRIPT_RULE,
+    "shared/scripts/fetch.mjs": SCRIPT_TEXT,
+    "shared/scripts/other.mjs": SCRIPT_TEXT,
+    "shared/scripts/unused.mjs": SCRIPT_TEXT,
+    "skills/engineering/widget/SKILL.md": "Read [the rule](shared/rule-script.md).\n",
+    ...extra,
+  });
+  chmodSync(join(root, "shared/scripts/fetch.mjs"), 0o755);
+  return root;
+}
+
+test("sync copies each script a canonical file names into the skill's shared/scripts/ with its mode", (t) => {
+  const root = scriptFixture(t);
+  const run = runSync(root);
+  assert.equal(run.status, 0, run.output);
+  const scripts = join(root, "skills/engineering/widget/shared/scripts");
+  assert.deepEqual(readdirSync(scripts).sort(), ["fetch.mjs", "other.mjs"]);
+  assert.equal(readFileSync(join(scripts, "fetch.mjs"), "utf8"), SCRIPT_TEXT);
+  assert.equal(statSync(join(scripts, "fetch.mjs")).mode & 0o111, 0o111);
+  assert.equal(statSync(join(scripts, "other.mjs")).mode & 0o111, 0);
+  assert.equal(runSync(root, "--check").status, 0);
+});
+
+test("sync copies a script a skill file names as shared/scripts/<f>.mjs", (t) => {
+  const root = fixtureRepo(t, {
+    "shared/scripts/fetch.mjs": SCRIPT_TEXT,
+    "skills/engineering/widget/SKILL.md": "Run `shared/scripts/fetch.mjs`.\n",
+  });
+  const run = runSync(root);
+  assert.equal(run.status, 0, run.output);
+  assert.equal(
+    readFileSync(join(root, "skills/engineering/widget/shared/scripts/fetch.mjs"), "utf8"),
+    SCRIPT_TEXT,
+  );
+});
+
+test("--check names a script copy whose content or executable bit drifted", (t) => {
+  const root = scriptFixture(t);
+  assert.equal(runSync(root).status, 0);
+  const copy = join(root, "skills/engineering/widget/shared/scripts/fetch.mjs");
+  const stale = "stale: skills/engineering/widget/shared/scripts/fetch.mjs";
+  chmodSync(copy, 0o644);
+  let run = runSync(root, "--check");
+  assert.equal(run.status, 1, run.output);
+  assert.ok(run.output.includes(stale), run.output);
+  chmodSync(copy, 0o755);
+  writeFileSync(copy, `${SCRIPT_TEXT}// edited\n`);
+  run = runSync(root, "--check");
+  assert.equal(run.status, 1, run.output);
+  assert.ok(run.output.includes(stale), run.output);
+});
+
+test("--check names an extra script copy and write mode removes it with its empty directory", (t) => {
+  const root = scriptFixture(t, {
+    "skills/engineering/gadget/SKILL.md": "No shared rule.\n",
+    "skills/engineering/gadget/shared/scripts/fetch.mjs": SCRIPT_TEXT,
+  });
+  const check = runSync(root, "--check");
+  assert.equal(check.status, 1, check.output);
+  assert.ok(
+    check.output.includes("extra: skills/engineering/gadget/shared/scripts/fetch.mjs"),
+    check.output,
+  );
+  assert.equal(runSync(root).status, 0);
+  assert.equal(existsSync(join(root, "skills/engineering/gadget/shared")), false);
+});
+
+test("a canonical file naming a missing script exits 1 naming the file and line", (t) => {
+  const root = fixtureRepo(t, {
+    "shared/rule-script.md": "# Rule\n\nRun `scripts/absent.mjs`.\n",
+    "skills/engineering/widget/SKILL.md": "Read [the rule](shared/rule-script.md).\n",
+  });
+  const run = runSync(root);
+  assert.equal(run.status, 1, run.output);
+  assert.ok(run.output.includes("shared/rule-script.md:3"), run.output);
+  assert.ok(run.output.includes("shared/scripts/absent.mjs"), run.output);
 });
