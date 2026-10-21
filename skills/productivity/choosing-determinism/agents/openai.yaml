@@ -1,0 +1,4 @@
+interface:
+  display_name: "Choosing Determinism"
+  short_description: "Move a skill's deterministic steps into scripts it runs"
+  default_prompt: "Use $choosing-determinism to move every deterministic step of the requested skill into a script the skill runs."

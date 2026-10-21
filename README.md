@@ -57,6 +57,7 @@ Or follow the [installation instructions](INSTALL.md).
 ### Productivity
 
 - **[being-extremely-fucking-brief](./skills/productivity/being-extremely-fucking-brief/SKILL.md)**: Keep every response extremely brief.
+- **[choosing-determinism](./skills/productivity/choosing-determinism/SKILL.md)**: Move a skill's deterministic steps into scripts it runs.
 - **[composing-agent-prompts](./skills/productivity/composing-agent-prompts/SKILL.md)**: Compose a source-cited task prompt for another agent. Calls: `improving-prompts`.
 - **[conducting-deep-research](./skills/productivity/conducting-deep-research/SKILL.md)**: Research an evidence review plus a funding map.
 - **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core.
