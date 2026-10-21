@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-10-21
+
 ### Changed
 
 - Fetch pull-request feedback with a shared `fetch-pr-feedback.mjs` script that paginates every connection and fails loud on an incomplete read, in place of a query each PR skill retyped. [#103](https://github.com/bostonaholic/skills/pull/103)
@@ -532,5 +534,7 @@
 
 [0.30.0]: https://github.com/bostonaholic/skills/compare/v0.29.0...v0.30.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.31.0...HEAD
 [0.31.0]: https://github.com/bostonaholic/skills/compare/v0.30.0...v0.31.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.32.0...HEAD
+[0.32.0]: https://github.com/bostonaholic/skills/compare/v0.31.0...v0.32.0
