@@ -83,7 +83,7 @@ up to 30 minutes for CI. It prints `VERDICT=`, then `STATUS=`, `HEAD=`,
 ## Merge
 
 Run `"<skill-dir>/scripts/merge.sh" <URL> <HEAD>`. It squash-merges only if
-the head is still `HEAD`, with the current title plus ` (#<n>)` as the
+the head is still `HEAD`, with `<current title> (#<n>)` as the
 subject, then confirms the merge.
 
 - `0`: report the `MERGED` commit.
