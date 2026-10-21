@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Run the preflight, lease, base fetch, and lease-guarded push in `rebasing-branches` through tested scripts, so each refusal and push behaves the same on every run. [#104](https://github.com/bostonaholic/skills/pull/104)
+
 ## [0.32.0] - 2026-10-21
 
 ### Changed
