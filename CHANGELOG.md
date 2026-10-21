@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-10-21
+
 ### Changed
 
 - Trim 23 skills' `SKILL.md` files by 20% overall, cutting generic advice and rules repeated from script headers and references, to lower the tokens each skill loads. [#123](https://github.com/bostonaholic/skills/pull/123)
@@ -696,5 +698,7 @@
 
 [0.50.0]: https://github.com/bostonaholic/skills/compare/v0.49.0...v0.50.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.51.0...HEAD
 [0.51.0]: https://github.com/bostonaholic/skills/compare/v0.50.0...v0.51.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.52.0...HEAD
+[0.52.0]: https://github.com/bostonaholic/skills/compare/v0.51.0...v0.52.0
