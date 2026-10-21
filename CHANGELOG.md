@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Skip a review summary in `addressing-pr-comments` when its author later approved the PR, so the summary leaves the triage report and no longer blocks the review re-request, and report how many it skipped. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.60.0] - 2026-10-22
 
 ### Added

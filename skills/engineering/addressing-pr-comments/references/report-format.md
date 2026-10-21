@@ -27,3 +27,5 @@ Triage step 7 reports in this shape.
   globally.
 - End with `Skipped <n> review-record comments.` when `skippedReviewRecords` is
   above 0.
+- End with `Skipped <n> review summaries their authors later approved.` when
+  `supersededReviews` is above 0.

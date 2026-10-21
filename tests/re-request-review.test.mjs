@@ -40,13 +40,20 @@ function bot(login) {
   return { __typename: "Bot", login };
 }
 
-function review({ author, state, url, body, inlineCommentCount }) {
+function review({
+  author,
+  state,
+  url,
+  body,
+  inlineCommentCount,
+  submittedAt = FIXED_SUBMITTED_AT,
+}) {
   return {
     author,
     state,
     url,
     body,
-    submittedAt: FIXED_SUBMITTED_AT,
+    submittedAt,
     comments: { totalCount: inlineCommentCount },
   };
 }
@@ -522,6 +529,37 @@ test("derives pending feedback without markers", async (t) => {
       "not-requested pending-feedback",
     ]);
   });
+
+  await t.test(
+    "re-request-review does not count a summary its author later approved as pending",
+    () => {
+      const daveSummary = review({
+        author: user("dave"),
+        state: "COMMENTED",
+        url: `${PR_URL}#pullrequestreview-2001`,
+        body: BODY_SENTINEL,
+        inlineCommentCount: 0,
+        submittedAt: FIXED_SUBMITTED_AT,
+      });
+      const daveApproval = review({
+        author: user("dave"),
+        state: "APPROVED",
+        url: `${PR_URL}#pullrequestreview-2002`,
+        body: "",
+        inlineCommentCount: 0,
+        submittedAt: "2026-09-21T12:00:00Z",
+      });
+      const result = derive(
+        reviewState({
+          latestOpinionatedReviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, daveApproval],
+          reviews: [ALICE_CHANGES_REQUESTED_WITH_THREADS, daveSummary, daveApproval],
+        }),
+        PULL_REQUEST_412,
+      );
+      assert.deepEqual(result.logins, ["alice"]);
+      assert.deepEqual(result.lines, []);
+    },
+  );
 
   await t.test("a human conversation comment is pending", () => {
     const result = derive(

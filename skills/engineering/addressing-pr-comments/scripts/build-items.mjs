@@ -5,7 +5,7 @@
  *
  *     node "<skill-dir>/scripts/build-items.mjs" <feedback-file> [--exclude-ids <ids-file>]
  *
- *     import { buildItems } from "<skill-dir>/scripts/build-items.mjs";
+ *     import { buildItems, isSupersededByApproval } from "<skill-dir>/scripts/build-items.mjs";
  *     const itemSet = buildItems(feedback, excludedIds);
  *
  * `<feedback-file>` holds the stdout of a complete (exit 0)
@@ -22,6 +22,9 @@
  *     counted in `skippedReviewRecords`. The same marker from anyone else
  *     stays.
  *   - any item whose id is in `<ids-file>`, counted in `excluded`.
+ *   - a review summary whose author later submitted an APPROVED review, with
+ *     a strictly later `submittedAt`, counted in `supersededReviews`. This
+ *     drop runs after `<ids-file>`, so a listed id counts only in `excluded`.
  *
  * Stdout, on exit 0 only, one line of JSON:
  *
@@ -32,6 +35,7 @@
  *                  isOutdated, state, replyTo, reactionSubject, body,
  *                  comments } ],
  *     "skippedReviewRecords": <n>,
+ *     "supersededReviews": <n>,
  *     "excluded": <n>
  *   }
  *
@@ -73,6 +77,22 @@ class UsageError extends Error {}
 
 const login = (author) => (typeof author?.login === "string" ? author.login : null);
 const isEmptyBody = (body) => body == null || body === "";
+const submittedTime = (review) =>
+  typeof review.submittedAt === "string" ? Date.parse(review.submittedAt) : Number.NaN;
+
+/**
+ * True when `reviews` holds an APPROVED review by the same non-null login with
+ * a strictly later `submittedAt`. An unparseable time on either node gives false.
+ */
+export function isSupersededByApproval(review, reviews) {
+  const author = login(review.author);
+  const time = submittedTime(review);
+  if (author === null || Number.isNaN(time)) return false;
+  return reviews.some(
+    (other) =>
+      other.state === "APPROVED" && login(other.author) === author && submittedTime(other) > time,
+  );
+}
 
 function requireBody(node, section) {
   if (!("body" in node))
@@ -172,13 +192,27 @@ export function buildItems(feedback, excludedIds = new Set()) {
   }
 
   const candidates = [...threads, ...reviews, ...conversation];
-  const items = candidates.filter((item) => !excludedIds.has(item.id));
+  const kept = candidates.filter((item) => !excludedIds.has(item.id));
+  const reviewNodes = new Map(feedback.reviewSummaries.map((node) => [node.id, node]));
+  let supersededReviews = 0;
+  const items = [];
+  for (const item of kept) {
+    if (
+      item.kind === "review" &&
+      isSupersededByApproval(reviewNodes.get(item.id), feedback.reviewSummaries)
+    ) {
+      supersededReviews++;
+      continue;
+    }
+    items.push(item);
+  }
   return {
     pr: feedback.pr,
     viewer: { login: viewerLogin },
     items,
     skippedReviewRecords,
-    excluded: candidates.length - items.length,
+    supersededReviews,
+    excluded: candidates.length - kept.length,
   };
 }
 

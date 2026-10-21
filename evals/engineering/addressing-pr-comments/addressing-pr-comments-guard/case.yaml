@@ -204,6 +204,7 @@ execution:
         }
       ],
       "skippedReviewRecords": 0,
+      "supersededReviews": 0,
       "excluded": 0
     }
     ```

@@ -16,6 +16,8 @@ changes.
 An item reaches an outcome when A, B, E, or F executes, or the C or D reply
 posts. G items, could-not-apply, held security changes, failed pushes, and
 items still on a punch list have none.
+A review summary whose author later approved is not an item, so it never
+blocks the gate.
 
 Run the script only when the pass gave at least one item an outcome and left
 none without one. If the gate fails because of punch-list items or no

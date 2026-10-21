@@ -52,9 +52,11 @@
  *
  *   - an unresolved review thread, unless its latest comment is the viewer's
  *     and carries an outcome marker naming the thread's first-comment url.
- *   - a non-empty, non-PENDING review body, or a conversation comment, by a
- *     User other than the viewer, unless a viewer conversation comment
- *     carries an outcome marker naming the item's url.
+ *   - a non-empty, non-PENDING review body by a User other than the viewer,
+ *     unless the same author later approved or a viewer conversation comment
+ *     carries an outcome marker naming the review's url.
+ *   - a conversation comment by a User other than the viewer, unless a viewer
+ *     conversation comment carries an outcome marker naming the comment's url.
  *   - the empty CHANGES_REQUESTED review (no body, zero inline comments) of a
  *     reviewer the script would re-request. No triage pass presents it, so
  *     only that reviewer's pending request or newer review clears it.
@@ -120,6 +122,7 @@ import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { isSupersededByApproval } from "./build-items.mjs";
 
 const SCRIPT = "re-request-review.mjs";
 
@@ -286,7 +289,10 @@ function pendingItemUrls({ viewerLogin, reviewThreads, reviews, comments }) {
   const reviewUrls = reviews
     .filter(
       (review) =>
-        review.state !== "PENDING" && !isEmptyBody(review.body) && isOtherUser(review.author),
+        review.state !== "PENDING" &&
+        !isEmptyBody(review.body) &&
+        isOtherUser(review.author) &&
+        !isSupersededByApproval(review, reviews),
     )
     .filter(isUnmarked)
     .map((review) => review.url);
