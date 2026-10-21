@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Add `scripts/find-leads.mjs` to `auditing-rails-tech-debt`, which ranks models and controllers by size, cross-checks `db/schema.rb` for foreign key, money, and shadowing `attr_accessor` leads, and runs the reference files' literal grep rules, so the audit confirms leads instead of hunting them. [#107](https://github.com/bostonaholic/skills/pull/107)
+
 ## [0.35.0] - 2026-10-21
 
 ### Changed
