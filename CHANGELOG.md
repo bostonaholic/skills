@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Compute `pricing-creativity`'s cost ceiling, MLOE, $Y benchmarks, anchor sell rate, and rounded strategic prices with a script instead of by hand. [#121](https://github.com/bostonaholic/skills/pull/121)
+
 ## [0.49.0] - 2026-10-21
 
 ### Changed
