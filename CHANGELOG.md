@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-10-21
+
+### Changed
+
+- Render, write, and verify the `attaching-pr-screenshots` section and its `result.json` through `scripts/write-body.mjs` and `scripts/write-result.mjs`, with one attachment-URL rule shared by upload and read-back, and refuse a blank caption before any upload. [#118](https://github.com/bostonaholic/skills/pull/118)
+
 ## [0.46.0] - 2026-10-21
 
 ### Changed
@@ -648,5 +654,7 @@
 
 [0.45.0]: https://github.com/bostonaholic/skills/compare/v0.44.0...v0.45.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.46.0...HEAD
 [0.46.0]: https://github.com/bostonaholic/skills/compare/v0.45.0...v0.46.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.47.0...HEAD
+[0.47.0]: https://github.com/bostonaholic/skills/compare/v0.46.0...v0.47.0

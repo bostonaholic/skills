@@ -97,6 +97,60 @@ test("importing splice.mjs through a symlinked directory has no side effects", (
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
+test("asset-url.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "asset-url.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^asset-url\.mjs: usage: asset-url\.mjs /);
+});
+
+test("importing asset-url.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "asset-url.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("write-body.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "write-body.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^write-body\.mjs: usage: write-body\.mjs /);
+});
+
+test("importing write-body.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "write-body.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("write-result.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(
+      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
+      "write-result.mjs",
+    ),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^write-result\.mjs: usage: write-result\.mjs /);
+});
+
+test("importing write-result.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(
+      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
+      "write-result.mjs",
+    ),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("png-check.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
     join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "png-check.mjs"),

@@ -65,8 +65,9 @@ const BODY_LIMIT = 65536;
  * and re-emitted byte-identical below the spliced section. `## Pre-merge` is
  * one of them, and `## Companion PRs` is the other. These, and `ANCHORS`
  * below, are fixed PR-template headings rather than options; a body without
- * them takes the default placement, and
- * `references/section.md` documents the whole placement rule.
+ * them takes the default placement: replace an existing `## Screenshots`,
+ * else insert above the first of `ANCHORS`, else at the end of `content`,
+ * always above the trailing block.
  */
 const FOOTER_SECTIONS = ["## Pre-merge", "## Companion PRs"];
 
@@ -219,7 +220,7 @@ const BARE_IMAGE_URL =
 /**
  * Raw HTML in the SECTION, in any position, escaped or not. The section is
  * assembled from caller strings the normalization in
- * `references/section.md` backslash-escapes; this is the code-side
+ * `write-body.mjs` backslash-escapes; this is the code-side
  * backstop for that rule, so a weakened or skipped escape cannot splice an
  * `<a href>` or an `<img src>` into a public body. An escaped `\<` is caller
  * text that renders as a literal and is left alone — `UNESCAPED` is what
@@ -244,7 +245,7 @@ const SECTION_LINK = new RegExp(`${UNESCAPED}\\]\\(`);
 /**
  * A `/` in the degraded tail — the basename half of the same backstop. The
  * degraded form renders each local path as its BASENAME
- * (`references/section.md`), because a PR body is public and an
+ * (`write-body.mjs`), because a PR body is public and an
  * absolute path leaks the operator's home directory and username. A basename
  * holds no `/`, so a `/` after `captured, not yet uploaded:` is a path that
  * skipped that rule, and the rule is a normalization a rewrite can drop just
@@ -264,7 +265,7 @@ const OWN_IMAGE = /^!\[screenshot-\d+\]\(\s*https?:\/\/[^\s)]+\s*\)$/;
  * The `(<state>)` parenthetical the renderer emits beside a caption, and
  * nothing else. One level of nesting is allowed as a backstop: `state` is
  * caller text whose normalization removes parentheses
- * (`references/section.md`), and a section rendered before a run
+ * (`write-body.mjs`), and a section rendered before a run
  * that did so is still a pre-image this transform has to recognize. With a
  * flat `[^)]*`, a state such as `mobile (dark)` makes the renderer's OWN
  * output unrecognizable — and since a caller can write the degraded section at
@@ -276,7 +277,7 @@ const STATE = "(?:[ \\t]+\\((?:[^()]|\\([^()]*\\))*\\))?";
 /**
  * The remaining line shapes this skill writes into its own section. Together
  * with `OWN_IMAGE` they are the whole emitted vocabulary of
- * `references/section.md`, "Shape" —
+ * the renderer in `write-body.mjs` —
  * which is what lets a replace tell its own previous output apart from text a
  * reviewer typed there.
  *

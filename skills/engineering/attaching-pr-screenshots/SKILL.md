@@ -47,8 +47,9 @@ exit codes. Each script's header documents its inputs and outputs.
    "<skill-dir>/scripts/resolve-pr.sh" "$(cat "$RUN_DIR/invocation")" "$RUN_DIR"
    ```
 
-   Exit 1 is `refused`, 2 a fault. It writes `pr-url`, `pr-host`, `owner`,
-   `repo`, `number`, `repo-spec`, and `entries-file` into `$RUN_DIR`. Every
+   Exit 1 is `refused` (go to step 7), 2 a fault. It writes `pr-url`,
+   `pr-host`, `owner`, `repo`, `number`, `repo-spec`, and `entries-file` into
+   `$RUN_DIR`. Every
    later `gh` call uses `--repo "$(cat "$RUN_DIR/repo-spec")"` (it carries the
    Enterprise host), never `owner/repo`. Merged, closed, and draft PRs are in
    scope; say which state was edited. Never re-run the `mktemp -d` or
@@ -60,7 +61,7 @@ exit codes. Each script's header documents its inputs and outputs.
 
    ```json
    { "root": "/abs/dir/the/images/live/in",
-     "entries": [{ "path": "/abs/dir/the/images/live/in/login.png", "caption": "login", "state": "error", "note": "seeded" }],
+     "entries": [{ "path": "/abs/dir/the/images/live/in/login.png", "caption": "login", "state": "error" }],
      "notes": ["2 states skipped"] }
    ```
 
@@ -71,7 +72,7 @@ exit codes. Each script's header documents its inputs and outputs.
 3. **Take the pre-image and check it.** Run `scripts/pre-image.sh "$RUN_DIR"`
    (exit 2 is a fault), then
    `node "<skill-dir>/scripts/splice.mjs" --check --body-file "$RUN_DIR/pre-image.md"`.
-   Exit 1 prints `refused: <reason>`: report it and stop. The scan covers the
+   Exit 1 prints `refused: <reason>`: go to step 7. The scan covers the
    whole body, and any `<` followed by a letter reads as raw HTML (fix: `\<`).
    If the body ends in standalone image lines from an earlier crash, name them
    in the report and leave them.
@@ -80,41 +81,41 @@ exit codes. Each script's header documents its inputs and outputs.
    (absolute, inside `root`, regular file, not a symlink, image by content)
    and attaches one file per command.
 
-   | Exit | Outcome                                                                 |
-   | ---- | ----------------------------------------------------------------------- |
-   | 0    | Go to step 5. If every entry failed, the outcome is `degraded`          |
-   | 1    | `refused`: bad entries file or root, nothing attached                   |
-   | 2    | Fault                                                                   |
-   | 3    | No `--attach` in this gh: write the degraded section, note "upgrade gh" |
-   | 4    | Body changed during upload: `uploaded-not-written`, write no body       |
+   | Exit | Next                                                     |
+   | ---- | -------------------------------------------------------- |
+   | 0    | Step 5                                                   |
+   | 1    | Step 7: bad entries file or root, nothing attached       |
+   | 2    | Fault: report it and stop                                |
+   | 3    | Step 5, with "upgrade gh" as the operator note           |
+   | 4    | Step 6: the body changed during upload, so write no body |
 
-   An attach that exits non-zero may still have changed the PR; trust
-   `assets.tsv` and `failures.tsv`, not exit codes.
-
-5. **Splice and write once.** Render the section into `$RUN_DIR/section.md`
-   with the file-writing tool, per [the section shape](references/section.md).
-   Splice into a temporary file and promote it only on exit 0, because a
-   plain redirect leaves an empty file that would blank the body:
+5. **Write the body once.**
 
    ```bash
-   LANDED="$(wc -l <"$RUN_DIR/assets.tsv" | tr -d '[:space:]')"
-   node "<skill-dir>/scripts/splice.mjs" --body-file "$RUN_DIR/pre-image.md" \
-     --section-file "$RUN_DIR/section.md" --landed "$LANDED" >"$RUN_DIR/new-body.tmp" \
-     && mv "$RUN_DIR/new-body.tmp" "$RUN_DIR/new-body.md"
-   gh pr edit <number> --repo <repo-spec> --body-file "$RUN_DIR/new-body.md"   # only if new-body.md exists
+   node "<skill-dir>/scripts/write-body.mjs" "$RUN_DIR"
    ```
 
-   A splice refusal (exit 1) or fault (2) leaves the body alone:
-   `uploaded-not-written` if anything landed, else `refused`. A body over
-   65,536 characters refuses here, after the upload.
+   It renders the section, splices it into the pre-image, and runs the one
+   `gh pr edit`. Exit 0 prints `written`; 1 prints `refused: <reason>` and
+   leaves the body alone (a body over 65,536 characters refuses here, after
+   the upload); 2 is a fault; 3 means `gh pr edit` failed. Go to step 6 on
+   every exit.
 
-6. **Verify the rendered body** per [the section shape](references/section.md#read-back).
+6. **Write the operator note**, when there is one, to `$RUN_DIR/operator-note`
+   with the file-writing tool: "upgrade gh" after upload exit 3; a step 5
+   refusal and the manual edit that clears it; and when no body was written
+   after an attach (upload exit 4, or step 5 exit 1 to 3), the attach tails
+   now on the PR, quoted from `after.md` past the `pre-image.md` prefix.
 
-7. **Report** and write `$RUN_DIR/result.json`: `owner`, `repo`, `number`,
-   `outcome`, `assets` (entries order, `{caption, path, url}`, url null when
-   not landed), `failures` (`{caption, path, reason}`), `body_written`,
-   `operator_note`, and `section`. `outcome` is one of `uploaded`, `partial`,
-   `degraded`, `unverified`, `uploaded-not-written`, `refused`. `section` is
-   null unless a write landed at least one URL and the read-back passed,
-   since callers copy it into other PRs. For `uploaded-not-written`, quote the
-   attach tails now on the PR in `operator_note`.
+7. **Report.** Add `--operator-note-file "$RUN_DIR/operator-note"` when step 6
+   wrote one:
+
+   ```bash
+   node "<skill-dir>/scripts/write-result.mjs" "$RUN_DIR"
+   ```
+
+   It reads the written body back once, decides the outcome, and writes
+   `$RUN_DIR/result.json`. It prints `outcome <value>`, plus
+   `failed <assertion>` on exit 1 (`unverified`: report the assertion; never
+   retry, rewrite, or revert the body). Exit 2 is a fault. Report the outcome
+   and each failure.

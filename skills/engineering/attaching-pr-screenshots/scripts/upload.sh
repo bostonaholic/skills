@@ -16,22 +16,26 @@
 #   read-failed      written only when some re-read failed
 #   entry-paths.txt  the JSON-to-shell bridge: one entry path per line
 #   candidates.txt   the URLs one attach's suffix held, rewritten per entry
+#   allowed.txt      the candidates `asset-url.mjs` passed, rewritten per entry
+#   upload-exit      this script's exit code, written on every exit, so
+#                    `write-body.mjs` and `write-result.mjs` know how it ended
 #
 # EVERY entry lands in exactly one of the two files. An entry in neither
 # vanishes: `--landed` is the line count of assets.tsv, so a harvest that
 # stopped matching would write the degraded "captured, not yet uploaded" over
 # assets that are live on public URLs, beside an empty failure list.
 #
-# Requires `gh`, `jq`, and `file` on PATH. A missing `file` would otherwise
-# mark every image `not an image`, so it is a fault, checked first.
+# Requires `gh`, `jq`, `file`, and `node` on PATH. A missing `file` would
+# otherwise mark every image `not an image`, so it is a fault, checked first.
 #
 # Exit codes:
 #
 #   0  the attach loop ran and the baseline still holds. A run where every
 #      entry failed exits 0 too: that is `degraded`, and failures.tsv says so
 #   1  refused before any `gh` call — the entries file (unreadable, not JSON,
-#      no entries array, zero entries, an entry lacking `path` or `caption`),
-#      or the root it declares. Nothing was attached and nothing was written
+#      no entries array, zero entries, an entry lacking `path` or `caption`,
+#      a blank caption, a `state` or `notes` of the wrong type), or the root
+#      it declares. Nothing was attached and nothing was written
 #   2  fault — a required tool is missing, or the run directory is missing a
 #      file `pre-image.sh` writes
 #   3  capability gap — this `gh pr edit` has no `--attach` flag. The entries
@@ -49,7 +53,10 @@ if [ "$#" -ne 1 ]; then
   exit 2
 fi
 RUN_DIR="$1"
-for TOOL in gh jq file; do
+# shellcheck disable=SC2154 # $? is the exit status the trap runs on
+trap 'printf "%s\n" "$?" >"$RUN_DIR/upload-exit"' EXIT
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+for TOOL in gh jq file node; do
   if ! command -v "$TOOL" >/dev/null 2>&1; then
     printf 'missing required tool: %s\n' "$TOOL" >&2
     exit 2
@@ -64,8 +71,7 @@ done
 
 # Read, never re-derived from `pr-url`: `resolve-pr.sh` already split and
 # charset-tested the resolved URL, and `pr-host` is the value the attachment
-# allowlist below is documented to come from
-# (`references/section.md`).
+# allowlist in `asset-url.mjs` is derived from.
 PR_HOST="$(cat "$RUN_DIR/pr-host")"
 NUMBER="$(cat "$RUN_DIR/number")"
 REPO_SPEC="$(cat "$RUN_DIR/repo-spec")"
@@ -73,6 +79,7 @@ ENTRIES_FILE="$(cat "$RUN_DIR/entries-file")"
 ASSETS_FILE="$RUN_DIR/assets.tsv"
 FAILURES_FILE="$RUN_DIR/failures.tsv"
 CANDIDATES_FILE="$RUN_DIR/candidates.txt"
+ALLOWED_FILE="$RUN_DIR/allowed.txt"
 : >"$ASSETS_FILE"
 : >"$FAILURES_FILE"
 # A previous attempt's marker is this attempt's stale verdict: `pre-image.sh`
@@ -116,8 +123,20 @@ if ! ENTRIES_PROBLEM="$(jq -r '
       | select((.value | type) != "object"
           or (.value.path | type) != "string" or .value.path == ""
           or (.value.caption | type) != "string")
-      | .key]
-    | if length > 0 then "entry \(.[0]) lacks a path or a caption" else "" end
+      | .key] as $missing
+    # A caption that is blank after normalization has nothing to render, and
+    # finding that after the attach would leave a live asset with no caption.
+    | [.entries | to_entries[] | select((.value | type) == "object" and (.value.caption | type) == "string"
+        and (.value.caption | test("\\S") | not)) | .key] as $blank
+    | [.entries | to_entries[]
+        | select((.value | type) == "object"
+          and ((.value.state | type) as $t | $t != "string" and $t != "null")) | .key] as $state
+    | if ($missing | length) > 0 then "entry \($missing[0]) lacks a path or a caption"
+      elif ($blank | length) > 0 then "entry \($blank[0]) has a blank caption"
+      elif ($state | length) > 0 then "entry \($state[0]) has a state that is not a string"
+      elif (.notes != null) and ((.notes | type) != "array" or any(.notes[]; type != "string"))
+        then "the entries file has notes that are not an array of strings"
+      else "" end
   end' "$ENTRIES_FILE" 2>&1)"; then
   refuse "the entries file is not valid JSON: $ENTRIES_PROBLEM"
 fi
@@ -166,10 +185,6 @@ AFTER="$PRE_IMAGE" # the body as of the last successful read
 READ_FAILED=no     # no re-read has failed yet
 NEWLINE='
 '
-case "$PR_HOST" in
-  github.com) ASSET_PROXY_HOST="private-user-images.githubusercontent.com" ;;
-  *) ASSET_PROXY_HOST="private-user-images.$PR_HOST" ;; # the Enterprise equivalent
-esac
 
 REASON=""
 ENTRY_PATH=""
@@ -187,62 +202,25 @@ fail_entry() {
 }
 
 # Bind $ASSET_URL to the one attachment URL "$1" holds, or clear it and set
-# $REASON. Only an URL on the attachment origin qualifies: allowlisted host,
-# path anchored at the host boundary. Any absolute URL would be too wide — a
-# party with write access can append their own during the attach window and
-# have it harvested, embedded, and copied into any PR body a caller writes.
+# $REASON. `asset-url.mjs` owns the attachment-origin rule, so the harvest and
+# the read-back in `write-result.mjs` apply the same one.
 harvest() {
-  local suffix="$1" candidate rest host path file
+  local suffix="$1" allowed
   ASSET_URL=""
   printf '%s' "$suffix" | grep -Eo 'https://[^][:space:]<>")]+' >"$CANDIDATES_FILE" || true
-  while IFS= read -r candidate; do
-    case "$candidate" in https://*) : ;; *) continue ;; esac
-    rest="${candidate#https://}"
-    host="${rest%%/*}"
-    case "$rest" in
-      */*) path="/${rest#*/}" ;;
-      *) path="/" ;;
-    esac
-    # A host is a whole label, never a substring: userinfo makes
-    # `github.com@attacker.example` the host, and a substring test ours.
-    case "$host" in
-      "" | *[!A-Za-z0-9.-]*) continue ;; # empty, or carrying userinfo, a port, or worse
-    esac
-    # Dot segments walk out of the anchor below, so this runs BEFORE it: an
-    # HTTP client normalizes `…/assets/../../attacker/evil/x.png` to content
-    # the attacker controls on an allowlisted host. Their percent-encoded
-    # forms are refused rather than decoded.
-    case "$path" in *.. | *../*) continue ;; esac
-    case "$candidate" in *%2[eEfF]*) continue ;; esac
-    file="${path%%\?*}" # the path with its query string removed
-    case "$path" in
-      /user-attachments/assets/*) : ;; # github.com and GitHub Enterprise
-      *)                               # the private-repo proxy rewrite, on its own host
-        case "$host" in "$ASSET_PROXY_HOST") : ;; *) continue ;; esac
-        # `*.githubusercontent.com` is not one host: raw.githubusercontent.com
-        # serves any public repository's content. One enumerated host, and one
-        # shape — one or two segments, the last naming an image file, because
-        # the rewrite GitHub emits is /<user-id>/<asset-id>-<uuid>.png?jwt=…
-        case "${file#/}" in
-          */*/*) continue ;;
-          *.png | *.jpg | *.jpeg | *.gif | *.webp | *.avif) : ;;
-          *) continue ;;
-        esac
-        ;;
-    esac
-    case "$host" in
-      "$PR_HOST" | "$ASSET_PROXY_HOST" | "${PR_SCREENSHOTS_ASSET_HOST:-$PR_HOST}") : ;;
-      *) continue ;;
-    esac
+  # A filter that cannot run proves nothing, so it harvests nothing.
+  if ! node "$SCRIPT_DIR/asset-url.mjs" "$PR_HOST" <"$CANDIDATES_FILE" >"$ALLOWED_FILE"; then
+    REASON="harvest failed"
+    return
+  fi
+  allowed="$(wc -l <"$ALLOWED_FILE" | tr -d '[:space:]')"
+  case "$allowed" in
+    0) : ;;
+    1) ASSET_URL="$(cat "$ALLOWED_FILE")" ;;
     # More than one allowlisted candidate is a failure, never a guess: it
     # fires exactly when another writer appended a URL during the window.
-    if [ -n "$ASSET_URL" ]; then
-      ASSET_URL=""
-      REASON="ambiguous attachment URL"
-      break
-    fi
-    ASSET_URL="$candidate"
-  done <"$CANDIDATES_FILE"
+    *) REASON="ambiguous attachment URL" ;;
+  esac
 }
 
 # --- One entry per iteration: validate, attach, re-read, harvest, record ----
