@@ -618,7 +618,7 @@ test("settle-item verifies after a failed reaction", (t) => {
     "reaction-failed THUMBS_UP",
     "verified",
   ]);
-  assert.match(result.stderr, /reaction failed: gh exited 1/);
+  assert.equal(result.stderr, "boom\nsettle-item.mjs: reaction failed: gh exited 1\n");
 });
 
 test("settle-item fails verification it cannot confirm", async (t) => {

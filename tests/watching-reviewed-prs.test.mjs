@@ -622,7 +622,10 @@ test("arm.mjs exits 3 on a refusal and still prints the JSON", (t) => {
   const result = cli(t, "arm.mjs", [PR_URL], { prView: prView("me"), graphql: graphqlResponse() });
   assert.equal(result.status, 3);
   assert.equal(JSON.parse(result.stdout).refusal, "viewer-is-author");
-  assert.match(result.stderr, /^arm\.mjs: refused: viewer-is-author$/m);
+  assert.equal(
+    result.stderr,
+    `arm.mjs: refused: viewer-is-author\nsee ${resolve(SCRIPTS, "../references/arm.md")}\n`,
+  );
 });
 
 test("arm.mjs maps a bad argument, an unresolvable PR, and a failed read to their exits", async (t) => {
@@ -789,6 +792,8 @@ test("verify-approval.mjs exits 0 only for the viewer's APPROVED review at the h
       ]);
       const out = JSON.parse(result.stdout);
       assert.equal(out.state, name === "no viewer review" ? null : nodes.at(-1).state);
+      const notApproved = `verify-approval.mjs: not approved at ${ARM_HEAD}\nsee ${resolve(SCRIPTS, "../references/approve.md")}\n`;
+      assert.equal(result.stderr, status === 0 ? "" : notApproved);
     });
   }
   await t.test("a failed read exits 1", (st) => {

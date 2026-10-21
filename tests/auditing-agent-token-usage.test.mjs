@@ -5,7 +5,15 @@
 // Every case runs the real script against a synthetic HOME in a temporary directory.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -66,8 +74,37 @@ test("a missing jq exits 1 naming it", (t) => {
   const home = fakeHome(t);
   const result = run(home, ["7"], join(home, "empty-bin"));
   assert.equal(result.status, 1);
-  assert.equal(result.stderr, "missing: jq\n");
+  assert.equal(
+    result.stderr,
+    `missing: jq\nsee ${realpathSync(resolve("skills/engineering/auditing-agent-token-usage/SKILL.md"))}\n`,
+  );
 });
+
+test(
+  "audit-token-usage.sh shows find's Permission denied lines and still reports the readable sessions",
+  { skip: process.getuid?.() === 0 && "root reads mode-000 directories" },
+  (t) => {
+    const home = realpathSync(mkdtempSync(join(tmpdir(), "auditing-agent-token-usage-")));
+    const lockedClaude = join(home, ".claude/projects/locked");
+    const lockedCodex = join(home, ".codex/sessions/locked");
+    t.after(() => {
+      chmodSync(lockedClaude, 0o755);
+      chmodSync(lockedCodex, 0o755);
+      rmSync(home, { recursive: true, force: true });
+    });
+    jsonl(home, ".claude/projects/proj/session.jsonl", [assistant([toolUse("Read")])]);
+    mkdirSync(lockedClaude, { recursive: true });
+    mkdirSync(lockedCodex, { recursive: true });
+    chmodSync(lockedClaude, 0o000);
+    chmodSync(lockedCodex, 0o000);
+
+    const result = run(home);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /Permission denied/);
+    assert.match(result.stdout, /Claude Code: 1 transcripts/);
+  },
+);
 
 test("no session file written in the window prints one line and exits 0", (t) => {
   const home = fakeHome(t);

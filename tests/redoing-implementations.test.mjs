@@ -289,6 +289,60 @@ for (const tool of ["git", "tar"]) {
   });
 }
 
+test("save-and-reset-attempt.sh passes git's own error text through", async (t) => {
+  await t.test("shows git's error before not inside a git working tree", (st) => {
+    const dir = scratch(st);
+    const repo = attemptWithBoth(dir);
+    const bin = fakeBin(dir, {
+      git: `if [[ $1 == rev-parse && $2 == --is-inside-work-tree ]]; then
+  echo "fatal: git-worktree-sentinel: detected dubious ownership" >&2
+  exit 128
+fi
+exec "$REAL" "$@"`,
+    });
+
+    const result = run(repo, ["HEAD", "x", join(dir, "out"), "--", "a.rb"], {
+      env: { PATH: bin },
+    });
+
+    assert.equal(result.status, 2, result.stderr);
+    const lines = result.stderr.split("\n");
+    const tool = lines.indexOf("fatal: git-worktree-sentinel: detected dubious ownership");
+    const own = lines.indexOf("error: not inside a git working tree");
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("shows git's check-ref-format error before not a valid branch name", (st) => {
+    const dir = scratch(st);
+    const repo = newRepo(dir);
+    write(repo, "a.rb", "base\n");
+    const base = commit(repo, "base");
+    write(repo, "a.rb", "attempt\n");
+    commit(repo, "attempt");
+    const bin = fakeBin(dir, {
+      git: `if [[ $1 == check-ref-format ]]; then
+  echo "fatal: git-ref-format-sentinel" >&2
+  exit 128
+fi
+exec "$REAL" "$@"`,
+    });
+
+    const result = run(repo, [base, "x", join(dir, "out"), "--", "a.rb"], {
+      env: { PATH: bin },
+    });
+
+    assert.equal(result.status, 2, result.stderr);
+    const lines = result.stderr.split("\n");
+    const tool = lines.indexOf("fatal: git-ref-format-sentinel");
+    const own = lines.indexOf("error: not a valid branch name: redo-previous-x");
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
 test("it exits 2 on each usage error and changes nothing", (t) => {
   const dir = scratch(t);
   const repo = newRepo(dir);

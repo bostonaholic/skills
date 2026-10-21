@@ -32,8 +32,34 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# The physical scripts directory, resolved with builtins only, so a symlinked
+# scripts directory or a PATH without dirname still names the real file, and a
+# failed resolution never changes the exit. It is resolved here, before the
+# script changes directory, because a relative call path names a different
+# directory once the working directory changes.
+called_dir=.
+if [[ ${BASH_SOURCE[0]} == */* ]]; then called_dir=${BASH_SOURCE[0]%/*}; fi
+real_dir=$(CDPATH='' cd -P -- "$called_dir" && pwd -P) || real_dir=$called_dir
+
+# Prints `see <absolute path of doc_file>`.
+see_doc() {
+  echo "see ${real_dir%/*}/$doc_file" >&2
+}
+
+die() {
+  local code=$1
+  shift
+  echo "error: $*" >&2
+  see_doc
+  exit "$code"
+}
+
 usage() {
   echo "usage: scan-patterns.sh CLONE [--include-dir node_modules|vendor|dist]..." >&2
+  see_doc
   exit 64
 }
 
@@ -41,8 +67,7 @@ usage() {
 clone=$1
 shift
 if [[ ! -d $clone ]]; then
-  echo "error: not a directory: $clone" >&2
-  exit 64
+  die 64 "not a directory: $clone"
 fi
 
 # Installed and generated code: hits there are rarely the repo's own, so the
@@ -55,8 +80,7 @@ while [[ $# -gt 0 ]]; do
       case $2 in
         node_modules | vendor | dist) ;;
         *)
-          echo "error: --include-dir takes node_modules, vendor, or dist, not: $2" >&2
-          exit 64
+          die 64 "--include-dir takes node_modules, vendor, or dist, not: $2"
           ;;
       esac
       kept=()
@@ -72,8 +96,7 @@ done
 
 for tool in grep find file awk sort readlink; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: missing required tool: $tool" >&2
-    exit 1
+    die 1 "missing required tool: $tool"
   fi
 done
 
@@ -105,8 +128,7 @@ scan() {
   shift 2
   out=$(grep -HnIE "$@") || rc=$?
   if ((rc > 1)); then
-    echo "error: grep failed for $section/$check" >&2
-    exit 1
+    die 1 "grep failed for $section/$check"
   fi
   printf '%s\n' "$out" | emit "$section" "$check"
 }

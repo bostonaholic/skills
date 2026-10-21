@@ -25,13 +25,31 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "ci-log.sh: $2" >&2
+  see_doc
+  exit "$1"
+}
+
 # Runners print the failure summary last, and 200 lines hold it without
 # flooding the context.
 tail_lines=200
 
 if [[ $# -ne 4 ]]; then
-  echo "ci-log.sh: usage: ci-log.sh HOST OWNER/REPO JOB_ID OUT_FILE" >&2
-  exit 2
+  die 2 "usage: ci-log.sh HOST OWNER/REPO JOB_ID OUT_FILE"
 fi
 host=$1
 repo=$2
@@ -40,33 +58,27 @@ out=$4
 
 # The same host, owner, and repository shapes poll.mjs accepts in a PR URL.
 if [[ ! $host =~ ^[A-Za-z0-9.-]{1,253}$ ]]; then
-  echo "ci-log.sh: malformed host: $host" >&2
-  exit 2
+  die 2 "malformed host: $host"
 fi
 if [[ ! $repo =~ ^[A-Za-z0-9._-]{1,39}/[A-Za-z0-9._-]{1,100}$ ]]; then
-  echo "ci-log.sh: malformed OWNER/REPO: $repo" >&2
-  exit 2
+  die 2 "malformed OWNER/REPO: $repo"
 fi
 if [[ ! $job =~ ^[0-9]+$ ]]; then
-  echo "ci-log.sh: job id is not all digits: $job" >&2
-  exit 2
+  die 2 "job id is not all digits: $job"
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
-  echo "ci-log.sh: gh is not on PATH" >&2
-  exit 127
+  die 127 "gh is not on PATH"
 fi
 
 log=$(mktemp)
 trap 'rm -f "$log" "$log.tail"' EXIT
 
 if ! gh run view --job "$job" --repo "$host/$repo" --log-failed >"$log"; then
-  echo "ci-log.sh: gh run view failed for job $job" >&2
-  exit 1
+  die 1 "gh run view failed for job $job"
 fi
 if [[ ! -s $log ]]; then
-  echo "ci-log.sh: job $job has no failed-step log" >&2
-  exit 3
+  die 3 "job $job has no failed-step log"
 fi
 
 tail -n "$tail_lines" "$log" >"$log.tail"

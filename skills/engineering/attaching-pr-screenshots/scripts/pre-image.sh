@@ -30,21 +30,37 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  printf '%s\n' "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [ "$#" -ne 1 ]; then
-  printf 'usage: %s <run-dir>\n' "$0" >&2
-  exit 2
+  die 2 "usage: $0 <run-dir>"
 fi
 RUN_DIR="$1"
 for TOOL in gh jq; do
   if ! command -v "$TOOL" >/dev/null 2>&1; then
-    printf 'missing required tool: %s\n' "$TOOL" >&2
-    exit 2
+    die 2 "missing required tool: $TOOL"
   fi
 done
 for REQUIRED in number repo-spec; do
   if [ ! -r "$RUN_DIR/$REQUIRED" ]; then
-    printf 'run directory has no %s — run resolve-pr.sh first\n' "$REQUIRED" >&2
-    exit 2
+    die 2 "run directory has no $REQUIRED — run resolve-pr.sh first"
   fi
 done
 NUMBER="$(cat "$RUN_DIR/number")"
@@ -54,14 +70,12 @@ REPO_SPEC="$(cat "$RUN_DIR/repo-spec")"
 # is indistinguishable from a genuinely empty description — after which the
 # splice returns the section as the WHOLE body of a PR that may be merged.
 if ! PRE_IMAGE_JSON="$(gh pr view "$NUMBER" --repo "$REPO_SPEC" --json body </dev/null)"; then
-  printf 'could not read the PR body\n' >&2
-  exit 2
+  die 2 "could not read the PR body"
 fi
 # The envelope separates the two: a failed call yields no JSON object, while
 # a PR with no description yields `{"body":""}` and is legitimately empty.
 if ! printf '%s' "$PRE_IMAGE_JSON" | jq -e 'has("body") and (.body | type == "string")' >/dev/null; then
-  printf 'the PR body response carried no body field\n' >&2
-  exit 2
+  die 2 "the PR body response carried no body field"
 fi
 # The CRLF normalization, which every later read of the body repeats:
 # normalizing one side alone makes the lost-update guard refuse every run on
@@ -69,8 +83,7 @@ fi
 # is jq's own: piping into `tr` puts the pipeline's status on `tr`, which masks
 # a jq failure as success.
 if ! PRE_IMAGE="$(printf '%s' "$PRE_IMAGE_JSON" | jq -r '.body | gsub("\r";"")')"; then
-  printf 'could not normalize the PR body\n' >&2
-  exit 2
+  die 2 "could not normalize the PR body"
 fi
 
 # The pre-image reaches every check as a FILE, and a path nothing wrote is an

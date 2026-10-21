@@ -36,35 +36,49 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=references/tracker-recipes.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  local code=$1
+  shift
+  echo "error: $*" >&2
+  see_doc
+  exit "$code"
+}
+
 usage() {
   echo "usage: $0 RUN_DIR REPO BLOCKED BLOCKER" >&2
+  see_doc
   exit 64
 }
 
 [[ $# -eq 4 ]] || usage
 run_dir=$1 repo=$2 blocked=$3 blocker=$4
 for file in board.json issues.json; do
-  [[ -f $run_dir/$file ]] || {
-    echo "error: no $file in $run_dir" >&2
-    exit 64
-  }
+  [[ -f $run_dir/$file ]] || die 64 "no $file in $run_dir"
 done
 [[ $repo =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] || usage
 [[ $blocked =~ ^[1-9][0-9]*$ && $blocker =~ ^[1-9][0-9]*$ ]] || usage
-[[ $blocked != "$blocker" ]] || {
-  echo "error: an issue cannot block itself (#$blocked)" >&2
-  exit 64
-}
+[[ $blocked != "$blocker" ]] || die 64 "an issue cannot block itself (#$blocked)"
 
 for tool in gh jq; do
-  command -v "$tool" >/dev/null 2>&1 || {
-    echo "error: missing required tool: $tool" >&2
-    exit 69
-  }
+  command -v "$tool" >/dev/null 2>&1 || die 69 "missing required tool: $tool"
 done
 
 fail() {
   echo "error: $*" >&2
+  see_doc
   exit 1
 }
 link="#$blocked blocked-by #$blocker"
@@ -74,10 +88,7 @@ link="#$blocked blocked-by #$blocker"
 for n in "$blocked" "$blocker"; do
   jq -e --argjson n "$n" --arg repo "$repo" 'any(.items[]; .content.type == "Issue"
     and .content.number == $n and .content.repository == $repo)' \
-    "$run_dir/board.json" >/dev/null || {
-    echo "error: #$n in $repo is not on the cached board" >&2
-    exit 4
-  }
+    "$run_dir/board.json" >/dev/null || die 4 "#$n in $repo is not on the cached board"
 done
 
 fields=state,body,blockedBy

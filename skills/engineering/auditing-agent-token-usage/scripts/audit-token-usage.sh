@@ -40,8 +40,28 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 usage() {
   echo "usage: audit-token-usage.sh [days]   (days: positive integer, default 7)" >&2
+  see_doc
   exit 64
 }
 
@@ -52,24 +72,21 @@ readonly days="${1:-7}"
 readonly claude_projects_directory="${HOME}/.claude/projects"
 readonly codex_sessions_directory="${HOME}/.codex/sessions"
 
-command -v jq >/dev/null || {
-  echo "missing: jq" >&2
-  exit 1
-}
+command -v jq >/dev/null || die 1 "missing: jq"
 
 # Session files touched in the window. mtime is the session's last write, so a
 # long-running session stays in scope for as long as it keeps producing turns.
 claude_transcripts=()
 if [[ -d "$claude_projects_directory" ]]; then
   while IFS= read -r line; do claude_transcripts+=("$line"); done < <(
-    find "$claude_projects_directory" -name '*.jsonl' -mtime "-${days}" 2>/dev/null | sort
+    find "$claude_projects_directory" -name '*.jsonl' -mtime "-${days}" | sort
   )
 fi
 
 codex_sessions=()
 if [[ -d "$codex_sessions_directory" ]]; then
   while IFS= read -r line; do codex_sessions+=("$line"); done < <(
-    find "$codex_sessions_directory" -name '*.jsonl' -mtime "-${days}" 2>/dev/null | sort
+    find "$codex_sessions_directory" -name '*.jsonl' -mtime "-${days}" | sort
   )
 fi
 
@@ -90,7 +107,7 @@ claude_definition_directories=()
 [[ -d "${HOME}/.claude/plugins/cache" ]] && claude_definition_directories+=("${HOME}/.claude/plugins/cache")
 self_routed_agents=$(
   if [[ ${#claude_definition_directories[@]} -gt 0 ]]; then
-    find "${claude_definition_directories[@]}" -path '*/agents/*' -name '*.md' 2>/dev/null
+    find "${claude_definition_directories[@]}" -path '*/agents/*' -name '*.md'
   fi |
     while IFS= read -r definition; do
       head -20 "$definition" | awk '

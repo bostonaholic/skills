@@ -38,8 +38,30 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=references/tracker-recipes.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  local code=$1
+  shift
+  echo "error: $*" >&2
+  see_doc
+  exit "$code"
+}
+
 usage() {
   echo "usage: $0 RUN_DIR PROJECT OWNER REPO N COLUMN [--wip-limit L]" >&2
+  see_doc
   exit 64
 }
 
@@ -50,10 +72,7 @@ if [[ $# -eq 8 ]]; then
   [[ $7 == "--wip-limit" && $8 =~ ^[0-9]+$ ]] || usage
   wip_limit=$8
 fi
-[[ -f $run_dir/board.json ]] || {
-  echo "error: no board.json in $run_dir" >&2
-  exit 64
-}
+[[ -f $run_dir/board.json ]] || die 64 "no board.json in $run_dir"
 [[ $project =~ ^[1-9][0-9]*$ ]] || usage
 [[ $owner == "@me" || $owner =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] || usage
 [[ $repo =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] || usage
@@ -61,10 +80,7 @@ fi
 [[ -n $column && $column != -* ]] || usage
 
 for tool in gh jq; do
-  command -v "$tool" >/dev/null 2>&1 || {
-    echo "error: missing required tool: $tool" >&2
-    exit 69
-  }
+  command -v "$tool" >/dev/null 2>&1 || die 69 "missing required tool: $tool"
 done
 
 # The same ceiling load-board.sh uses: the fresh read must be complete too.
@@ -74,23 +90,21 @@ field_limit=100
 
 fail() {
   echo "error: $*" >&2
+  see_doc
   exit 1
 }
 
 item_filter='.items[] | select(.content.type == "Issue" and .content.number == $n
   and .content.repository == $repo)'
 item_id=$(jq -r --argjson n "$n" --arg repo "$repo" "$item_filter | .id" "$run_dir/board.json")
-[[ -n $item_id ]] || {
-  echo "error: #$n in $repo is not on the cached board" >&2
-  exit 4
-}
+[[ -n $item_id ]] || die 4 "#$n in $repo is not on the cached board"
 cached_status=$(jq -r --argjson n "$n" --arg repo "$repo" \
   "$item_filter | .status // \"\"" "$run_dir/board.json")
 
 fresh="$run_dir/board-before-move-$n.json"
 gh project item-list "$project" --owner "$owner" --format json \
   --limit "$board_limit" >"$fresh" || fail "could not re-read project $project"
-jq -e '.totalCount == (.items | length)' "$fresh" >/dev/null 2>&1 ||
+jq -e '.totalCount == (.items | length)' "$fresh" >/dev/null ||
   fail "the fresh board read is partial or not JSON"
 
 if ! jq -e --arg id "$item_id" 'any(.items[]; .id == $id)' "$fresh" >/dev/null; then
@@ -123,10 +137,7 @@ field_id=$(jq -r '.fields[] | select(.name == "Status") | .id' "$fields") ||
   fail "fields.json is not JSON"
 option_id=$(jq -r --arg c "$column" '.fields[] | select(.name == "Status")
   | .options[] | select(.name == $c) | .id' "$fields")
-[[ -n $field_id && -n $option_id ]] || {
-  echo "error: $column is not an option of the Status field" >&2
-  exit 4
-}
+[[ -n $field_id && -n $option_id ]] || die 4 "$column is not an option of the Status field"
 
 # Every id goes over -f, which sends a string: -F would type an all-digit id as
 # a number and fail the String! variable.

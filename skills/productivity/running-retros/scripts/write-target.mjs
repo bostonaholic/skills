@@ -28,7 +28,10 @@
 
 import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each failure.
+const DOC_PATH = fileURLToPath(new URL("../references/applying-edits.md", import.meta.url));
 
 /**
  * Every skill directory on disk matches this shape, so it is the pattern to
@@ -166,6 +169,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     process.stderr.write(
       "usage: write-target.mjs <repo-root> <skill-name | --path <repo-relative-path> | --name-file <file> | --path-file <file>>\n",
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   };
   const repoRoot = process.argv[2] ?? "";
@@ -182,6 +186,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
       return readFileSync(file, "utf8").replace(/\n+$/, "");
     } catch (error) {
       process.stderr.write(`refusing: cannot read '${file}' (${error.code ?? error.message})\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(1);
     }
   };
@@ -192,11 +197,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const path = flag === "--path-file" ? readValue(flagValue) : flagValue;
     if (!isValidRepoPath(path)) {
       process.stderr.write(`refusing: '${path}' is not a plain repo-relative path\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(1);
     }
     const target = join(repoRoot, path);
     if (!isInsideRepo({ candidatePath: target, repoRoot })) {
       process.stderr.write("refusing: target resolves outside the repository\n");
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(1);
     }
     process.stdout.write(`target: ${target}\n`);
@@ -206,6 +213,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   if (!isValidSkillName(name)) {
     process.stderr.write(`refusing: '${name}' is not a valid skill name\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   }
 
@@ -215,6 +223,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     process.stderr.write(
       `refusing: '${name}' names more than one skill: ${resolved.matches.join(", ")}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   }
   const editTarget = resolved.target;
@@ -226,6 +235,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   ]) {
     if (!isInsideRepo({ candidatePath: target, repoRoot })) {
       process.stderr.write(`refusing: ${label} resolves outside the repository\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(1);
     }
   }

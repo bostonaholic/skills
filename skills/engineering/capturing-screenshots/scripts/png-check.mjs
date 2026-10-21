@@ -14,7 +14,10 @@
 
 import { readFileSync, realpathSync } from "node:fs";
 import { inflateSync } from "node:zlib";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /**
  * GitHub's image attachment limit is 10 MB (docs.github.com, "Attaching files"),
@@ -169,6 +172,7 @@ function main(argv) {
   const [path, ...rest] = argv;
   if (!path || rest.length) {
     process.stderr.write("png-check.mjs: usage: png-check.mjs <png>\n");
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   try {
@@ -177,6 +181,7 @@ function main(argv) {
     return report.failures.length ? 1 : 0;
   } catch (error) {
     process.stderr.write(`png-check.mjs: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
 }

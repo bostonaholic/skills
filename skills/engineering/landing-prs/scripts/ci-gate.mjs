@@ -54,9 +54,11 @@
 
 import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "ci-gate.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} https://<host>/<owner>/<repo>/pull/<n> [--cap-seconds <s>]\n`;
 
 const PR_URL_PATTERN = /^https:\/\/([^/]+)\/([^/]+)\/([^/]+)\/pull\/([0-9]+)$/;
@@ -120,6 +122,13 @@ function runGh(args, { deadline = Infinity, captureStdout = true } = {}) {
   });
 }
 
+// Writes a failed tool's stderr unaltered, ending it with a newline so the script's
+// own line starts on a line of its own.
+function writeToolError(text) {
+  if (!text) return;
+  process.stderr.write(text.endsWith("\n") ? text : `${text}\n`);
+}
+
 async function ghJson(args) {
   const result = await runGh(args);
   if (result.code !== 0) {
@@ -169,6 +178,7 @@ async function watch(url, deadline) {
       .filter((check) => check.bucket === "fail" || check.bucket === "cancel")
       .map((check) => check.name);
   } catch {
+    writeToolError(listed.stderr);
     process.stderr.write(`${SCRIPT}: could not list the failing checks\n`);
   }
   const error = new GateError("fail", `gh pr checks --watch exited ${result.code}`);
@@ -248,6 +258,7 @@ async function main(argv) {
   const pollSeconds = Number(process.env.CI_GATE_POLL_SECONDS ?? DEFAULT_POLL_SECONDS);
   if (!args || !Number.isFinite(pollSeconds) || pollSeconds < 0) {
     process.stderr.write(USAGE);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT.usage;
   }
   const deadline = Date.now() + args.capSeconds * 1000;
@@ -259,6 +270,7 @@ async function main(argv) {
   } catch (error) {
     if (!(error instanceof GateError)) throw error;
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     verdict = error.verdict;
     failed = error.failed ?? [];
   }

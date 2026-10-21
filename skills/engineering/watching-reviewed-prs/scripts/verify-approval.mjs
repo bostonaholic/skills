@@ -27,7 +27,7 @@
  */
 
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   EXIT_FAILURE,
   EXIT_OK,
@@ -41,6 +41,8 @@ import {
 } from "./github.mjs";
 
 const SCRIPT = "verify-approval.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/approve.md", import.meta.url));
 const USAGE = `usage: ${SCRIPT} <pr-url> <viewer> <head-sha>`;
 const EXIT_NOT_APPROVED = 3;
 
@@ -84,11 +86,10 @@ function main(argv) {
   const found = viewerReview(reviews, viewer);
   process.stdout.write(`${JSON.stringify(found)}\n`);
   if (found.state === "APPROVED" && found.commit === head) return EXIT_OK;
-  process.stderr.write(`${SCRIPT}: not approved at ${head}\n`);
-  return EXIT_NOT_APPROVED;
+  throw new Failure(EXIT_NOT_APPROVED, `not approved at ${head}`);
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  runCli(SCRIPT, main);
+  runCli(SCRIPT, DOC_PATH, main);
 }

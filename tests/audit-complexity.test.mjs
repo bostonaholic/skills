@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -408,6 +409,32 @@ test("inventory.json is identical from the top level and from docs/", (t) => {
   const written = JSON.parse(topBytes);
   assert.equal(written.files["docs/style.css"]?.status, "text");
   assert.ok(written.files["docs/style.css"]?.lines >= 1, "docs/style.css has no lines");
+});
+
+test("inventory.mjs passes git's own error text through before its own line", (t) => {
+  const dir = tempDir(t);
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, "git"),
+    "#!/bin/sh\necho 'fatal: git-inventory-sentinel: detected dubious ownership' >&2\nexit 128\n",
+  );
+  chmodSync(join(bin, "git"), 0o755);
+  writeFileSync(join(dir, "report.json"), auditRequest(["docs"]));
+
+  const result = runInventory(join(dir, "report.json"), {
+    cwd: dir,
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  });
+
+  assert.equal(result.status, 1, result.stderr);
+  const lines = result.stderr.split("\n");
+  const tool = lines.indexOf("fatal: git-inventory-sentinel: detected dubious ownership");
+  const own = lines.findIndex((line) => /^inventory\.mjs: git .+ exited 128$/.test(line));
+  assert.notEqual(tool, -1, `git's line is not its own line on stderr:\n${result.stderr}`);
+  assert.notEqual(own, -1, `no "git <args> exited 128" line on stderr:\n${result.stderr}`);
+  assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+  assert.ok(!existsSync(join(dir, "inventory.json")), "inventory.json was written");
 });
 
 test("validateReport rejects an inconsistent join", async (t) => {
@@ -1604,7 +1631,7 @@ test("both CLIs exit 1 and write nothing", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig"), { GIT_CEILING_DIRECTORIES: dirname(dir) }),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /);
+    assert.match(run.stderr, /^inventory\.mjs: /m);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
   });
 
@@ -1623,7 +1650,7 @@ test("both CLIs exit 1 and write nothing", async (t) => {
     writeFileSync(join(dir, "out", "report.json"), auditRequest(["."]));
     const run = runInventory(join(dir, "out", "report.json"), { cwd: join(dir, "repo"), env });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /);
+    assert.match(run.stderr, /^inventory\.mjs: /m);
     assert.equal(existsSync(join(dir, "out", "inventory.json")), false);
   });
 

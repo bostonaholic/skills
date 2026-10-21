@@ -179,10 +179,12 @@ test("write-target.mjs --path prints a contained target and whether it exists", 
   const existing = run("write-target.mjs", [repo, "--path", "CODING_STANDARDS.md"]);
   assert.equal(existing.status, 0, existing.stderr);
   assert.match(existing.stdout, /^target exists: true$/m);
+  assert.equal(existing.stderr, "");
 
   const created = run("write-target.mjs", [repo, "--path", "docs/standards/naming.md"]);
   assert.equal(created.status, 0, created.stderr);
   assert.match(created.stdout, /^target exists: false$/m);
+  assert.equal(created.stderr, "");
 });
 
 test("write-target.mjs --path refuses traversal and symlinks out of the repo", (t) => {

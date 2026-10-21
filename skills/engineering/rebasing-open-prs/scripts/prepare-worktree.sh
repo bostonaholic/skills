@@ -26,10 +26,24 @@
 #   any other non-zero: a git command failed, with git's message on stderr.
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=references/per-pr-procedure.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
 die() {
   local code=$1
   shift
   echo "prepare-worktree.sh: $*" >&2
+  see_doc
   exit "$code"
 }
 

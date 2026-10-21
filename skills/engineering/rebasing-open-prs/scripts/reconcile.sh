@@ -36,20 +36,30 @@
 # Exit: 0 reported, including FETCH=failed; 2 usage or manifest not found; 127 git or jq missing.
 set -euo pipefail
 
-command -v git >/dev/null && command -v jq >/dev/null || {
-  echo "reconcile.sh: requires git and jq" >&2
-  exit 127
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
 }
-[ $# -eq 1 ] || {
-  echo "usage: reconcile.sh <run>" >&2
-  exit 2
+
+fail() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
 }
+
+command -v git >/dev/null && command -v jq >/dev/null || fail 127 "reconcile.sh: requires git and jq"
+[ $# -eq 1 ] || fail 2 "usage: reconcile.sh <run>"
 run=$1
 manifest="$run/manifest.tsv"
-[ -f "$manifest" ] || {
-  echo "reconcile.sh: manifest not found: $manifest" >&2
-  exit 2
-}
+[ -f "$manifest" ] || fail 2 "reconcile.sh: manifest not found: $manifest"
 
 # file_status <result-file>: the file's status, or missing, or invalid.
 file_status() {
@@ -58,7 +68,7 @@ file_status() {
     echo missing
     return
   fi
-  status=$(jq -r '.status // empty' "$1" 2>/dev/null || true)
+  status=$(jq -r '.status // empty' "$1" || true)
   case "$status" in
     pushed | already-up-to-date | conflicts-flagged | push-rejected | skipped | error) echo "$status" ;;
     *) echo invalid ;;
@@ -89,7 +99,7 @@ derive() {
 }
 
 echo "Fetching latest remote state..." >&2
-if git fetch --prune origin >/dev/null 2>&1; then
+if git fetch --quiet --prune origin >&2; then
   echo "FETCH=ok"
 else
   echo "FETCH=failed"
@@ -127,7 +137,7 @@ while IFS=$'\t' read -r pr branch base pre_oid || [ -n "${pr:-}" ]; do
 
   if [ "$current_oid" = "$pre_oid" ]; then oid_changed=no; else oid_changed=yes; fi
 
-  tip_committed=$(git log -1 --format=%cI "$ref" 2>/dev/null || echo unknown)
+  tip_committed=$(git log -1 --format=%cI "$ref" || echo unknown)
 
   read -r status needs_review <<<"$(derive "$file" "$rebased" "$oid_changed")"
 

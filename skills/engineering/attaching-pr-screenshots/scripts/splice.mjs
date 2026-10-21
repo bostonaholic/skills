@@ -55,7 +55,10 @@
  */
 
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /** GitHub's PR-body ceiling, in characters. Rule 5 refuses above it. */
 const BODY_LIMIT = 65536;
@@ -902,6 +905,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   const fail = (message) => {
     process.stderr.write(`splice.mjs: ${message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(2);
   };
 
@@ -933,6 +937,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const reason = bodyRefusal(slurp(bodyFile, "body file"));
     if (reason) {
       process.stderr.write(`refused: ${reason}\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(1);
     }
     process.exit(0);
@@ -952,6 +957,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   });
   if (!result.changed) {
     process.stderr.write(`refused: ${result.reason}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   }
   process.stdout.write(result.body);

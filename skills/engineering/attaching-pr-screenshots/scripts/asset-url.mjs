@@ -28,7 +28,10 @@
  */
 
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /** A host is whole labels only: anything else carries userinfo, a port, or worse. */
 const HOST = /^[A-Za-z0-9.-]+$/;
@@ -81,6 +84,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const prHost = process.argv[2];
   if (process.argv.length !== 3 || !HOST.test(prHost ?? "")) {
     process.stderr.write("asset-url.mjs: usage: asset-url.mjs <pr-host> <candidates\n");
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(2);
   }
   const extraHost = process.env.PR_SCREENSHOTS_ASSET_HOST;

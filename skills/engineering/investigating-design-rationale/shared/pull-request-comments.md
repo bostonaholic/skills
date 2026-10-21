@@ -16,7 +16,7 @@ comment text. Its header documents the JSON it prints.
 
 - **Exit 0:** the read is complete. Use the JSON as the whole feedback set.
 - **Exit 1:** the read failed or is incomplete, and stdout is empty. Report
-  the stderr line and treat the retrieval as failed, never as no feedback.
+  the stderr and treat the retrieval as failed, never as no feedback.
 - **Exit 2:** the PR argument is malformed or does not resolve. Stop and name
   it.
 - **Exit 127:** `gh` is not installed. Stop and say so.

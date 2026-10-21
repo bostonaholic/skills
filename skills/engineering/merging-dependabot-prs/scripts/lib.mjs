@@ -55,9 +55,19 @@ export function runGh(args) {
   return { status: run.status, stdout: run.stdout, stderr: run.stderr };
 }
 
+/**
+ * Writes a failed tool's stderr unaltered, ending it with a newline so the caller's own
+ * line starts on a line of its own. Writes nothing for empty text.
+ */
+export function writeToolError(text) {
+  if (!text) return;
+  process.stderr.write(text.endsWith("\n") ? text : `${text}\n`);
+}
+
 function ghJson(args) {
   const run = runGh(args);
   if (run.status !== 0) {
+    writeToolError(run.stderr);
     throw new GhError(
       `gh ${args.slice(0, 3).join(" ")} exited ${run.status}: ${firstLine(run.stderr)}`,
       {
@@ -113,6 +123,7 @@ export function readCi(number) {
     // Not JSON: fall through to the stderr cases below.
   }
   if (/no checks reported/i.test(run.stderr)) return "none";
+  writeToolError(run.stderr);
   throw new GhError(`gh pr checks ${number} exited ${run.status}: ${firstLine(run.stderr)}`, {
     stderr: run.stderr,
   });

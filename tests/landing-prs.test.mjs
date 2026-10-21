@@ -438,6 +438,101 @@ test("ci-gate.mjs exits 1 naming each failing check when the watch fails", (t) =
   assert.equal(result.stdout, "VERDICT=fail\nFAILED=unit tests\n");
 });
 
+test("ci-gate.mjs forwards nothing when gh pr checks exits 1 with valid JSON", (t) => {
+  const { result } = ciGate(t, [
+    [SETTLE, [settled("UNSTABLE")]],
+    [WATCH, [{ code: 1 }]],
+    [
+      "--json name,bucket",
+      [
+        {
+          out: JSON.stringify([
+            { name: "lint", bucket: "pass" },
+            { name: "unit tests", bucket: "fail" },
+          ]),
+          err: "gh-checks-sentinel: one or more checks failed\n",
+          code: 1,
+        },
+      ],
+    ],
+  ]);
+  assert.equal(result.status, 1);
+  assert.doesNotMatch(result.stderr, /gh-checks-sentinel/);
+  assert.equal(result.stdout, "VERDICT=fail\nFAILED=unit tests\n");
+});
+
+// A `git` first on PATH that runs the real git, except for one subcommand prefix, which
+// writes `sentinel` to stderr and exits 128, as git does for dubious ownership.
+function gitShim(dir, failing, sentinel) {
+  const bin = join(dir, "git-shim");
+  mkdirSync(bin, { recursive: true });
+  const realGit = spawnSync(BASH, ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  writeFileSync(
+    join(bin, "git"),
+    `#!${BASH}
+if [ "\${*:1:${failing.length}}" = ${JSON.stringify(failing.join(" "))} ]; then
+  printf '%s\\n' ${JSON.stringify(sentinel)} >&2
+  exit 128
+fi
+exec ${JSON.stringify(realGit)} "$@"
+`,
+  );
+  chmodSync(join(bin, "git"), 0o755);
+  return bin;
+}
+
+function lineIndex(text, line) {
+  return text.split("\n").indexOf(line);
+}
+
+function lineStartIndex(text, prefix) {
+  return text.split("\n").findIndex((line) => line.startsWith(prefix));
+}
+
+test("landing scripts pass git's and gh's own error text through before their own line", async (t) => {
+  await t.test("preflight.sh shows git's @{push} error before its exit 6 line", (st) => {
+    const dir = scratch(st);
+    const repos = repoPair(dir);
+    const { bin } = fakeGh(dir, [
+      ["pr view", [{ out: PR_FIELDS() }]],
+      ["repo view", [{ out: "true\n" }]],
+    ]);
+    const shim = gitShim(
+      dir,
+      ["rev-parse", "--abbrev-ref", "@{push}"],
+      "fatal: git-push-sentinel: detected dubious ownership",
+    );
+    const result = spawnSync(BASH, [PREFLIGHT], {
+      cwd: repos.work,
+      encoding: "utf8",
+      env: { ...process.env, ...GIT_ENV, PATH: `${shim}:${bin}:${process.env.PATH}` },
+    });
+    assert.equal(result.status, 6, result.stderr);
+    const tool = lineIndex(result.stderr, "fatal: git-push-sentinel: detected dubious ownership");
+    const own = lineStartIndex(result.stderr, "preflight.sh: git push targets");
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("ci-gate.mjs shows gh's error before could not list the failing checks", (st) => {
+    const { result } = ciGate(st, [
+      [SETTLE, [settled("UNSTABLE")]],
+      [WATCH, [{ code: 1 }]],
+      [
+        "--json name,bucket",
+        [{ out: "not json", err: "gh-checks-sentinel: could not fetch checks\n", code: 1 }],
+      ],
+    ]);
+    assert.equal(result.status, 1);
+    const tool = lineIndex(result.stderr, "gh-checks-sentinel: could not fetch checks");
+    const own = lineIndex(result.stderr, "ci-gate.mjs: could not list the failing checks");
+    assert.notEqual(tool, -1, `gh's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `gh's line is not before the script's line:\n${result.stderr}`);
+    assert.equal(result.stdout, "VERDICT=fail\n");
+  });
+});
+
 test("ci-gate.mjs exits 124 when the watch outlasts the cap", (t) => {
   const started = Date.now();
   const { result } = ciGate(

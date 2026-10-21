@@ -118,7 +118,7 @@
 
 import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const SCRIPT = "re-request-review.mjs";
@@ -146,6 +146,9 @@ const MAX_PAGES_PER_CONNECTION = 10;
 // GitHub's 65,536-character body limit that is about 26 MB of one-byte text, so 64 MiB
 // leaves room for multi-byte text. execFile's 1 MiB default fails on a few long bodies.
 const GH_OUTPUT_LIMIT_BYTES = 64 * 1024 * 1024;
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/review-re-request.md", import.meta.url));
 
 const EXIT_OK = 0;
 const EXIT_FAILURE = 1;
@@ -530,6 +533,7 @@ async function main(argv) {
     process.stderr.write(
       `${SCRIPT}: usage: ${SCRIPT} [--report] https://<host>/<owner>/<repo>/pull/<n>\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT_USAGE;
   }
   const pullRequest = parsePullRequestUrl(args[0]);
@@ -546,6 +550,7 @@ async function main(argv) {
   const read = await readReviewState(pullRequest);
   if (read.failure) {
     process.stderr.write(`${SCRIPT}: ${read.reason}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     emit(`not-requested ${read.failure}`);
     return finish(EXIT_FAILURE, read.reason);
   }

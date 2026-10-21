@@ -42,7 +42,7 @@
  */
 
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   EXIT_OK,
   EXIT_USAGE,
@@ -54,6 +54,8 @@ import {
 } from "./github.mjs";
 
 const SCRIPT = "arm.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/arm.md", import.meta.url));
 const USAGE = `usage: ${SCRIPT} [<pr-number>|<pr-url>]`;
 const EXIT_REFUSED = 3;
 const PR_NUMBER_PATTERN = /^[1-9][0-9]*$/;
@@ -158,14 +160,11 @@ function main(argv) {
   const view = resolvePr(target);
   const summary = summarizeArm(view, fetchFeedback(view.url, { bodies: true }));
   process.stdout.write(`${JSON.stringify(summary)}\n`);
-  if (summary.refusal !== null) {
-    process.stderr.write(`${SCRIPT}: refused: ${summary.refusal}\n`);
-    return EXIT_REFUSED;
-  }
+  if (summary.refusal !== null) throw new Failure(EXIT_REFUSED, `refused: ${summary.refusal}`);
   return EXIT_OK;
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  runCli(SCRIPT, main);
+  runCli(SCRIPT, DOC_PATH, main);
 }

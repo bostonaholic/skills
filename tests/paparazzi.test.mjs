@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -188,6 +188,7 @@ test("png-check exits 0 on a passing frame, 1 on a failed gate, and 2 on a non-P
   const failing = run(PNG_CHECK, [blank]);
   assert.equal(failing.status, 1);
   assert.equal(JSON.parse(failing.stdout).failures.length, 1);
+  assert.doesNotMatch(failing.stderr, /^see /m);
 
   assert.equal(run(PNG_CHECK, [text]).status, 2);
   assert.equal(run(PNG_CHECK, [frame, "extra"]).status, 2);
@@ -336,6 +337,118 @@ test("shoot exits 2 on an unusable list and 3 when no Playwright resolves", (t) 
   const noTool = run(SHOOT, [good, join(dir, "out")], { cwd: dir, env });
   assert.equal(noTool.status, 3);
   assert.equal(run(SHOOT, [], { cwd: dir, env }).status, 2);
+});
+
+// A fake `playwright` package under <dir>/node_modules, which shoot.mjs resolves through
+// $PAPARAZZI_TOOLS. It reads its behavior from <dir>/fake-playwright.json:
+//   launchErrors  messages that successive chromium.launch calls throw
+//   gotoErrors    { <url path>: message } that page.goto throws for that path
+// No browser starts and no request leaves the process.
+function fakePlaywright(dir, behavior) {
+  const pkg = join(dir, "node_modules", "playwright");
+  mkdirSync(pkg, { recursive: true });
+  writeFileSync(join(pkg, "package.json"), '{"name":"playwright","main":"index.js"}\n');
+  writeFileSync(
+    join(pkg, "index.js"),
+    `const fs = require("node:fs");
+const path = require("node:path");
+const spec = JSON.parse(fs.readFileSync(path.join(__dirname, "../../fake-playwright.json"), "utf8"));
+let launches = 0;
+const page = {
+  setDefaultTimeout() {},
+  on() {},
+  async goto(url) {
+    throw new Error(spec.gotoErrors[new URL(url).pathname]);
+  },
+};
+const context = { async newPage() { return page; }, async close() {} };
+const browser = { async newContext() { return context; }, async close() {} };
+exports.chromium = {
+  async launch() {
+    const message = (spec.launchErrors ?? [])[launches++];
+    if (message) throw new Error(message);
+    return browser;
+  },
+};
+`,
+  );
+  writeFileSync(join(dir, "fake-playwright.json"), JSON.stringify(behavior));
+}
+
+function shootWithFake(t, shots, behavior) {
+  const dir = scratch(t);
+  fakePlaywright(dir, behavior);
+  const list = join(dir, "shots.json");
+  writeFileSync(list, JSON.stringify({ origin: "http://127.0.0.1:9", shots }));
+  return run(SHOOT, [list, join(dir, "out")], {
+    cwd: dir,
+    env: { ...process.env, PAPARAZZI_TOOLS: dir },
+  });
+}
+
+function lastLine(text) {
+  return text.replace(/\n$/, "").split("\n").at(-1);
+}
+
+test("shoot.mjs writes Playwright's full error to stderr only when the frame reason cut it", async (t) => {
+  await t.test("a two-line goto error: reason is line 1, the whole message on stderr", (st) => {
+    const message = "page.goto: net::ERR_CONNECTION_REFUSED\npw-sentinel call log: navigating";
+    const result = shootWithFake(st, [{ name: "01-home", path: "/a" }], {
+      gotoErrors: { "/a": message },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      JSON.parse(result.stdout).frames[0].reason,
+      "page.goto: net::ERR_CONNECTION_REFUSED",
+    );
+    assert.equal(result.stderr, `${message}\n`);
+  });
+
+  await t.test("a one-line goto error: reason holds it all, and stderr stays empty", (st) => {
+    const result = shootWithFake(st, [{ name: "01-home", path: "/a" }], {
+      gotoErrors: { "/a": "page.goto: net::ERR_CONNECTION_REFUSED" },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      JSON.parse(result.stdout).frames[0].reason,
+      "page.goto: net::ERR_CONNECTION_REFUSED",
+    );
+    assert.equal(result.stderr, "");
+  });
+
+  await t.test("both launches fail: both messages, the no browser line, then see", (st) => {
+    const result = shootWithFake(st, [{ name: "01-home", path: "/a" }], {
+      launchErrors: [
+        "browserType.launch: Executable doesn't exist\npw-sentinel bundled: run npx playwright install",
+        "browserType.launch: Chromium distribution 'chrome' is not found\npw-sentinel chrome: install Google Chrome",
+      ],
+    });
+    assert.equal(result.status, 3, result.stderr);
+    assert.deepEqual(result.stderr.split("\n").slice(0, 5), [
+      "browserType.launch: Executable doesn't exist",
+      "pw-sentinel bundled: run npx playwright install",
+      "browserType.launch: Chromium distribution 'chrome' is not found",
+      "pw-sentinel chrome: install Google Chrome",
+      "shoot.mjs: no browser: bundled chromium: browserType.launch: Executable doesn't exist; chrome: browserType.launch: Chromium distribution 'chrome' is not found",
+    ]);
+    assert.match(lastLine(result.stderr), /^see /);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("two failed frames write their full messages in frame order", (st) => {
+    const first = "page.goto: first frame failed\npw-sentinel first call log";
+    const second = "page.goto: second frame failed\npw-sentinel second call log";
+    const result = shootWithFake(
+      st,
+      [
+        { name: "01-first", path: "/first" },
+        { name: "02-second", path: "/second" },
+      ],
+      { gotoErrors: { "/first": first, "/second": second } },
+    );
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(result.stderr, `${first}\n${second}\n`);
+  });
 });
 
 function playwrightAvailable() {

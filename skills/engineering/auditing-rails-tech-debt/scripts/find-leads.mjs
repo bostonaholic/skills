@@ -40,7 +40,10 @@
 //   3  no db/schema.rb (a structure.sql app): printed the leads with "schema": null
 import { lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 const SCRIPT = "find-leads.mjs";
 const EXIT_OK = 0;
@@ -404,6 +407,7 @@ export function findLeads(root) {
 function main(argv) {
   if (argv.length !== 1) {
     process.stderr.write(`${SCRIPT}: usage: ${SCRIPT} <app-root>\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT_USAGE;
   }
   let leads;
@@ -412,11 +416,13 @@ function main(argv) {
   } catch (error) {
     if (!(error instanceof LeadError)) throw error;
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT_FAILURE;
   }
   process.stdout.write(`${JSON.stringify(leads)}\n`);
   if (leads.schema === null) {
     process.stderr.write(`${SCRIPT}: no db/schema.rb, so "schema" is null\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT_NO_SCHEMA;
   }
   return EXIT_OK;

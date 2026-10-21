@@ -47,9 +47,12 @@
 import { accessSync, constants, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { delimiter, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { isAttachmentUrl } from "./asset-url.mjs";
 import { splice } from "./splice.mjs";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /**
  * One line, trimmed, whitespace collapsed, and every character markdown could
@@ -172,7 +175,7 @@ export function onPath(tool) {
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const runDir = process.argv[2];
   const exit = (code, message) => {
-    if (message) process.stderr.write(message);
+    if (message) process.stderr.write(`${message}see ${DOC_PATH}\n`);
     try {
       writeFileSync(join(runDir, "write-exit"), `${code}\n`);
     } catch {

@@ -186,7 +186,10 @@ test("splice.mjs prints the same refused: prefix in splice mode as in --check mo
     },
   );
   assert.equal(result.status, 1);
-  assert.equal(result.stderr, "refused: the section to splice is empty\n");
+  assert.equal(
+    result.stderr,
+    `refused: the section to splice is empty\nsee ${realpathSync(resolve(SCRIPTS, "../SKILL.md"))}\n`,
+  );
 
   const checkBody = join(dir, "check-body.md");
   writeFileSync(checkBody, 'Body <img src="x">\n');
@@ -605,11 +608,34 @@ test("write-result.mjs reports unverified with the failed assertion and a null s
   }
 });
 
-test("write-result.mjs reports unverified when the read-back call fails", (t) => {
-  const run = finishedRun(t, { "write-exit": "0\n" });
+test("write-result.mjs reports unverified when the read-back call fails, after gh's own error", (t) => {
+  const run = finishedRun(
+    t,
+    { "write-exit": "0\n" },
+    `  "api --hostname github.com repos/o/r/pulls/7 "*) printf 'gh: read sentinel' >&2; exit 1 ;;`,
+  );
   const result = run.node("write-result.mjs");
   assert.equal(result.status, 1);
   assert.equal(result.stdout, "outcome unverified\nfailed the body could not be read back\n");
+  assert.equal(result.stderr, "gh: read sentinel\n");
+});
+
+test("write-result.mjs shows gh's error when POST /markdown fails", (t) => {
+  const dir = scratch(t);
+  const pull = join(dir, "pull.json");
+  writeFileSync(pull, JSON.stringify({ body: "## Screenshots\n", body_html: "" }));
+  const run = finishedRun(
+    t,
+    { "write-exit": "0\n" },
+    [
+      `  "api --hostname github.com repos/o/r/pulls/7 "*) cat '${pull}' ;;`,
+      `  "api --hostname github.com --method POST markdown --input -") echo 'gh: render sentinel' >&2; exit 1 ;;`,
+    ].join("\n"),
+  );
+  const result = run.node("write-result.mjs");
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "outcome unverified\nfailed the body could not be read back\n");
+  assert.equal(result.stderr, "gh: render sentinel\n");
 });
 
 test("write-result.mjs renders the stored body through POST /markdown when body_html is empty", (t) => {
@@ -676,4 +702,88 @@ test("write-result.mjs faults and writes nothing on an unfinished or faulted run
     assert.match(result.stderr, reason);
     assert.equal(existsSync(join(run.runDir, "result.json")), false);
   }
+});
+
+test("splice.mjs --check exits 0 with empty stderr on a body that passes", (t) => {
+  const dir = scratch(t);
+  const body = join(dir, "body.md");
+  writeFileSync(body, "Body with no image tag.\n");
+  const check = spawnSync(
+    process.execPath,
+    [join(SCRIPTS, "splice.mjs"), "--check", "--body-file", body],
+    { encoding: "utf8" },
+  );
+  assert.equal(check.status, 0, check.stderr);
+  assert.equal(check.stderr, "");
+});
+
+function lineStartIndex(text, prefix) {
+  return text.split("\n").findIndex((line) => line.startsWith(prefix));
+}
+
+test("upload.sh passes jq's and file's own error text through", async (t) => {
+  await t.test("a malformed entries file shows jq's text, then the refusal", (st) => {
+    const { result, ghCalls } = uploadRun(st, "{");
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineStartIndex(result.stderr, "jq: ");
+    const own = result.stderr.split("\n").indexOf("the entries file is not valid JSON");
+    assert.notEqual(tool, -1, `jq's line is missing from stderr:\n${result.stderr}`);
+    assert.notEqual(own, -1, `the refusal is not its own line:\n${result.stderr}`);
+    assert.ok(tool < own, `jq's line is not before the refusal:\n${result.stderr}`);
+    assert.equal(ghCalls, "");
+  });
+
+  await t.test("a JSON value followed by garbage forwards jq's text, not the shape check", (st) => {
+    const { result, ghCalls } = uploadRun(st, "{} oops");
+    assert.equal(result.status, 1, result.stderr);
+    const lines = result.stderr.split("\n");
+    assert.notEqual(
+      lineStartIndex(result.stderr, "jq: "),
+      -1,
+      `jq's line is missing:\n${result.stderr}`,
+    );
+    assert.ok(
+      !lines.includes("the entries file has no entries array"),
+      `the script's own shape check reached stderr:\n${result.stderr}`,
+    );
+    assert.ok(lines.includes("the entries file is not valid JSON"), result.stderr);
+    assert.equal(ghCalls, "");
+  });
+
+  await t.test("a failed file call shows file's text and still records not an image", (st) => {
+    const dir = scratch(st);
+    const runDir = join(dir, "run");
+    const root = join(dir, "shots");
+    mkdirSync(runDir);
+    mkdirSync(root);
+    writeFileSync(join(root, "a.png"), "not really a png\n");
+    const entriesFile = join(dir, "entries.json");
+    writeFileSync(
+      entriesFile,
+      JSON.stringify({ root, entries: [{ path: join(root, "a.png"), caption: "a" }] }),
+    );
+    writeFileSync(join(runDir, "pr-host"), "github.com\n");
+    writeFileSync(join(runDir, "number"), "7\n");
+    writeFileSync(join(runDir, "repo-spec"), "github.com/o/r\n");
+    writeFileSync(join(runDir, "entries-file"), `${entriesFile}\n`);
+    writeFileSync(join(runDir, "pre-image.md"), "Body.\n");
+    const { bin } = fakeBin(dir, {
+      tools: UPLOAD_TOOLS,
+      cases: `  "pr edit --help") echo "  --attach file" ;;`,
+    });
+    writeFileSync(
+      join(bin, "file"),
+      `#!${BASH}\necho "file-sentinel: could not find any valid magic files" >&2\nexit 1\n`,
+    );
+    chmodSync(join(bin, "file"), 0o755);
+
+    const result = run("upload.sh", [runDir], bin);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /^file-sentinel: could not find any valid magic files$/m);
+    assert.equal(
+      readFileSync(join(runDir, "failures.tsv"), "utf8"),
+      `not an image\t${join(root, "a.png")}\n`,
+    );
+  });
 });

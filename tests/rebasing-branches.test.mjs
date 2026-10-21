@@ -202,6 +202,34 @@ test("prepare-rebase.sh exits 4 on an invalid base name or when the current bran
   assert.match(result.stderr, /current branch is the base/);
 });
 
+test("prepare-rebase.sh passes git's own error text through at the base-name check", (t) => {
+  const w = world(t);
+  const realGit = spawnSync("bash", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  const shim = join(w.dir, "git-shim");
+  mkdirSync(shim);
+  writeFileSync(
+    join(shim, "git"),
+    `#!/usr/bin/env bash
+if [[ $1 == check-ref-format ]]; then
+  echo "fatal: git-ref-format-sentinel" >&2
+  exit 128
+fi
+exec ${JSON.stringify(realGit)} "$@"
+`,
+  );
+  chmodSync(join(shim, "git"), 0o755);
+
+  const result = run(w, PREPARE, [], { PATH: `${shim}:${w.env.PATH}` });
+
+  assert.equal(result.status, 4, result.stderr);
+  const lines = result.stderr.split("\n");
+  const tool = lines.indexOf("fatal: git-ref-format-sentinel");
+  const own = lines.indexOf("prepare-rebase: base is not a valid branch name: main");
+  assert.notEqual(tool, -1, `git's line is missing from stderr:\n${result.stderr}`);
+  assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+  assert.equal(result.stdout, "");
+});
+
 test("prepare-rebase.sh exits 5 when no remote's URL is the base repository", (t) => {
   const w = world(t);
   const result = run(w, PREPARE, [], { GH_REPO_VIEW: "main acme/other" });

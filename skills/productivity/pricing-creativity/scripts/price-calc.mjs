@@ -44,7 +44,10 @@
  */
 
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 // ch03: the value chain derives a cost ceiling of "about 60%" of the price
 // before designing the solution, leaving the rest as margin.
@@ -234,10 +237,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     if (error instanceof UsageError) {
       process.stderr.write(`price-calc.mjs: ${USAGE}\n`);
       process.stderr.write(`price-calc.mjs: ${error.message}\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(2);
     }
     if (error instanceof InvalidInput) {
       process.stderr.write(`price-calc.mjs: ${error.message}\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       process.exit(1);
     }
     throw error;

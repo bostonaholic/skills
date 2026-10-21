@@ -29,7 +29,7 @@ node <skill-dir>/scripts/ci-fix-preflight.mjs <pr-url> <head>
 - `binding: fail`: report the `condition` and push nothing. A `head-moved`
   condition skips the attempt this cycle.
 - Exit 1: report only, with no attempt counted. Exit 2 or 127: report the
-  stderr line and push nothing.
+  stderr and push nothing.
 
 ## Attribution
 

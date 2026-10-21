@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- End each bundled skill script's own failure with a `see <path>` line naming the skill file that explains it, and pass the error text of git, gh, jq, and the other tools the scripts run through unaltered. [#125](https://github.com/bostonaholic/skills/pull/125)
+
 ## [0.53.3] - 2026-10-21
 
 ### Fixed

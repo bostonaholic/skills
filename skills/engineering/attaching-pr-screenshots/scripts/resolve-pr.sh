@@ -30,19 +30,35 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  printf '%s\n' "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [ "$#" -ne 2 ]; then
-  printf 'usage: %s <arguments> <run-dir>\n' "$0" >&2
-  exit 2
+  die 2 "usage: $0 <arguments> <run-dir>"
 fi
 ARGUMENTS="$1"
 RUN_DIR="$2"
 if [ ! -d "$RUN_DIR" ]; then
-  printf 'run directory does not exist: %s\n' "$RUN_DIR" >&2
-  exit 2
+  die 2 "run directory does not exist: $RUN_DIR"
 fi
 if ! command -v gh >/dev/null 2>&1; then
-  printf 'missing required tool: gh\n' >&2
-  exit 2
+  die 2 "missing required tool: gh"
 fi
 
 # --- Split the arguments before validating any of them ----------------------
@@ -71,28 +87,24 @@ for TOKEN in "$@"; do
       # A second value overwriting the first would upload from a manifest
       # the caller never named. "The last one wins" is a guess.
       if [ -n "$ENTRIES_FILE" ]; then
-        printf 'more than one --entries\n' >&2
-        exit 1
+        die 1 "more than one --entries"
       fi
       PENDING=1
       ;;
     --entries=*)
       if [ -n "$ENTRIES_FILE" ]; then
-        printf 'more than one --entries\n' >&2
-        exit 1
+        die 1 "more than one --entries"
       fi
       ENTRIES_FILE="${TOKEN#--entries=}"
       ;;
     --*)
-      printf 'unknown flag: %s\n' "$TOKEN" >&2
-      exit 1
+      die 1 "unknown flag: $TOKEN"
       ;;
     *)
       # An entries path holding a space arrives as two tokens and lands
       # here: a loud refusal, never a silently truncated path.
       if [ -n "$PR_ARG" ]; then
-        printf 'more than one PR argument\n' >&2
-        exit 1
+        die 1 "more than one PR argument"
       fi
       PR_ARG="$TOKEN"
       ;;
@@ -100,8 +112,7 @@ for TOKEN in "$@"; do
 done
 
 if [ -n "$PENDING" ]; then
-  printf -- '--entries needs a path\n' >&2
-  exit 1
+  die 1 "--entries needs a path"
 fi
 
 # --- Validate the PR token alone --------------------------------------------
@@ -125,8 +136,7 @@ esac
 
 if [ -z "$ARG_NUMBER" ] && [ -n "$PR_ARG" ]; then
   if [[ ! "$PR_ARG" =~ $PR_URL_PATTERN ]]; then
-    printf 'malformed PR argument\n' >&2
-    exit 1
+    die 1 "malformed PR argument"
   fi
   REST="${PR_ARG#https://}"
   ARG_HOST="${REST%%/*}"
@@ -147,21 +157,17 @@ fi
 if [ -z "$PR_ARG" ]; then
   # No PR token: the current branch's PR, resolved against the checkout.
   if ! PR_URL="$(gh pr view --json url --jq .url </dev/null)"; then
-    printf 'no PR for the current branch — pass a PR number or URL\n' >&2
-    exit 1
+    die 1 "no PR for the current branch — pass a PR number or URL"
   fi
 elif [ -n "$ARG_OWNER" ]; then
   if ! PR_URL="$(gh pr view "$ARG_NUMBER" --repo "$ARG_HOST/$ARG_OWNER/$ARG_REPO" --json url --jq .url </dev/null)"; then
-    printf 'could not resolve the PR: %s\n' "$PR_ARG" >&2
-    exit 1
+    die 1 "could not resolve the PR: $PR_ARG"
   fi
 else
   # The bare-number form has no repository of its own and resolves against the
   # checkout by design; with no checkout it resolves nothing.
   if ! PR_URL="$(gh pr view "$ARG_NUMBER" --json url --jq .url </dev/null)"; then
-    printf 'could not resolve PR %s — a bare number needs a local checkout, so pass the full PR URL\n' \
-      "$ARG_NUMBER" >&2
-    exit 1
+    die 1 "could not resolve PR $ARG_NUMBER — a bare number needs a local checkout, so pass the full PR URL"
   fi
 fi
 
@@ -170,8 +176,7 @@ fi
 case "$PR_URL" in
   https://*/*/*/pull/[0-9]*) : ;;
   *)
-    printf 'resolution returned something that is not a PR URL: %s\n' "$PR_URL" >&2
-    exit 1
+    die 1 "resolution returned something that is not a PR URL: $PR_URL"
     ;;
 esac
 REST="${PR_URL#https://}"
@@ -183,14 +188,12 @@ REPO="${REST%%/*}"
 NUMBER="${PR_URL##*/}"
 case "$PR_HOST$OWNER$REPO" in
   *[!A-Za-z0-9._-]*)
-    printf 'resolved host, owner, or repository carries an unexpected character: %s\n' "$PR_URL" >&2
-    exit 1
+    die 1 "resolved host, owner, or repository carries an unexpected character: $PR_URL"
     ;;
 esac
 case "$NUMBER" in
   "" | *[!0-9]*)
-    printf 'resolved PR number is not a number: %s\n' "$PR_URL" >&2
-    exit 1
+    die 1 "resolved PR number is not a number: $PR_URL"
     ;;
 esac
 

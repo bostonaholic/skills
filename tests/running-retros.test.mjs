@@ -133,10 +133,21 @@ test("check-edit-target.sh exits 1 outside a git repository", (t) => {
   const dir = scratch(t);
   const result = check(dir, "x.md", "0".repeat(40));
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /^error: not a git repository: /);
+  assert.match(result.stderr, /^fatal: not a git repository.*\nerror: not a git repository: /);
   const missing = check(join(dir, "absent"), "x.md", "absent");
   assert.equal(missing.status, 1);
   assert.match(missing.stderr, /^error: repo root is not a directory: /);
+});
+
+test("check-edit-target.sh names its doc after changing directory on a relative call", (t) => {
+  const dir = scratch(t);
+  const result = spawnSync(BASH, ["check-edit-target.sh", dir, "x.md", "0".repeat(40)], {
+    cwd: SCRIPTS,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 1);
+  const doc = realpathSync(join(SCRIPTS, "..", "references", "applying-edits.md"));
+  assert.equal(result.stderr.trimEnd().split("\n").at(-1), `see ${doc}`);
 });
 
 // ---------------------------------------------------------------------------

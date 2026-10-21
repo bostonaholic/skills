@@ -121,6 +121,18 @@ test("project scope outside a git repository exits 2", (t) => {
   assert.match(result.stderr, /not inside a git repository/);
 });
 
+test("project scope shows git's own error before the exit 2 line", (t) => {
+  const bin = join(scratch(t), "bin");
+  mkdirSync(bin);
+  writeFileSync(join(bin, "git"), `#!${BASH}\necho 'fatal: git sentinel' >&2\nexit 128\n`, {
+    mode: 0o755,
+  });
+  const result = run(["claude", "project"], { path: bin });
+  assert.equal(result.status, 2);
+  assert.equal(result.stdout, "");
+  assert.match(result.stderr, /^fatal: git sentinel\nerror: not inside a git repository: \.\n/);
+});
+
 test("an unknown host exits 3", () => {
   const result = run(["cursor", "global"]);
   assert.equal(result.status, 3);

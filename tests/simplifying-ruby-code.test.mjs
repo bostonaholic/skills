@@ -207,6 +207,6 @@ test("find-callers.sh exits 4 when grep fails", (t) => {
     fakes: { grep: "echo 'grep: boom' >&2\nexit 2" },
   });
   assert.equal(result.status, 4);
-  assert.match(result.stderr, /grep failed/);
+  assert.match(result.stderr, /^grep: boom\nerror: grep failed /);
   assert.equal(result.stdout, "");
 });

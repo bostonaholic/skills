@@ -2,7 +2,9 @@
 // outside the scope, a missing, repeated, misplaced, or wrong verdict, or an empty scope, or changes
 // its JSON output or exit codes; or when changed-files.sh stops falling back from the PR base to
 // origin/HEAD to main, lists a deleted or ignored file, misses a committed, staged, unstaged, or
-// untracked one, or changes its exit codes.
+// untracked one, or changes its exit codes; or when changed-files.sh hides git's or gh's own
+// error text: a rev-parse or check-ref-format failure that reaches the agent only as the script's
+// own line, or an unauthenticated gh that silently falls back to another base.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -11,6 +13,7 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -57,7 +60,9 @@ function invalid(t, report, options) {
   const run = checkReport(t, report, options);
   assert.equal(run.status, 1, run.stderr);
   assert.equal(run.stdout, "");
-  return run.stderr.split("\n").filter(Boolean);
+  const lines = run.stderr.split("\n").filter(Boolean);
+  assert.equal(lines.at(-1), `see ${resolve("skills/engineering/removing-comments/SKILL.md")}`);
+  return lines.slice(0, -1);
 }
 
 test("check-report.mjs prints a valid report's findings and counts as JSON", (t) => {
@@ -192,7 +197,7 @@ test("check-report.mjs exits 2 on wrong arguments or an unreadable or empty scop
   assert.match(missing.stderr, /^check-report\.mjs: cannot read scope file: /);
   const empty = checkReport(t, "APPROVE\n", { scope: "\n\n" });
   assert.equal(empty.status, 2);
-  assert.match(empty.stderr, /lists no files\n$/);
+  assert.match(empty.stderr, /lists no files$/m);
   assert.equal(empty.stdout, "");
 });
 
@@ -324,16 +329,16 @@ test("changed-files.sh exits 1 outside a git work tree", (t) => {
   const dir = scratch(t);
   const run = changedFiles(dir, dir);
   assert.equal(run.status, 1);
-  assert.equal(run.stderr, "changed-files.sh: not inside a git work tree\n");
+  assert.match(run.stderr, /^changed-files\.sh: not inside a git work tree$/m);
 });
 
 test("changed-files.sh exits 1 on an invalid base name", (t) => {
   const { dir, repo } = repoWithRemotes(t, ["main"]);
   const run = changedFiles(dir, repo, { prBase: "bad..name" });
   assert.equal(run.status, 1);
-  assert.equal(
+  assert.match(
     run.stderr,
-    "changed-files.sh: base branch name 'bad..name' is not a valid branch name\n",
+    /^changed-files\.sh: base branch name 'bad\.\.name' is not a valid branch name$/m,
   );
 });
 
@@ -350,4 +355,188 @@ test("changed-files.sh exits 2 on any argument", (t) => {
   assert.equal(run.status, 2);
   assert.match(run.stderr, /^usage: /);
   assert.equal(run.stdout, "");
+});
+
+// changed-files.sh error passthrough
+
+const GIT_ENV = {
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_NOSYSTEM: "1",
+  GIT_AUTHOR_NAME: "Test",
+  GIT_AUTHOR_EMAIL: "test@example.invalid",
+  GIT_COMMITTER_NAME: "Test",
+  GIT_COMMITTER_EMAIL: "test@example.invalid",
+};
+
+function gitIn(cwd, ...args) {
+  const result = spawnSync(GIT, args, {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, ...GIT_ENV },
+  });
+  assert.equal(result.status, 0, `git ${args.join(" ")}: ${result.stderr}`);
+  return result.stdout.trim();
+}
+
+// A bare remote with `main`, and a clone at <dir>/work on `feature` with one committed
+// file, `committed.txt`, and one untracked file, `untracked.txt`.
+function cloneRepo(dir) {
+  const remote = join(dir, "remote.git");
+  mkdirSync(remote);
+  gitIn(remote, "init", "-q", "--bare", "-b", "main");
+  const work = join(dir, "work");
+  gitIn(dir, "clone", "-q", remote, work);
+  gitIn(work, "checkout", "-q", "-b", "main");
+  writeFileSync(join(work, "base.txt"), "base\n");
+  gitIn(work, "add", "base.txt");
+  gitIn(work, "commit", "-q", "-m", "base");
+  gitIn(work, "push", "-q", "origin", "main");
+  gitIn(work, "checkout", "-q", "-b", "feature");
+  writeFileSync(join(work, "committed.txt"), "committed\n");
+  gitIn(work, "add", "committed.txt");
+  gitIn(work, "commit", "-q", "-m", "feature");
+  writeFileSync(join(work, "untracked.txt"), "untracked\n");
+  return work;
+}
+
+// A fake `gh` that writes `out` to stdout and `err` to stderr, then exits `code`.
+function fakeGhWith(dir, { out = "", err = "", code = 0 }) {
+  const bin = join(dir, "gh-bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(
+    join(bin, "gh"),
+    `#!${process.execPath}
+process.stdout.write(${JSON.stringify(out)});
+process.stderr.write(${JSON.stringify(err)});
+process.exit(${code});
+`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  return bin;
+}
+
+// A `git` first on PATH that runs the real git, except for one subcommand prefix, which
+// writes `sentinel` to stderr and exits 128, as git does for dubious ownership.
+function gitShim(dir, failing, sentinel) {
+  const bin = join(dir, "git-shim");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(
+    join(bin, "git"),
+    `#!${BASH}
+if [ "\${*:1:${failing.length}}" = ${JSON.stringify(failing.join(" "))} ]; then
+  printf '%s\\n' ${JSON.stringify(sentinel)} >&2
+  exit 128
+fi
+exec ${JSON.stringify(GIT)} "$@"
+`,
+  );
+  chmodSync(join(bin, "git"), 0o755);
+  return bin;
+}
+
+function runChangedFiles(cwd, pathDirs) {
+  return spawnSync(BASH, [CHANGED_FILES], {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, ...GIT_ENV, PATH: [...pathDirs, process.env.PATH].join(":") },
+  });
+}
+
+function lineIndex(text, line) {
+  return text.split("\n").indexOf(line);
+}
+
+test("changed-files.sh passes git's and gh's own error text through", async (t) => {
+  await t.test("shows git's rev-parse error before not inside a git work tree", (st) => {
+    const dir = scratch(st);
+    const work = cloneRepo(dir);
+    const shim = gitShim(
+      dir,
+      ["rev-parse", "--show-toplevel"],
+      "fatal: git-toplevel-sentinel: detected dubious ownership",
+    );
+    const gh = fakeGhWith(dir, { out: "main\n" });
+    const result = runChangedFiles(work, [shim, gh]);
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineIndex(
+      result.stderr,
+      "fatal: git-toplevel-sentinel: detected dubious ownership",
+    );
+    const own = lineIndex(result.stderr, "changed-files.sh: not inside a git work tree");
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("shows git's check-ref-format error before the base-name failure", (st) => {
+    const dir = scratch(st);
+    const work = cloneRepo(dir);
+    const shim = gitShim(dir, ["check-ref-format"], "fatal: git-ref-format-sentinel");
+    const gh = fakeGhWith(dir, { out: "main\n" });
+    const result = runChangedFiles(work, [shim, gh]);
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineIndex(result.stderr, "fatal: git-ref-format-sentinel");
+    const own = lineIndex(
+      result.stderr,
+      "changed-files.sh: base branch name 'main' is not a valid branch name",
+    );
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("shows gh's error and still lists the files against the fallback base", (st) => {
+    const dir = scratch(st);
+    const work = cloneRepo(dir);
+    const gh = fakeGhWith(dir, {
+      err: "gh-auth-sentinel: To get started with GitHub CLI, please run: gh auth login\n",
+      code: 1,
+    });
+    const result = runChangedFiles(work, [gh]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      result.stderr,
+      /^gh-auth-sentinel: To get started with GitHub CLI, please run: gh auth login$/m,
+    );
+    assert.equal(result.stdout, "committed.txt\nuntracked.txt\n");
+  });
+});
+
+test("changed-files.sh drops gh's no-PR message and lists the files against the fallback base", (t) => {
+  const dir = scratch(t);
+  const work = cloneRepo(dir);
+  const gh = fakeGhWith(dir, { err: 'no pull requests found for branch "feature"\n', code: 1 });
+  const result = runChangedFiles(work, [gh]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stderr, /no pull requests found/);
+  assert.equal(result.stdout, "committed.txt\nuntracked.txt\n");
+});
+
+test("changed-files.sh keeps gh's stderr out of the base when gh succeeds", (t) => {
+  const dir = scratch(t);
+  const work = cloneRepo(dir);
+  const gh = fakeGhWith(dir, { out: "main\n", err: "gh-debug-sentinel: GET /graphql 200\n" });
+  const result = runChangedFiles(work, [gh]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /^gh-debug-sentinel: GET \/graphql 200$/m);
+  assert.equal(result.stdout, "committed.txt\nuntracked.txt\n");
+});
+
+test("changed-files.sh names its own SKILL.md when run by a relative path below the top level", (t) => {
+  const dir = scratch(t);
+  const work = cloneRepo(dir);
+  const sub = join(work, "sub");
+  mkdirSync(sub);
+  symlinkSync(dirname(dirname(CHANGED_FILES)), join(sub, "tool"));
+  const gh = fakeGhWith(dir, { out: "absent\n" });
+  const result = spawnSync(BASH, ["tool/scripts/changed-files.sh"], {
+    cwd: sub,
+    encoding: "utf8",
+    env: { ...process.env, ...GIT_ENV, PATH: [gh, process.env.PATH].join(":") },
+  });
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(
+    result.stderr.replace(/\n$/, "").split("\n").at(-1),
+    `see ${realpathSync(resolve("skills/engineering/removing-comments/SKILL.md"))}`,
+  );
 });

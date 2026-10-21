@@ -45,9 +45,12 @@
 import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { isAttachmentUrl } from "./asset-url.mjs";
 import { onPath, pairEntries } from "./write-body.mjs";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /** The degraded caption tail `write-body.mjs` renders; the read-back looks for it as text. */
 const DEGRADED_WORDING = "captured, not yet uploaded";
@@ -137,7 +140,7 @@ export function verifySection(html, paired, prHost, extraHost) {
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const fault = (message) => {
-    process.stderr.write(`write-result.mjs: ${message}\n`);
+    process.stderr.write(`write-result.mjs: ${message}\nsee ${DOC_PATH}\n`);
     process.exit(2);
   };
   const argv = process.argv.slice(2);
@@ -197,12 +200,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const owner = required("owner").trim();
     const repo = required("repo").trim();
     const prNumber = required("number").trim();
-    const gh = (args, input) =>
-      spawnSync("gh", ["api", "--hostname", host, ...args], {
+    // The `unverified` outcome on stdout does not say why gh failed, so gh's own
+    // error goes to stderr. A spawn error is not gh's failure and has no text.
+    const gh = (args, input) => {
+      const run = spawnSync("gh", ["api", "--hostname", host, ...args], {
         encoding: "utf8",
         input,
         maxBuffer: 16 * 1024 * 1024, // a 65,536-character body renders well under this
       });
+      if (!run.error && run.status !== 0 && run.stderr) {
+        process.stderr.write(run.stderr.endsWith("\n") ? run.stderr : `${run.stderr}\n`);
+      }
+      return run;
+    };
     let html = "";
     const pull = gh([
       `repos/${owner}/${repo}/pulls/${prNumber}`,

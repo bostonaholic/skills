@@ -22,9 +22,12 @@
 //   1  an input is unreadable, not JSON, or malformed (stderr names it)
 //   2  usage: wrong argument count
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { isMain } from "./lib.mjs";
 
 const SCRIPT = "render-plan.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const GROUP_ORDER = ["security", "patch", "minor", "rest"];
 
 const cell = (value) =>
@@ -126,6 +129,7 @@ function validate(analysis, notes) {
 function main(argv) {
   if (argv.length < 1 || argv.length > 2) {
     process.stderr.write(`${SCRIPT}: usage: ${SCRIPT} <analysis.json> [<notes.json>]\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   try {
@@ -138,6 +142,7 @@ function main(argv) {
     return 0;
   } catch (error) {
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
 }

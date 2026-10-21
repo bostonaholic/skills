@@ -56,8 +56,30 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  local code=$1
+  shift
+  echo "error: $*" >&2
+  see_doc
+  exit "$code"
+}
+
 usage() {
   echo "usage: $0 --target SHA --baseline SHA [--samples N] [--clean-polls M] [--interval S] [--max-polls P] -- CMD [ARG...]" >&2
+  see_doc
   exit 2
 }
 
@@ -104,24 +126,20 @@ done
 [[ -n $target && -n $baseline && $# -gt 0 ]] || usage
 for pair in "samples:$samples" "clean-polls:$clean_polls" "max-polls:$max_polls"; do
   if [[ ! ${pair#*:} =~ ^[1-9][0-9]*$ ]]; then
-    echo "error: --${pair%%:*} must be a positive whole number" >&2
-    exit 2
+    die 2 "--${pair%%:*} must be a positive whole number"
   fi
 done
 if [[ ! $interval =~ ^[0-9]+$ ]]; then
-  echo "error: --interval must be a whole number of seconds" >&2
-  exit 2
+  die 2 "--interval must be a whole number of seconds"
 fi
 
 for tool in git sleep; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: missing required tool: $tool" >&2
-    exit 2
+    die 2 "missing required tool: $tool"
   fi
 done
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  echo "error: not inside a git repository" >&2
-  exit 2
+if ! git rev-parse --git-dir >/dev/null; then
+  die 2 "not inside a git repository"
 fi
 
 # Print the full commit sha for $1, fetching from origin once if the clone
@@ -134,12 +152,11 @@ resolve() {
   fi
   echo "fetching origin: $1 is not in this clone" >&2
   git fetch --quiet origin >&2 || true
-  if full=$(git rev-parse --quiet --verify "$1^{commit}" 2>/dev/null); then
+  if full=$(git rev-parse --quiet --verify "$1^{commit}"); then
     echo "$full"
     return
   fi
-  echo "error: cannot resolve $1 to a commit, even after fetching origin" >&2
-  exit 3
+  die 3 "cannot resolve $1 to a commit, even after fetching origin"
 }
 
 on_target() {
@@ -150,12 +167,10 @@ target=$(resolve "$target")
 baseline=$(resolve "$baseline")
 
 if on_target "$baseline"; then
-  echo "error: self-check failed: target $target is already in baseline $baseline" >&2
-  exit 4
+  die 4 "self-check failed: target $target is already in baseline $baseline"
 fi
 if ! on_target "$target"; then
-  echo "error: self-check failed: target $target is not an ancestor of itself" >&2
-  exit 4
+  die 4 "self-check failed: target $target is not an ancestor of itself"
 fi
 echo "self-check passed: baseline off target, target on target" >&2
 
@@ -164,13 +179,11 @@ echo "self-check passed: baseline off target, target on target" >&2
 sample() {
   local out
   if ! out=$("$@"); then
-    echo "error: sampling command failed: $*" >&2
-    exit 5
+    die 5 "sampling command failed: $*"
   fi
   out=$(tr -d '[:space:]' <<<"$out")
   if [[ ! $out =~ ^[0-9a-fA-F]{7,40}$ ]]; then
-    echo "error: sampling command printed something other than one sha: $out" >&2
-    exit 5
+    die 5 "sampling command printed something other than one sha: $out"
   fi
   echo "$out"
 }

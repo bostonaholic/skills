@@ -200,9 +200,11 @@ rebased=$(rd rev-parse HEAD)
 rd commit -q --allow-empty -m extra
 run 4 "$scripts/check-range-diff.sh" "$tmp/rd" main "$pre"
 printf '%s\n' "$out" | grep -q '^NEW [0-9a-f]\{40\} extra$' || fail "new commit line: $out"
+printf '%s\n' "$err" | grep -q '^see ' && fail "exit 4 is a stdout outcome, but stderr has a see line: $err"
 rd reset -q --hard origin/main
 run 3 "$scripts/check-range-diff.sh" "$tmp/rd" main "$pre"
 printf '%s\n' "$out" | grep -q "^DROPPED $pre addc$" || fail "dropped commit line: $out"
+printf '%s\n' "$err" | grep -q '^see ' && fail "exit 3 is a stdout outcome, but stderr has a see line: $err"
 rd reset -q --hard "$rebased"
 echo "ok - check-range-diff exits 3 on a dropped commit and 4 on a new one"
 

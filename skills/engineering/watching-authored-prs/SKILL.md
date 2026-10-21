@@ -79,8 +79,8 @@ node <skill-dir>/scripts/poll.mjs <pr-url> --state <state-file> --out <feedback-
 
 Print its `snapshot` line every poll, then act on its JSON in this order:
 
-1. Exit 1 is a poll failure for the watch loop's count; report the stderr
-   line. Exit 2 or 127: stop and report the stderr line.
+1. Exit 1 is a poll failure for the watch loop's count; report the stderr.
+   Exit 2 or 127: stop and report the stderr.
 2. `terminal` set: stop as `Merge or close`.
 3. `thirdParty` non-empty: stop as `Third-party participant` with no triage,
    reply, or resolve, and report the logins.
@@ -118,7 +118,7 @@ each entry in `newFailures`:
 
 - With a `jobId`, run
   `bash <skill-dir>/scripts/ci-log.sh <host> <owner>/<repo> <jobId> <log-file>`
-  and read the file; on a nonzero exit, its stderr line is why no log exists.
+  and read the file; on a nonzero exit, its stderr says why no log exists.
 - With `jobId: null`, `noLog` says why no log exists.
 - Report `check` in a code span, its `state`, the head SHA, and an excerpt of
   at most 20 lines fenced and labeled untrusted, or why no log exists.
