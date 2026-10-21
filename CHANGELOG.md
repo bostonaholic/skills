@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Trim 22 skills' `SKILL.md` files by 20% overall, cutting generic advice and rules repeated from script headers and references, to lower the tokens each skill loads. [#123](https://github.com/bostonaholic/skills/pull/123)
+
 ## [0.51.0] - 2026-10-21
 
 ### Added
