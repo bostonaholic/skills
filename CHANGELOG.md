@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Find every caller of a Ruby class in `simplifying-ruby-code` with `scripts/find-callers.sh`, which lists literal, require, and dynamic-lookup references across code, config, gemspecs, and executables. [#120](https://github.com/bostonaholic/skills/pull/120)
+
 ## [0.48.0] - 2026-10-21
 
 ### Changed
