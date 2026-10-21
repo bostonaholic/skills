@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Run the board load, the mechanical gap-inventory rows, Ready slot counts, card moves, dependency links, and closures in `grooming-backlogs` through tested scripts, leaving the model only judgment. [#109](https://github.com/bostonaholic/skills/pull/109)
+
 ## [0.37.0] - 2026-10-21
 
 ### Changed
