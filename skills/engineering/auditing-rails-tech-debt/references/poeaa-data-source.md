@@ -23,9 +23,9 @@ Source: the Data Source Architectural Patterns in Fowler's
 
 **Fix:** All access to the table through one gateway, the model's query interface.
 
-**Finding rule:** grep for `connection.select_all`, `connection.execute`, and
-`find_by_sql` naming a table that has a model. Cite Table Data Gateway; add the
-Rails Security Guide if strings are interpolated.
+**Finding rule:** flag `raw-sql` leads from `scripts/find-leads.mjs` that name
+a table that has a model. Cite Table Data Gateway; add the Rails Security Guide
+if strings are interpolated.
 
 ## Row Data Gateway
 
@@ -58,10 +58,12 @@ framework's own pattern).
 
 **Fix:** Extract Class for concepts with their own table; a module function for stateless logic that does not map to the users table.
 
-**Finding rule:** flag ActiveRecord models over about 300 to 500 lines, or with
-method clusters that share no table columns (measure cohesion: do methods use
-the same attributes?). Cite Active Record's stated limits, SRP, and Extract
-Class (refactoring.com).
+**Finding rule:** flag ActiveRecord models over about 300 to 500 lines
+(`sizes.models` from `scripts/find-leads.mjs`), or with method clusters that
+share no table columns (measure cohesion: do methods use the same attributes?).
+The size range stays a judgment: a long model of cohesive methods is no god
+model. Cite Active Record's stated limits, SRP, and Extract Class
+(refactoring.com).
 
 ## Data Mapper
 

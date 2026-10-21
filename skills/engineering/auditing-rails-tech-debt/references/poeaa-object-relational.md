@@ -105,8 +105,8 @@ identity. Cite Identity Field.
 **Fix:** `t.references :post, null: false, foreign_key: true, index: true` in
 the migration, and `belongs_to :post` on the model.
 
-**Finding rule:** compare `_id` columns in the schema against `add_foreign_key`
-lines; flag `_id` columns lacking constraints or indexes, and models
+**Finding rule:** flag `schema.fkWithoutConstraint` and `schema.fkWithoutIndex`
+leads from `scripts/find-leads.mjs` that reference another table, and models
 re-implementing association lookup. Cite Foreign Key Mapping.
 
 ### Association Table Mapping
@@ -237,9 +237,9 @@ Cite Concrete Table Inheritance and DRY.
 
 **Fix:** delete the shadowing accessor and let the metadata mapping provide it.
 
-**Finding rule:** grep `attr_accessor` and `attr_writer` in models against the
-schema's columns. Severity HIGH: this is a silent data-loss bug. Cite Metadata
-Mapping.
+**Finding rule:** flag `schema.attrShadowsColumn` leads from
+`scripts/find-leads.mjs`. Severity HIGH: this is a silent data-loss bug. Cite
+Metadata Mapping.
 
 ### Query Object
 
