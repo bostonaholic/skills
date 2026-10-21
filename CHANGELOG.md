@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Compute CRAP only in `auditing-complexity`'s renderer, so lane analysts no longer return a `crap` value that the renderer checked against its own. [#108](https://github.com/bostonaholic/skills/pull/108)
+
 ## [0.36.0] - 2026-10-21
 
 ### Changed
