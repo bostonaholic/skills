@@ -72,8 +72,8 @@ number.
    branch; stop on a malformed or unresolvable one. Record
    `git status --porcelain=v1 --untracked-files=all`. Pass `--hostname` to
    every `gh api` call for Enterprise hosts.
-2. **Fetch** with the [comment retrieval query](shared/pull-request-comments.md),
-   fully paginated. `gh pr view --json reviews` and REST `pulls/{n}/comments`
+2. **Fetch** with the [comment retrieval](shared/pull-request-comments.md)
+   script. `gh pr view --json reviews` and REST `pulls/{n}/comments`
    do not expose thread resolution. When `watching-authored-prs` passes its
    poll result, use it, do not refetch, and drop its already-triaged ids.
 3. **Build the set.** Keep outdated threads and flag them: outdated is not

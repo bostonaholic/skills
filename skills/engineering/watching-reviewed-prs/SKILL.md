@@ -92,15 +92,12 @@ auto-merge state.
 
 ## Each cycle
 
-The poll is the structural projection of the
-[pull-request comment retrieval](shared/pull-request-comments.md), one read
-with no body field: `state`,
-`headRefOid`, `autoMergeRequest`; each thread's `id`, `path`, `isResolved`, and
-comments (`first: 100`) with `id`, `author.login`, and `state`; each review's
-`id`, `submittedAt`, `state`, and author; each conversation comment's `id`,
-`createdAt`, `url`, and author. Pass strings with `-f` (`-F` reads a leading
-`@` as a file) and add `--hostname "$HOST"` to every `gh api` call, including
-the shared snippets. Recompute auto-merge every poll; approval trusts only the
+The poll is the
+[pull-request comment retrieval](shared/pull-request-comments.md) run with
+`--no-bodies --hostname "$HOST"`; any exit other than 0 is a poll failure. Its
+`pr` carries `state`, `headRefOid`, and `autoMergeEnabled`. Pass strings to
+every other `gh api` call with `-f` (`-F` reads a leading `@` as a file) and
+add `--hostname "$HOST"`, including the shared snippets. Recompute auto-merge every poll; approval trusts only the
 final poll's value.
 
 A re-review fires for a tracked thread **newly resolved**, a tracked thread

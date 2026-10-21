@@ -172,6 +172,21 @@ test("re-request-review.mjs run through a symlinked directory reaches its usage 
   assert.match(run.stderr, /^re-request-review\.mjs: usage: re-request-review\.mjs /);
 });
 
+test("fetch-pr-feedback.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = spawnSync(
+    process.execPath,
+    [join(symlinkedDir(t, "shared/scripts"), "fetch-pr-feedback.mjs"), "--bogus"],
+    { encoding: "utf8" },
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^fetch-pr-feedback\.mjs: usage: fetch-pr-feedback\.mjs /);
+});
+
+test("importing fetch-pr-feedback.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(t, join(symlinkedDir(t, "shared/scripts"), "fetch-pr-feedback.mjs"));
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("importing re-request-review.mjs through a symlinked directory has no side effects", (t) => {
   const run = importModule(
     t,

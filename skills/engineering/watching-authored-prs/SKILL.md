@@ -26,7 +26,7 @@ Feedback arrives in three disjoint shapes: an inline review **thread**, which
 has a resolved bit, a **review summary**, and a **conversation comment**. The
 last two are **PR-level** items: each is triaged once, keyed by its node id,
 and never waited on for resolution. Retrieve all three with the
-[pull-request comment retrieval](shared/pull-request-comments.md) query. The
+[pull-request comment retrieval](shared/pull-request-comments.md) script. The
 [watch loop](shared/watch-loop.md) owns pacing, the 3-cycle soft cap, and its
 own stops; bind its poll command to the poll below, its cycle-0 subject to
 feedback and CI failures that already exist at arm, and its handoff state to
@@ -107,11 +107,10 @@ The poll is one Bash call: `gh pr view` for `state`, `reviewDecision`,
 `isDraft`, the head SHA and head branch and repository fields, and the
 `statusCheckRollup` length; `gh pr checks --json workflow,name,bucket,state,link`
 when that length is above 0; a second head-SHA read after the checks; and the
-comment retrieval query.
+comment retrieval script.
 
-- Complete pagination on every connection, including each thread's comments,
-  before anything else runs. An unfetched page is a poll failure, never a short
-  list.
+- The comment retrieval must exit 0 before anything else runs. Any other exit
+  is a poll failure, never a short list.
 - Judge `gh pr checks` by its stdout, not its exit status. A non-empty rollup
   with an empty or non-JSON checks list, or a head SHA that is not 40 hex
   characters, is a poll failure. When the two head reads differ, the snapshot
