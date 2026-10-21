@@ -373,3 +373,22 @@ test("importing check-report.mjs through a symlinked directory has no side effec
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+for (const script of ["build-items.mjs", "settle-item.mjs"]) {
+  const escaped = script.replace(".", "\\.");
+  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
+    const run = runScript(
+      join(symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"), script),
+    );
+    assert.equal(run.status, 2);
+    assert.match(run.stderr, new RegExp(`^${escaped}: usage: ${escaped} `));
+  });
+
+  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
+    const run = importModule(
+      t,
+      join(symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"), script),
+    );
+    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+  });
+}
