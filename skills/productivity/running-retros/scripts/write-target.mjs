@@ -6,6 +6,11 @@
  *
  *     node "<skill-dir>/scripts/write-target.mjs" <repo-root> <skill-name>
  *     node "<skill-dir>/scripts/write-target.mjs" <repo-root> --path <repo-relative-path>
+ *     node "<skill-dir>/scripts/write-target.mjs" <repo-root> --name-file <file>
+ *     node "<skill-dir>/scripts/write-target.mjs" <repo-root> --path-file <file>
+ *
+ * The `-file` forms read the name or path from a file (trailing newlines
+ * dropped), so a value drawn from source text never appears in a command line.
  *
  * Output (skill name): `edit root:`, `edit target:`, `edit target exists:`,
  * `create target:`, `create target exists:`, then one `shadowed copy:` line per
@@ -21,7 +26,7 @@
  * resolve-transcript.mjs — one job each.
  */
 
-import { existsSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -157,18 +162,34 @@ export function shadowedCopies(query) {
 // test import has no side effects.
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  const repoRoot = process.argv[2] ?? "";
-  const name = process.argv[3] ?? "";
-
-  if (!repoRoot || !name || (name === "--path" && !process.argv[4])) {
+  const usage = () => {
     process.stderr.write(
-      "usage: write-target.mjs <repo-root> <skill-name | --path <repo-relative-path>>\n",
+      "usage: write-target.mjs <repo-root> <skill-name | --path <repo-relative-path> | --name-file <file> | --path-file <file>>\n",
     );
     process.exit(1);
-  }
+  };
+  const repoRoot = process.argv[2] ?? "";
+  const flag = process.argv[3] ?? "";
+  const flagValue = process.argv[4] ?? "";
+  if (!repoRoot || !flag) usage();
+  if (["--path", "--name-file", "--path-file"].includes(flag) && !flagValue) usage();
 
-  if (name === "--path") {
-    const path = process.argv[4];
+  // A `-file` form reads its value from the run cache. Only trailing newlines
+  // are dropped, because the file-writing tool may end the file with one; any
+  // other character stays and meets the same validation as an argument.
+  const readValue = (file) => {
+    try {
+      return readFileSync(file, "utf8").replace(/\n+$/, "");
+    } catch (error) {
+      process.stderr.write(`refusing: cannot read '${file}' (${error.code ?? error.message})\n`);
+      process.exit(1);
+    }
+  };
+  const isPathForm = flag === "--path" || flag === "--path-file";
+  const name = flag === "--name-file" ? readValue(flagValue) : isPathForm ? "" : flag;
+
+  if (isPathForm) {
+    const path = flag === "--path-file" ? readValue(flagValue) : flagValue;
     if (!isValidRepoPath(path)) {
       process.stderr.write(`refusing: '${path}' is not a plain repo-relative path\n`);
       process.exit(1);

@@ -1,6 +1,7 @@
 // Fails when the retro write-target guard cannot locate a skill nested one
 // category level down, guesses between same-named skills, lets a nested
-// target escape the repository, or misses a copy under the other skills root.
+// target escape the repository, misses a copy under the other skills root, or
+// lets a name or path read through --name-file or --path-file skip validation.
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -183,4 +184,85 @@ test("CLI prints no shadowed copy when one root holds the skill", (t) => {
   const result = run(repo, "alpha");
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /^shadowed copy:/m);
+});
+
+function runArgs(...args) {
+  return spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8" });
+}
+
+test("CLI --name-file reads the skill name from a file, dropping trailing newlines", (t) => {
+  const repo = pluginRepo(t);
+  addSkill(join(repo, "skills", "engineering", "alpha"));
+  const file = join(scratchDir(t), "name-1.txt");
+  writeFileSync(file, "alpha\n\n");
+  const result = runArgs(repo, "--name-file", file);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    new RegExp(`^edit target: ${join(repo, "skills", "engineering", "alpha", "SKILL.md")}$`, "m"),
+  );
+});
+
+test("CLI --name-file refuses a name the allowlist rejects", (t) => {
+  const repo = pluginRepo(t);
+  for (const value of ["", "-rf", "Alpha", "a/b", "alpha\nbeta", "alpha beta", "../x"]) {
+    const file = join(scratchDir(t), "name.txt");
+    writeFileSync(file, value);
+    const result = runArgs(repo, "--name-file", file);
+    assert.equal(result.status, 1, JSON.stringify(value));
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /^refusing: /, JSON.stringify(value));
+  }
+});
+
+test("CLI --path-file reads the path from a file and reports its target", (t) => {
+  const repo = pluginRepo(t);
+  const file = join(scratchDir(t), "path-1.txt");
+  writeFileSync(file, "docs/standards/naming.md\n");
+  const result = runArgs(repo, "--path-file", file);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    result.stdout,
+    `target: ${join(repo, "docs", "standards", "naming.md")}\ntarget exists: false\n`,
+  );
+});
+
+test("CLI --path-file refuses a path the allowlist rejects", (t) => {
+  const repo = pluginRepo(t);
+  for (const value of ["", "/etc/passwd", "-x", "a/../b", "./a", "a//b", "a b", "$(id)"]) {
+    const file = join(scratchDir(t), "path.txt");
+    writeFileSync(file, value);
+    const result = runArgs(repo, "--path-file", file);
+    assert.equal(result.status, 1, JSON.stringify(value));
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /^refusing: /, JSON.stringify(value));
+  }
+});
+
+test("CLI --path-file refuses a path that resolves outside the repository", (t) => {
+  const repo = pluginRepo(t);
+  symlinkSync(scratchDir(t), join(repo, "out"));
+  const file = join(scratchDir(t), "path.txt");
+  writeFileSync(file, "out/x.md");
+  const result = runArgs(repo, "--path-file", file);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^refusing: target resolves outside the repository$/m);
+});
+
+test("CLI refuses an unreadable value file", (t) => {
+  const repo = pluginRepo(t);
+  for (const flag of ["--name-file", "--path-file"]) {
+    const result = runArgs(repo, flag, join(scratchDir(t), "missing.txt"));
+    assert.equal(result.status, 1, flag);
+    assert.match(result.stderr, /^refusing: cannot read '.*missing\.txt' \(ENOENT\)$/m, flag);
+  }
+});
+
+test("CLI exits 1 with usage when a file flag has no value", (t) => {
+  const repo = pluginRepo(t);
+  for (const flag of ["--name-file", "--path-file", "--path"]) {
+    const result = runArgs(repo, flag);
+    assert.equal(result.status, 1, flag);
+    assert.match(result.stderr, /^usage: write-target\.mjs </, flag);
+  }
 });

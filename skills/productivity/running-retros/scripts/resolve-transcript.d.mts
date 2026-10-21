@@ -129,3 +129,15 @@ export function normalizeOpencode(options: {
   dbPath: string;
   sessionId: string;
 }): NormalizedTranscript;
+
+/** Claude Code's project directory name for `directory`: each `/` and `.` becomes `-`. */
+export function projectSlug(directory: string): string;
+
+/** Every `*.jsonl` exactly `depth` directory levels under `root`, sorted. */
+export function transcriptsUnder(root: string, depth: number): string[];
+
+/** True when `file` is the transcript `host` names for `sessionId`. */
+export function namesSession(host: string, file: string, sessionId: string): boolean;
+
+/** The first 64 KiB of `path` as UTF-8, or "" when it cannot be read. */
+export function readHead(path: string): string;
