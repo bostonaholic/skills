@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Move `running-retros` edit preconditions, issue filing, and past-session listing into `check-edit-target.sh`, `file-issue.sh`, and `list-sessions.mjs`, and let `write-target.mjs` read a name or path from a file, replacing retyped shell checks. [#111](https://github.com/bostonaholic/skills/pull/111)
+
 ## [0.39.0] - 2026-10-21
 
 ### Changed
