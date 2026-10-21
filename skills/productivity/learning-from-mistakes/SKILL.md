@@ -11,16 +11,13 @@ If no correction is clear, ask which one to codify.
 
 - **The rule**: one or two imperative sentences ("Do X", "Never Y"), specific
   enough to change behavior. A platitude ("be careful with tests") fails.
-- **Target file**:
-  - Project lessons (this codebase, its conventions or tooling) go in the
-    instructions file at the root from `git rev-parse --show-toplevel`:
-    `CLAUDE.md` in Claude Code, `AGENTS.md` in Codex. Outside a repository, ask
-    where to write.
-  - Lessons that apply across projects go in `~/.claude/CLAUDE.md` in Claude
-    Code or `~/.codex/AGENTS.md` in Codex. In another host, ask which file it
-    reads.
-  - If the file is a symlink, edit the file it resolves to. If it only imports
-    another file (a line such as `@AGENTS.md`), edit the imported file.
+- **Target file**: choose the scope, `project` for a lesson about this
+  codebase, its conventions or tooling, or `global` for one that applies
+  across projects, then run
+  `scripts/resolve-instructions-file.sh <claude|codex> <project|global>` with
+  `claude` in Claude Code and `codex` in Codex. Exit 0 prints the file to edit.
+  On exit 2 (no repository) or 69 (no git), ask where to write. In another
+  host, or on exit 3, ask which file it reads. On exit 4, report the loop.
 - **Overlap**: if the rule already exists, stop and say where. If a related
   rule exists, refine it instead of adding a duplicate.
 - **Approval**: show the rule (or the old and new text of a refined rule), the
