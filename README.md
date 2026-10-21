@@ -26,6 +26,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[auditing-repo-security](./skills/engineering/auditing-repo-security/SKILL.md)**: Audit a third-party repo before running it.
 - **[auditing-tests](./skills/engineering/auditing-tests/SKILL.md)**: Audit a test suite for low-value tests.
 - **[capturing-screenshots](./skills/engineering/capturing-screenshots/SKILL.md)**: Capture verified screenshots of an app.
+- **[choosing-determinism](./skills/engineering/choosing-determinism/SKILL.md)**: Move a skill's deterministic steps into scripts it runs.
 - **[configuring-zsh](./skills/engineering/configuring-zsh/SKILL.md)**: Place zsh config in the right startup file.
 - **[diagnosing-react-code](./skills/engineering/diagnosing-react-code/SKILL.md)**: Scan a React package and fix its errors.
 - **[drawing-mermaid-diagrams](./skills/engineering/drawing-mermaid-diagrams/SKILL.md)**: Write, render, and debug Mermaid diagrams.
@@ -57,7 +58,6 @@ Or follow the [installation instructions](INSTALL.md).
 ### Productivity
 
 - **[being-extremely-fucking-brief](./skills/productivity/being-extremely-fucking-brief/SKILL.md)**: Keep every response extremely brief.
-- **[choosing-determinism](./skills/productivity/choosing-determinism/SKILL.md)**: Move a skill's deterministic steps into scripts it runs.
 - **[composing-agent-prompts](./skills/productivity/composing-agent-prompts/SKILL.md)**: Compose a source-cited task prompt for another agent. Calls: `improving-prompts`.
 - **[conducting-deep-research](./skills/productivity/conducting-deep-research/SKILL.md)**: Research an evidence review plus a funding map.
 - **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core.
