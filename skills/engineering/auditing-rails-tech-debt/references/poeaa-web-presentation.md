@@ -24,8 +24,8 @@ Source: the Web Presentation Patterns in Fowler's
 
 **Fix:** The model exposes state; a helper renders it.
 
-**Finding rule:** grep models for `html_safe`, `tag.`, `<span`, `link_to`, and
-`Rails.application.routes`; grep views and controllers for business rules. Cite
+**Finding rule:** flag `presentation-in-model` leads from
+`scripts/find-leads.mjs`; read views and controllers for business rules. Cite
 MVC. (`html_safe` on interpolated strings also cites the Rails Security Guide on
 XSS.)
 

@@ -31,8 +31,8 @@ Source: the Base Patterns in Fowler's
 A class fits here: the gateway holds its endpoint configuration, and tests
 substitute a fake for it (see Service Stub).
 
-**Finding rule:** grep for `Net::HTTP`, `Faraday`, `HTTParty`, and SDK constants
-(`Stripe::`, `Aws::`) outside a dedicated gateway or client layer. Cite Gateway.
+**Finding rule:** flag `http-client` leads from `scripts/find-leads.mjs`, and
+other SDK constants, outside a dedicated gateway or client layer. Cite Gateway.
 
 ## Service Stub
 
@@ -88,9 +88,9 @@ appearing outside boundary code. Cite Mapper and Gateway.
 
 **Fix:** inherit from the layer supertype, and keep only layer-wide behavior in it: pull single-consumer methods down to the consumer.
 
-**Finding rule:** grep `< ActiveRecord::Base` and `< ActionController::Base`
-outside the `Application*` definitions; flag `Application*` methods with one
-caller. Cite Layer Supertype and ISP.
+**Finding rule:** flag `layer-supertype-bypass` leads from
+`scripts/find-leads.mjs`, and `Application*` methods with one caller. Cite Layer
+Supertype and ISP.
 
 ## Separated Interface
 
@@ -118,8 +118,8 @@ operations. Cite Separated Interface and the Dependency Inversion Principle.
 
 **Fix:** Explicit passing, or Rails' sanctioned registry with reset semantics.
 
-**Finding rule:** grep `$` globals, `@@` class variables, and `Thread.current`
-writes. Cite Registry, including its last-resort guidance.
+**Finding rule:** flag `global-state` leads from `scripts/find-leads.mjs`. Cite
+Registry, including its last-resort guidance.
 
 ## Value Object
 
@@ -149,9 +149,8 @@ or compare logic. Cite Value Object and Replace Primitive with Object
 
 **Fix:** Integer cents and a currency behind a Money value object, for example from the money-rails gem.
 
-**Finding rule:** grep the schema for `float` or `decimal` money-named columns
-without currency companions; flag `to_f` on money. Severity HIGH (CRITICAL if
-float). Cite Money.
+**Finding rule:** flag `schema.moneyColumns` from `scripts/find-leads.mjs` that
+hold money, and `to_f` on money. Severity HIGH (CRITICAL if float). Cite Money.
 
 ## Special Case
 
@@ -182,5 +181,5 @@ association or attribute. Cite Special Case.
 
 **Fix:** Configuration selects the implementation once.
 
-**Finding rule:** grep `Rails.env.` outside `config/` and initializers. Cite
-Plugin and OCP.
+**Finding rule:** flag `rails-env-branch` leads from `scripts/find-leads.mjs`.
+Cite Plugin and OCP.

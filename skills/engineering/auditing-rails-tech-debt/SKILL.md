@@ -63,9 +63,17 @@ Rails mapping, fix, and finding rule.
 - [Citation resources](references/resources.md): Fowler's enterprise
   patterns literature plus the Ruby and Rails canon.
 
+## Leads
+
+Run `node <skill-dir>/scripts/find-leads.mjs <app-root>`. On exit 1 or 2,
+fix what stderr names and rerun. Exit 3 means no `db/schema.rb`, so
+`schema` is null: apply its rules to `db/structure.sql` by reading.
+
 Start from `Gemfile`, `config/routes.rb`, `db/schema.rb`, and the largest
-models and controllers; debt concentrates in the biggest files, and a
-missing layer is as diagnostic as a bloated one.
+files in `sizes`; debt concentrates in the biggest files, and a missing
+layer is as diagnostic as a bloated one. A lead is a place to read, never a
+finding: confirm each against the finding rule that names it, and resolve
+each `schema.unresolved` entry by reading its model or migration.
 
 ## Severity
 

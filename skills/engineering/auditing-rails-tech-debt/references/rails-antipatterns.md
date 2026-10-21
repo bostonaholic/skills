@@ -98,8 +98,8 @@ Recommend `strict_loading` or the bullet gem as guard rails.
 user-supplied sort against an allowlist such as `Order.column_names` before
 passing it to `order`.
 
-**Finding rule:** grep for `#{` inside `where(`, `order(`, `group(`, `having(`,
-`joins(`, `select(`, and `find_by_sql`.
+**Finding rule:** flag `sql-interpolation` leads from `scripts/find-leads.mjs`.
+Its leads are single lines, so read multi-line query calls yourself.
 
 ## Law of Demeter train wrecks
 
@@ -186,8 +186,8 @@ and pass the gateway an idempotency key (`idempotency_key: "order-charge-#{order
   [validations guide](https://guides.rubyonrails.org/active_record_validations.html).
   These bypass validations (and `update_column` bypasses callbacks too), letting
   invalid data persist silently.
-- **Finding rule:** grep for them; each use needs a documented, load-bearing
-  justification or it is a finding.
+- **Finding rule:** each `validation-bypass` lead from `scripts/find-leads.mjs`
+  needs a documented, load-bearing justification or it is a finding.
 
 ## rescue nil and blanket rescue
 
