@@ -11,6 +11,7 @@ append_system_prompt: |
   - find-node-modules.txt: find ~/code -name node_modules -type d -prune -exec du -sh {} +
   - du-root.txt: du -xhd 1 /System/Volumes/Data 2>/dev/null | sort -rh | head -20
   - tmutil-snapshots.txt: tmutil listlocalsnapshots /
+  - measure-caches.txt: scripts/measure-caches.sh
 
   df-h.txt:
   ```text
@@ -93,6 +94,29 @@ append_system_prompt: |
   tmutil-snapshots.txt:
   ```text
   Snapshots for disk /:
+  ```
+
+  measure-caches.txt:
+  ```text
+  /System/Volumes/Data	493921239040	456340275200	15032385536	49392123904	34359738368
+  /Users/acme/Library/Developer/Xcode/DerivedData	44023414784	regenerates	Xcode	rm -rf ~/Library/Developer/Xcode/DerivedData/*	Xcode
+  /Users/acme/Library/Developer/CoreSimulator	37580963840	rebuildable	Xcode	xcrun simctl delete unavailable	Simulator
+  /Users/acme/Library/Developer/Xcode/iOS DeviceSupport	17179869184	regenerates	Xcode, when a device on that OS version connects	rm -rf ~/Library/Developer/Xcode/"iOS DeviceSupport"/<version>, for each version no device runs	Xcode
+  /Users/acme/.gradle/caches	15032385536	regenerates	Gradle	rm -rf ~/.gradle/caches	the Gradle daemon (gradle --stop)
+  /Users/acme/.Trash	13958643712	keep	-	-	-
+  /Users/acme/Library/Caches/Homebrew	11811160064	regenerates	Homebrew	brew cleanup --prune=all	-
+  /Users/acme/.npm/_cacache	8912057344	regenerates	npm	npm cache clean --force	-
+  /Users/acme/Library/Caches/JetBrains	8053063680	regenerates	the JetBrains IDE	rm -rf ~/Library/Caches/JetBrains/<product-version>, for each version no longer installed	the JetBrains IDE
+  /Users/acme/Library/Developer/Xcode/Archives	6657199104	keep	-	-	-
+  /Users/acme/Library/Caches/com.apple.dt.Xcode	6549825536	regenerates	Xcode	rm -rf ~/Library/Caches/com.apple.dt.Xcode	Xcode
+  /Users/acme/.cargo/registry/src	3972844544	regenerates	Cargo	rm -rf ~/.cargo/registry/src	-
+  /Users/acme/.gradle/wrapper/dists	3865470976	rebuildable	the Gradle wrapper	rm -rf ~/.gradle/wrapper/dists/<version>, for each version no project's wrapper names	the Gradle daemon (gradle --stop)
+  /Users/acme/Library/Application Support/MobileSync/Backup	3650721792	keep	-	-	-
+  /Users/acme/Library/Caches/org.swift.swiftpm	2147483648	regenerates	Swift Package Manager	rm -rf ~/Library/Caches/org.swift.swiftpm	Xcode
+  /Users/acme/.cargo/registry/cache	1503238144	regenerates	Cargo	rm -rf ~/.cargo/registry/cache	-
+  /Users/acme/Library/Application Support/JetBrains	1395864576	keep	-	-	-
+  /Users/acme/Library/Logs	671088640	regenerates	each app	find ~/Library/Logs -type f -mtime +30 -delete	-
+  /Users/acme/.gradle/daemon	429916160	regenerates	Gradle	rm -rf ~/.gradle/daemon	the Gradle daemon (gradle --stop)
   ```
 ---
 
