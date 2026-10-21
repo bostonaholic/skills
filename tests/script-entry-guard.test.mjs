@@ -182,3 +182,24 @@ test("importing re-request-review.mjs through a symlinked directory has no side 
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+test("collect-friction.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const script = join(
+    symlinkedDir(t, "skills/engineering/summarizing-friction-logs/scripts"),
+    "collect-friction.mjs",
+  );
+  const run = spawnSync(process.execPath, [script, "--bogus"], { encoding: "utf8" });
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^collect-friction\.mjs: usage: collect-friction\.mjs /);
+});
+
+test("importing collect-friction.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(
+      symlinkedDir(t, "skills/engineering/summarizing-friction-logs/scripts"),
+      "collect-friction.mjs",
+    ),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-21
+
+### Changed
+
+- Collect, bound, sort, and render the `summarizing-friction-logs` dashboard with `scripts/collect-friction.mjs`, leaving only the per-entry gists to the model. [#100](https://github.com/bostonaholic/skills/pull/100)
+
 ## [0.28.0] - 2026-10-21
 
 ### Changed
@@ -504,5 +510,7 @@
 
 [0.27.0]: https://github.com/bostonaholic/skills/compare/v0.26.0...v0.27.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.28.0...HEAD
 [0.28.0]: https://github.com/bostonaholic/skills/compare/v0.27.0...v0.28.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.29.0...HEAD
+[0.29.0]: https://github.com/bostonaholic/skills/compare/v0.28.0...v0.29.0
