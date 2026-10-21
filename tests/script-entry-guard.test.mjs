@@ -113,6 +113,22 @@ test("shoot.mjs run through a symlinked directory reaches its usage error", (t) 
   assert.match(run.stderr, /^shoot\.mjs: usage: shoot\.mjs /);
 });
 
+test("finalize.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "finalize.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^finalize\.mjs: usage: finalize\.mjs /);
+});
+
+test("importing finalize.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "finalize.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("importing png-check.mjs through a symlinked directory has no side effects", (t) => {
   const run = importModule(
     t,

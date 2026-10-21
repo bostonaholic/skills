@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-10-21
+
+### Changed
+
+- Write the `capturing-screenshots` manifest and prune its output directory with `scripts/finalize.mjs`, which derives the status, adds each frame's visual verdict, and deletes only files the run or the previous manifest listed. [#117](https://github.com/bostonaholic/skills/pull/117)
+
 ## [0.45.0] - 2026-10-21
 
 ### Changed
@@ -640,5 +646,7 @@
 
 [0.44.0]: https://github.com/bostonaholic/skills/compare/v0.43.0...v0.44.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.45.0...HEAD
 [0.45.0]: https://github.com/bostonaholic/skills/compare/v0.44.0...v0.45.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.46.0...HEAD
+[0.46.0]: https://github.com/bostonaholic/skills/compare/v0.45.0...v0.46.0
