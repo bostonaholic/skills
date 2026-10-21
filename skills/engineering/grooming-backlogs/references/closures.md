@@ -13,23 +13,18 @@ show the comment body and its absolute path, and name the load-bearing fact.
 
 ## Execute
 
-Only against its own answer. Re-read the issue before the comment posts and
-cache it as `$RUN_DIR/pre-close-<n>.json`; no pre-image, no close. Skip and
-report when, since the load:
+Only against its own answer. Run
+`scripts/close-issue.sh "$RUN_DIR" "$OWNER/$REPO" <n> "$RESOLUTION_LABEL"`.
 
-- it closed (already resolved);
-- its body was edited (the verdict is stale);
-- it moved to an in-flight state (hard rule 6);
-- any comment landed, whatever it says (someone is still talking about it).
+- Exit 0: closed and verified. Check off the plan step.
+- Exit 10: skipped, and the reason goes in the report: `closed` (already
+  resolved), `body-edited` (the verdict is stale), `status-changed` (it moved
+  since the load; hard rule 6), `new-comment` (someone is still talking about
+  it, whatever they said).
+- Exit 1: stop with the steps it printed as the verified prefix (hard rule
+  12). A re-run is safe. On a public repository a user without write access
+  can comment but not close, so this is expected there.
+- Exit 4 or 64: a missing cache file or an issue off the board; stop and
+  report it.
 
-Then post the evidence comment by file, add the resolution label additively,
-and close with `--reason "not planned"`, per
-[tracker recipes](references/tracker-recipes.md). If the comment landed but the
-close failed, stop with the verified prefix (hard rule 12); a re-run matches
-the comment by content before re-posting. On a public repository a user
-without write access can comment but not close, so this is expected there.
-
-## Verify
-
-Re-query the state, the resolution label, and the evidence comment. Never move
-the card by hand; board automation lands it in its done column.
+Never move the card by hand; board automation lands it in its done column.

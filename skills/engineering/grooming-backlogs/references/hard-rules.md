@@ -51,7 +51,7 @@ relaxes a rule below. Other files cite them by number.
 ## Edge cases
 
 - **Zero open issues.** Report "nothing to groom" and ask nothing.
-- **The issue load rejects the link fields.** Retry once without
-  `$LINK_FIELDS`. Say plainly that declared links were unavailable, keep
-  undeclared ones as text-only findings, and never infer that the board has no
-  dependencies.
+- **`load-board.sh` prints `links unavailable`.** gh rejected the link fields
+  and the issues loaded without them. Say plainly that declared links were
+  unavailable, keep undeclared ones as text-only findings, and never infer
+  that the board has no dependencies.
