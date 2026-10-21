@@ -38,16 +38,17 @@ survived the decision test.
 
 ## Report format
 
-List findings in file order using exactly one form per comment:
+Reply with the report alone. List findings in file order using exactly one
+form per comment, with `<file>` spelled exactly as the scope lists it:
 
 ```text
 - REMOVE <file>:<line> [comment-only|root-cause] — <failed rule and evidence>
 - KEEP <file>:<line> — <constraint and evidence>
 - ENCODE <file>:<line> [type|runtime|test|lint|CI] — <constraint and encoding>
+- SKIP <file> — <why the file was skipped>
 ```
 
-Then report counts for reviewed comments, `REMOVE`, `KEEP`, `ENCODE`, and
-skipped files. End with exactly one verdict line:
+End with exactly one verdict line:
 
 - `APPROVE`: no `REMOVE` or `ENCODE` findings.
 - `REQUEST CHANGES`: at least one `REMOVE` or `ENCODE` finding.

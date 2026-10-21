@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-10-21
+
+### Changed
+
+- `removing-comments` checks the reviewer report's format, scope, and verdict with `scripts/check-report.mjs` and applies findings from its JSON. [#113](https://github.com/bostonaholic/skills/pull/113)
+
 ## [0.41.0] - 2026-10-21
 
 ### Changed
@@ -608,5 +614,7 @@
 
 [0.40.0]: https://github.com/bostonaholic/skills/compare/v0.39.0...v0.40.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.41.0...HEAD
 [0.41.0]: https://github.com/bostonaholic/skills/compare/v0.40.0...v0.41.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.42.0...HEAD
+[0.42.0]: https://github.com/bostonaholic/skills/compare/v0.41.0...v0.42.0
