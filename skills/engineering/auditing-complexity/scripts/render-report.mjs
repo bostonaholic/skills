@@ -18,10 +18,6 @@ const TOP_BY_CYCLOMATIC = 3;
 const MAX_HOT_FUNCTIONS = 6;
 const MODULE = "<module>";
 const HOT_FUNCTION_COUNTS = ["line", "endLine", "cyclomatic", "nesting", "deepestLine", "params"];
-// Analysts round crap to 2 decimals, so a correct value sits within 0.01 of the recount.
-const CRAP_TOLERANCE = 0.01;
-// Float slack, so a 2-decimal crap exactly 0.01 from the recount still passes.
-const FLOAT_SLACK = 1e-9;
 const NOT_RUN = "Not run: no coverage file was given.\n";
 const SOURCE_POST =
   "https://getotterwise.com/blog/understanding-crap-and-cyclomatic-complexity-metrics";
@@ -127,19 +123,19 @@ function laneRecordErrors(lane) {
 const crapOf = (cyclomatic, hit, missed) =>
   cyclomatic ** 2 * (missed / (hit + missed)) ** 3 + cyclomatic;
 
-// Each defect yields one error, so the checks stop at the first form error.
+// Each defect yields one error, so the checks stop at the first form error. CRAP is never read
+// from the report: scoredFunctions computes it from cyclomatic, hit, and missed.
 function coverageErrors(where, hot, hasCoverage) {
-  const { coverage, crap } = hot;
-  const carriesNeither = coverage === undefined && crap === undefined;
+  const { coverage } = hot;
   if (!hasCoverage)
-    return carriesNeither
+    return coverage === undefined
       ? []
-      : [`${where}: coverage and crap need scope.coverage, and no coverage file was given`];
+      : [`${where}: coverage needs scope.coverage, and no coverage file was given`];
   if (hot.name === MODULE) {
-    return carriesNeither
+    return coverage === undefined
       ? []
       : [
-          `${where}: ${MODULE} carries no coverage or crap, because its range holds every function in the file`,
+          `${where}: ${MODULE} carries no coverage, because its range holds every function in the file`,
         ];
   }
   if (!isObject(coverage))
@@ -151,9 +147,7 @@ function coverageErrors(where, hot, hasCoverage) {
       return [`${where}: coverage holds a reason and line lists. Give one form`];
     if (typeof coverage.reason !== "string" || coverage.reason.trim() === "")
       return [`${where}: coverage reason must be non-empty text`];
-    return crap === undefined
-      ? []
-      : [`${where}: crap needs hit and missed line lists, not a reason`];
+    return [];
   }
   const { hit, missed } = coverage;
   if (
@@ -172,14 +166,6 @@ function coverageErrors(where, hot, hasCoverage) {
   const repeated = lines.find((line, i) => lines.indexOf(line) !== i);
   if (repeated !== undefined)
     return [`${where}: coverage line ${repeated} appears more than once across hit and missed`];
-  if (typeof crap !== "number" || !Number.isFinite(crap))
-    return [`${where}: crap must be a finite number, not ${show(crap)}`];
-  const expected = crapOf(hot.cyclomatic, hit.length, missed.length);
-  if (Math.abs(crap - expected) > CRAP_TOLERANCE + FLOAT_SLACK) {
-    return [
-      `${where}: crap ${crap} must be within ${CRAP_TOLERANCE} of the recount from cyclomatic, hit, and missed, which is ${expected.toFixed(2)}`,
-    ];
-  }
   return [];
 }
 
@@ -320,7 +306,7 @@ function fileMaxima(entry) {
   };
 }
 
-// Every hot function with line lists, with the renderer's own CRAP recount.
+// Every hot function with line lists, with the CRAP the renderer computes from its lines.
 function scoredFunctions(report) {
   return entriesOf(report).flatMap((entry) =>
     list(entry.hotFunctions)
@@ -368,7 +354,7 @@ function fileRows(report, files) {
     );
 }
 
-// Sums unrounded recounts, so only the shown values round.
+// Sums unrounded CRAP values, so only the shown values round.
 function renderCrapTotals(report) {
   if (typeof report.scope.coverage !== "string") {
     return [
@@ -497,7 +483,7 @@ function renderChangeRisk(report) {
     "Scored hot functions rank by CRAP (Change Risk Anti-Patterns), then by cyclomatic complexity, file, and line. " +
       "CRAP = cyclomatic² × (missed / (hit + missed))³ + cyclomatic. Full coverage gives the cyclomatic value, and no coverage gives cyclomatic² + cyclomatic.\n",
     `Cyclomatic is estimated by reading. Analysts copied each function's hit and missed lines from \`${scope.coverage}\`, and no script parsed that file. ` +
-      "The renderer recounts each CRAP from those lines. Coverage is the floored percent of listed lines that ran.\n",
+      "The renderer computes each CRAP from those lines. Coverage is the floored percent of listed lines that ran.\n",
     "Only per-line records count. A line with a count above 0 is hit, and a line with a count of 0 is missed. " +
       "A record matches a file only when its path, after removing a leading `./` or a leading repository top-level path, equals the file's path byte for byte.\n",
     "The lines of a nested function count toward the function that holds it. " +

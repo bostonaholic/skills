@@ -69,7 +69,7 @@ For each hot function, give:
 ## Coverage
 
 Apply this section only when your prompt names a coverage file and `<top>`.
-Otherwise give no `coverage` and no `crap`.
+Otherwise give no `coverage`.
 
 Find each lane file's records with a search of the coverage file for the
 lane file's path. Read only the matched records. These rules are fixed.
@@ -85,20 +85,19 @@ Apply them exactly:
 - A line is hit when its count is above 0, and missed when its count is 0.
   A line the record does not list goes in neither list.
 - A nested function's lines count toward the function that holds it.
-- `<module>` gets no `coverage` and no `crap`.
+- `<module>` gets no `coverage`.
 
 For each other hot function, give one of these `coverage` forms:
 
 - `{ "hit": [<line>], "missed": [<line>] }`: the listed lines inside
-  `line..endLine`. Then give `crap`, which is
-  `cyclomatic² × (missed / (hit + missed))³ + cyclomatic`, with `hit` and
-  `missed` as line counts, rounded to 2 decimals.
+  `line..endLine`. The renderer computes CRAP from these lists and
+  `cyclomatic`, so give no `crap`.
 - `{ "reason": "no coverage record for this file" }`: no record matches the
   file.
 - `{ "reason": "no coverable line in <line>-<endLine>" }`: the matched
   records list no line inside the function's range.
 
-`coverage` and `crap` sit beside `params` in the hot-function object.
+`coverage` sits beside `params` in the hot-function object.
 
 ## When you cannot measure a file
 

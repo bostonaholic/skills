@@ -168,12 +168,11 @@ function withCoverage(audit) {
 }
 
 // A hot function whose coverage lists `hit` executed lines, then `missed` unexecuted lines, right after `line`.
-function covered(name, line, cyclomatic, { hit, missed, crap }) {
+function covered(name, line, cyclomatic, { hit, missed }) {
   const run = (from, count) => Array.from({ length: count }, (_, i) => from + i);
   return hot(name, line, cyclomatic, {
     endLine: line + hit + missed,
     coverage: { hit: run(line + 1, hit), missed: run(line + 1 + hit, missed) },
-    crap,
   });
 }
 
@@ -192,7 +191,6 @@ function coveredReport() {
       deepestLine: 20,
       params: 2,
       coverage: { hit: [12, 20, 30], missed: [35] },
-      crap: 4.25,
     },
   ];
   audit.lanes[0].entries[1].hotFunctions[0].coverage = {
@@ -244,7 +242,7 @@ const manyFunctionsInventory = () =>
 const manyScoredReport = () => {
   const audit = withCoverage(manyFunctionsReport());
   for (const fn of audit.lanes[0].entries.flatMap((e) => e.hotFunctions)) {
-    Object.assign(fn, { coverage: { hit: [fn.line + 1], missed: [] }, crap: fn.cyclomatic });
+    fn.coverage = { hit: [fn.line + 1], missed: [] };
   }
   return audit;
 };
@@ -851,12 +849,6 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
     assert.deepEqual(validateReport(coveredReport(), coveredInventory()), []);
   });
 
-  await t.test("a crap within 0.01 of the recount passes", () => {
-    const rounded = coveredReport();
-    rounded.lanes[0].entries[0].hotFunctions[0].crap = 4.26;
-    assert.deepEqual(validateReport(rounded, coveredInventory()), []);
-  });
-
   await t.test("scope.coverage differs from inventory.json coverage", () => {
     const errors = validateReport(coveredReport(), inventory({ coverage: "coverage/other.txt" }));
     assert.equal(errors.length, 1, errors.join("\n"));
@@ -874,7 +866,6 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
   await t.test("a hot function lacks coverage when a coverage file was given", () => {
     const broken = coveredReport();
     delete broken.lanes[0].entries[0].hotFunctions[0].coverage;
-    delete broken.lanes[0].entries[0].hotFunctions[0].crap;
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /route/);
@@ -940,35 +931,17 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
   await t.test("line lists that hold no line", () => {
     const broken = coveredReport();
     broken.lanes[0].entries[0].hotFunctions[0].coverage = { hit: [], missed: [] };
-    broken.lanes[0].entries[0].hotFunctions[0].crap = 4;
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /coverage/);
   });
 
-  await t.test("a crap without line lists", () => {
-    const broken = coveredReport();
-    broken.lanes[0].entries[1].hotFunctions[0].crap = 1;
-    const errors = validateReport(broken, coveredInventory());
-    assert.equal(errors.length, 1, errors.join("\n"));
-    assert.match(errors[0], /crap/);
-  });
-
-  await t.test("a crap that is not a finite number", () => {
-    const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions[0].crap = "4.25";
-    const errors = validateReport(broken, coveredInventory());
-    assert.equal(errors.length, 1, errors.join("\n"));
-    assert.match(errors[0], /crap/);
-  });
-
-  await t.test("a crap off by more than 0.01 names the expected value", () => {
-    const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions[0].crap = 4.27;
-    const errors = validateReport(broken, coveredInventory());
-    assert.equal(errors.length, 1, errors.join("\n"));
-    assert.match(errors[0], /crap/);
-    assert.match(errors[0], /4\.25/);
+  await t.test("a supplied crap is ignored, and Change risk shows the computed value", () => {
+    const stray = coveredReport();
+    stray.lanes[0].entries[0].hotFunctions[0].crap = 999;
+    assert.deepEqual(validateReport(stray, coveredInventory()), []);
+    const changeRisk = section(renderReport(stray, coveredInventory()), "Change risk");
+    assert.equal(rowWith(changeRisk, "route").CRAP, "4.3");
   });
 });
 
@@ -983,9 +956,9 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
               entry("src/app.js", {
                 functions: 3,
                 hotFunctions: [
-                  covered("untested", 1, 4, { hit: 0, missed: 2, crap: 20 }),
-                  covered("half", 10, 4, { hit: 1, missed: 1, crap: 6 }),
-                  covered("tested", 20, 4, { hit: 2, missed: 0, crap: 4 }),
+                  covered("untested", 1, 4, { hit: 0, missed: 2 }),
+                  covered("half", 10, 4, { hit: 1, missed: 1 }),
+                  covered("tested", 20, 4, { hit: 2, missed: 0 }),
                 ],
               }),
             ]),
@@ -1015,22 +988,22 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
               entry("src/b.js", {
                 functions: 2,
                 hotFunctions: [
-                  covered("low", 1, 2, { hit: 0, missed: 1, crap: 6 }),
-                  covered("bthree", 10, 3, { hit: 1, missed: 0, crap: 3 }),
+                  covered("low", 1, 2, { hit: 0, missed: 1 }),
+                  covered("bthree", 10, 3, { hit: 1, missed: 0 }),
                 ],
               }),
               entry("src/a.js", {
                 functions: 4,
                 hotFunctions: [
-                  covered("late", 30, 1, { hit: 1, missed: 0, crap: 1 }),
-                  covered("early", 20, 1, { hit: 1, missed: 0, crap: 1 }),
-                  covered("athree", 10, 3, { hit: 1, missed: 0, crap: 3 }),
-                  covered("half", 1, 4, { hit: 1, missed: 1, crap: 6 }),
+                  covered("late", 30, 1, { hit: 1, missed: 0 }),
+                  covered("early", 20, 1, { hit: 1, missed: 0 }),
+                  covered("athree", 10, 3, { hit: 1, missed: 0 }),
+                  covered("half", 1, 4, { hit: 1, missed: 1 }),
                 ],
               }),
               entry("src/c.js", {
                 functions: 1,
-                hotFunctions: [covered("top", 1, 4, { hit: 0, missed: 2, crap: 20 })],
+                hotFunctions: [covered("top", 1, 4, { hit: 0, missed: 2 })],
               }),
             ]),
           ],
@@ -1073,9 +1046,7 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
             lane("core", [
               entry("src/full.js", {
                 functions: 1,
-                hotFunctions: [
-                  hot("nearly", 1, 1, { endLine: 201, coverage: NEARLY_FULL, crap: 1 }),
-                ],
+                hotFunctions: [hot("nearly", 1, 1, { endLine: 201, coverage: NEARLY_FULL })],
               }),
             ]),
           ],
@@ -1106,7 +1077,7 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
                 }),
                 entry("src/k.js", {
                   functions: 1,
-                  hotFunctions: [covered("scored", 1, 2, { hit: 1, missed: 0, crap: 2 })],
+                  hotFunctions: [covered("scored", 1, 2, { hit: 1, missed: 0 })],
                 }),
                 entry("src/m.js", {
                   functions: 2,
@@ -1173,13 +1144,13 @@ test("renderReport sums file CRAP into combined and average CRAP", async (t) => 
                 entry("src/a.js", {
                   functions: 2,
                   hotFunctions: [
-                    covered("untested", 1, 4, { hit: 0, missed: 2, crap: 20 }),
-                    covered("tested", 10, 4, { hit: 2, missed: 0, crap: 4 }),
+                    covered("untested", 1, 4, { hit: 0, missed: 2 }),
+                    covered("tested", 10, 4, { hit: 2, missed: 0 }),
                   ],
                 }),
                 entry("src/b.js", {
                   functions: 1,
-                  hotFunctions: [covered("half", 1, 4, { hit: 1, missed: 1, crap: 6 })],
+                  hotFunctions: [covered("half", 1, 4, { hit: 1, missed: 1 })],
                 }),
                 entry("src/c.js", {
                   functions: 1,
@@ -1270,7 +1241,7 @@ const bandInventory = () =>
     },
   });
 
-// Five scored functions near the CRAP band boundaries. Each recount is worked out by hand.
+// Five scored functions near the CRAP band boundaries. Each CRAP is worked out by hand.
 const crapBandReport = () =>
   withCoverage(
     report({
@@ -1280,15 +1251,15 @@ const crapBandReport = () =>
             functions: 5,
             hotFunctions: [
               // 5^2 x 1^3 + 5 = 30 exactly.
-              covered("exact30", 1, 5, { hit: 0, missed: 1, crap: 30 }),
+              covered("exact30", 1, 5, { hit: 0, missed: 1 }),
               // 6^2 x (7/8)^3 + 6 = 12348/512 + 6 = 30.117, shown 30.1.
-              covered("above30", 1, 6, { hit: 1, missed: 7, crap: 30.12 }),
+              covered("above30", 1, 6, { hit: 1, missed: 7 }),
               // 6^2 x (90/103)^3 + 6 = 26244000/1092727 + 6 = 30.017, shown 30.0.
-              covered("rounds30", 1, 6, { hit: 13, missed: 90, crap: 30.02 }),
+              covered("rounds30", 1, 6, { hit: 13, missed: 90 }),
               // 8^2 x (14/15)^3 + 8 = 175616/3375 + 8 = 60.034, shown 60.0.
-              covered("rounds60", 1, 8, { hit: 1, missed: 14, crap: 60.03 }),
+              covered("rounds60", 1, 8, { hit: 1, missed: 14 }),
               // 8^2 x (113/121)^3 + 8 = 92345408/1771561 + 8 = 60.127, shown 60.1.
-              covered("above60", 1, 8, { hit: 8, missed: 113, crap: 60.13 }),
+              covered("above60", 1, 8, { hit: 8, missed: 113 }),
             ],
           }),
         ]),
@@ -1400,7 +1371,7 @@ test("render-report.mjs exits 0 when a CRAP is above 60", (t) => {
         lane("core", [
           entry("src/app.js", {
             functions: 1,
-            hotFunctions: [covered("risky", 1, 8, { hit: 0, missed: 2, crap: 72 })],
+            hotFunctions: [covered("risky", 1, 8, { hit: 0, missed: 2 })],
           }),
         ]),
       ],
