@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-10-21
+
+### Changed
+
+- Compute `pricing-creativity`'s cost ceiling, MLOE, $Y benchmarks, anchor sell rate, and rounded strategic prices with a script instead of by hand. [#121](https://github.com/bostonaholic/skills/pull/121)
+
 ## [0.49.0] - 2026-10-21
 
 ### Changed
@@ -672,5 +678,7 @@
 
 [0.48.0]: https://github.com/bostonaholic/skills/compare/v0.47.0...v0.48.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.49.0...HEAD
 [0.49.0]: https://github.com/bostonaholic/skills/compare/v0.48.0...v0.49.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.50.0...HEAD
+[0.50.0]: https://github.com/bostonaholic/skills/compare/v0.49.0...v0.50.0
