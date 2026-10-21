@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-10-21
+
+### Changed
+
+- Resolve the timeframe in `summarizing-shipped-work` with `scripts/resolve-timeframe.mjs`, halve a search that reaches the cap down to one day in `fetch-shipped-prs.sh`, and print `pr_label` and `title_ticket_links` in place of `title_ticket_keys`. [#112](https://github.com/bostonaholic/skills/pull/112)
+
 ## [0.40.0] - 2026-10-21
 
 ### Changed
@@ -600,5 +606,7 @@
 
 [0.39.0]: https://github.com/bostonaholic/skills/compare/v0.38.0...v0.39.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.40.0...HEAD
 [0.40.0]: https://github.com/bostonaholic/skills/compare/v0.39.0...v0.40.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.41.0...HEAD
+[0.41.0]: https://github.com/bostonaholic/skills/compare/v0.40.0...v0.41.0

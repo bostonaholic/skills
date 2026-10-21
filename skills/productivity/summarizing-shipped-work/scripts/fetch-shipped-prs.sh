@@ -19,16 +19,21 @@
 #   merged             the merge date, YYYY-MM-DD (UTC)
 #   title              the PR title
 #   url                the PR URL
+#   pr_label           REPO#NUMBER without the owner, such as deploy-service#781
 #   issue_links        Linear, Jira, and GitHub issue URLs the body cites
-#   title_ticket_keys  ticket keys in the title, such as OPS-123
+#   title_ticket_links each ticket key in the title, such as OPS-123, mapped to
+#                      the issue_links URL ending in that key, or null for none
 #   body               the body without HTML comments, whitespace collapsed,
 #                      cut to 400 characters
+#
+# A date range whose search reaches the cap is split in half and each half
+# searched again, down to a single day.
 #
 # Exit codes:
 #
 #   0   every chunk was fetched
-#   1   a chunk hit the search cap, a search failed, or gh returned something
-#       that is not JSON. Lines already printed are a partial result
+#   1   a single day hit the search cap, a search failed, or gh returned
+#       something that is not JSON. Lines already printed are a partial result
 #   64  usage error: wrong argument count, a malformed date, START after END,
 #       or a malformed FETCH_SHIPPED_PRS_RETRY_SECONDS
 #   69  a required tool is missing
@@ -74,6 +79,20 @@ fi
 add_days() {
   date -u -d "$1 + $2 days" +%Y-%m-%d 2>/dev/null ||
     date -u -j -v+"$2"d -f %Y-%m-%d "$1" +%Y-%m-%d 2>/dev/null
+}
+
+# Print the seconds since the epoch for a YYYY-MM-DD date. GNU date first, then
+# BSD, which fills the time of day from the clock; only differences are used.
+epoch_of() {
+  date -u -d "$1" +%s 2>/dev/null ||
+    date -u -j -f %Y-%m-%d "$1" +%s 2>/dev/null
+}
+
+# Print the whole days from the first YYYY-MM-DD date to the second.
+days_between() {
+  local from to
+  from=$(epoch_of "$1") && to=$(epoch_of "$2") || return 1
+  echo $(((to - from) / 86400))
 }
 
 # A real calendar date in YYYY-MM-DD form. BSD date rolls 2026-02-30 over to
@@ -128,32 +147,34 @@ search_prs() {
 # a Jira link whose key also has a Linear link is a duplicate of the real
 # ticket and is dropped.
 to_lines='
-  .[] | (.body // "" | gsub("<!--[\\s\\S]*?-->"; "")) as $body | {
+  .[] | (.body // "" | gsub("<!--[\\s\\S]*?-->"; "")) as $body
+  | ([$body | scan("https://(?:linear\\.app/[^/\\s]+/issue/[A-Z][A-Z0-9]+-[0-9]+|[a-z0-9-]+\\.atlassian\\.net/browse/[A-Z][A-Z0-9]+-[0-9]+|github\\.com/[^/\\s]+/[^/\\s]+/issues/[0-9]+)")]
+      | unique
+      | ([.[] | select(test("linear\\.app")) | capture("(?<key>[A-Z][A-Z0-9]+-[0-9]+)$").key]) as $linear_keys
+      | map(select((test("atlassian\\.net") and (capture("(?<key>[A-Z][A-Z0-9]+-[0-9]+)$").key | IN($linear_keys[]))) | not))
+    ) as $links
+  | {
     repo: .repository.nameWithOwner,
     number,
     merged: .closedAt[:10],
     title,
     url,
-    issue_links: (
-      [$body | scan("https://(?:linear\\.app/[^/\\s]+/issue/[A-Z][A-Z0-9]+-[0-9]+|[a-z0-9-]+\\.atlassian\\.net/browse/[A-Z][A-Z0-9]+-[0-9]+|github\\.com/[^/\\s]+/[^/\\s]+/issues/[0-9]+)")]
-      | unique
-      | ([.[] | select(test("linear\\.app")) | capture("(?<key>[A-Z][A-Z0-9]+-[0-9]+)$").key]) as $linear_keys
-      | map(select((test("atlassian\\.net") and (capture("(?<key>[A-Z][A-Z0-9]+-[0-9]+)$").key | IN($linear_keys[]))) | not))
+    pr_label: "\(.repository.nameWithOwner | split("/")[1])#\(.number)",
+    issue_links: $links,
+    title_ticket_links: (
+      [.title | scan("\\b[A-Z][A-Z0-9]+-[0-9]+\\b")] | unique
+      | map(. as $key | {key: $key, value: (first($links[] | select(endswith("/" + $key))) // null)})
+      | from_entries
     ),
-    title_ticket_keys: ([.title | scan("\\b[A-Z][A-Z0-9]+-[0-9]+\\b")] | unique),
     body: ($body | gsub("\\s+"; " ") | .[:$body_chars])
   }'
 
-# 31-day chunks keep a calendar month in one query, far below the search cap
-# for one author; a chunk that still reaches the cap fails below.
-chunk_start=$start_date
-while [[ ! "$chunk_start" > "$end_date" ]]; do
-  if ! chunk_end=$(add_days "$chunk_start" 30); then
-    echo "error: could not add 30 days to $chunk_start" >&2
-    exit 1
-  fi
-  [[ "$chunk_end" > "$end_date" ]] && chunk_end=$end_date
-  range="$chunk_start..$chunk_end"
+# Search one inclusive date range and print its PRs. A range that reaches the
+# search cap may have dropped results, so it is split in half and each half
+# searched instead, earlier half first to keep the output in date order.
+fetch_range() {
+  local from=$1 to=$2 range results count span mid
+  range="$from..$to"
 
   if ! results=$(search_prs --author=@me --merged-at="$range" \
     ${owner_flags[@]+"${owner_flags[@]}"} --limit "$search_cap" \
@@ -167,11 +188,34 @@ while [[ ! "$chunk_start" > "$end_date" ]]; do
     exit 1
   fi
   if ((count >= search_cap)); then
-    echo "error: $range hit the $search_cap-result search cap; narrow the range" >&2
-    exit 1
+    if [[ "$from" == "$to" ]]; then
+      echo "error: $from alone hit the $search_cap-result search cap; it cannot be split further" >&2
+      exit 1
+    fi
+    if ! span=$(days_between "$from" "$to") || ! mid=$(add_days "$from" $((span / 2))); then
+      echo "error: could not split $range" >&2
+      exit 1
+    fi
+    echo "$range hit the $search_cap-result search cap; splitting at $mid" >&2
+    fetch_range "$from" "$mid"
+    fetch_range "$(add_days "$mid" 1)" "$to"
+    return
   fi
 
   jq -c --argjson body_chars "$body_chars" "$to_lines" <<<"$results"
+}
+
+# 31-day chunks keep a calendar month in one query, far below the search cap
+# for one author; fetch_range splits any chunk that still reaches it.
+chunk_start=$start_date
+while [[ ! "$chunk_start" > "$end_date" ]]; do
+  if ! chunk_end=$(add_days "$chunk_start" 30); then
+    echo "error: could not add 30 days to $chunk_start" >&2
+    exit 1
+  fi
+  [[ "$chunk_end" > "$end_date" ]] && chunk_end=$end_date
+
+  fetch_range "$chunk_start" "$chunk_end"
 
   chunk_start=$(add_days "$chunk_end" 1)
 done

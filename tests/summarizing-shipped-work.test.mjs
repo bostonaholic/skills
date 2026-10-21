@@ -1,9 +1,11 @@
 // Fails when fetch-shipped-prs.sh stops exiting 64 on a wrong argument count or a
 // malformed date, stops naming a missing tool, stops turning each OWNER into one
-// --owner flag, splits a long range at the wrong 31-day boundaries, keeps going
-// after a chunk reaches the 1000-result search cap, stops retrying a rate limit
-// or retries any other failure, or changes the fields, Jira de-duplication, or
-// comment stripping of its output lines.
+// --owner flag, splits a long range at the wrong 31-day boundaries, stops halving
+// a range that reaches the 1000-result search cap or keeps going after a single
+// day reaches it, stops retrying a rate limit or retries any other failure, or
+// changes the fields, labels, title ticket links, Jira de-duplication, or comment
+// stripping of its output lines; or when resolve-timeframe.mjs resolves a period
+// token to the wrong dates or stops exiting 64 on a bad one.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -129,18 +131,71 @@ test("fetch-shipped-prs.sh splits a range over 31 days into inclusive 31-day chu
   );
 });
 
-test("fetch-shipped-prs.sh exits 1 with the cap error when a chunk returns 1000 results", (t) => {
-  const dir = scratch(t);
-  const full = Array.from({ length: 1000 }, (_, i) => ({
+function fullPage() {
+  return Array.from({ length: 1000 }, (_, i) => ({
     repository: { nameWithOwner: "acme/deploy-service" },
     number: i + 1,
   }));
-  const { result, ghCalls } = run(t, ["2026-01-01", "2026-03-01"], {
-    cases: answer(dir, '*"--merged-at=2026-01-01..2026-01-31"*', full),
+}
+
+function pr(number, merged) {
+  return {
+    repository: { nameWithOwner: "acme/deploy-service" },
+    number,
+    title: `Change ${number}`,
+    closedAt: `${merged}T12:00:00Z`,
+    url: `https://github.com/acme/deploy-service/pull/${number}`,
+    body: "",
+  };
+}
+
+function mergedAt(calls) {
+  return calls.map((call) => call.match(/--merged-at=(\S+)/)[1]);
+}
+
+test("fetch-shipped-prs.sh halves a range that reaches the search cap and prints the halves in order", (t) => {
+  const dir = scratch(t);
+  const { result, ghCalls } = run(t, ["2026-01-01", "2026-01-31"], {
+    cases: [
+      answer(dir, '*"--merged-at=2026-01-01..2026-01-31 "*', fullPage()),
+      answer(dir, '*"--merged-at=2026-01-01..2026-01-16 "*', fullPage()),
+      answer(dir, '*"--merged-at=2026-01-01..2026-01-08 "*', [pr(1, "2026-01-02")]),
+      answer(dir, '*"--merged-at=2026-01-09..2026-01-16 "*', [pr(2, "2026-01-10")]),
+      answer(dir, '*"--merged-at=2026-01-17..2026-01-31 "*', [pr(3, "2026-01-20")]),
+    ].join("\n"),
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(mergedAt(ghCalls), [
+    "2026-01-01..2026-01-31",
+    "2026-01-01..2026-01-16",
+    "2026-01-01..2026-01-08",
+    "2026-01-09..2026-01-16",
+    "2026-01-17..2026-01-31",
+  ]);
+  assert.match(
+    result.stderr,
+    /2026-01-01\.\.2026-01-31 hit the 1000-result search cap; splitting at 2026-01-16/,
+  );
+  assert.deepEqual(
+    result.stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line).number),
+    [1, 2, 3],
+  );
+});
+
+test("fetch-shipped-prs.sh exits 1 when a single day reaches the search cap, searching nothing after it", (t) => {
+  const dir = scratch(t);
+  const { result, ghCalls } = run(t, ["2026-01-05", "2026-01-06"], {
+    cases: [
+      answer(dir, '*"--merged-at=2026-01-05..2026-01-06 "*', fullPage()),
+      answer(dir, '*"--merged-at=2026-01-05..2026-01-05 "*', fullPage()),
+    ].join("\n"),
   });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /2026-01-01\.\.2026-01-31 hit the 1000-result search cap/);
-  assert.equal(ghCalls.length, 1, "no later chunk is searched");
+  assert.match(result.stderr, /2026-01-05 alone hit the 1000-result search cap/);
+  assert.deepEqual(mergedAt(ghCalls), ["2026-01-05..2026-01-06", "2026-01-05..2026-01-05"]);
   assert.equal(result.stdout, "");
 });
 
@@ -183,7 +238,7 @@ test("fetch-shipped-prs.sh prints one line per PR with links de-duplicated and c
     {
       repository: { nameWithOwner: "acme/web-console" },
       number: 15,
-      title: "Show the rollout stage",
+      title: "WEB-7 Show the rollout stage",
       closedAt: "2026-01-06T09:00:00Z",
       url: "https://github.com/acme/web-console/pull/15",
       body: "word\n".repeat(200),
@@ -202,12 +257,13 @@ test("fetch-shipped-prs.sh prints one line per PR with links de-duplicated and c
     merged: "2026-01-05",
     title: "OPS-123: Step delayed rollouts one stage at a time",
     url: "https://github.com/acme/deploy-service/pull/781",
+    pr_label: "deploy-service#781",
     issue_links: [
       "https://acme.atlassian.net/browse/INFRA-9",
       "https://github.com/acme/web-console/issues/42",
       "https://linear.app/acme/issue/OPS-123",
     ],
-    title_ticket_keys: ["OPS-123"],
+    title_ticket_links: { "OPS-123": "https://linear.app/acme/issue/OPS-123" },
     body:
       "Delayed rollouts now advance one stage at a time. Ticket: https://linear.app/acme/issue/OPS-123/step-rollouts " +
       "Auto-linked: https://acme.atlassian.net/browse/OPS-123 Related: https://acme.atlassian.net/browse/INFRA-9 and " +
@@ -215,5 +271,78 @@ test("fetch-shipped-prs.sh prints one line per PR with links de-duplicated and c
   });
   assert.equal(lines[1].body, "word ".repeat(80));
   assert.deepEqual(lines[1].issue_links, []);
-  assert.deepEqual(lines[1].title_ticket_keys, []);
+  assert.equal(lines[1].pr_label, "web-console#15");
+  assert.deepEqual(lines[1].title_ticket_links, { "WEB-7": null });
+});
+
+const TIMEFRAME = resolve(
+  "skills/productivity/summarizing-shipped-work/scripts/resolve-timeframe.mjs",
+);
+
+function timeframe(...args) {
+  return spawnSync(process.execPath, [TIMEFRAME, ...args], { encoding: "utf8" });
+}
+
+test("resolve-timeframe.mjs resolves each period token against --today", () => {
+  // 2026-10-21 is a Wednesday.
+  for (const [period, expected] of [
+    ["this-week", "2026-10-19 2026-10-21"],
+    ["last-week", "2026-10-12 2026-10-18"],
+    ["this-month", "2026-10-01 2026-10-21"],
+    ["last-month", "2026-09-01 2026-09-30"],
+    ["this-quarter", "2026-10-01 2026-10-21"],
+    ["last-quarter", "2026-07-01 2026-09-30"],
+    ["2026-09", "2026-09-01 2026-09-30"],
+    ["2026-10", "2026-10-01 2026-10-21"],
+    ["2024-02", "2024-02-01 2024-02-29"],
+    ["2026-Q3", "2026-07-01 2026-09-30"],
+    ["2026-Q4", "2026-10-01 2026-10-21"],
+    ["since:2026-08-15", "2026-08-15 2026-10-21"],
+    ["2025-12-20..2026-01-10", "2025-12-20 2026-01-10"],
+    ["2026-10-01..2026-12-31", "2026-10-01 2026-12-31"],
+  ]) {
+    const result = timeframe(period, "--today", "2026-10-21");
+    assert.equal(result.status, 0, `${period}: ${result.stderr}`);
+    assert.equal(result.stdout, `${expected}\n`, period);
+  }
+});
+
+test("resolve-timeframe.mjs starts weeks on Monday and crosses year boundaries", () => {
+  for (const [period, today, expected] of [
+    ["this-week", "2026-10-19", "2026-10-19 2026-10-19"],
+    ["this-week", "2026-10-25", "2026-10-19 2026-10-25"],
+    ["last-week", "2026-10-25", "2026-10-12 2026-10-18"],
+    ["last-week", "2026-01-01", "2025-12-22 2025-12-28"],
+    ["last-month", "2026-01-15", "2025-12-01 2025-12-31"],
+    ["last-quarter", "2026-02-15", "2025-10-01 2025-12-31"],
+  ]) {
+    const result = timeframe("--today", today, period);
+    assert.equal(result.status, 0, `${period} on ${today}: ${result.stderr}`);
+    assert.equal(result.stdout, `${expected}\n`, `${period} on ${today}`);
+  }
+});
+
+test("resolve-timeframe.mjs exits 64 with a reason on a bad period or argument", () => {
+  for (const [args, reason] of [
+    [[], /usage: resolve-timeframe\.mjs PERIOD/],
+    [["this-week", "last-week"], /usage: resolve-timeframe\.mjs PERIOD/],
+    [["this-week", "--today"], /--today needs a YYYY-MM-DD date/],
+    [["this-week", "--today", "2026-02-30"], /not a YYYY-MM-DD date: 2026-02-30/],
+    [["next-week", "--today", "2026-10-21"], /unknown period: next-week/],
+    [["2026-13", "--today", "2026-10-21"], /not a YYYY-MM month: 2026-13/],
+    [["2026-Q5", "--today", "2026-10-21"], /unknown period: 2026-Q5/],
+    [["since:2026-1-5", "--today", "2026-10-21"], /not a YYYY-MM-DD date: 2026-1-5/],
+    [["since:2026-11-01", "--today", "2026-10-21"], /starts after today 2026-10-21/],
+    [["2026-11", "--today", "2026-10-21"], /starts after today 2026-10-21/],
+    [
+      ["2026-03-01..2026-02-01", "--today", "2026-10-21"],
+      /START 2026-03-01 is after END 2026-02-01/,
+    ],
+    [["2026-01-01..2026-02-01..2026-03-01", "--today", "2026-10-21"], /not a START\.\.END range/],
+  ]) {
+    const result = timeframe(...args);
+    assert.equal(result.status, 64, args.join(" "));
+    assert.match(result.stderr, reason, args.join(" "));
+    assert.equal(result.stdout, "", args.join(" "));
+  }
 });

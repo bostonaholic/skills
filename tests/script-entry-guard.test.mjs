@@ -335,3 +335,25 @@ for (const script of ["gap-inventory.mjs", "ready-slots.mjs"]) {
     assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
   });
 }
+
+test("resolve-timeframe.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(
+      symlinkedDir(t, "skills/productivity/summarizing-shipped-work/scripts"),
+      "resolve-timeframe.mjs",
+    ),
+  );
+  assert.equal(run.status, 64);
+  assert.match(run.stderr, /^resolve-timeframe\.mjs: usage: resolve-timeframe\.mjs /);
+});
+
+test("importing resolve-timeframe.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(
+      symlinkedDir(t, "skills/productivity/summarizing-shipped-work/scripts"),
+      "resolve-timeframe.mjs",
+    ),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
