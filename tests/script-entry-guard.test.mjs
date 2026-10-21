@@ -357,3 +357,19 @@ test("importing resolve-timeframe.mjs through a symlinked directory has no side 
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+test("check-report.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/removing-comments/scripts"), "check-report.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^check-report\.mjs: usage: check-report\.mjs /);
+});
+
+test("importing check-report.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/removing-comments/scripts"), "check-report.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
