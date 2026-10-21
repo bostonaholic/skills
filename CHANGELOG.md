@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-10-21
+
 ### Added
 
 - Add `reviewing-security`, a skill that reviews a diff for exploitable vulnerabilities in a fresh-context read-only subagent and reports only high-confidence findings with an exploit scenario and fix. [#122](https://github.com/bostonaholic/skills/pull/122)
@@ -688,5 +690,7 @@
 
 [0.49.0]: https://github.com/bostonaholic/skills/compare/v0.48.0...v0.49.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.50.0...HEAD
 [0.50.0]: https://github.com/bostonaholic/skills/compare/v0.49.0...v0.50.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.51.0...HEAD
+[0.51.0]: https://github.com/bostonaholic/skills/compare/v0.50.0...v0.51.0
