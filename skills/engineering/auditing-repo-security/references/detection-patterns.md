@@ -1,14 +1,13 @@
 # Detection patterns
 
-Run every command from the clone's root in bash or zsh. Each prints
-`file:line:match`, skips binary files (`-I`), and skips `.git`,
-`node_modules`, `vendor`, and `dist`, so hits come from the repo's own code.
-When the repo ships prebuilt code from one of those directories and nothing
-else explains what runs, rerun the scan without that `--exclude-dir`.
+What each `scripts/scan-patterns.sh` check flags, by section, and how to
+read its hits. The script's patterns are the rule; change them there, with
+its tests.
 
 A hit is a lead, not a finding. Read its context, then rate it with
-[report format](references/report-format.md). Patterns starting with `-` are
-passed with `-e` so grep does not read them as options.
+[report format](references/report-format.md). A grep hit is
+`./file:line:match`, with the match cut to 400 bytes; reopen the file for
+the rest.
 
 ## Contents
 
@@ -24,180 +23,111 @@ passed with `-e` so grep does not read them as options.
 
 ## File inventory
 
-What the greps skip. These commands print paths and skip only `.git`, so they
-also list `node_modules`, `vendor`, and `dist`.
+Section `inventory`: what the greps skip. These checks skip only `.git`, so
+they also list `node_modules`, `vendor`, and `dist`.
 
-```bash
-# Hidden files and directories.
-find . -mindepth 1 -path ./.git -prune -o -name '.*' -print
-# Executables.
-find . -path ./.git -prune -o -type f -perm -u+x -print
-# Binaries: files that grep -I skips.
-find . -path ./.git -prune -o -type f -size +0 -exec file --mime-encoding {} + | grep -E ':\s*binary$'
-# Minified or packed code: hand-written code rarely has a 500-character line.
-# awk, not grep: BSD grep rejects a repetition count over 255.
-find . -path ./.git -prune -o -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.py' -o -name '*.rb' -o -name '*.sh' \) \
-  -exec awk 'length > 500 { print FILENAME; nextfile }' {} +
-```
+- `hidden`: hidden files and directories.
+- `symlink`: each symlink and its target. The scan never follows one.
+- `executable`: files with the owner's execute bit.
+- `binary`: files `file` calls binary, which every grep skips.
+- `minified`: JS, Python, Ruby, or shell files with a line over 500
+  characters, which hand-written code rarely has.
 
 ## Auto-run and install hooks
 
-Code that runs on clone, open, `cd`, install, or build, without the user
-asking. Read every hit in full, including any script it calls.
+Section `autorun`: code that runs on clone, open, `cd`, install, or build,
+without the user asking. Read every hit in full, including any script it
+calls.
 
-```bash
-# npm lifecycle scripts: every hook, then the ones that shell out or fetch.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include=package.json \
-  -e '"(preinstall|install|postinstall|prepare|preprepare|postprepare|prepublish)"\s*:' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include=package.json \
-  -e '"(preinstall|install|postinstall|prepare|prepublish)"\s*:\s*"[^"]*(curl|wget|bash|sh |node -e|eval|base64|\| *sh)' .
-# .npmrc settings that change what npm runs or where it fetches from.
-grep -nE -e '(ignore-scripts|registry|script-shell|node-options)' .npmrc
-# Python build hooks and in-tree build backends.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include=setup.py \
-  -e '(cmdclass|subprocess|os\.system|urllib|requests\.)' .
-grep -nE -e '(backend-path|build-backend)' pyproject.toml
-# Editor and container auto-run. initializeCommand runs on the host, before the container.
-grep -rnIE -e '"runOn"\s*:\s*"folderOpen"' .vscode
-grep -rnIE -e '"(initializeCommand|onCreateCommand|updateContentCommand|postCreateCommand|postStartCommand|postAttachCommand)"' .devcontainer
-# Git hooks: a hooks directory, or a script that points core.hooksPath at one.
-ls -a .husky .githooks 2>/dev/null
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '(core\.hooksPath|husky install|simple-git-hooks)' .
-# CI that runs fork code with repository secrets.
-grep -rnIE -e '(pull_request_target|workflow_run)' .github/workflows
-# Build-time code execution.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '(^//go:generate|\$\(shell )' .
-```
-
-Also read in full when present: `.envrc` (direnv runs it on `cd` once
-allowed), the `Makefile` default target, `configure`, `build.rs`,
-`CMakeLists.txt` `execute_process`, and `Gemfile` entries with `git:` or
-`github:` sources.
+- `npm-lifecycle`: every npm install or prepare hook;
+  `npm-lifecycle-shell`: the ones that shell out, fetch, or decode.
+- `npmrc`: `.npmrc` settings that change what npm runs or where it fetches.
+- `setup-py`, `pyproject-backend`: Python build hooks and in-tree build
+  backends.
+- `vscode-folder-open`, `devcontainer-command`: editor and container
+  auto-run. `initializeCommand` runs on the host, before the container.
+- `git-hooks-dir`, `git-hooks-path`: a hooks directory, or a script that
+  points `core.hooksPath` at one.
+- `ci-fork-trigger`: workflows that run fork code with repository secrets.
+- `build-exec`, `cmake-execute-process`, `gemfile-git-source`: build-time
+  code execution, and gems fetched from git.
+- `read-in-full`: `.envrc` (direnv runs it on `cd` once allowed),
+  `Makefile` (read its default target), `configure`, and `build.rs`.
 
 ## Network and exfiltration
 
-Outbound requests, beacons, sockets, DNS lookups, and known exfiltration
-endpoints. Suspicious when the code's purpose needs no network, or when the
-payload is environment, files, or credentials.
+Section `network`: outbound requests, beacons, sockets, DNS lookups, and
+known exfiltration endpoints. Suspicious when the code's purpose needs no
+network, or when the payload is environment, files, or credentials.
 
-```bash
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.'{js,mjs,cjs,jsx,ts,tsx} \
-  -e '\b(fetch|axios(\.(get|post|put|patch|request))?|https?\.(get|request)|navigator\.sendBeacon|dns\.(lookup|resolve[a-zA-Z0-9]*))\s*\(|XMLHttpRequest' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.py' \
-  -e '\b(requests\.(get|post|put|request)|urllib\.request|urlopen|http\.client|aiohttp|httpx|socket\.socket)\b' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.rb' \
-  -e '(Net::HTTP|HTTParty|Faraday|RestClient|open-uri|URI\.open)' .
-# Hardcoded IPv4 addresses, outside lockfiles (their version strings look like IPs).
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --exclude={'*.lock','*-lock.json','*-lock.yaml','go.sum'} \
-  -e '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' .
-# Tunnels, paste sites, webhook catchers, and chat-bot APIs used to receive stolen data.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(ngrok(-free)?\.(io|app)|pastebin\.com|requestbin|webhook\.site|pipedream\.net|transfer\.sh|discord(app)?\.com/api/webhooks|api\.telegram\.org|interact\.sh|oast\.(fun|pro|live|site|online|me))' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '(new WebSocket\s*\(|wss?://|socket\.io)' .
-```
+- `js-request`, `py-request`, `rb-request`: HTTP clients and sockets.
+- `ipv4`: hardcoded IPv4 addresses, outside lockfiles.
+- `exfil-endpoint`: tunnels, paste sites, webhook catchers, and chat-bot
+  APIs used to receive stolen data.
+- `websocket`: WebSocket and socket.io connections.
 
 ## File system access
 
-Reads of credentials, browser profiles, and system files, and destructive
-writes. Ordinary reads of the project's own files are not findings.
+Section `filesystem`: reads of credentials, browser profiles, and system
+files, and destructive writes. Ordinary reads of the project's own files are
+not findings.
 
-```bash
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(\.ssh/|\.aws/|\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.docker/config\.json|\.kube/config|\.gnupg|id_(rsa|ed25519|ecdsa))' .
-# .env files named in a string or path. The leading quote or slash skips process.env.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e "['\"\`/]\.env(\.[[:alnum:]_-]+)?\b" .
-# Browser cookie, password, and storage files.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(Login Data|Cookies\.binarycookies|key4\.db|logins\.json|Local Storage/leveldb|Local State)' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '/etc/(passwd|shadow|sudoers)' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(fs\.(rm|rmdir|unlink)(Sync)?\s*\(|rimraf|shutil\.rmtree|os\.(remove|unlink)\s*\(|FileUtils\.rm_r|rm -rf)' .
-```
+- `credential-path`: SSH, cloud, registry, and git credential paths.
+- `dotenv-path`: `.env` files named in a string or path, not `process.env`.
+- `browser-store`: browser cookie, password, and storage files.
+- `system-file`: `/etc/passwd`, `shadow`, and `sudoers`.
+- `destructive-delete`: recursive and file deletes.
 
 ## Code execution
 
-Dynamic evaluation, shell spawning, and unsafe deserialization. Suspicious
-when the input can come from the network, a file, or the environment.
+Section `exec`: dynamic evaluation, shell spawning, and unsafe
+deserialization. Suspicious when the input can come from the network, a
+file, or the environment.
 
-```bash
-# JavaScript: eval, new Function, timers given a string, and the vm module.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.'{js,mjs,cjs,jsx,ts,tsx} \
-  -e "\beval\s*\(|new Function\s*\(|\bset(Timeout|Interval)\s*\(\s*['\"\`]|\bvm\.(runInNewContext|runInThisContext|Script)\b" .
-# Python builtins, not methods such as re.compile.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.py' \
-  -e '(^|[^.[:alnum:]_])(eval|exec|compile|__import__)\s*\(' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.rb' \
-  -e '\b(eval|instance_eval|class_eval|module_eval)\b' .
-# Shell spawning: loading child_process (require, import from, or a dynamic
-# import()) is the signal, not RegExp#exec.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.'{js,mjs,cjs,jsx,ts,tsx} \
-  -e "((require|import)\s*\(\s*|from\s+)['\"\`](node:)?child_process['\"\`]|\b(execSync|execFileSync|spawnSync)\s*\(" .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.py' \
-  -e '(subprocess\.|os\.(system|popen|exec[lv]p?e?)\s*\(|commands\.getoutput|pty\.spawn)' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --include='*.rb' \
-  -e '(\bsystem\s*\(|\bexec\s*\(|%x[{(\[]|`[^`]+`|IO\.popen|Open3\.)' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(pickle\.loads?\s*\(|marshal\.loads?\s*\(|yaml\.load\s*\(|shelve\.open|Marshal\.load|YAML\.load\s*\(|unserialize\s*\(|ObjectInputStream)' .
-```
+- `js-eval`, `py-eval`, `rb-eval`: `eval`, `new Function`, string timers,
+  the `vm` module, and Python and Ruby builtins.
+- `js-child-process`, `py-shell`, `rb-shell`: shell spawning. Loading
+  `child_process` is the signal, not `RegExp#exec`.
+- `deserialize`: `pickle`, `marshal`, `yaml.load`, and their kin.
 
 ## Obfuscation
 
-Encoded payloads, built-up strings, and packed code that hide what runs. Any
-hit near a network or execution hit raises both.
+Section `obfuscation`: encoded payloads, built-up strings, and packed code
+that hide what runs. Any hit near a network or execution hit raises both.
 
-```bash
-# Long base64 runs, outside lockfiles, SVGs, and source maps (their hashes are legitimate).
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} --exclude={'*.lock','*-lock.json','*-lock.yaml','go.sum','*.svg','*.map'} \
-  -e '[A-Za-z0-9+/]{50,}={0,2}' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e "(\batob\s*\(|\bbtoa\s*\(|Buffer\.from\s*\([^)]*['\"]base64['\"]|base64\.(b64)?decode|Base64\.decode64)" .
-# Runs of escaped hex bytes.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '(\\x[0-9a-fA-F]{2}){8,}' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e "(String\.fromCharCode|\.split\(\s*['\"]['\"]\s*\)\.reverse\(\)\.join)" .
-```
+- `base64-run`: long base64 runs, outside lockfiles, SVGs, and source maps.
+- `base64-decode`: decoding calls.
+- `hex-escape`: runs of escaped hex bytes.
+- `char-code`: strings built from character codes or reversed.
 
 Also look for minified files without a source map in a repo that otherwise
 ships source, and for anti-debugging checks (`debugger` loops, timing checks).
 
 ## Credentials and secrets
 
-Hardcoded secrets, bulk environment harvesting, and keychain or clipboard
-reads. Reading one named variable such as `process.env.PORT` is normal.
+Section `secrets`: hardcoded secrets, bulk environment harvesting, and
+keychain or clipboard reads. Reading one named variable such as
+`process.env.PORT` is normal.
 
-```bash
-grep -rniIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e "(api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token)['\"]?\s*[:=]\s*['\"][^'\"]{16,}['\"]" .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '\b(AKIA|ASIA|ABIA|ACCA)[A-Z0-9]{16}\b' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} -e '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----' .
-# The whole environment serialized or copied, the usual first step of env exfiltration.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(JSON\.stringify\s*\(\s*process\.env\b|Object\.(keys|values|entries)\s*\(\s*process\.env\b|os\.environ\.copy\s*\(|dict\s*\(\s*os\.environ\s*\)|ENV\.to_h)' .
-# The whole environment spread or merged into another object. A copy passed as a
-# child process's env is common; it matters when the copy reaches a request or a file.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(\.\.\.\s*process\.env\b|Object\.assign\s*\([^)]*\bprocess\.env\s*[,)]|\*\*\s*os\.environ\b)' .
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(navigator\.clipboard\.readText|\bpbpaste\b|\bxclip\b|security find-(generic|internet)-password|\bkeytar\b)' .
-```
+- `hardcoded-key`, `aws-key`, `private-key`: committed secrets.
+- `env-dump`: the whole environment serialized or copied, the usual first
+  step of env exfiltration.
+- `env-spread`: the whole environment spread or merged into another object.
+  A copy passed as a child process's env is common; it matters when the copy
+  reaches a request or a file.
+- `clipboard-keychain`: clipboard reads and keychain lookups.
 
 ## Containers, CI, and privileges
 
-Containers that reach the host, CI that leaks secrets, and scripts that ask
-for root or set privilege bits. Worse when an auto-run entry or install hook
-reaches them.
+Section `privileges`: containers that reach the host, CI that leaks secrets,
+and scripts that ask for root or set privilege bits. Worse when an auto-run
+entry or install hook reaches them.
 
-```bash
-# Privileged containers, added capabilities, the host's Docker socket, and host namespaces.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(--privileged|privileged"?\s*:\s*true|--cap-add|cap_add|"capAdd"|docker\.sock|(network_mode|pid|ipc)"?\s*:\s*"?host|--(net|network|pid|ipc)[= ]host)' .
-# CI secrets printed or dumped whole, and workflow tokens granted every write permission.
-grep -rnIE -e '((echo|printf).*\$\{\{\s*secrets\.|toJSON\(\s*secrets\s*\)|permissions:\s*write-all)' .github/workflows
-# sudo, setuid or setgid bits, and file capabilities.
-grep -rnIE --exclude-dir={.git,node_modules,vendor,dist} \
-  -e '(\bsudo\b|\bchmod\b.*(\+s\b|\b[2-7][0-7]{3}\b)|\bsetcap\b)' .
-```
+- `container-host`: privileged containers, added capabilities, the host's
+  Docker socket, and host namespaces.
+- `ci-secrets`: CI secrets printed or dumped whole, and workflow tokens
+  granted every write permission.
+- `privilege-bits`: `sudo`, setuid or setgid bits, and file capabilities.
 
 ## False positives
 

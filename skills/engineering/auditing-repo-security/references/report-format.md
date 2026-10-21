@@ -14,27 +14,24 @@ package, however many dependency paths reach it.
 | Medium   | 5      | One suspicious capability with a plausible legitimate use; a known CVE rated medium; no lockfile (counted once); a dependency from a git URL or non-default registry; a likely typosquat; repo config that ignores advisories (`osv-scanner.toml` `IgnoredVulns`, `.bundler-audit.yml` `ignore`) |
 | Low      | 2      | A known CVE rated low; an unmaintained dependency; a hygiene issue such as a committed test credential                                                                                                                                                                                           |
 
-Score = 100 minus the points of every verified finding, floored at 0.
+`scripts/score.mjs` turns these points into the score, grade, and verdict.
 
 ## Grade and verdict
 
 The grade measures risk, not intent. Say "malicious" only when a Critical
 finding shows it.
 
-| Grade | Score  | Meaning                                   |
-| ----- | ------ | ----------------------------------------- |
-| A     | 90-100 | No significant concerns                   |
-| B     | 80-89  | Minor concerns; review the flagged items  |
-| C     | 70-79  | Moderate concerns; investigate before use |
-| D     | 60-69  | Significant concerns                      |
-| F     | 0-59   | Severe risk                               |
+| Grade | Meaning                                   |
+| ----- | ----------------------------------------- |
+| A     | No significant concerns                   |
+| B     | Minor concerns; review the flagged items  |
+| C     | Moderate concerns; investigate before use |
+| D     | Significant concerns                      |
+| F     | Severe risk                               |
 
-**Safe to run?** comes from the highest severity, not the score:
-
-- any Critical: **NO**;
-- any High: **CONDITIONAL**, naming each condition (for example "install with
-  `--ignore-scripts`", "open in VS Code only in Restricted Mode");
-- otherwise: **YES**.
+**Safe to run?** is the script's `safeToRun`. For **CONDITIONAL**, name each
+condition (for example "install with `--ignore-scripts`", "open in VS Code
+only in Restricted Mode").
 
 ## Report template
 

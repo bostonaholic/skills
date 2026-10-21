@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-21
+
+### Changed
+
+- Run `auditing-repo-security`'s detection greps, dependency scanners, and scoring through scripts, scanning each lockfile on an isolated copy. [#105](https://github.com/bostonaholic/skills/pull/105)
+
 ## [0.33.0] - 2026-10-21
 
 ### Changed
@@ -544,5 +550,7 @@
 
 [0.32.0]: https://github.com/bostonaholic/skills/compare/v0.31.0...v0.32.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.33.0...HEAD
 [0.33.0]: https://github.com/bostonaholic/skills/compare/v0.32.0...v0.33.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.34.0...HEAD
+[0.34.0]: https://github.com/bostonaholic/skills/compare/v0.33.0...v0.34.0
