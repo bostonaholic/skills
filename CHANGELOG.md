@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Keep gh's stderr out of the PR number that rebasing-branches' `prepare-rebase.sh` reports, so a gh warning or debug line no longer corrupts its exit 7 message. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Keep gh's stderr out of the PR number that rebasing-branches' `prepare-rebase.sh` reports, so a gh warning or debug line no longer corrupts its exit 7 message. [#127](https://github.com/bostonaholic/skills/pull/127)
 
 ## [0.53.1] - 2026-10-21
 
