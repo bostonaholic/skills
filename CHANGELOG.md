@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-10-21
+
+### Changed
+
+- Move the `verifying-production-changes` deploy gate into `scripts/deploy-gate.sh`, which fetches, checks ancestry per sample, self-checks both ways, polls until consecutive clean polls, and prints the bound sentence. [#98](https://github.com/bostonaholic/skills/pull/98)
+
 ## [0.26.0] - 2026-10-21
 
 ### Added
@@ -488,5 +494,7 @@
 
 [0.25.0]: https://github.com/bostonaholic/skills/compare/v0.24.0...v0.25.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.26.0...HEAD
 [0.26.0]: https://github.com/bostonaholic/skills/compare/v0.25.0...v0.26.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.27.0...HEAD
+[0.27.0]: https://github.com/bostonaholic/skills/compare/v0.26.0...v0.27.0

@@ -9,32 +9,34 @@ Merged is not deployed, and deployed is not verified.
 
 ## Gate on the deploy
 
-- **Read a commit sha, not a version string,** from whatever the service
-  exposes (status endpoint, build-info route, bootstrap manifest).
-- **Fetch before comparing.** An ancestry check against a commit the clone has
-  never seen reports a false negative.
-- **Compare by ancestry, never equality:**
+Write a command that prints the commit sha one production request is served
+by, never a version string, from whatever the service exposes (status
+endpoint, build-info route, bootstrap manifest). Where the platform reports
+instance revisions directly, prefer that and say so. Then, in a clone of the
+service's repository, run:
 
-  ```sh
-  git merge-base --is-ancestor "$TARGET" "$DEPLOYED"
-  ```
+```sh
+scripts/deploy-gate.sh --target <merged-sha> --baseline <prior-prod-sha> -- <command>
+```
 
-  Equality fails as soon as a later deploy lands, though that deploy still
-  carries the change. Ancestry also keeps the gate closed after a rollback.
+Raise `--samples` or `--clean-polls` for a large fleet, or set `--interval` and
+`--max-polls` to the platform's rollout pace. Its header documents the gate.
 
-- **Test the gate both ways** before trusting a long poll: it must report
-  not-deployed against the current revision and deployed against the target.
-  A gate that cannot fail is not a gate.
-- **Sample the fleet.** Behind a load balancer one request describes one
-  instance. Take several samples per poll, require every one on target, and
-  require several consecutive clean polls. Report a mixed result as a rollout
-  in progress with counts, not a failure.
-- **State the bound honestly:** when every sample is on target, write "No
-  stale instance observed across N sampled requests" word for word, with N
-  filled in, also when the ancestry check is still pending. Limit every claim
-  about what production runs to the samples: never "fully deployed" or "prod
-  is no longer on the old sha". Where the platform reports instance revisions
-  directly, prefer that and say so.
+- **Exit 0:** write its last line, "No stale instance observed across N
+  sampled requests", word for word.
+- **Exit 1, `rollout-in-progress`:** report a rollout in progress with the
+  on and off counts, not a failure. **`not-deployed`:** report that no sample
+  runs the change.
+- **Exit 2, 3, or 5:** fix the invocation, sha, or sampling command, then
+  rerun.
+- **Exit 4:** the baseline already contains the target, so ask which revision
+  production ran before this deploy.
+
+Limit every claim about what production runs to the samples: never "fully
+deployed" or "prod is no longer on the old sha". If the script cannot run, read
+its header and apply its rules to the samples you have; with every sample on
+target, still write the sentence above, also when the ancestry check is
+pending.
 
 ## Verify the resulting data
 
