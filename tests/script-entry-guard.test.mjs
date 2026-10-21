@@ -203,3 +203,23 @@ test("importing collect-friction.mjs through a symlinked directory has no side e
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+for (const script of ["analyze.mjs", "render-plan.mjs", "act.mjs"]) {
+  const dir = "skills/engineering/merging-dependabot-prs/scripts";
+  const name = script.replace(/\./g, "\\.");
+
+  test(`merging-dependabot-prs/${script} run through a symlinked directory reaches its usage error`, (t) => {
+    // Four `x` arguments are invalid for each script, so each stops at usage before calling gh.
+    const run = spawnSync(
+      process.execPath,
+      [join(symlinkedDir(t, dir), script), "x", "x", "x", "x"],
+      { encoding: "utf8" },
+    );
+    assert.equal(run.status, 2);
+    assert.match(run.stderr, new RegExp(`^${name}: usage: ${name} `));
+  });
+
+  test(`importing merging-dependabot-prs/${script} through a symlinked directory has no side effects`, (t) => {
+    const run = importModule(t, join(symlinkedDir(t, dir), script));
+    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+  });
+}
