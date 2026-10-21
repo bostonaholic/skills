@@ -49,33 +49,15 @@ and proceed only on a clear go-ahead, which covers exactly the listed PRs.
 
 ## Run directory and manifest
 
-Each run gets a fresh directory under the git common dir, which every worktree
-shares and none contains, so cleanup never deletes it:
-
-```bash
-runs="$(git rev-parse --path-format=absolute --git-common-dir)/rebasing-open-prs"
-mkdir -p "$runs" && run=$(mktemp -d "$runs/$(date -u +%Y%m%dT%H%M%SZ).XXXXXX") &&
-  : >"$run/manifest.tsv" && echo "RUN=$run"
-```
-
-For each confirmed PR, append a TAB-separated line `pr`, `branch`, `base`,
-`pre_oid`:
-
-```bash
-if oid=$(git rev-parse --verify --quiet "refs/remotes/origin/<branch>^{commit}"); then
-  printf '%s\t%s\t%s\t%s\n' <n> '<branch>' '<base>' "$oid" >>"<run>/manifest.tsv"
-else
-  echo "skip PR #<n>: <branch> not on origin" >&2
-fi
-```
-
-Keep `--verify --quiet`: a bare `git rev-parse origin/<missing>` prints the
-name back, which would record a non-OID baseline.
+Run `"<skill-dir>/scripts/list-prs.sh" <flags> | "<skill-dir>/scripts/init-run.sh" <n>...`,
+with discovery's flags and the confirmed PR numbers, and keep the `RUN=` path
+as `<run>`. Report each `skip PR` line on stderr as skipped. Exit 3 means no
+confirmed PR is left to rebase: report the skips and stop.
 
 ## Rebase each PR
 
-Hand each manifest line to its own subagent, so one PR's conflict resolution
-never fills the context that coordinates the rest. Run at most 4 at once,
+Hand each line of `<run>/manifest.tsv` to its own subagent, so one PR's
+conflict resolution never fills the context that coordinates the rest. Run at most 4 at once,
 starting the next as one finishes. Give each agent `<n>`, `<branch>`, `<base>`,
 `<pre_oid>`, `<run>`, and the absolute `<skill-dir>`, and tell it to read and
 follow the [per-PR procedure](references/per-pr-procedure.md) by absolute path,
@@ -92,13 +74,12 @@ A probe reply never sets a status: git and the result file do.
 the bounded wait gave up on it; a fetch while one still works breaks the one-fetch rule. A result file
 alone does not mean the worker is done, since cleanup runs after it is written.
 
-```bash
-"<skill-dir>/scripts/reconcile.sh" "<run>/manifest.tsv"
-```
-
-`FETCH=failed` on the first line means the per-PR lines come from stale refs;
-re-run before trusting them. Derive each PR's status from its reconcile line
-and `<run>/<n>.json` with the [reconcile status rules](references/reconcile-status.md).
+Run `"<skill-dir>/scripts/reconcile.sh" "<run>"`. `FETCH=failed` on the
+first line means the per-PR lines come from stale refs; re-run before trusting
+them. Each PR's `STATUS` is its outcome, derived by the rules in the script's
+header. `NEEDS_REVIEW=yes` means git contradicts the result file or the base
+is gone: report both signals. Take conflicts, verify, worktree, and note from
+`<run>/<n>.json`.
 
 Report every PR, including skipped, flagged, and failed ones, with branch,
 status, conflicts, verify result, worktree, and note. Call out each PR that

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Tests the rebasing-open-prs scripts (prepare-worktree, cleanup-worktree, reconcile, list-prs)
-# against throwaway git repositories and a fake gh.
+# Tests the rebasing-open-prs scripts (prepare-worktree, cleanup-worktree, init-run, write-result,
+# check-range-diff, reconcile, list-prs) against throwaway git repositories and a fake gh.
 # Usage: bash tests/prepare-worktree.test.sh
 #   Prints "ok - <case>" per passing case; exits 1 at the first failure with the reason on stderr.
 set -euo pipefail
@@ -119,20 +119,146 @@ run 2 "$scripts/cleanup-worktree.sh" "$slash_path" a/b true
 run 2 "$scripts/cleanup-worktree.sh" "$slash_path" a/b false true
 echo "ok - cleanup rejects a wrong argument count and an impossible flag pair"
 
+# init-run.sh
+
+cat >"$tmp/prs-init.json" <<'EOF'
+[
+  {"number": 1, "headRefName": "feature/x", "baseRefName": "main", "rebaseable": true},
+  {"number": 2, "headRefName": "nowhere", "baseRefName": "main", "rebaseable": true},
+  {"number": 3, "headRefName": "kept", "baseRefName": "main", "rebaseable": false}
+]
+EOF
+runs_dir="$(git rev-parse --absolute-git-dir)/rebasing-open-prs"
+run 0 "$scripts/init-run.sh" 1 2 3 4 <"$tmp/prs-init.json"
+init_run=$(value RUN)
+case "$init_run" in "$runs_dir"/*) ;; *) fail "run directory not under the git common dir: $out" ;; esac
+[ "$(cat "$init_run/manifest.tsv")" = "$(printf '1\tfeature/x\tmain\t%s' "$(git rev-parse origin/feature/x)")" ] ||
+  fail "manifest: $(cat "$init_run/manifest.tsv")"
+case "$err" in *"#2: nowhere not on origin"*"#3: not a rebaseable"*"#4: not a rebaseable"*) ;; *) fail "skip lines: $err" ;; esac
+echo "ok - init-run writes a manifest of the confirmed PRs on origin and names each skipped one"
+
+before=$(find "$runs_dir" -mindepth 1 -maxdepth 1 | wc -l)
+run 3 "$scripts/init-run.sh" 2 3 <"$tmp/prs-init.json"
+[ "$(find "$runs_dir" -mindepth 1 -maxdepth 1 | wc -l)" = "$before" ] || fail "init-run left a run directory after exit 3"
+run 2 "$scripts/init-run.sh" </dev/null
+run 2 "$scripts/init-run.sh" 1x <"$tmp/prs-init.json"
+run 2 "$scripts/init-run.sh" 1 1 <"$tmp/prs-init.json"
+run 2 "$scripts/init-run.sh" 1 <<<'{}'
+echo "ok - init-run exits 3 with no directory when every PR is skipped, and 2 on bad input"
+
+# write-result.sh
+
+mkdir "$tmp/run"
+: >"$tmp/run/manifest.tsv"
+prepare 0 a/b
+note_path=$(value WORKTREE_PATH)
+run 0 "$scripts/write-result.sh" "$tmp/run" 7 a/b main pushed 2 'failed(lint)' true "$note_path" <<'EOF'
+it's $HOME and `id`
+second line
+EOF
+[ "$(value RESULT)" = "$tmp/run/7.json" ] || fail "RESULT line: $out"
+jq -e --arg head "$(git -C "$note_path" rev-parse HEAD)" '
+  . == {pr: 7, branch: "a/b", base: "main", status: "pushed", conflicts: 2, verify: "failed(lint)",
+        worktree: "created", head: $head, note: "it'"'"'s $HOME and `id` second line"}' "$tmp/run/7.json" >/dev/null ||
+  fail "result file: $(cat "$tmp/run/7.json")"
+run 0 "$scripts/write-result.sh" "$tmp/run" 7 a/b main error 0 skipped none none <<<replaced
+jq -e '.status == "error" and .worktree == "none" and .head == "unknown" and .note == "replaced"' "$tmp/run/7.json" >/dev/null ||
+  fail "rewrite did not replace: $(cat "$tmp/run/7.json")"
+[ -z "$(find "$tmp/run" -name '.*')" ] || fail "write-result left a temporary file"
+echo "ok - write-result writes the note verbatim on one line and replaces an earlier file"
+
+w() { run 2 "$scripts/write-result.sh" "$@" <<<n; }
+w "$tmp/run" 7 a/b main merged 0 passed true none
+w "$tmp/run" 7 a/b main pushed -1 passed true none
+w "$tmp/run" 7 a/b main pushed 0 failed true none
+w "$tmp/run" 7 a/b main pushed 0 passed maybe none
+w "$tmp/run" x a/b main pushed 0 passed true none
+w "$tmp" 7 a/b main pushed 0 passed true none
+w "$tmp/run" 7 a/b main pushed 0 passed true
+echo "ok - write-result rejects a bad status, count, verify, created, PR, run directory, and arity"
+
+# check-range-diff.sh, in a repository whose origin/main is a plain ref
+
+git init -q -b main "$tmp/rd"
+rd() { git -C "$tmp/rd" "$@"; }
+rd commit -q --allow-empty -m init
+rd checkout -q -b pr
+echo b >"$tmp/rd/b" && rd add b && rd commit -q -m addb
+echo c >"$tmp/rd/c" && rd add c && rd commit -q -m addc
+pre=$(rd rev-parse HEAD)
+addb=$(rd rev-parse HEAD~1)
+rd checkout -q main
+echo b >"$tmp/rd/b" && rd add b && rd commit -q -m "addb upstream"
+rd update-ref refs/remotes/origin/main main
+rd checkout -q pr
+rd rebase -q origin/main 2>/dev/null
+run 0 "$scripts/check-range-diff.sh" "$tmp/rd" main "$pre"
+[ "$out" = "UPSTREAM $addb addb" ] || fail "upstream commit line: $out"
+echo "ok - check-range-diff accepts a commit whose patch is already in the base"
+
+rebased=$(rd rev-parse HEAD)
+rd commit -q --allow-empty -m extra
+run 4 "$scripts/check-range-diff.sh" "$tmp/rd" main "$pre"
+printf '%s\n' "$out" | grep -q '^NEW [0-9a-f]\{40\} extra$' || fail "new commit line: $out"
+rd reset -q --hard origin/main
+run 3 "$scripts/check-range-diff.sh" "$tmp/rd" main "$pre"
+printf '%s\n' "$out" | grep -q "^DROPPED $pre addc$" || fail "dropped commit line: $out"
+rd reset -q --hard "$rebased"
+echo "ok - check-range-diff exits 3 on a dropped commit and 4 on a new one"
+
+run 2 "$scripts/check-range-diff.sh" "$tmp/rd" main
+run 2 "$scripts/check-range-diff.sh" "$tmp/rd" nobase "$pre"
+run 2 "$scripts/check-range-diff.sh" "$tmp/rd" main 0000000000000000000000000000000000000000
+echo "ok - check-range-diff rejects a wrong arity, a missing base, and an unknown pre_oid"
+
 # reconcile.sh
 
-printf '1\tfeature/x\tmain\t%s\n2\tgone\tmain\t%s\n' \
-  "$(git rev-parse origin/feature/x)" "$(git rev-parse origin/main)" >"$tmp/manifest.tsv"
-run 0 "$scripts/reconcile.sh" "$tmp/manifest.tsv"
+cur() { git rev-parse "origin/$1"; }
+zero=0000000000000000000000000000000000000000
+{
+  printf '1\tfeature/x\tmain\t%s\n' "$(cur feature/x)"
+  printf '2\tgone\tmain\t%s\n' "$zero"
+  printf '3\ta/b\tmain\t%s\n' "$(cur a/b)"
+  printf '4\ta-b\tmain\t%s\n' "$zero"
+  printf '5\tkept\tmain\t%s\n' "$zero"
+  printf '6\tfeature/x\tstale\t%s\n' "$(cur feature/x)"
+  printf '8\tahead\tstale\t%s\n' "$zero"
+  printf '9\tdirty\tnobase\t%s\n' "$(cur dirty)"
+  printf '10\tdirty\tmain\t%s\n' "$(cur dirty)"
+  printf '11\tkept\tmain\t%s\n' "$zero"
+} >"$tmp/run/manifest.tsv"
+res() { echo note | "$scripts/write-result.sh" "$tmp/run" "$1" b main "$2" 0 skipped none none >/dev/null; }
+res 1 already-up-to-date
+res 3 pushed
+res 4 conflicts-flagged
+res 11 pushed
+echo '{' >"$tmp/run/10.json"
+run 0 "$scripts/reconcile.sh" "$tmp/run"
 [ "$(printf '%s\n' "$out" | head -n 1)" = FETCH=ok ] || fail "first line is not FETCH=ok: $out"
 printf '%s\n' "$out" | grep -q '^PR=1 BRANCH=feature/x CURRENT_OID=[0-9a-f]* REBASED=yes OID_CHANGED=no ' ||
   fail "unchanged branch line: $out"
-printf '%s\n' "$out" | grep -q '^PR=2 BRANCH=gone CURRENT_OID=missing ' || fail "missing branch line: $out"
+expect() {
+  printf '%s\n' "$out" | grep -q "^PR=$1 .* RESULT=$2 STATUS=$3 NEEDS_REVIEW=$4$" ||
+    fail "PR $1: want RESULT=$2 STATUS=$3 NEEDS_REVIEW=$4 in: $out"
+}
+expect 1 present already-up-to-date no
+expect 2 missing branch-gone no
+expect 3 present needs-review yes
+expect 4 present conflicts-flagged yes
+expect 5 missing pushed no
+expect 6 missing error no
+expect 8 missing needs-review yes
+expect 9 missing needs-review yes
+expect 10 invalid needs-review yes
+expect 11 present pushed no
+echo "ok - reconcile derives each status from git and the result file"
+
 git remote set-url origin "$tmp/absent.git"
-run 0 "$scripts/reconcile.sh" "$tmp/manifest.tsv"
+run 0 "$scripts/reconcile.sh" "$tmp/run"
 git remote set-url origin "$tmp/origin.git"
 [ "$(printf '%s\n' "$out" | head -n 1)" = FETCH=failed ] || fail "failed fetch not on stdout: $out"
-echo "ok - reconcile reports fetch status on stdout and per-PR remote state"
+run 2 "$scripts/reconcile.sh" "$tmp/nowhere"
+echo "ok - reconcile reports a failed fetch on stdout and rejects a missing manifest"
 
 # list-prs.sh, with a fake gh that prints a fixture
 
