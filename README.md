@@ -46,6 +46,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[removing-comments](./skills/engineering/removing-comments/SKILL.md)**: Remove low-value source comments, encoding constraints with approval. Explicit invocation only.
 - **[reviewing-code](./skills/engineering/reviewing-code/SKILL.md)**: Review a diff in a fresh-context read-only subagent.
 - **[reviewing-design-docs](./skills/engineering/reviewing-design-docs/SKILL.md)**: Adversarially review a technical design document.
+- **[reviewing-security](./skills/engineering/reviewing-security/SKILL.md)**: Security-review a diff in a fresh-context read-only subagent.
 - **[simplifying-ruby-code](./skills/engineering/simplifying-ruby-code/SKILL.md)**: Find or fix over-engineered Ruby and Rails code.
 - **[summarizing-friction-logs](./skills/engineering/summarizing-friction-logs/SKILL.md)**: Prioritize frog friction logs across a workspace.
 - **[using-gh-cli](./skills/engineering/using-gh-cli/SKILL.md)**: Open PRs, check CI, and handle issues through gh, verifying each result.

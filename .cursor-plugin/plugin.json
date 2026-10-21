@@ -43,6 +43,7 @@
     "./skills/engineering/removing-comments",
     "./skills/engineering/reviewing-code",
     "./skills/engineering/reviewing-design-docs",
+    "./skills/engineering/reviewing-security",
     "./skills/engineering/simplifying-ruby-code",
     "./skills/engineering/summarizing-friction-logs",
     "./skills/engineering/using-gh-cli",

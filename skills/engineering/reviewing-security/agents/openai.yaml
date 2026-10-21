@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reviewing Security"
+  short_description: "Security-review a diff in a fresh-context read-only subagent"
+  default_prompt: "Use $reviewing-security to review a diff for exploitable security vulnerabilities in a fresh-context read-only subagent."
