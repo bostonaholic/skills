@@ -75,11 +75,15 @@ In a gem, every public constant is API that other projects may call.
 
 ## Before removing or inlining a class
 
-Account for every caller, not only constant references
-(`rg -n '\bClassName\b'`). Also search string references (`"ClassName"`,
-`constantize`, `const_get`, `send`), `perform_later` and job config,
-`config/routes.rb`, `config/*.yml`, and gemspec and executable files. In a
-review, drop or downgrade a finding whose callers you cannot account for.
+Run `bash <skill-dir>/scripts/find-callers.sh <Constant> <project>` for
+each class. Exit 0: account for every `reference` and `require` hit, and
+decide for each `dynamic` hit whether the name it builds can be the class;
+that takes reading the code, so it stays with you. Exit 1: no caller found.
+Exit 2: fix the argument. Exit 3: install the named tool. Exit 4: report the
+grep error. A controller is also reached from `config/routes.rb` by its
+snake_case resource name, which the script does not search; read that file.
+In a review, drop or downgrade a finding whose callers you cannot account
+for.
 
 ## Review findings
 
