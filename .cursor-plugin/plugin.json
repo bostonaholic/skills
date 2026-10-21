@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston"
@@ -23,6 +23,7 @@
     "./skills/engineering/auditing-repo-security",
     "./skills/engineering/auditing-tests",
     "./skills/engineering/capturing-screenshots",
+    "./skills/engineering/choosing-determinism",
     "./skills/engineering/configuring-zsh",
     "./skills/engineering/diagnosing-react-code",
     "./skills/engineering/drawing-mermaid-diagrams",
