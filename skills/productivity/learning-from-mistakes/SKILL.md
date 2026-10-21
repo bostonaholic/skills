@@ -18,6 +18,7 @@ If no correction is clear, ask which one to codify.
   `claude` in Claude Code and `codex` in Codex. Exit 0 prints the file to edit.
   On exit 2 (no repository) or 69 (no git), ask where to write. In another
   host, or on exit 3, ask which file it reads. On exit 4, report the loop.
+  Exit 1 is a usage error: fix the arguments and rerun.
 - **Overlap**: if the rule already exists, stop and say where. If a related
   rule exists, refine it instead of adding a duplicate.
 - **Approval**: show the rule (or the old and new text of a refined rule), the

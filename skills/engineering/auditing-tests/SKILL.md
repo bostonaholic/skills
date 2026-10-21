@@ -65,9 +65,9 @@ name to the directories that own it and state the resolution in one line.
    the verification was not independent.
 7. **Render.** Write `<out>/report.json` per the
    [report schema](references/report-schema.md), then run
-   `node <skill-dir>/scripts/render-report.mjs <out>/report.json`. Fix the
-   JSON and render again; stop after 3 rejected renders and report the
-   remaining errors.
+   `node <skill-dir>/scripts/render-report.mjs <out>/report.json`. On exit 1,
+   fix the JSON and render again; stop after 3 rejected renders and report
+   the remaining errors. Exit 2 is a usage error.
 
 Reply with the rendered summary table, both report paths, and the verified
 **D** and **C** candidates by lane, marking each test with its letter. Report

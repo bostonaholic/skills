@@ -19,7 +19,9 @@ Find where the space went, then remove only what a tool can recreate.
 - **Never empty the Trash.** Report its size and tell the user to empty it.
 - **Keep pinned toolchain versions.** Before removing a toolchain version, run
   `scripts/list-pinned-versions.sh <workspace>` on each directory that holds
-  the user's projects, and keep every version it prints.
+  the user's projects, and keep every version it prints. Exit 64 means the
+  path is not a directory, and exit 69 means a required tool is missing:
+  report its error.
 - **Stop at the target.** The user's number, otherwise the target
   `scripts/measure-caches.sh` prints. Stop once it is met and say which
   approved rows you skipped.
@@ -30,7 +32,8 @@ Run `scripts/measure-caches.sh` in the background; `du` can take minutes. It
 prints the volume line, with its target, then one row per known location.
 Take each row's class, recreated-by, command, and close-first as printed,
 filling any `<placeholder>`; report keep rows, never propose them. On exit 1
-or 69, report the error and measure with `df -h` and `du -x` by hand.
+or 69, report the error and measure with `df -h` and `du -x` by hand. Exit 64
+means an argument was given; run it with none.
 
 Then descend with `du -x` from the home directory into trees the script did
 not list, and check [cache locations](references/cache-locations.md) for each

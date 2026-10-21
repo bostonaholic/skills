@@ -21,6 +21,7 @@ The board loads first, because `$REPO` comes from it. Run
 - Exit 3: stop and ask which repository to groom, listing the ones it names.
 - Exit 4: no board item belongs to a repository; say so and stop.
 - Exit 1: stop and report its error. Never groom a partial board.
+- Exit 64 or 69: a usage error, or gh or jq is missing; stop and report it.
 
 Issues in `unloaded-links.txt` and `unloaded-threads.txt` were read only in
 part; carry them to the report. A `blockedBy` node in state `CLOSED` is a

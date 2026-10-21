@@ -50,9 +50,13 @@ the scripts from the main checkout. Never fetch.
    with the one-line note on stdin through a quoted heredoc (`<<'EOF'`), so
    any text passes unchanged. Pass `none` for `<created>` and `<worktree>`
    when step 1 printed nothing. Exit 2 names the bad value: fix it and re-run.
+   Exit 127 means git or jq is missing. Any other exit: stop and report its
+   stderr.
 
 7. **Clean up** with
    `"<skill-dir>/scripts/cleanup-worktree.sh" <worktree> <branch> <CREATED> <BRANCH_CREATED>`,
-   which removes only what step 1 created. If it fails, re-run
+   which removes only what step 1 created. Exit 2 is a usage error, or a run
+   from inside `<worktree>`, which needs a re-run from the main checkout. Exit
+   1 means a removal failed, with git's message on stderr. If it fails, re-run
    `write-result.sh` with its error appended to the note. Return a one-line
    summary.

@@ -53,6 +53,7 @@ for each approved link, in plan order.
 - Exit 4: an endpoint is not on the loaded board; report the blocker with its
   owner, never linked.
 - Exit 1: stop (hard rule 12). Exit 64: a self link or a bad number; stop.
+- Exit 69: gh or jq is missing; stop and report it.
 
 Removing a link this run drew takes the blocker's database id (`gh api
 "repos/$OWNER/$REPO/issues/$BLOCKER" --jq .id`), never its number:
@@ -73,6 +74,7 @@ without it for a displaced card.
 - Exit 4: the issue is off the board or the column is not a Status option;
   stop and report it.
 - Exit 1: stop (hard rule 12).
+- Exit 64 or 69: a usage error, or gh or jq is missing; stop and report it.
 
 ## Other trackers
 

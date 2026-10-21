@@ -38,7 +38,8 @@ reports what was passed; never guess. One board per run. The focus area
 narrows the pool by judgment and never reaches a command line.
 
 The board resolves `$PROJECT` and `$OWNER`; `$REPO` comes only from
-`scripts/load-board.sh`. The scripts need `gh`, `jq`, and `node`
+`scripts/load-board.sh`. When `scripts/ready-slots.mjs` exits non-zero, stop
+and report its error. The scripts need `gh`, `jq`, and `node`
 (`command -v gh jq node`).
 
 ## Board discovery

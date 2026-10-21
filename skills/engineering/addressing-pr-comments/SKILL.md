@@ -140,8 +140,9 @@ option resolves it. A G reply passes `--no-marker` and `--react none`, since
 only an outcome reply carries the marker `scripts/re-request-review.mjs`
 counts. Exit 0 (`verified`) is the only done. Exit 1 names the failed step:
 report it, fix the cause, and rerun (completed writes are skipped). Exit 2 is
-a usage fault; nothing was written. A `reaction-failed` line is a warning on
-the item's report line, never an exclusion.
+a usage fault; nothing was written. Any other exit: stop and report its
+stderr. A `reaction-failed` line is a warning on the item's report line, never
+an exclusion.
 
 A later turn acting on an earlier report runs the
 [review re-request](references/review-re-request.md) after the last chosen

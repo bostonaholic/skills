@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.53.1] - 2026-10-21
+
+### Fixed
+
+- Document the script exit codes that ten skills' instructions left out, such as usage errors and missing tools, so an agent knows what each exit means. [#126](https://github.com/bostonaholic/skills/pull/126)
+
 ## [0.53.0] - 2026-10-21
 
 ### Changed
@@ -710,5 +716,7 @@
 
 [0.52.0]: https://github.com/bostonaholic/skills/compare/v0.51.0...v0.52.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.53.0...HEAD
 [0.53.0]: https://github.com/bostonaholic/skills/compare/v0.52.0...v0.53.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.53.1...HEAD
+[0.53.1]: https://github.com/bostonaholic/skills/compare/v0.53.0...v0.53.1
