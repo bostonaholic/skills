@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Run `auditing-repo-security`'s detection greps, dependency scanners, and scoring through scripts, scanning each lockfile on an isolated copy. [#105](https://github.com/bostonaholic/skills/pull/105)
+
 ## [0.33.0] - 2026-10-21
 
 ### Changed
