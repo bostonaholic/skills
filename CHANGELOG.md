@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Size the volume, the default free-space target, and every known cache location in `freeing-disk-space` with `scripts/measure-caches.sh`, and list pinned toolchain versions with `scripts/list-pinned-versions.sh`, both read-only. [#110](https://github.com/bostonaholic/skills/pull/110)
+
 ## [0.38.0] - 2026-10-21
 
 ### Changed
