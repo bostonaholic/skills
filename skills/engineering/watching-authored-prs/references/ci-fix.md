@@ -8,42 +8,30 @@ Attempt a fix only when all of these hold; otherwise report which failed and
 keep watching:
 
 - the check has a readable log, read this cycle
-- local `HEAD` equals the polled head, and the branch binding below holds
-- `git status --porcelain` prints nothing
 - the logical check has fewer than 2 attempts
 - this is not the cycle-3 poll, because no later poll can read the result
 - the PR is not approved, because a push after approval can dismiss it
 - feedback handling did not end the turn with items waiting on the user,
   because a push moves the head under them
+- the binding below holds
 
-## Branch binding
+## Binding and editable set
 
-A matching `HEAD` alone does not tie the checkout to the PR: a new branch
-stacked on the PR head has the same SHA, and a push goes where the push
-settings point, which can differ from the upstream. The binding holds only
-when:
+A matching `HEAD` alone does not tie the checkout to the PR: a branch stacked
+on the PR head has the same SHA, and a push goes where the push settings
+point. Run this with the poll's `head`, from the PR's checkout:
 
-- `HEAD` is on a branch whose name equals `headRefName`
-- its upstream remote ref is `refs/heads/<headRefName>`, and its push remote
-  (`%(push:remotename)`) is the upstream remote
-- that remote has no `push` refspec and is not a mirror
-- `push.default` is unset, `simple`, `upstream`, or `current`
-- `headRepository` is not null, and the remote has exactly one push URL, naming
-  `<headRepositoryOwner.login>/<headRepository.name>` on the PR's host (HTTPS
-  or SSH, with or without `.git`, case-insensitive)
+```bash
+node <skill-dir>/scripts/ci-fix-preflight.mjs <pr-url> <head>
+```
 
-Read the local values with commands whose text holds only local values, and
-compare outside the shell: `headRefName` and the head repository fields are PR
-data and never reach command text. On a mismatch, report the failed condition
-and push nothing.
+- `binding: ok`: `editable` is the editable set.
+- `binding: fail`: report the `condition` and push nothing. A `head-moved`
+  condition skips the attempt this cycle.
+- Exit 1: report only, with no attempt counted. Exit 2 or 127: report the
+  stderr line and push nothing.
 
-## Editable set and attribution
-
-Read the PR file list (`pulls/<n>/files`, paginated) between two head reads.
-Exit failure, unparseable output, or 3000 or more entries (GitHub's cap, so the
-list may be truncated) means report only, with no attempt counted. A head
-change means skip. The editable set is every file whose status is not
-`removed`.
+## Attribution
 
 Quote one log line that names a file, test, or symbol in the editable set.
 Otherwise report "not attributable to this branch" and change nothing; flaky
@@ -80,8 +68,9 @@ someone else pushes a new head.
 
 ## Bound
 
-Per cycle: 1 file-list read and 1 fix commit. Per arming: 3 fix commits and 2
-attempts per logical check. A check that fails after its second attempt, on
+Per cycle: 1 preflight run and 1 fix commit. Per arming: 3 fix commits and 2
+attempts per logical check. Keep these counts in the transcript: none passes
+3, and every stop report names them. A check that fails after its second attempt, on
 any head, stops as `CI fix bound`, naming the check, head SHA, and both fix
 SHAs. Never extend the bound.
 
