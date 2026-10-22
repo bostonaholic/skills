@@ -33,12 +33,13 @@ Nothing runs while any blocker stands, in any harness.
   Codex lists nothing while any marketplace root lacks a manifest; remove the
   dead marketplace with `codex plugin marketplace remove <name>`, then re-plan.
   Without such files the harness is skipped with a `left:` line instead.
-- **`cursor-plugin` dirty, detached, diverged, upstream-less, or foreign
-  origin**: the clone at `~/.cursor/plugins/local/bostonaholic` is not a clean
-  clone of the release repository on a branch with an upstream that
-  fast-forwards. Commit or discard its changes, check out its branch, set its
-  upstream, or move it aside and clone again per INSTALL.md. The pull follows
-  the clone's own branch, so it can land past the release tag.
+- **`cursor-plugin` foreign origin, not a clone, or diverged**, or a clone that is
+  behind the release and dirty, detached, or without an upstream branch: the
+  clone at `~/.cursor/plugins/local/bostonaholic` cannot fast-forward. Commit or
+  discard its changes, check out its branch, set its upstream, or move it aside
+  and clone again per INSTALL.md. A clone already at or past the release tag is
+  never checked for these. The pull follows the clone's own branch, so it can
+  land past the release tag.
 
 ## Failed steps
 

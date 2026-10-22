@@ -26,12 +26,13 @@
  *   codex          `bostonaholic@skills` in `codex plugin list --json`, behind
  *                  the release: `codex plugin marketplace upgrade skills`,
  *                  then `codex plugin add bostonaholic@skills`
- *   cursor-plugin  ~/.cursor/plugins/local/bostonaholic, a clean clone on a
- *                  branch with an upstream, behind the release tag:
- *                  `git pull --ff-only`. That moves the clone to the tip of
- *                  its own branch, which can be ahead of the tag. A dirty,
- *                  diverged, detached, upstream-less, or foreign clone blocks
- *                  the plan
+ *   cursor-plugin  ~/.cursor/plugins/local/bostonaholic, a git clone of the
+ *                  release repository behind the release tag: `git pull
+ *                  --ff-only`. That moves the clone to the tip of its own
+ *                  branch, which can be ahead of the tag. A clone at or past
+ *                  the tag gets no step and no blocker. A foreign or diverged
+ *                  clone blocks the plan, and so does a behind clone that is
+ *                  dirty, detached, or without an upstream branch
  *
  * A `plugin list --json` that fails blocks the plan only when the harness's
  * own files show the collection installed (installed_plugins.json for Claude
@@ -340,7 +341,9 @@ function codexInstallEvidence(context) {
   const configuration = join(context.codexDirectory, "config.toml");
   return (
     existsSync(configuration) &&
-    readFileSync(configuration, "utf8").includes(`[plugins."${PLUGIN_ID}"]`)
+    readFileSync(configuration, "utf8")
+      .split("\n")
+      .some((line) => line.trim().startsWith(`[plugins."${PLUGIN_ID}"]`))
   );
 }
 
@@ -449,15 +452,6 @@ function inspectCursorPlugin(context, plan) {
       `has origin ${oneLine(origin) || "(none)"}, not ${context.source}. Update it by hand.`,
     );
   }
-  if (git("status", "--porcelain").stdout.trim() !== "") {
-    return block("has uncommitted changes. Commit or discard them, then run the plan again.");
-  }
-  if (git("symbolic-ref", "--quiet", "HEAD").status !== 0) {
-    return block("has a detached HEAD. Check out its branch, then run the plan again.");
-  }
-  if (git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}").status !== 0) {
-    return block("has no upstream branch for git pull. Set one, then run the plan again.");
-  }
   const releaseCommit = captureOrFail(
     "git",
     ["-C", plan.release.directory, "rev-parse", "HEAD"],
@@ -493,6 +487,15 @@ function inspectCursorPlugin(context, plan) {
     return block(
       `has commits that ${plan.release.tag} lacks, so it cannot fast-forward. Update it by hand.`,
     );
+  }
+  if (git("status", "--porcelain").stdout.trim() !== "") {
+    return block("has uncommitted changes. Commit or discard them, then run the plan again.");
+  }
+  if (git("symbolic-ref", "--quiet", "HEAD").status !== 0) {
+    return block("has a detached HEAD. Check out its branch, then run the plan again.");
+  }
+  if (git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}").status !== 0) {
+    return block("has no upstream branch for git pull. Set one, then run the plan again.");
   }
   plan.steps.push({
     harness: "cursor-plugin",

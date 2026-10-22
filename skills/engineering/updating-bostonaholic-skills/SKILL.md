@@ -1,6 +1,6 @@
 ---
 name: updating-bostonaholic-skills
-description: Updates every existing install of the bostonaholic skills collection on this machine to the latest release tag, across Claude Code, Codex, the Cursor plugin clone, and the Antigravity, OpenCode, Cursor, and Grok Bot skill copies. Use when the user explicitly asks to update the bostonaholic skills. Never infer from an outdated skill or a version mismatch. Not for installing; use INSTALL.md.
+description: Updates the bostonaholic skills plugin installs (Claude Code, Codex, the Cursor plugin clone) and the skill copies in the Antigravity, OpenCode, Cursor, and Grok Bot skill directories to the latest release tag. Use when the user explicitly asks to update the bostonaholic skills. Never infer from an outdated skill or a version mismatch. Not for installing; use INSTALL.md.
 disable-model-invocation: true
 ---
 

@@ -2,8 +2,9 @@
 // skill to a copy directory that lacked it, deletes or overwrites a copy without a backup,
 // changes anything on a dry run or when the plan id differs, runs steps past a blocker or a
 // failed step, runs the Claude Code or Codex commands out of order, or leaves a failure
-// without a final `see` line. The release is a local bare repository read through file://, so its clone is shallow, the machine a fake
-// HOME, and the Claude Code and Codex CLIs fake executables on PATH that log each call.
+// without a final `see` line. The release is a local bare repository read through file://, so
+// its clone is shallow. The machine is a fake HOME, and the Claude Code and Codex CLIs are fake
+// executables on PATH that log each call.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -432,14 +433,31 @@ test("a Codex install without the codex CLI blocks the plan", (t) => {
   seeLine(applied.stderr);
 });
 
+test("a commented-out Codex plugin header is not an install", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  write(
+    join(machine.home, ".codex/config.toml"),
+    '# [plugins."bostonaholic@skills"]\n  # [plugins."bostonaholic@skills"]\n',
+  );
+  const result = plan(machine);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /^Nothing to do\.$/m);
+});
+
+test("an indented Codex plugin header is an install", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  write(join(machine.home, ".codex/config.toml"), '  [plugins."bostonaholic@skills"]\n');
+  assert.equal(plan(machine).status, 4);
+});
+
 test("a missing CLI with no install on file is not a blocker", (t) => {
   const machine = makeMachine(t, makeRelease());
   assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
 });
 
-for (const [harness, evidence, listing] of [
-  ["claude", claudeEvidence, claudeListing("1.1.0")],
-  ["codex", codexEvidence, codexListing("1.1.0")],
+for (const [harness, evidence, listing, other, otherListing] of [
+  ["claude", claudeEvidence, claudeListing("1.1.0"), "codex", codexListing("1.1.0")],
+  ["codex", codexEvidence, codexListing("1.1.0"), "claude", claudeListing("1.1.0")],
 ]) {
   test(`an unreadable ${harness} listing blocks the plan when its files show an install`, (t) => {
     const machine = makeMachine(t, makeRelease());
@@ -456,8 +474,7 @@ for (const [harness, evidence, listing] of [
   test(`an unreadable ${harness} listing with no install on file is skipped and blocks nothing`, (t) => {
     const machine = makeMachine(t, makeRelease());
     fakeCli(machine, harness, listing, { failList: true });
-    const other = harness === "claude" ? "codex" : "claude";
-    fakeCli(machine, other, other === "claude" ? claudeListing("1.1.0") : codexListing("1.1.0"));
+    fakeCli(machine, other, otherListing);
     const result = plan(machine);
     assert.equal(result.status, 0);
     assert.match(
@@ -503,6 +520,17 @@ test("a current Cursor plugin clone needs nothing", (t) => {
   const machine = makeMachine(t, makeRelease());
   cursorClone(machine, false);
   assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
+});
+
+test("a current Cursor plugin clone is not blocked by an untracked file, a detached HEAD, or no upstream", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  const clone = cursorClone(machine, false);
+  write(join(clone, "scratch.txt"), "local work\n");
+  git(clone, "branch", "--unset-upstream");
+  git(clone, "checkout", "--quiet", "--detach");
+  const result = plan(machine);
+  assert.equal(result.status, 0, result.stdout);
+  assert.match(result.stdout, /^Nothing to do\.$/m);
 });
 
 test("a dirty Cursor plugin clone blocks the plan with exit 4 and changes nothing", (t) => {

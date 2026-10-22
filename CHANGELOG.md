@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add `updating-bostonaholic-skills`, which updates every existing install of the collection to the latest release. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Add `updating-bostonaholic-skills`, which updates the existing plugin installs and skill copies of the collection to the latest release. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 
 ## [0.59.0] - 2026-10-22
 
