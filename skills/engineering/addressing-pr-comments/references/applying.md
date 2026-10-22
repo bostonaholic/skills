@@ -16,7 +16,8 @@ skips these steps and the diff, stage, commit, and push.
    files, then the formatter and linter in report-only mode, each on the
    touched files it covers. Each result goes on the item's report line.
    - A result is `passed`, `failed`, `timed out` (its process group killed
-     after 120 silent seconds), or `not run (<reason>)`.
+     after 120 seconds with no output, which marks a hang; a slow check that
+     keeps printing never times out), or `not run (<reason>)`.
    - `not run` only when the item has no reproduction, HEAD lacks the check,
      its tool, or a report-only mode, or the tool covers no touched file; any
      other non-zero exit after the edit is `failed`.
