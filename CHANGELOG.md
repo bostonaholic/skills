@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Make `using-gh-cli` run the project's local checks before it opens a PR, stop on any failure until the user says to open it anyway, and list each check with its exit code in the PR's test plan. [#138](https://github.com/bostonaholic/skills/pull/138)
+
 ## [0.62.0] - 2026-10-23
 
 ### Changed
