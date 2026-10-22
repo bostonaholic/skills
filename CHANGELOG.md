@@ -5,6 +5,11 @@
 ### Changed
 
 - Skip a review summary in `addressing-pr-comments` when its author later approved the PR, so the summary leaves the triage report and no longer blocks the review re-request, and report how many it skipped. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Fix review items that share one concern in one commit in `addressing-pr-comments`, and pause an item whose change an earlier commit already made. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Run each fix's reproduction, covering tests, formatter, and linter in report-only mode before `addressing-pr-comments` commits it, allow one more edit after a failure, and show each result on the item's report line. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Apply fixes in `addressing-pr-comments` only from a clean checkout, and keep its temporary files outside the checkout. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Keep the edit of an `addressing-pr-comments` fix that fails its checks for the user, name each path it left, and pause that pass's later fixes. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Write `addressing-pr-comments` throwaway tests only as new files, so deleting one never removes other work. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 
 ## [0.60.0] - 2026-10-22
 

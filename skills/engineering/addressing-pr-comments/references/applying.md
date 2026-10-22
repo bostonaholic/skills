@@ -1,0 +1,47 @@
+# Applying
+
+Run these steps per A or B item, or once per group below, before the diff,
+stage, commit, and push in `SKILL.md`. An image ask's A edits no file, so it
+skips these steps and the diff, stage, commit, and push.
+
+1. Before the pass's first item, delete every throwaway test this pass wrote.
+2. **Clean-checkout check:** `git status --porcelain=v1 --untracked-files=all`
+   prints nothing, and no file the item creates exists.
+3. **Red run:** if the item has a reproduction (the test verification named,
+   or its throwaway test written again as a new file), run it and see it fail.
+4. Edit. The touched files are the paths the edit changes.
+5. **Fix checks**, in order: the reproduction, the tests covering the touched
+   files, then the formatter and linter in report-only mode, each on the
+   touched files it covers. Each result goes on the item's report line.
+   - A result is `passed`, `failed`, `timed out` (killed after 120 silent
+     seconds), or `not run (<reason>)`.
+   - `not run` only when HEAD lacks the check, its tool, or a report-only
+     mode; any other non-zero exit after the edit is `failed`.
+   - After a failure, make at most one more edit inside the item's scope, then
+     rerun every fix check. Never rerun a check with no edit.
+6. Delete any throwaway test.
+7. **Staging check:** the same `git status` lists only the touched files.
+
+Items that share one concern (the same defect or the same requested change)
+take one edit and one commit. Form groups before the pass's first item. Each
+item still qualifies on its own, and one throwaway test may serve as the
+red-green proof for items that make the same claim. The group passes or stops
+as one unit.
+
+An item stops, as could-not-apply, at the first of these. Its block's
+Confidence line names the stop and, where listed, its detail:
+
+- The clean-checkout check finds uncommitted changes: the first path
+  `git status` lists.
+- A file the item creates already exists: that path.
+- The reproduction passes before the edit.
+- The edit changes no path (the change is already in place).
+- A fix check fails or times out after the extra edit: the check, its
+  result, and its first error line.
+- The staging check lists a path outside the touched files: each such path.
+- `git commit` fails: its first error line.
+
+An exclusion found during the edit also stops the item. A stopped item skips
+every later step, through the push. It deletes any throwaway test and keeps
+its edit for the user, and nothing later restores the edit. Its block's
+Confidence line also names each path its edit or its checks left.

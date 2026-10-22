@@ -3,7 +3,7 @@
 Triage step 7 reports in this shape.
 
 - Applied items, one line each (option, confidence, commit SHA or reply,
-  reaction).
+  check results, reaction).
 - Then one block per paused item in exactly this format, with 2 to 4
   [options](references/options.md) tailored to the item and `PR-level` in place of
   `<path>:<line>` for a PR-level item:
