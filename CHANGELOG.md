@@ -5,7 +5,7 @@
 ### Added
 
 - Add a `CI rerun` grant to `watching-authored-prs` that re-runs a failed Actions job, at most twice per workflow run, when its log shows a known runner or network fault, and run it first under `CI fix`. [#134](https://github.com/bostonaholic/skills/pull/134)
-- Stop a `watching-authored-prs` watch as `Merge conflict` when GitHub reports the PR conflicting with its base, naming `/rebasing-branches` as the next step. [#134](https://github.com/bostonaholic/skills/pull/134)
+- Make `watching-authored-prs` resolve a merge conflict on its PR by calling `rebasing-branches`, which rebases and force-pushes with a lease, and stop as `Merge conflict` only when the rebase cannot finish. [#134](https://github.com/bostonaholic/skills/pull/134)
 
 ## [0.58.0] - 2026-10-22
 
