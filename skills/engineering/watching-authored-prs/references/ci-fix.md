@@ -8,7 +8,7 @@ Attempt a fix only when all of these hold; otherwise report which failed and
 keep watching:
 
 - the check has a readable log, read this cycle
-- the [CI rerun](ci-rerun.md) step did not re-run it this cycle
+- the [CI rerun](references/ci-rerun.md) step did not re-run it this cycle
 - the logical check has fewer than 2 attempts
 - this is not the cycle-3 poll, because no later poll can read the result
 - the PR is not approved, because a push after approval can dismiss it

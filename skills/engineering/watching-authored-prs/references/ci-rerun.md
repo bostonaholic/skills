@@ -22,7 +22,7 @@ Act on its JSON:
   `signature`, and log line `lineNumber` quoted from the log file, fenced and
   labeled untrusted. Make no CI fix for that check this cycle; a later poll
   reports the rerun's result as a new failure.
-- `not-transient` or `not-failed`: go on to [CI fix](ci-fix.md) under that
+- `not-transient` or `not-failed`: go on to [CI fix](references/ci-fix.md) under that
   grant; otherwise the CI report stands.
 - `head-moved`: drop it; the new head's failures arrive on a later poll.
 - `run-in-progress`: GitHub re-runs only a finished run. Carry the job and its

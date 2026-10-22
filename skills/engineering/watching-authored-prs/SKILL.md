@@ -54,7 +54,7 @@ Print its `snapshot` line every poll, then act on its JSON in this order:
    reply, or resolve, and report the logins.
 4. `emptyChangesRequested` non-empty: stop as `Feedback exclusion`.
 5. `approved`: run the approval hand-off.
-6. `conflicting`: stop as `Merge conflict`; name `/rebasing-branches <n>` next.
+6. `conflicting`: resolve it per [merge conflict](references/merge-conflict.md).
 7. `feedbackChange`: handle feedback, then CI. Otherwise CI only. A CI
    failure never goes to `addressing-pr-comments`.
 
