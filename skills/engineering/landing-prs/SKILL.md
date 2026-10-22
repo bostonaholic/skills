@@ -7,11 +7,12 @@ argument-hint: "[<pr-number>]"
 
 # Landing PRs
 
-`gh pr merge` is irreversible. Run only on a direct "ship it", "land the PR",
-or `/landing-prs`; an approved, green, or finished-looking PR is not ship
-intent. That request also authorizes the rebase and the lease-guarded
-force-push a behind branch needs; never stop to hand either back to the user.
-Once the CI gate below passes, merge without asking again.
+- `gh pr merge` is irreversible.
+- Run only on a direct "ship it", "land the PR", or `/landing-prs`; an
+  approved, green, or finished-looking PR is not ship intent.
+- That request also authorizes the rebase and the lease-guarded force-push a
+  behind branch needs; never stop to hand either back to the user.
+- Once the CI gate below passes, merge without asking again.
 
 The scripts live in `<skill-dir>/scripts/` and run from the repository, on the
 PR's head branch.

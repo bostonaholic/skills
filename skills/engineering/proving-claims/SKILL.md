@@ -7,15 +7,15 @@ argument-hint: "[<claims> | <pr-number-or-url>]"
 
 # Proving claims
 
-A claim is any checkable assertion: a behavior, a fact about the code, the
-state of an artifact, or an item in a PR's `## Test plan` (or `## How to
-Verify`). With no argument, prove the test plan of the current branch's PR, or
-ask what to prove. No claims found means report `nothing to prove`; never
-invent a verdict.
-
-A calling skill passes its claims as a numbered list in a fenced `DATA` block,
-with optional context and whether the tree is trusted to execute. A caller
-that does not state trust gets an untrusted tree.
+- A claim is any checkable assertion: a behavior, a fact about the code, the
+  state of an artifact, or an item in a PR's `## Test plan` (or `## How to
+  Verify`).
+- With no argument, prove the test plan of the current branch's PR, or ask what
+  to prove.
+- No claims found means report `nothing to prove`; never invent a verdict.
+- A calling skill passes its claims as a numbered list in a fenced `DATA` block,
+  with optional context and whether the tree is trusted to execute.
+- A caller that does not state trust gets an untrusted tree.
 
 ## Rules
 
@@ -71,8 +71,11 @@ applied mechanically:
 - `Verdict: PROVEN` if every claim is PROVEN at HIGH or MEDIUM.
 - `Verdict: NEEDS ATTENTION` otherwise.
 
-For a PR, the next line reads READY, NEEDS ATTENTION, or NOT READY. Then a
-table (claim, verdict, confidence, method, key evidence), details per claim,
-each unreachable rung or unavailable helper on its own line, and for every
-non-PROVEN or LOW claim the action that would resolve it. Fixing and
-re-running belong to the caller.
+For a PR, the next line reads READY, NEEDS ATTENTION, or NOT READY. Then:
+
+- A table (claim, verdict, confidence, method, key evidence).
+- Details per claim.
+- Each unreachable rung or unavailable helper on its own line.
+- For every non-PROVEN or LOW claim, the action that would resolve it.
+
+Fixing and re-running belong to the caller.

@@ -32,11 +32,12 @@ Raise `--samples` or `--clean-polls` for a large fleet, or set `--interval` and
 - **Exit 4:** the baseline already contains the target, so ask which revision
   production ran before this deploy.
 
-Limit every claim about what production runs to the samples: never "fully
-deployed" or "prod is no longer on the old sha". If the script cannot run, read
-its header and apply its rules to the samples you have; with every sample on
-target, still write the sentence above, also when the ancestry check is
-pending.
+- Limit every claim about what production runs to the samples: never "fully
+  deployed" or "prod is no longer on the old sha".
+- If the script cannot run, read its header and apply its rules to the samples
+  you have.
+- With every sample on target, still write the sentence above, also when the
+  ancestry check is pending.
 
 ## Verify the resulting data
 
@@ -59,11 +60,12 @@ never re-run the task in write mode or repair data. Report discrepancies.
 
 ## Order between deploys
 
-When one deploy must precede another, the constraint is usually asymmetric.
-State in the PR body which order is safe, what breaks in the other, and whether
-the damage self-heals. Verify that against the code on both sides: a client
-that "tolerates either order" may still drop a signal under one, for example
-an unconditional filter upstream of a conditional relabel. A one-time task
-that deletes rows the old renderer still reads is gated on both deploys and
-does not self-heal; say so where the ordering is written down, because nothing
-enforces it.
+- When one deploy must precede another, the constraint is usually asymmetric.
+- State in the PR body which order is safe, what breaks in the other, and
+  whether the damage self-heals.
+- Verify that against the code on both sides: a client that "tolerates either
+  order" may still drop a signal under one, for example an unconditional filter
+  upstream of a conditional relabel.
+- A one-time task that deletes rows the old renderer still reads is gated on
+  both deploys and does not self-heal; say so where the ordering is written
+  down, because nothing enforces it.

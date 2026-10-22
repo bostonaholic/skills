@@ -52,10 +52,10 @@ code. Do not restate in prose what the script does; its header documents it.
 
 ## When determinism is not an option
 
-When a step looks scriptable but stays with the model, give the reason in one
-line so the next editor does not script it. Do not fake determinism: a keyword
-list standing in for reading code is worse than the model reading it, unless
-that list is the author's actual rule.
+- When a step looks scriptable but stays with the model, give the reason in one
+  line so the next editor does not script it.
+- Do not fake determinism: a keyword list standing in for reading code is worse
+  than the model reading it, unless that list is the author's actual rule.
 
 ## Report
 

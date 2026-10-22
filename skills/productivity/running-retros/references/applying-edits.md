@@ -78,6 +78,17 @@ node "<skill-dir>/scripts/write-target.mjs" "$(git rev-parse --show-toplevel)" -
 A non-skill file follows its own existing structure and the repository's
 writing guidance; the rules below apply to `SKILL.md` targets only.
 
+Every created or edited `SKILL.md` meets the two skill rules, whichever
+guidance below applies:
+
+- **Agent-agnostic.** The skill is a `SKILL.md` plus scripts, with detail in
+  `references/`. No harness-specific hooks, and no harness substitutions in
+  `SKILL.md` (`$ARGUMENTS`, `$1`, `${CLAUDE_*}`, `` !`command` ``); say what an
+  argument stands for in plain words.
+- **Short prompt.** The body is at most 100 lines and checklist-shaped: steps
+  and rules are list items, and no prose paragraph runs over 50 words. Detail
+  goes in `references/`.
+
 Follow the repository's own skill-authoring guidance when it has one, such as a
 repo skill whose directory name matches `create-*skill*`. Otherwise call the
 Skill tool with `skill-creator`. If that skill is missing, apply these rules:

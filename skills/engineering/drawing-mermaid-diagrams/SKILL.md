@@ -11,11 +11,12 @@ hierarchy, and so on); a `flowchart` is not the answer to everything.
 
 ## Renderer support
 
-Each host (GitHub, GitLab, a docs site, an IDE preview) bundles its own Mermaid
-release, often older than the latest. `-beta` keywords (`xychart-beta`,
-`sankey-beta`, `architecture-beta`, `block-beta`) and recent types such as
-`kanban` may fail there. When the target renderer is unknown, prefer a core
-type, or ask which renderer will display the diagram.
+- Each host (GitHub, GitLab, a docs site, an IDE preview) bundles its own
+  Mermaid release, often older than the latest.
+- `-beta` keywords (`xychart-beta`, `sankey-beta`, `architecture-beta`,
+  `block-beta`) and recent types such as `kanban` may fail there.
+- When the target renderer is unknown, prefer a core type, or ask which
+  renderer will display the diagram.
 
 Default to a frontmatter `config:` block before the diagram keyword. Fall back
 to a first-line `%%{init: {...}}%%` directive only for a renderer too old to

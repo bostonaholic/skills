@@ -3,9 +3,10 @@
 // prints one `path: ID message` line per violation.
 //   node scripts/lint-skills.mjs  exit 1 when any skill breaks a rule, 0 when all pass
 // Rules: A1 name, A2 gerund name, A3 description limits, A4 third-person description, A5 "Use
-// when" clause, C1 SKILL.md body under 500 lines, C3 every references/ and shared/ file linked
-// from SKILL.md, C4 a `## Contents` table of contents in files over 100 lines, C5 forward-slash
-// paths. Acts on the git repository at the working directory; skills come from `git ls-files`,
+// when" clause, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, C1
+// SKILL.md body of at most 100 lines, C3 every references/ and shared/ file linked from SKILL.md,
+// C4 a `## Contents` table of contents in files over 100 lines, C5 forward-slash paths, C6 no
+// SKILL.md prose paragraph over 50 words. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
@@ -17,9 +18,35 @@ import { references } from "./sync-shared.mjs";
 // Limits from the Agent Skills frontmatter specification and Anthropic's authoring guide.
 const NAME_MAX = 64;
 const DESCRIPTION_MAX = 1024;
-const BODY_MAX_LINES = 500;
+// A SKILL.md is a short checklist; detail past this belongs in references/.
+const BODY_MAX_LINES = 100;
 // Files longer than this need a table of contents so a partial read still shows their scope.
 const TOC_MIN_LINES = 100;
+// About three wrapped lines: past this a paragraph reads as an essay, not a checklist item.
+const PARAGRAPH_MAX_WORDS = 50;
+
+// The Agent Skills specification's fields, plus invocation metadata that other harnesses ignore.
+// Anything else, such as `hooks` or `allowed-tools`, binds the skill to one harness.
+const FRONTMATTER_KEYS = new Set([
+  "name",
+  "description",
+  "license",
+  "compatibility",
+  "metadata",
+  "argument-hint",
+  "effort",
+  "disable-model-invocation",
+  "user-invocable",
+]);
+// A skill ships only files every harness reads the same way.
+const SKILL_FILE = /^(?:SKILL\.md|agents\/openai\.yaml|(?:references|scripts|shared)\/.+)$/;
+// Claude Code expands these in SKILL.md before the model reads it; other harnesses show them raw.
+const HARNESS_SUBSTITUTIONS = [
+  [/\$ARGUMENTS/, "$ARGUMENTS"],
+  [/\$\d\b/, "$N"],
+  [/\$\{CLAUDE_[A-Z_]*\}/, "${CLAUDE_*}"],
+  [/!`/, "!`command`"],
+];
 
 const NAME_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const RESERVED_WORDS = /anthropic|claude/;
@@ -75,6 +102,51 @@ function checkDescription(description, report) {
     report("A5", 'description must say when to use the skill with a "Use when ..." clause');
 }
 
+function checkPortability(dir, frontmatter, body, files, report) {
+  for (const key of frontmatter.match(/^[A-Za-z][\w-]*(?=:)/gm) ?? [])
+    if (!FRONTMATTER_KEYS.has(key))
+      report("B3", `frontmatter key "${key}" is harness-specific; remove it`);
+  for (const path of files) {
+    const relative = path.slice(dir.length + 1);
+    if (!SKILL_FILE.test(relative))
+      report(
+        "B3",
+        `${relative} is outside SKILL.md, agents/openai.yaml, references/, scripts/, and shared/`,
+      );
+  }
+  for (const [pattern, name] of HARNESS_SUBSTITUTIONS)
+    if (pattern.test(body))
+      report("B3", `${name} is a harness substitution; say what it stands for in plain words`);
+}
+
+// Prose paragraphs outside fences, headings, list items, tables, and indented continuations.
+function checkChecklistShape(body, report) {
+  let fenced = false;
+  let words = 0;
+  let start = 0;
+  const lines = body.split(/\r?\n/);
+  const flush = () => {
+    if (words > PARAGRAPH_MAX_WORDS)
+      report(
+        "C6",
+        `body line ${start}: ${words}-word paragraph; split it into list items or move it to references/`,
+      );
+    words = 0;
+  };
+  lines.forEach((line, index) => {
+    if (/^\s*(```|~~~)/.test(line)) {
+      flush();
+      fenced = !fenced;
+    } else if (fenced || /^\s*$|^#|^\s*(?:[-*+]|\d+\.)\s|^\s*\||^\s{2,}\S|^>/.test(line)) {
+      flush();
+    } else {
+      if (!words) start = index + 1;
+      words += line.trim().split(/\s+/).length;
+    }
+  });
+  flush();
+}
+
 function checkLinks(dir, skillText, files, report) {
   const linked = new Set();
   for (const { target } of references(skillText, { spans: false }))
@@ -113,7 +185,8 @@ export function lintSkills() {
     .sort();
   for (const skillPath of skills) {
     const dir = dirname(skillPath);
-    const files = lsFiles(dir).filter((path) => path.endsWith(".md"));
+    const tracked = lsFiles(dir);
+    const files = tracked.filter((path) => path.endsWith(".md"));
     const skillText = readFileSync(skillPath, "utf8");
     const reportFor = (path) => (id, message) => problems.push(`${path}: ${id} ${message}`);
     const report = reportFor(skillPath);
@@ -124,12 +197,15 @@ export function lintSkills() {
     }
     checkName(scalar(frontmatter[1], "name"), report);
     checkDescription(scalar(frontmatter[1], "description"), report);
-    const bodyLines = lineCount(skillText.slice(frontmatter[0].length));
-    if (bodyLines >= BODY_MAX_LINES)
+    const body = skillText.slice(frontmatter[0].length);
+    checkPortability(dir, frontmatter[1], body, tracked, report);
+    const bodyLines = lineCount(body);
+    if (bodyLines > BODY_MAX_LINES)
       report(
         "C1",
-        `body is ${bodyLines} lines; keep it under ${BODY_MAX_LINES} by moving detail into references/`,
+        `body is ${bodyLines} lines; keep it to ${BODY_MAX_LINES} by moving detail into references/`,
       );
+    checkChecklistShape(body, report);
     checkLinks(dir, skillText, files, report);
     for (const path of files)
       checkFile(path, path === skillPath ? skillText : readFileSync(path, "utf8"), reportFor(path));

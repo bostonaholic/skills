@@ -8,10 +8,12 @@ argument-hint: "[<task description>] [--repo <path>] [--out <path>]"
 # Agent Prompt
 
 Compose a self-contained prompt that another coding agent can execute, in a
-different repository or on a bounded change here. Emit the prompt and stop,
-even when the user asks to run it: never pass the prompt or its work to
-`Agent`, a subagent, or a plugin agent, never execute or schedule it, and edit
-nothing except the optional `--out` file.
+different repository or on a bounded change here.
+
+- Emit the prompt and stop, even when the user asks to run it.
+- Never pass the prompt or its work to `Agent`, a subagent, or a plugin agent.
+- Never execute or schedule it.
+- Edit nothing except the optional `--out` file.
 
 ## Input
 

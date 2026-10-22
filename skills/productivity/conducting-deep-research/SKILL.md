@@ -48,11 +48,17 @@ passage.
 
 ## Report
 
-Default to adapt: an executive answer with confidence and the main
-limitation; findings organized by the user's questions, not by source, with
-contrary evidence; an organizations and funding table (organization, role,
-program, recipient, disclosed amount and dates, primary source) kept separate
-from published research; uncertainty and open questions; full sources. Stop
-when each material question has credible evidence or an explicit gap and
+Default to adapt:
+
+- An executive answer with confidence and the main limitation.
+- Findings organized by the user's questions, not by source, with contrary
+  evidence.
+- An organizations and funding table (organization, role, program, recipient,
+  disclosed amount and dates, primary source) kept separate from published
+  research.
+- Uncertainty and open questions.
+- Full sources.
+
+Stop when each material question has credible evidence or an explicit gap and
 another pass is unlikely to change the conclusions. Keep tool and model
 limitations in the accompanying response, not the report.

@@ -10,7 +10,8 @@ changes.
   whole-batch direction given with the invocation. Never run this from a
   single item's apply.
 - A **decision pass** acts in a later turn on the user's chosen items from an
-  earlier report or a watch stop.
+  earlier report or a watch stop. It runs the re-request after the last chosen
+  item reaches its outcome.
 
 An item reaches an outcome when A, B, E, or F executes, or the C or D reply
 posts. G items, could-not-apply, held security changes, failed pushes, and

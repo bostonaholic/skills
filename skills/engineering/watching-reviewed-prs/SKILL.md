@@ -8,30 +8,21 @@ disable-model-invocation: true
 
 # Watching Reviewed PRs
 
-## Contents
-
-- Hard rules
-- State file
-- Each cycle
-- Verdict actions
-- Stops
-- After a compaction
-
-Approval on a PR with auto-merge can merge it, so only a deliberate user
-invocation arms the watch. A **PR-level** item is a review summary or
-conversation comment, with no resolved bit.
-
-Read [arm](references/arm.md) to arm, [re-review](references/re-review.md) for
-how each settlement is judged, and [approve](references/approve.md) when the
-approval condition holds. The [watch loop](shared/watch-loop.md) owns pacing,
-the 3-cycle soft cap, and its own stops; bind its poll command to the poll
-below, its cycle-0 subject to the immediate path in arm, and its handoff state
-to the poll's `snapshot` and the state-file path.
-
-Run every script with `node <skill-dir>/scripts/<name>` from the PR's
-repository. Outside the re-review, never run the
-[pull-request comment retrieval](shared/pull-request-comments.md) script
-yourself, since its default read prints every body.
+- Approval on a PR with auto-merge can merge it, so only a deliberate user
+  invocation arms the watch.
+- A **PR-level** item is a review summary or conversation comment, with no
+  resolved bit.
+- Read [arm](references/arm.md) to arm, [re-review](references/re-review.md) for
+  how each settlement is judged, and [approve](references/approve.md) when the
+  approval condition holds.
+- The [watch loop](shared/watch-loop.md) owns pacing, the 3-cycle soft cap, and
+  its own stops; bind its poll command to the poll below, its cycle-0 subject to
+  the immediate path in arm, and its handoff state to the poll's `snapshot` and
+  the state-file path.
+- Run every script with `node <skill-dir>/scripts/<name>` from the PR's
+  repository. Outside the re-review, never run the
+  [pull-request comment retrieval](shared/pull-request-comments.md) script
+  yourself, since its default read prints every body.
 
 ## Hard rules
 
@@ -67,25 +58,22 @@ in the schema the header of `scripts/poll.mjs` documents.
 
 ## Each cycle
 
-Run `poll.mjs "$PR_URL" --state <state-file>` and save its stdout to a file
-for the approval. Exit 1 is a poll failure, as the watch loop counts them;
-any other nonzero exit stops, reporting stderr.
-
-`pr.state` MERGED or CLOSED stops as `Merge or close`. All tracked counts at
-zero mid-watch stops as `Empty tracked set`. Name each `vanished` id.
-
-Order matters: re-review every entry of `triggers`, record each verdict,
-then run the third-party and `Dispute stands` checks, and only then any
-write. A non-empty `thirdParty` stops as `Third-party participant`; report
-its logins. After the writes, when every verdict passes, re-run the poll;
-`approvalReady: true` goes to [approve](references/approve.md) with that
-poll as the final poll.
-
-Print one snapshot line per poll: the cycle, the poll's `snapshot`, the
-state-file path, and each write this cycle placed.
-
-Pass strings to every `gh api` write with `-f` (`-F` reads a leading `@` as
-a file) and add `--hostname "$HOST"`, including the shared snippets.
+- Run `poll.mjs "$PR_URL" --state <state-file>` and save its stdout to a file
+  for the approval. Exit 1 is a poll failure, as the watch loop counts them;
+  any other nonzero exit stops, reporting stderr.
+- `pr.state` MERGED or CLOSED stops as `Merge or close`. All tracked counts at
+  zero mid-watch stops as `Empty tracked set`. Name each `vanished` id.
+- Order matters:
+  1. Re-review every entry of `triggers`, and record each verdict.
+  2. Run the third-party and `Dispute stands` checks. A non-empty `thirdParty`
+     stops as `Third-party participant`; report its logins.
+  3. Only then make any write. After the writes, when every verdict passes,
+     re-run the poll; `approvalReady: true` goes to
+     [approve](references/approve.md) with that poll as the final poll.
+- Print one snapshot line per poll: the cycle, the poll's `snapshot`, the
+  state-file path, and each write this cycle placed.
+- Pass strings to every `gh api` write with `-f` (`-F` reads a leading `@` as
+  a file) and add `--hostname "$HOST"`, including the shared snippets.
 
 ## Verdict actions
 
@@ -98,45 +86,17 @@ posts one rebuttal and leaves the item open.
 - **Resolve** with `resolveReviewThread`, skipping threads already
   resolved; the response must read `isResolved: true`. A resolve failure
   warns, keeps the verdict, and carries on.
-- **Rebut** with three things and nothing else: which claim the branch does
-  not bear out, the specific evidence (file, line, symbol), and what would
-  settle it, as an `issue` in the [finding format](shared/findings.md) with the
-  decoration the original comment carried. Carry the automated-attribution
-  marker the user or project prescribes, never re-argue a conceded point, and
-  never name this skill or an agent. Pass the body by file: on a thread, the GraphQL `addPullRequestReviewThreadReply` mutation
-  with `-F body=@<rebuttal-file>`; for a PR-level item,
-  `gh pr comment "$PR_URL" --body-file <rebuttal-file>`. Record the new
-  comment's URL.
-- **React** on the comment that claimed the settlement, never the viewer's
-  own: 👍 for answered, or addressed with a reply; 👎 for rejected; nothing
-  for pending or a push with no reply. Use the
-  [reaction mechanics](shared/reaction-mechanics.md). A reaction failure never
-  stops the watch.
+- **Rebut** and **React**: read [verdict actions](references/verdict-actions.md).
+  A rebuttal is an `issue` in the [finding format](shared/findings.md); a
+  reaction follows the [reaction mechanics](shared/reaction-mechanics.md).
 
 ## Stops
 
-Beyond the watch loop's own stops, report exactly one of: `Approval cast`;
-`Merge or close` (say "merged without your approval" when so); `Empty tracked
-set`; `Confirmation declined`; `Confirmation churn`; `Gate reopened`;
-`Third-party participant`; `Dispute stands`; `Approval failed`; `Tracked list
-lost`.
-
-On the soft cap, name each item still pending or rejected, and offer the
-by-hand options: argue it yourself, accept the author's position and resolve,
-approve manually, or re-arm.
-
-At every stop, report the cycles used and the write ledger (resolves,
-rebuttals and where, reactions). After an approval, add its URL,
-the cited head SHA, the per-item verdicts, both SHAs when the head drifted, and
-both counts for any shape whose tracked count changed.
-
-## After a compaction
-
-Re-read the state file and re-run the poll. If it is lost, recover from the
-transcript, never a fresh read:
-
-- **Tracked PR-level list:** never reclassify or guess. If lost, stop as
-  `Tracked list lost`.
-- Otherwise, re-create the file with every lost field at its lost value:
-  `armHead`, `armCounts`, and `resolvedBySkill` null, `autoMergeConfirmed`
-  false, and no verdicts. Never take `armHead` from the current head.
+- Beyond the watch loop's own stops, report exactly one of: `Approval cast`;
+  `Merge or close` (say "merged without your approval" when so); `Empty tracked
+  set`; `Confirmation declined`; `Confirmation churn`; `Gate reopened`;
+  `Third-party participant`; `Dispute stands`; `Approval failed`; `Tracked list
+  lost`.
+- Read [stop reports](references/stops.md) for what to report at the soft cap and
+  at every stop.
+- After a compaction, read [compaction](references/compaction.md).

@@ -153,7 +153,7 @@ const ROWS = [
     interpreter: "node",
     args: none,
     exit: 2,
-    target: "skills/engineering/addressing-pr-comments/SKILL.md",
+    target: "skills/engineering/addressing-pr-comments/references/settling-items.md",
   },
   {
     label: "settle-item.mjs missing gh",
@@ -172,7 +172,7 @@ const ROWS = [
       ];
     },
     exit: 127,
-    target: "skills/engineering/addressing-pr-comments/SKILL.md",
+    target: "skills/engineering/addressing-pr-comments/references/settling-items.md",
   },
   // simplifying-ruby-code
   {

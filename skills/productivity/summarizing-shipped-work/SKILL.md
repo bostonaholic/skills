@@ -32,11 +32,14 @@ With `<out>` a scratch directory, run:
 "<skill-dir>/scripts/fetch-shipped-prs.sh" START END [OWNER...] > <out>/shipped.jsonl; echo "rc=$?"
 ```
 
-On a non-zero exit, report the script's error and stop: the file is partial.
-Do not summarize, list, or group any PR from it, and do not offer to, even
-labeled as partial. Exit 64 means a bad date or argument: fix the call and
-rerun. For any other error, such as an HTTP 5xx, tell the user to rerun once
-it clears.
+On a non-zero exit:
+
+- Report the script's error and stop: the file is partial.
+- Do not summarize, list, or group any PR from it, and do not offer to, even
+  labeled as partial.
+- Exit 64 means a bad date or argument: fix the call and rerun.
+- For any other error, such as an HTTP 5xx, tell the user to rerun once it
+  clears.
 
 ## Group and summarize
 
@@ -65,42 +68,14 @@ whose only content is fixing the previous PR.
 
 ## Report
 
-Markdown. Keep the section order; fit areas, themes, and counts to the work.
-
-```markdown
-# Shipped <START> to <END>
-
-## Highlights
-
-- <one sentence>. ([deploy-service#781](…), [web-console#1513](…), [OPS-123](…))
-- … 3 to 5 in all
-
-## <Area>
-
-**<Theme>**
-
-- …
-
-**Engineering health**
-
-- …
-
-## Themes
-
-- 2 to 4 bullets naming patterns across the period.
-
-Left out as personal or trivial: <repos>.
-```
-
-Rank highlights by effect on users or the business, above refactors and docs.
-Order areas by how much shipped. Themes claim only what the PR list supports.
-The left-out line is only for a work-only request. Write plainly: no
-metaphors, no intensifiers, no "just".
+Read [references/report-format.md](references/report-format.md) when writing the
+report: it holds the Markdown template, section order, and ranking rules.
 
 ## Brag document
 
-After the report, offer to add the highlights to the user's brag document when
-the user names one or one is recorded in their AGENTS.md or memory; otherwise
-end with the report. Match the document's existing structure, show the exact
-proposed diff, and write only after approval. Add text; never overwrite or
-remove existing text.
+- After the report, offer to add the highlights to the user's brag document when
+  the user names one or one is recorded in their AGENTS.md or memory; otherwise
+  end with the report.
+- Match the document's existing structure, show the exact proposed diff, and
+  write only after approval.
+- Add text; never overwrite or remove existing text.

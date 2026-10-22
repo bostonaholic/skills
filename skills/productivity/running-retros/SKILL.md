@@ -25,15 +25,16 @@ disable-model-invocation: true
 
 ## The prompt
 
-Bare `/running-retros` mines this session. `$ARGUMENTS` may set the question
-(replacing the three lenses with one prompt pass), the sources (default: this
-session's transcript), and the targets (default: any repository file the
-findings call for). A prompt that is one bare skill name means "this session,
-learnings about that skill only", with its `SKILL.md` as the default target.
-
-Restate the question, each source, and each target before reading anything, so
-the user sees how the prompt was understood. A prompt that resolves into no
-readable source stops the run and says which part was unclear.
+- A bare `/running-retros` mines this session.
+- The request may set the question (replacing the three lenses with one
+  prompt pass), the sources (default: this session's transcript), and the
+  targets (default: any repository file the findings call for).
+- A prompt that is one bare skill name means "this session, learnings about
+  that skill only", with its `SKILL.md` as the default target.
+- Restate the question, each source, and each target before reading anything,
+  so the user sees how the prompt was understood.
+- A prompt that resolves into no readable source stops the run and says which
+  part was unclear.
 
 ## Plan turn
 
@@ -58,9 +59,9 @@ readable source stops the run and says which part was unclear.
 
 ## Report
 
-Lead with the run cache and plan paths. Then list the sources read (with any
-unread part), and per item what was accepted, rejected, or sent to backlog with
-its evidence. After the apply turn add what was applied or created (with its
-undo: `git restore -- <path>` or delete the new file), what was skipped and
-why, the check verdict, and each filed issue URL or unfiled item with its
-reason.
+- Lead with the run cache and plan paths.
+- Then list the sources read (with any unread part), and per item what was
+  accepted, rejected, or sent to backlog with its evidence.
+- After the apply turn add what was applied or created (with its undo:
+  `git restore -- <path>` or delete the new file), what was skipped and why,
+  the check verdict, and each filed issue URL or unfiled item with its reason.

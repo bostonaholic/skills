@@ -29,23 +29,31 @@ newer.
 ## Discover and confirm
 
 Run `"<skill-dir>/scripts/list-prs.sh"`, adding `--author @me` when the user
-asks for their own PRs. Drafts are included. Pass `--skip-drafts` or
-`--include-forks` only when the user asks. A truncation warning means re-run
-with a larger `--limit`. Exit 2 is a usage error and 127 means gh or jq is
-missing. Any other exit: stop and report its stderr.
+asks for their own PRs.
 
-Show the rebaseable PRs (number, branch, base, title, author) and the skipped
-ones with reasons, state that each listed PR will be rebased and force-pushed,
-and proceed only on a clear go-ahead, which covers exactly the listed PRs.
+- Drafts are included. Pass `--skip-drafts` or `--include-forks` only when the
+  user asks.
+- A truncation warning means re-run with a larger `--limit`.
+- Exit 2 is a usage error and 127 means gh or jq is missing.
+- Any other exit: stop and report its stderr.
+
+Then:
+
+- Show the rebaseable PRs (number, branch, base, title, author) and the
+  skipped ones with reasons.
+- State that each listed PR will be rebased and force-pushed.
+- Proceed only on a clear go-ahead, which covers exactly the listed PRs.
 
 ## Run directory and manifest
 
 Run `"<skill-dir>/scripts/list-prs.sh" <flags> | "<skill-dir>/scripts/init-run.sh" <n>...`,
 with discovery's flags and the confirmed PR numbers, and keep the `RUN=` path
-as `<run>`. Report each `skip PR` line as skipped. Exit 3 means no confirmed
-PR is left: report the skips and stop. Exit 2 is a usage error, a repeated PR,
-or stdin that is not the list's JSON array, and 127 means git or jq is
-missing: stop and report its stderr.
+as `<run>`.
+
+- Report each `skip PR` line as skipped.
+- Exit 3 means no confirmed PR is left: report the skips and stop.
+- Exit 2 is a usage error, a repeated PR, or stdin that is not the list's JSON
+  array, and 127 means git or jq is missing: stop and report its stderr.
 
 ## Rebase each PR
 
@@ -61,16 +69,20 @@ Probe a quiet worker up to 3 times, 2 minutes apart (in Claude Code,
 
 ## Reconcile and report
 
-`reconcile.sh` fetches, so run it only after every worker has returned or been
-given up on. A result file alone does not mean the worker is done, since
-cleanup runs after it is written.
+- `reconcile.sh` fetches, so run it only after every worker has returned or
+  been given up on.
+- A result file alone does not mean the worker is done, since cleanup runs
+  after it is written.
 
-Run `"<skill-dir>/scripts/reconcile.sh" "<run>"`. `FETCH=failed` on the first
-line means stale refs; re-run before trusting them. `NEEDS_REVIEW=yes` means
-git contradicts the result file or the base is gone: report both signals. Take
-conflicts, verify, worktree, and note from `<run>/<n>.json`. Exit 2 is a usage
-error or a `<run>` without its manifest, and 127 means git or jq is missing:
-stop and report its stderr.
+Run `"<skill-dir>/scripts/reconcile.sh" "<run>"`.
+
+- `FETCH=failed` on the first line means stale refs; re-run before trusting
+  them.
+- `NEEDS_REVIEW=yes` means git contradicts the result file or the base is
+  gone: report both signals.
+- Take conflicts, verify, worktree, and note from `<run>/<n>.json`.
+- Exit 2 is a usage error or a `<run>` without its manifest, and 127 means git
+  or jq is missing: stop and report its stderr.
 
 Report every PR, including skipped, flagged, and failed ones, with branch,
 status, conflicts, verify result, worktree, and note. Call out each PR that

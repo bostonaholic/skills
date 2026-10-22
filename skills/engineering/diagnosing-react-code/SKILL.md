@@ -13,11 +13,12 @@ for security, performance, correctness, and architecture. It needs Node
 
 ## Before the first run
 
-The first run in a session downloads and executes a third-party package from
-npm. Ask the user before it, naming the pinned version. By default the score
-comes from the react-doctor score API and the supply-chain scan queries
-Socket.dev; when the user wants nothing sent off the machine, add
-`--no-score --no-supply-chain` (the run then reports no score).
+- The first run in a session downloads and executes a third-party package from
+  npm. Ask the user before it, naming the pinned version.
+- By default the score comes from the react-doctor score API and the
+  supply-chain scan queries Socket.dev; when the user wants nothing sent off
+  the machine, add `--no-score --no-supply-chain` (the run then reports no
+  score).
 
 ## Run
 

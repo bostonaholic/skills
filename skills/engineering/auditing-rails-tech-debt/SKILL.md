@@ -43,15 +43,14 @@ N+1, `default_scope`, SQL interpolation in scopes); and
 
 ## Leads
 
-Run `node <skill-dir>/scripts/find-leads.mjs <app-root>`. On exit 1 or 2,
-fix what stderr names and rerun. On exit 3, apply the schema rules to
-`db/structure.sql` by reading.
-
-Start from `Gemfile`, `config/routes.rb`, `db/schema.rb`, and the largest
-files in `sizes`; a missing layer is as diagnostic as a bloated one. A lead
-is a place to read, never a finding: confirm each against the finding rule
-that names it, and resolve each `schema.unresolved` entry by reading its
-model or migration.
+- Run `node <skill-dir>/scripts/find-leads.mjs <app-root>`. On exit 1 or 2,
+  fix what stderr names and rerun. On exit 3, apply the schema rules to
+  `db/structure.sql` by reading.
+- Start from `Gemfile`, `config/routes.rb`, `db/schema.rb`, and the largest
+  files in `sizes`; a missing layer is as diagnostic as a bloated one.
+- A lead is a place to read, never a finding: confirm each against the finding
+  rule that names it, and resolve each `schema.unresolved` entry by reading
+  its model or migration.
 
 ## Severity
 
@@ -66,12 +65,11 @@ model or migration.
 
 ## Report
 
-Default shape per finding, to adapt: a `### [SEVERITY] <title>` heading,
-then Where (`file:line` ranges), Smell, Violates (named principle with
-link), Evidence (quoted code), Before and After, Why a class (only when the
-After adds one), and Effort (S, M, or L, incremental or all at once).
-Order findings by severity and end with a summary table.
-
-Order remediation cheapest highest-severity first, and put refactorings
-that unlock others earlier (for example, extract the Service Layer before
-Query Objects).
+- Default shape per finding, to adapt: a `### [SEVERITY] <title>` heading,
+  then Where (`file:line` ranges), Smell, Violates (named principle with
+  link), Evidence (quoted code), Before and After, Why a class (only when the
+  After adds one), and Effort (S, M, or L, incremental or all at once).
+- Order findings by severity and end with a summary table.
+- Order remediation cheapest highest-severity first, and put refactorings
+  that unlock others earlier (for example, extract the Service Layer before
+  Query Objects).
