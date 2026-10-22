@@ -2,8 +2,9 @@
 
 Triage step 7 reports in this shape.
 
-- Auto-applied items, one line each (confidence, commit SHA, reaction).
-- Then one block per remaining item in exactly this format, with 2 to 4
+- Applied items, one line each (option, confidence, commit SHA or reply,
+  reaction).
+- Then one block per paused item in exactly this format, with 2 to 4
   [options](references/options.md) tailored to the item and `PR-level` in place of
   `<path>:<line>` for a PR-level item:
 
@@ -13,7 +14,7 @@ Triage step 7 reports in this shape.
     URL: <item url>
     Verified: <STILL RELEVANT|ALREADY ADDRESSED|STALE|INACCURATE>  —  <one-line evidence>
     Reaction: none yet — the option you pick places it
-    Confidence: <NN%>  —  <the auto-apply check it failed>
+    Confidence: <NN%>  —  <the apply check it failed>
 
     Options:
       A. <concrete option tailored to this comment>  →  reacts 👍

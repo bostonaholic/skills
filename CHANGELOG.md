@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-10-22
+
+### Changed
+
+- Make addressing-pr-comments carry out each item's recommended option by default instead of stopping for a pick, pausing only items that hit an exclusion; the 90% bar now applies only when asked for recommendations alone. [#133](https://github.com/bostonaholic/skills/pull/133)
+
 ## [0.57.0] - 2026-10-22
 
 ### Added
@@ -768,5 +774,7 @@
 
 [0.56.0]: https://github.com/bostonaholic/skills/compare/v0.55.0...v0.56.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.57.0...HEAD
 [0.57.0]: https://github.com/bostonaholic/skills/compare/v0.56.0...v0.57.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.58.0...HEAD
+[0.58.0]: https://github.com/bostonaholic/skills/compare/v0.57.0...v0.58.0
