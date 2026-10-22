@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add a `CI rerun` grant to `watching-authored-prs` that re-runs a failed Actions job, at most twice per workflow run, when its log shows a known runner or network fault, and run it first under `CI fix`. [#134](https://github.com/bostonaholic/skills/pull/134)
+
 ## [0.58.0] - 2026-10-22
 
 ### Changed
