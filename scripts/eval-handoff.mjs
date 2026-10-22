@@ -8,10 +8,15 @@
 // two tasks. Only the with-arm stage-1 run loads a one-skill plugin and its slash command.
 // Every workspace and test directory is filled from a commit in a scratch git directory, and
 // every test step runs the workspace suite and the fixture's hidden tests under the Node
-// permission model. Each claude run gets an equal share of the cap: cap / (6 x --runs).
+// permission model. Each claude run gets an equal share of the cap: cap / (6 x --runs), and a
+// 900-second timeout that ends it with SIGTERM.
+// Stop rules, first match wins: budget (a run spent above its share), no cost (a run reported
+// no usable cost), first run (the command's first claude run failed). A stop starts no more
+// claude runs, marks the rest of its arm-run skipped, and prints the rule and both summaries.
 // Prints one line per arm-run and one summary line per arm, and writes
 // evals/results/<stamp>-<model>-handoff/handoff-result.json after each arm-run.
-// Exit 0 when every arm-run is complete, 1 when any is not, and 2 on a bad argument.
+// Exit 0 when every arm-run is complete, 1 when any is not or a stop rule fired, and 2 on a bad
+// argument.
 import { spawnSync } from "node:child_process";
 import {
   closeSync,
@@ -51,6 +56,10 @@ const HIDDEN_SUFFIX = ".test.mjs";
 const SCRATCH_DATE = "2026-01-01T00:00:00Z";
 // git output and blobs can pass spawnSync's 1 MiB default buffer.
 const GIT_MAX_BUFFER = 256 * 1024 * 1024;
+const BUDGET_SUBTYPE = "error_max_budget_usd";
+const LIMIT_PATTERN = /(usage|rate)[ -]limit/i;
+const EXIT_OUTRANKED_BY = new Set(["bad output", "budget", "limit"]);
+const CLAUDE_TIMEOUT_SECONDS = 900;
 const PLUGIN_DESCRIPTION = "One-skill plugin built by scripts/eval-handoff.mjs.";
 
 class UsageError extends Error {}
@@ -114,26 +123,36 @@ export function claudeArgs({ arm, stage, model, budgetUsd, pluginDir }) {
 }
 
 // Reads a stream-json transcript. Tokens sum the four usage fields over every model in the
-// result event's modelUsage, which also covers a run that a budget stop ended.
+// result event's modelUsage, which also covers a run that a budget stop ended. Cost is null
+// unless the result event reports a finite total_cost_usd of 0 or more, so the spent total
+// never adds a missing or invalid value.
 export function readStreamResult(text) {
   let init = null;
   let result = null;
+  let badOutput = false;
   for (const line of text.split("\n")) {
     if (line.trim() === "") continue;
-    const event = JSON.parse(line);
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      badOutput = true;
+      continue;
+    }
     if (event.type === "system" && event.subtype === "init") init = event;
     else if (event.type === "result") result = event;
   }
-  if (result === null)
-    return {
-      init,
-      tokens: null,
-      costUsd: null,
-      isError: false,
-      subtype: null,
-      errorReason: "no result",
-    };
-  const tokens = Object.values(result.modelUsage ?? {}).reduce(
+  const cost = result?.total_cost_usd;
+  return {
+    init,
+    tokens: result === null ? null : sumTokens(result.modelUsage),
+    costUsd: typeof cost === "number" && Number.isFinite(cost) && cost >= 0 ? cost : null,
+    errorReason: streamErrorReason(result, badOutput),
+  };
+}
+
+function sumTokens(modelUsage) {
+  return Object.values(modelUsage ?? {}).reduce(
     (sum, usage) =>
       sum +
       usage.inputTokens +
@@ -142,19 +161,23 @@ export function readStreamResult(text) {
       usage.cacheCreationInputTokens,
     0,
   );
-  const isError = result.is_error === true;
-  return {
-    init,
-    tokens,
-    costUsd: result.total_cost_usd,
-    isError,
-    subtype: result.subtype ?? null,
-    errorReason: isError ? result.subtype : null,
-  };
 }
 
-// The stage's error reason, or null. A non-zero exit outranks the result event's own subtype.
-function runErrorReason(status, signal, stream) {
+function streamErrorReason(result, badOutput) {
+  if (badOutput) return "bad output";
+  if (result === null) return "no result";
+  if (result.subtype === BUDGET_SUBTYPE) return "budget";
+  if (result.is_error !== true) return null;
+  if (LIMIT_PATTERN.test(String(result.result ?? ""))) return "limit";
+  return result.subtype ?? "is_error";
+}
+
+// The stage's error reason, or null. Precedence, highest first: timeout, bad output, budget,
+// limit, a non-zero exit, the result subtype, and no result. A named stream reason says more
+// than the exit code that follows it.
+function runErrorReason({ timedOut, status, signal, stream }) {
+  if (timedOut) return "timeout";
+  if (EXIT_OUTRANKED_BY.has(stream.errorReason)) return stream.errorReason;
   if (status !== 0) return `exit ${status ?? signal}`;
   return stream.errorReason;
 }
@@ -226,10 +249,18 @@ export function formatRunLine(run) {
   const parts = [`stage1 ${formatStatus(run.stage1)} files ${run.stage1.files}`];
   for (const task of run.tasks) {
     if (task.status === "skipped") parts.push(`${task.name} skipped`);
-    else parts.push(`${task.name} ${formatStatus(task)} tokens ${task.tokens} files ${task.files}`);
+    else
+      parts.push(
+        `${task.name} ${formatStatus(task)} tokens ${task.tokens ?? "n/a"} files ${task.files}`,
+      );
   }
   parts.push(`merge ${run.merge.status}`);
-  parts.push(`${formatUsd(run.costUsd)} ${run.complete ? "complete" : "incomplete"}`);
+  // A run that reported no cost still spent money, so the sum is a lower bound.
+  const unknownCost = [run.stage1, ...run.tasks].some(
+    (stage) => stage.status !== "skipped" && stage.costUsd === null,
+  );
+  const cost = `${formatUsd(run.costUsd)}${unknownCost ? "+unknown" : ""}`;
+  parts.push(`${cost} ${run.complete ? "complete" : "incomplete"}`);
   return `${run.arm} ${run.index}: ${parts.join(" | ")}`;
 }
 
@@ -443,10 +474,35 @@ function testStep(gitDir, treeish, stageDir, hiddenFiles) {
   return suite.passed && hidden.passed;
 }
 
+// Returns the first stop rule that a finished claude run trips, or null. Every earlier run spent
+// at most its budget, so stopping here bounds the overshoot to this one run.
+function stopRule(ctx, { where, stream, error }) {
+  const { costUsd } = stream;
+  const budget = ctx.options.runBudgetUsd;
+  if (error === "budget" || (costUsd !== null && costUsd > budget)) {
+    const spent = costUsd === null ? "an unknown amount" : formatUsd(costUsd);
+    return {
+      rule: "budget",
+      detail: `${where} spent ${spent}, above its ${formatUsd(budget)} budget. Raise --max-cost-usd.`,
+    };
+  }
+  if (costUsd === null) return { rule: "no cost", detail: `${where} reported no usable cost.` };
+  // A login, flag, or setup fault repeats on every run, so going on wastes money.
+  if (ctx.claudeRuns === 1 && error !== null)
+    return {
+      rule: "first run",
+      detail: `${where} failed with error: ${error}. Check the claude login and flags.`,
+    };
+  return null;
+}
+
 // One stage: a claude run in a workspace filled from parent, a commit of what it left, and a
 // test step on that commit. Stdout goes straight to the trace file, so a transcript larger than
-// spawnSync's buffer still parses. A run that errors gets no test step.
-function runStage(ctx, { arm, stage, stageDir, parent, prompt, pluginDir, hiddenFiles, verdicts }) {
+// spawnSync's buffer still parses. A run that errors or trips a stop rule gets no test step.
+function runStage(
+  ctx,
+  { arm, index, stage, stageDir, parent, prompt, pluginDir, hiddenFiles, verdicts },
+) {
   const workspace = join(stageDir, "workspace");
   mkdirSync(workspace, { recursive: true });
   fillFromTree(ctx.gitDir, parent, workspace);
@@ -465,21 +521,27 @@ function runStage(ctx, { arm, stage, stageDir, parent, prompt, pluginDir, hidden
       cwd: workspace,
       input: prompt,
       stdio: ["pipe", traceFd, "pipe"],
+      timeout: ctx.claudeTimeoutSeconds * 1000,
+      killSignal: "SIGTERM",
     });
   } finally {
     closeSync(traceFd);
   }
-  if (run.error) throw run.error;
+  const timedOut = run.error?.code === "ETIMEDOUT";
+  if (run.error && !timedOut) throw run.error;
+  ctx.claudeRuns += 1;
   const stream = readStreamResult(readFileSync(trace, "utf8"));
   const commit = commitWorkspace(ctx.gitDir, parent, workspace);
   const paths = changedPaths(ctx.gitDir, parent, commit);
-  const error = runErrorReason(run.status, run.signal, stream);
+  let error = runErrorReason({ timedOut, status: run.status, signal: run.signal, stream });
+  const stop = stopRule(ctx, { where: `${arm} ${index} ${stage}`, stream, error });
+  if (stop !== null) error ??= stop.rule;
   let status = "error";
   if (error === null) {
     const passed = testStep(ctx.gitDir, commit, stageDir, hiddenFiles);
     status = passed ? verdicts.pass : verdicts.fail;
   }
-  return {
+  const record = {
     status,
     error,
     costUsd: stream.costUsd,
@@ -489,6 +551,7 @@ function runStage(ctx, { arm, stage, stageDir, parent, prompt, pluginDir, hidden
     commit,
     trace,
   };
+  return { record, stop };
 }
 
 function skippedStage(name) {
@@ -514,8 +577,9 @@ function runArm(ctx, { arm, index }) {
   const pluginDir =
     arm === "with" ? buildSkillPlugin(ctx.skillDir, ctx.manifest, armDir) : undefined;
   const slashPrefix = arm === "with" ? `/${ctx.manifest.name}:${SKILL_NAME} refactor ` : "";
-  const stage1 = runStage(ctx, {
+  const { record: stage1, stop: stage1Stop } = runStage(ctx, {
     arm,
+    index,
     stage: "stage1",
     stageDir: join(armDir, "stage1"),
     parent: ctx.baseCommit,
@@ -525,10 +589,12 @@ function runArm(ctx, { arm, index }) {
     verdicts: { pass: "ok", fail: "fail" },
   });
 
+  let stop = stage1Stop;
   const tasks = ctx.fixture.tasks.map((task) => {
-    if (stage1.status !== "ok") return skippedStage(task.name);
+    if (stage1.status !== "ok" || stop !== null) return skippedStage(task.name);
     const result = runStage(ctx, {
       arm,
+      index,
       stage: task.name,
       stageDir: join(armDir, task.name),
       parent: stage1.commit,
@@ -536,7 +602,8 @@ function runArm(ctx, { arm, index }) {
       hiddenFiles: [ctx.fixture.baseline, task.accept],
       verdicts: { pass: "pass", fail: "fail" },
     });
-    return { name: task.name, ...result };
+    stop = result.stop;
+    return { name: task.name, ...result.record };
   });
 
   let merge = NO_MERGE;
@@ -552,7 +619,7 @@ function runArm(ctx, { arm, index }) {
   }
 
   const stages = [stage1, ...tasks];
-  return {
+  const armRun = {
     arm,
     index,
     complete: stage1.status === "ok" && tasks.every((task) => COMPLETE_TASK.has(task.status)),
@@ -561,15 +628,25 @@ function runArm(ctx, { arm, index }) {
     tasks,
     merge,
   };
+  return { armRun, stop };
 }
 
 function writeResults(path, record) {
   writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
 }
 
-// Runs the whole command and returns its exit code. The claude path and the results root are
-// arguments, so a test can pass a fake executable and a temp directory.
-export async function runHandoff({ options, fixtureDir, skillDir, repoRoot, resultsRoot, claude }) {
+// Runs the whole command and returns its exit code. The claude path, the results root, and the
+// timeouts are arguments, so a test can pass a fake executable, a temp directory, and short
+// timeouts.
+export async function runHandoff({
+  options,
+  fixtureDir,
+  skillDir,
+  repoRoot,
+  resultsRoot,
+  claude,
+  claudeTimeoutSeconds = CLAUDE_TIMEOUT_SECONDS,
+}) {
   const fixture = readFixture(fixtureDir);
   const manifest = JSON.parse(
     readFileSync(join(repoRoot, ".claude-plugin", "plugin.json"), "utf8"),
@@ -607,6 +684,8 @@ export async function runHandoff({ options, fixtureDir, skillDir, repoRoot, resu
     fixture,
     manifest,
     claude,
+    claudeTimeoutSeconds,
+    claudeRuns: 0,
     skillDir: resolve(skillDir),
     runRoot,
     gitDir,
@@ -614,6 +693,7 @@ export async function runHandoff({ options, fixtureDir, skillDir, repoRoot, resu
   };
 
   const runs = [];
+  let stopped = null;
   const record = () => ({
     schemaVersion: 1,
     claudeVersion,
@@ -623,7 +703,7 @@ export async function runHandoff({ options, fixtureDir, skillDir, repoRoot, resu
     capUsd: options.capUsd,
     runBudgetUsd: options.runBudgetUsd,
     costUsd: runs.reduce((sum, run) => sum + run.costUsd, 0),
-    stopped: null,
+    stopped,
     finished: false,
     runRoot,
     runs,
@@ -638,14 +718,20 @@ export async function runHandoff({ options, fixtureDir, skillDir, repoRoot, resu
     ),
   });
   for (const planned of planRuns(options.runs)) {
-    const armRun = runArm(ctx, planned);
+    const { armRun, stop } = runArm(ctx, planned);
     runs.push(armRun);
     console.log(formatRunLine(armRun));
+    if (stop !== null) {
+      stopped = stop;
+      break;
+    }
     writeResults(resultsPath, record());
   }
   const final = { ...record(), finished: true };
   writeResults(resultsPath, final);
+  if (stopped !== null) console.log(`== stopped: ${stopped.rule}. ${stopped.detail}`);
   for (const arm of ARMS) console.log(formatSummary(arm, final.summary[arm]));
+  if (stopped !== null) return 1;
   console.log(`== results: ${resultsPath}`);
   return runs.every((run) => run.complete) ? 0 : 1;
 }

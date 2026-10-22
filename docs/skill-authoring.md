@@ -551,6 +551,30 @@ with: complete 3/3, both passed 3/3, merged clean 3/3 (conflict 0, broken 0), to
 
 The command exits 0 when every arm-run is complete and 1 when any is not.
 
+Every claude run in both arms and both stages gets the same budget, so a
+stop leaves the arms at most one arm-run apart. Three stop rules end the
+command early with exit 1. When two apply, the first in this list wins:
+
+1. `budget`: a run reports a cost above its budget, or the CLI ended it at
+   its `--max-budget-usd`. A cost equal to the budget does not stop.
+2. `no cost`: a run reports no usable `total_cost_usd`, or ends with no result
+   event.
+3. `first run`: the command's first claude run ends in any error. A login,
+   flag, or setup fault repeats on every run.
+
+A stop starts no more claude runs. The script marks the rest of the current
+arm-run `skipped`, prints `== stopped: <rule>. <detail>` and both summary
+lines, and writes `stopped` and `finished: true` to the results file. Every
+run before the stopping run spent at most its budget, so spend passes the cap
+by at most the stopping run's overshoot. In the one observed budget stop,
+the run ended one model call past its budget. That bound is inferred, not
+proven, and one call costs more on a large context.
+
+A claude run that passes 900 seconds gets `SIGTERM` and reads
+`error: timeout`. It emits no result event, so its spend is not observed and
+the `no cost` rule stops the command. An arm-run cost with a run of unknown
+cost prints `+unknown` after the known sum, for example `$0.30+unknown`.
+
 Compare the arms only when both summary lines show `complete <runs>/<runs>`.
 Otherwise rerun the command. Then count a token or file difference only when
 the arms' ranges do not overlap. With equal arms, that happens by chance 2
