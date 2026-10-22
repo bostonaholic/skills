@@ -17,8 +17,9 @@
 // plugins and skills.
 // Stop rules, first match wins: isolation (an init event fails that check), budget (a run
 // spent above its share), no cost (a run reported no usable cost), first run (the command's
-// first claude run failed). A stop starts no more claude runs, marks the rest of its arm-run
-// skipped, and prints the rule and both summaries.
+// first claude run failed; it wins when that run failed before its init event). A stop starts
+// no more claude runs, marks the rest of its arm-run skipped, and prints the rule and both
+// summaries.
 // Prints one line per arm-run and one summary line per arm, and writes
 // evals/results/<stamp>-<model>-handoff/handoff-result.json after each arm-run.
 // Preflight needs claude, git 2.38 or later, and Node 22.14 or later, and runs before the
@@ -601,6 +602,15 @@ function testStep(ctx, treeish, stageDir, hiddenFiles) {
 // at most its budget, so stopping here bounds the overshoot to this one run.
 function stopRule(ctx, { arm, index, stage, stream, error }) {
   const where = `${arm} ${index} ${stage}`;
+  // A login, flag, or setup fault repeats on every run, so going on wastes money.
+  const firstRun = {
+    rule: "first run",
+    detail: `${where} failed with error: ${error}. Check the claude login and flags.`,
+  };
+  const firstRunFailed = ctx.claudeRuns === 1 && error !== null;
+  // A first run that fails before its init event never started a session, so its missing init
+  // event and cost say less than the failure itself.
+  if (firstRunFailed && stream.init === null) return firstRun;
   const leak = checkIsolation(stream.init, { arm, stage, pluginName: ctx.manifest.name });
   if (leak !== null) return { rule: "isolation", detail: `${where} init: ${leak}.` };
   const { costUsd } = stream;
@@ -613,12 +623,7 @@ function stopRule(ctx, { arm, index, stage, stream, error }) {
     };
   }
   if (costUsd === null) return { rule: "no cost", detail: `${where} reported no usable cost.` };
-  // A login, flag, or setup fault repeats on every run, so going on wastes money.
-  if (ctx.claudeRuns === 1 && error !== null)
-    return {
-      rule: "first run",
-      detail: `${where} failed with error: ${error}. Check the claude login and flags.`,
-    };
+  if (firstRunFailed) return firstRun;
   return null;
 }
 

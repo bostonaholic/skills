@@ -133,7 +133,7 @@ const init = {
   skills,
   ...action.initPatch,
 };
-writeSync(1, JSON.stringify(init) + "\n");
+if (!action.noInit) writeSync(1, JSON.stringify(init) + "\n");
 if (action.padBytes) {
   const text = "x".repeat(action.padBytes);
   writeSync(1, JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } }) + "\n");
@@ -858,6 +858,22 @@ describe("slice 2: stop the command on budget, missing cost, or a failed first r
         lines.join("\n"),
       );
       assert.equal(results.stopped.rule, "isolation");
+      assert.equal(code, 1);
+      assert.equal(claudeRuns, 1);
+    });
+
+    await t.test("first run: a first run that exits 1 before its init event stops", async (t) => {
+      const { code, lines, results, claudeRuns } = await runScenario(t, {
+        options: haikuCap3,
+        scenario: [{ noInit: true, noResult: true, exit: 1 }],
+      });
+      assert.ok(
+        lines.includes(
+          "== stopped: first run. with 1 stage1 failed with error: exit 1. Check the claude login and flags.",
+        ),
+        lines.join("\n"),
+      );
+      assert.equal(results.stopped.rule, "first run");
       assert.equal(code, 1);
       assert.equal(claudeRuns, 1);
     });

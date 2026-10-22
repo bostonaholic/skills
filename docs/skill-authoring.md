@@ -639,7 +639,9 @@ command early with exit 1. When two apply, the first in this list wins:
 3. `no cost`: a run reports no usable `total_cost_usd`, or ends with no result
    event.
 4. `first run`: the command's first claude run ends in any error. A login,
-   flag, or setup fault repeats on every run.
+   flag, or setup fault repeats on every run. When that run fails before its
+   init event, `first run` wins over `isolation` and `no cost`, because the
+   run never started a session.
 
 A stop starts no more claude runs. The script marks the rest of the current
 arm-run `skipped`, prints `== stopped: <rule>. <detail>` and both summary
