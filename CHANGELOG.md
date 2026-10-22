@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-10-22
+
 ### Changed
 
 - Keep every skill agent-agnostic: no harness-specific hooks, frontmatter, or `$ARGUMENTS`-style substitutions, with each argument described in plain words. [#132](https://github.com/bostonaholic/skills/pull/132)
@@ -756,5 +758,7 @@
 
 [0.54.0]: https://github.com/bostonaholic/skills/compare/v0.53.3...v0.54.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.55.0...HEAD
 [0.55.0]: https://github.com/bostonaholic/skills/compare/v0.54.0...v0.55.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.56.0...HEAD
+[0.56.0]: https://github.com/bostonaholic/skills/compare/v0.55.0...v0.56.0
