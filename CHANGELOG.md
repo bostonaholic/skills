@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Keep every skill agent-agnostic: no harness-specific hooks, frontmatter, or `$ARGUMENTS`-style substitutions, with each argument described in plain words. [#132](https://github.com/bostonaholic/skills/pull/132)
+- Keep every `SKILL.md` short and checklist-shaped, at most 100 body lines with no prose paragraph over 50 words, moving detail into `references/`. [#132](https://github.com/bostonaholic/skills/pull/132)
+- Make `cutting-skills` and `running-retros` apply both rules to any skill they cut, create, or edit. [#132](https://github.com/bostonaholic/skills/pull/132)
+
 ## [0.55.0] - 2026-10-22
 
 ### Added
