@@ -537,15 +537,18 @@ Code sandbox on. It gets no `Agent`, no web tool, and no git. The workspaces
 hold no `.git`. The sandbox settings also set `failIfUnavailable: true`, so
 claude exits at startup when the sandbox cannot start instead of running Bash
 unconfined, and `allowUnsandboxedCommands: false`, so the `Bash(npm test:*)`
-rule cannot approve a retry outside the sandbox. The claude process keeps the
-maintainer's environment, because its login needs it, so sandboxed Bash sees
-that environment too. No paid run has tested this sandbox yet. Before the
+rule cannot approve a retry outside the sandbox. They also set
+`autoAllowBashIfSandboxed: false`, because its default of `true` approves any
+command that runs in the sandbox. `Bash(npm test:*)` stays the only Bash
+grant, and `dontAsk` denies every other Bash command. The claude process keeps
+the maintainer's environment, because its login needs it, so sandboxed Bash
+sees that environment too. No paid run has tested this sandbox yet. Before the
 first paid run, confirm that it confines agent `npm test`: under these flags,
 a control test must pass, and probe tests that write to `$HOME` or fetch a URL
-must fail. If the sandbox
-refuses every Bash run, as [Recorded runs](#recorded-runs) describes, every
-agent `npm test` fails in both arms and each trace shows the sandbox error.
-Record that command as not run.
+must fail. If the sandbox refuses every Bash run, as
+[Recorded runs](#recorded-runs) describes, every agent `npm test` fails in
+both arms and each trace shows the sandbox error. Record that command as not
+run.
 
 The script owns all git work in a scratch git directory in its own temp
 directory, outside the run root that holds the workspaces. Scratch git reads
