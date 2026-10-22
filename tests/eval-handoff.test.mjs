@@ -320,7 +320,9 @@ function readResults(t, resultsRoot) {
 const runLines = (lines) => lines.filter((line) => /^(with|without) \d+: /.test(line));
 const summaryLines = (lines) => lines.filter((line) => /^(with|without): /.test(line));
 
-// The Decision 8 test command, spelled here because the design exports no command builder.
+// Runs the hidden files the way the script's hidden test run does: Node's test runner under the
+// permission model, limited to dir, with a TAP report. Spelled out here because the script exports
+// no command builder.
 function nodeTestRun(dir, hiddenFiles) {
   const run = spawnSync(
     process.execPath,
