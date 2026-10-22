@@ -702,7 +702,8 @@ describe("slice 2: stop the command on budget, missing cost, or a failed first r
           },
         ],
       });
-      assert.deepEqual(lines.slice(-4), [
+      assert.match(lines.at(-1), /^== results: .*\/handoff-result\.json$/);
+      assert.deepEqual(lines.slice(-5, -1), [
         "with 1: stage1 error: budget files 5 | invoice-reopen skipped | payment-chargeback skipped | merge n/a | $0.53 incomplete",
         "== stopped: budget. with 1 stage1 spent $0.53, above its $0.50 budget. Raise --max-cost-usd.",
         "with: complete 0/1, both passed 0/0, merged clean 0/0 (conflict 0, broken 0), tokens n/a, files n/a, cost $0.53",

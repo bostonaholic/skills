@@ -18,8 +18,8 @@
 // Stop rules, first match wins: isolation (an init event fails that check), budget (a run
 // spent above its share), no cost (a run reported no usable cost), first run (the command's
 // first claude run failed; it wins when that run failed before its init event). A stop starts
-// no more claude runs, marks the rest of its arm-run skipped, and prints the rule and both
-// summaries.
+// no more claude runs, marks the rest of its arm-run skipped, and prints the rule, both
+// summaries, and the results path.
 // Prints one line per arm-run and one summary line per arm, and writes
 // evals/results/<stamp>-<model>-handoff/handoff-result.json after each arm-run.
 // Preflight needs claude, git 2.38 or later, and Node 22.14 or later, and runs before the
@@ -910,8 +910,8 @@ export async function runHandoff({
   writeResults(resultsPath, final);
   if (stopped !== null) console.log(`== stopped: ${stopped.rule}. ${stopped.detail}`);
   for (const arm of ARMS) console.log(formatSummary(arm, final.summary[arm]));
-  if (stopped !== null) return 1;
   console.log(`== results: ${resultsPath}`);
+  if (stopped !== null) return 1;
   return runs.every((run) => run.complete) ? 0 : 1;
 }
 

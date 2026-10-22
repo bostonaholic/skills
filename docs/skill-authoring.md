@@ -644,8 +644,9 @@ command early with exit 1. When two apply, the first in this list wins:
    run never started a session.
 
 A stop starts no more claude runs. The script marks the rest of the current
-arm-run `skipped`, prints `== stopped: <rule>. <detail>` and both summary
-lines, and writes `stopped` and `finished: true` to the results file. Every
+arm-run `skipped`, prints `== stopped: <rule>. <detail>`, both summary lines,
+and `== results: <path>`, and writes `stopped` and `finished: true` to the
+results file. Every
 run before the stopping run spent at most its budget, so spend passes the cap
 by at most the stopping run's overshoot. In the one observed budget stop,
 the run ended one model call past its budget. That bound is inferred, not
