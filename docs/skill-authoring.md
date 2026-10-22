@@ -503,6 +503,23 @@ The arms differ in three parts of the stage-1 command, and in nothing else:
 The explicit slash command overstates real use, because a real request can
 miss the skill. The `-trigger` case measures that miss.
 
+Every claude run gets `--restricted --strict-mcp-config --permission-mode
+dontAsk --no-session-persistence`. Without these flags, a `claude -p` run on a
+maintainer machine loaded 11 installed plugins, two of them copies of this
+repository, plus user `CLAUDE.md` and `SessionStart` hooks. `--safe-mode`
+lost because it strips the skills of a `--plugin-dir` plugin, so the slash
+command does not resolve. `--bare` lost because it needs `ANTHROPIC_API_KEY`.
+`--restricted` also denies file tools outside the working directories with no
+prompt.
+
+The script checks each run's init event. The run must list no MCP server.
+Apart from the `@builtin` plugins, only the with-arm stage-1 run lists a
+plugin, `<plugin name>@inline`, and only that run lists a skill ending in
+`making-code-agent-friendly`. The check shows that the skill was available,
+not that the slash command loaded it, because no stream event carries the
+skill text. The results file records `claudeVersion`, so a changed CLI shows
+beside its result.
+
 Every claude run gets the tools `Read`, `Grep`, `Glob`, `Edit`, `Write`,
 `Skill`, and `Bash`, with only `Bash(npm test:*)` pre-approved and the Claude
 Code sandbox on. It gets no `Agent`, no web tool, and no git. The workspaces
@@ -552,14 +569,15 @@ with: complete 3/3, both passed 3/3, merged clean 3/3 (conflict 0, broken 0), to
 The command exits 0 when every arm-run is complete and 1 when any is not.
 
 Every claude run in both arms and both stages gets the same budget, so a
-stop leaves the arms at most one arm-run apart. Three stop rules end the
+stop leaves the arms at most one arm-run apart. Four stop rules end the
 command early with exit 1. When two apply, the first in this list wins:
 
-1. `budget`: a run reports a cost above its budget, or the CLI ended it at
+1. `isolation`: an init event fails the check above.
+2. `budget`: a run reports a cost above its budget, or the CLI ended it at
    its `--max-budget-usd`. A cost equal to the budget does not stop.
-2. `no cost`: a run reports no usable `total_cost_usd`, or ends with no result
+3. `no cost`: a run reports no usable `total_cost_usd`, or ends with no result
    event.
-3. `first run`: the command's first claude run ends in any error. A login,
+4. `first run`: the command's first claude run ends in any error. A login,
    flag, or setup fault repeats on every run.
 
 A stop starts no more claude runs. The script marks the rest of the current

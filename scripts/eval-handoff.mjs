@@ -10,9 +10,12 @@
 // every test step runs the workspace suite and the fixture's hidden tests under the Node
 // permission model. Each claude run gets an equal share of the cap: cap / (6 x --runs), and a
 // 900-second timeout that ends it with SIGTERM.
-// Stop rules, first match wins: budget (a run spent above its share), no cost (a run reported
-// no usable cost), first run (the command's first claude run failed). A stop starts no more
-// claude runs, marks the rest of its arm-run skipped, and prints the rule and both summaries.
+// Every claude run gets the isolation flags, and its init event must show only the planned
+// plugins and skills.
+// Stop rules, first match wins: isolation (an init event fails that check), budget (a run
+// spent above its share), no cost (a run reported no usable cost), first run (the command's
+// first claude run failed). A stop starts no more claude runs, marks the rest of its arm-run
+// skipped, and prints the rule and both summaries.
 // Prints one line per arm-run and one summary line per arm, and writes
 // evals/results/<stamp>-<model>-handoff/handoff-result.json after each arm-run.
 // Exit 0 when every arm-run is complete, 1 when any is not or a stop rule fired, and 2 on a bad
@@ -43,6 +46,13 @@ const ARMS = ["with", "without"];
 const CLAUDE_RUNS_PER_ARM_RUN = 3;
 // Absorbs float error such as 0.29 * 100 = 28.999999999999996 before the cent floor.
 const CENT_EPSILON = 1e-9;
+const ISOLATION_FLAGS = [
+  "--restricted",
+  "--strict-mcp-config",
+  "--permission-mode",
+  "dontAsk",
+  "--no-session-persistence",
+];
 const TOOLS = "Read,Grep,Glob,Edit,Write,Skill,Bash";
 const ALLOWED_TOOLS = "Read,Grep,Glob,Edit,Write,Skill,Bash(npm test:*)";
 const SANDBOX_SETTINGS = '{"sandbox":{"enabled":true}}';
@@ -113,8 +123,10 @@ function loadsSkill(arm, stage) {
   return arm === "with" && stage === "stage1";
 }
 
+// Every run gets the same isolation flags, so no installed plugin, MCP server, user CLAUDE.md,
+// hook, or saved session reaches it. Only the with-arm stage-1 run adds the skill plugin.
 export function claudeArgs({ arm, stage, model, budgetUsd, pluginDir }) {
-  const args = ["-p", "--output-format", "stream-json", "--verbose"];
+  const args = ["-p", ...ISOLATION_FLAGS, "--output-format", "stream-json", "--verbose"];
   args.push("--model", model, "--max-budget-usd", String(budgetUsd));
   args.push("--tools", TOOLS, "--allowed-tools", ALLOWED_TOOLS, "--settings", SANDBOX_SETTINGS);
   if (loadsSkill(arm, stage))
@@ -180,6 +192,29 @@ function runErrorReason({ timedOut, status, signal, stream }) {
   if (EXIT_OUTRANKED_BY.has(stream.errorReason)) return stream.errorReason;
   if (status !== 0) return `exit ${status ?? signal}`;
   return stream.errorReason;
+}
+
+// Returns null when a run's init event shows only the planned plugins and skills, or the reason
+// it does not. Builtin plugins load in every run. Only the with-arm stage-1 run has one more, the
+// inline skill plugin, and only it lists the skill. The check shows that the skill was
+// available, not that the slash command loaded it.
+export function checkIsolation(init, { arm, stage, pluginName }) {
+  if (!init) return "no init event";
+  for (const field of ["mcp_servers", "plugins", "skills"])
+    if (!Array.isArray(init[field])) return `no ${field} list`;
+  if (init.mcp_servers.length > 0)
+    return `MCP servers ${init.mcp_servers.map((server) => server.name).join(", ")}`;
+  const plugins = init.plugins
+    .map((plugin) => String(plugin.source))
+    .filter((source) => !source.endsWith("@builtin"));
+  const skills = init.skills.filter((skill) => String(skill).endsWith(SKILL_NAME));
+  const expectedPlugins = loadsSkill(arm, stage) ? [`${pluginName}@inline`] : [];
+  const expectedSkills = loadsSkill(arm, stage) ? [`${pluginName}:${SKILL_NAME}`] : [];
+  if (plugins.join(",") !== expectedPlugins.join(","))
+    return `plugins ${plugins.join(", ") || "none"}, expected ${expectedPlugins.join(", ") || "none"}`;
+  if (skills.join(",") !== expectedSkills.join(","))
+    return `skills ${skills.join(", ") || "none"}, expected ${expectedSkills.join(", ") || "none"}`;
+  return null;
 }
 
 // Passes a Node TAP report only when the run exited 0, the end-of-run summary shows no failure
@@ -476,7 +511,10 @@ function testStep(gitDir, treeish, stageDir, hiddenFiles) {
 
 // Returns the first stop rule that a finished claude run trips, or null. Every earlier run spent
 // at most its budget, so stopping here bounds the overshoot to this one run.
-function stopRule(ctx, { where, stream, error }) {
+function stopRule(ctx, { arm, index, stage, stream, error }) {
+  const where = `${arm} ${index} ${stage}`;
+  const leak = checkIsolation(stream.init, { arm, stage, pluginName: ctx.manifest.name });
+  if (leak !== null) return { rule: "isolation", detail: `${where} init: ${leak}.` };
   const { costUsd } = stream;
   const budget = ctx.options.runBudgetUsd;
   if (error === "budget" || (costUsd !== null && costUsd > budget)) {
@@ -534,7 +572,7 @@ function runStage(
   const commit = commitWorkspace(ctx.gitDir, parent, workspace);
   const paths = changedPaths(ctx.gitDir, parent, commit);
   let error = runErrorReason({ timedOut, status: run.status, signal: run.signal, stream });
-  const stop = stopRule(ctx, { where: `${arm} ${index} ${stage}`, stream, error });
+  const stop = stopRule(ctx, { arm, index, stage, stream, error });
   if (stop !== null) error ??= stop.rule;
   let status = "error";
   if (error === null) {
