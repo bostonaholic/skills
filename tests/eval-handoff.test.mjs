@@ -306,10 +306,12 @@ function readResults(t, resultsRoot) {
   const results = JSON.parse(
     readFileSync(join(resultsRoot, dirs[0], "handoff-result.json"), "utf8"),
   );
-  // The script keeps run roots on purpose, so each test removes its own.
+  // The script keeps run roots and scratch git directories on purpose, so each test removes its
+  // own.
   t.after(() => {
-    if (typeof results.runRoot === "string" && results.runRoot.includes("eval-handoff-"))
-      rmSync(results.runRoot, { recursive: true, force: true });
+    for (const dir of [results.runRoot, results.scratchGitDir])
+      if (typeof dir === "string" && dir.includes("eval-handoff-"))
+        rmSync(dir, { recursive: true, force: true });
   });
   return results;
 }
@@ -428,8 +430,11 @@ describe("slice 1: run both stages per arm and report the four stage-2 metrics",
     assert.equal(with1.tasks[0].tokens, 43210);
     assert.equal(with1.tasks[0].costUsd, 0.25);
     assert.deepEqual(with1.tasks[0].paths, ["kinds/invoice-reopen"]);
-    // The commit ids let the maintainer read each diff in the scratch git directory.
-    const scratch = join(results.runRoot, "scratch.git");
+    // The commit ids let the maintainer read each diff in the scratch git directory, which sits
+    // outside the run root that the agent workspaces share.
+    const scratch = results.scratchGitDir;
+    assert.equal(typeof scratch, "string");
+    assert.ok(!scratch.startsWith(`${results.runRoot}/`), `${scratch} is inside the run root`);
     assert.equal(
       gitIn(scratch, ["diff", "--name-only", with1.stage1.commit, with1.tasks[0].commit]),
       "kinds/invoice-reopen",
@@ -1580,6 +1585,21 @@ describe("slice 6: count, fill, and merge from the committed tree only", () => {
       const child = commitWorkspace(gitDir, parent, workspace);
       assert.deepEqual(changedPaths(gitDir, parent, child), ["b.txt"]);
       assert.equal(gitIn(gitDir, ["rev-parse", `${child}^`]), parent);
+    });
+
+    await t.test("a repo-local core.fsmonitor hook never runs", (t) => {
+      const { root, gitDir } = bareRepo(t);
+      const marker = join(root, "fsmonitor-ran");
+      const hook = join(root, "fsmonitor.sh");
+      writeFileSync(hook, `#!/bin/sh\necho ran >>'${marker}'\n`);
+      chmodSync(hook, 0o755);
+      gitIn(gitDir, ["config", "core.fsmonitor", hook]);
+      const workspace = join(root, "workspace");
+      writeFiles(workspace, { "a.txt": "a\n" });
+      const parent = commitWorkspace(gitDir, null, workspace);
+      writeFiles(workspace, { "b.txt": "b\n" });
+      commitWorkspace(gitDir, parent, workspace);
+      assert.equal(existsSync(marker), false);
     });
 
     await t.test("a fill keeps an export-ignore file and the 755 mode", (t) => {

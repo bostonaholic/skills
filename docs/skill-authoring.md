@@ -547,8 +547,10 @@ refuses every Bash run, as [Recorded runs](#recorded-runs) describes, every
 agent `npm test` fails in both arms and each trace shows the sandbox error.
 Record that command as not run.
 
-The script owns all git work in a scratch git directory outside the
-workspaces. It fills each workspace and each test directory from a commit,
+The script owns all git work in a scratch git directory in its own temp
+directory, outside the run root that holds the workspaces. Scratch git reads
+no global or system config and runs no `core.fsmonitor` hook. It fills each
+workspace and each test directory from a commit,
 and it counts a stage's files as the paths that its commit changes. A move
 counts as two paths. The commit is the only record of a stage:
 
@@ -662,10 +664,11 @@ A result is evidence for this fixture only.
 
 Results go to `evals/results/<stamp>-<model>-handoff/handoff-result.json`,
 which the script rewrites after each arm-run. Each stage record holds its
-`commit` id. The script keeps the run root in the OS temp directory and
-prints its path. Read a stage's diff with
-`git --git-dir=<run root>/scratch.git diff <parent commit> <commit>`. The run
-root also holds each claude run's `trace.jsonl` for a G3 review.
+`commit` id. The script keeps the run root and the scratch git directory in
+the OS temp directory, prints both paths, and records them as `runRoot` and
+`scratchGitDir`. Read a stage's diff with
+`git --git-dir=<scratchGitDir> diff <parent commit> <commit>`. The run root
+also holds each claude run's `trace.jsonl` for a G3 review.
 
 A Sonnet command at `--runs 3` makes 18 claude runs, which outlasts the
 600-second foreground limit of an agent session. An agent session starts it

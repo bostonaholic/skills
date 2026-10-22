@@ -416,7 +416,8 @@ export function buildSkillPlugin(skillDir, manifest, parentDir) {
 }
 
 // Scratch git ignores the maintainer's config, ignore file, and attributes file, so the commit
-// records exactly what the agent left. It sets no signing: these commits never leave the run root.
+// records exactly what the agent left. It runs no fsmonitor hook, even one set in the scratch
+// directory's own config. It sets no signing: these commits never leave the machine.
 const SCRATCH_GIT_FLAGS = [
   "-c",
   "user.name=Eval Fixture",
@@ -426,6 +427,8 @@ const SCRATCH_GIT_FLAGS = [
   "core.excludesFile=/dev/null",
   "-c",
   "core.attributesFile=/dev/null",
+  "-c",
+  "core.fsmonitor=false",
 ];
 
 function scratchGitEnv(extra) {
@@ -836,8 +839,11 @@ export async function runHandoff({
     console.error(`eval-handoff.mjs: scaffold.sh exited ${scaffold.status} in ${base}: ${detail}`);
     return 1;
   }
-  const gitDir = join(runRoot, "scratch.git");
+  // Scratch git sits outside the run root that the agent workspaces share, so code an agent runs
+  // has no path into its config or objects through that root.
+  const gitDir = realpathSync(mkdtempSync(join(tmpdir(), "eval-handoff-git-")));
   gitOk(gitDir, ["init", "-q", "--bare"]);
+  console.log(`== scratch git: ${gitDir}`);
   const ctx = {
     options,
     fixture,
@@ -866,6 +872,7 @@ export async function runHandoff({
     stopped,
     finished: false,
     runRoot,
+    scratchGitDir: gitDir,
     runs,
     summary: Object.fromEntries(
       ARMS.map((arm) => [
