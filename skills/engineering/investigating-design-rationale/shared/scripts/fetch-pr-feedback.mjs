@@ -51,7 +51,7 @@
 
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "fetch-pr-feedback.mjs";
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} [<number>|<pr-url>] [--hostname <host>] [--no-bodies]`;
@@ -71,6 +71,10 @@ const MAX_PAGES_PER_CONNECTION = 10;
 // with a body of at most 65,536 characters. 256 MiB holds a worst-case page of
 // multi-byte text; spawnSync's 1 MiB default fails on a few long bodies.
 const GH_OUTPUT_LIMIT_BYTES = 256 * 1024 * 1024;
+
+// The doc that explains each exit code. sync-shared copies it beside this script's
+// directory in every skill, so each copy names its own skill's doc.
+const DOC_PATH = fileURLToPath(new URL("../pull-request-comments.md", import.meta.url));
 
 const EXIT_OK = 0;
 const EXIT_FAILURE = 1;
@@ -311,6 +315,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
         ? `${error.message}\n`
         : `${SCRIPT}: ${error.message}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exitCode = error.exitCode;
   }
 }

@@ -6,7 +6,7 @@
 // broken sampling command.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -178,6 +178,7 @@ test("deploy-gate.sh reports a mixed last poll at max polls as a rollout in prog
     run.stdout,
     "poll 1 on-target 1/2\npoll 2 on-target 1/2\nrollout-in-progress on=1 off=1\n",
   );
+  assert.doesNotMatch(run.stderr, /^see /m);
 });
 
 test("deploy-gate.sh reports a clean last poll short of the streak as off=0", (t) => {
@@ -193,6 +194,7 @@ test("deploy-gate.sh reports not-deployed when no sample is on target, as after 
   const { run } = gateRun(t, [TARGET, TARGET, BASELINE, BASELINE], { maxPolls: 2 });
   assert.equal(run.status, 1);
   assert.equal(run.stdout, "poll 1 on-target 2/2\npoll 2 on-target 0/2\nnot-deployed\n");
+  assert.doesNotMatch(run.stderr, /^see /m);
 });
 
 test("deploy-gate.sh exits 3 when a sampled sha cannot be resolved", (t) => {
@@ -211,4 +213,70 @@ test("deploy-gate.sh exits 5 when the sampling command fails or prints a non-sha
   const version = gate(r.clone, args, ["echo", "2026.10.07.3"]);
   assert.equal(version.status, 5);
   assert.match(version.stderr, /printed something other than one sha: 2026\.10\.07\.3/);
+});
+
+// A `git` first on PATH that runs the real git, except for the exact argument list `failing`,
+// which writes `sentinel` to stderr and exits 128.
+function gitShim(dir, failing, sentinel) {
+  const bin = join(dir, "git-shim");
+  mkdirSync(bin, { recursive: true });
+  const realGit = spawnSync(BASH, ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  writeFileSync(
+    join(bin, "git"),
+    `#!${BASH}
+if [ "$*" = ${JSON.stringify(failing.join(" "))} ]; then
+  printf '%s\\n' ${JSON.stringify(sentinel)} >&2
+  exit 128
+fi
+exec ${JSON.stringify(realGit)} "$@"
+`,
+  );
+  chmodSync(join(bin, "git"), 0o755);
+  return bin;
+}
+
+test("deploy-gate.sh passes git's own error text through", async (t) => {
+  await t.test("shows git's rev-parse --git-dir error before its exit 2 line", (st) => {
+    const r = repo(st);
+    const shim = gitShim(
+      r.dir,
+      ["rev-parse", "--git-dir"],
+      "fatal: git-dir-sentinel: detected dubious ownership",
+    );
+    const run = spawnSync(
+      BASH,
+      [SCRIPT, "--target", r.target, "--baseline", r.baseline, "--interval", "0", "--", "true"],
+      { cwd: r.clone, encoding: "utf8", env: { ...GIT_ENV, PATH: `${shim}:${GIT_ENV.PATH}` } },
+    );
+    assert.equal(run.status, 2, run.stderr);
+    const lines = run.stderr.split("\n");
+    const tool = lines.indexOf("fatal: git-dir-sentinel: detected dubious ownership");
+    const own = lines.indexOf("error: not inside a git repository");
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${run.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${run.stderr}`);
+    assert.equal(run.stdout, "");
+  });
+
+  await t.test("shows git's commit-resolve error before its exit 3 line", (st) => {
+    const r = repo(st);
+    const shim = gitShim(
+      r.dir,
+      ["rev-parse", "--quiet", "--verify", `${r.stray}^{commit}`],
+      "fatal: git-resolve-sentinel",
+    );
+    const run = spawnSync(
+      BASH,
+      [SCRIPT, "--target", r.stray, "--baseline", r.baseline, "--interval", "0", "--", "true"],
+      { cwd: r.clone, encoding: "utf8", env: { ...GIT_ENV, PATH: `${shim}:${GIT_ENV.PATH}` } },
+    );
+    assert.equal(run.status, 3, run.stderr);
+    const lines = run.stderr.split("\n");
+    const tool = lines.indexOf("fatal: git-resolve-sentinel");
+    const own = lines.indexOf(
+      `error: cannot resolve ${r.stray} to a commit, even after fetching origin`,
+    );
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${run.stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${run.stderr}`);
+    assert.equal(run.stdout, "");
+  });
 });

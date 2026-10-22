@@ -32,7 +32,7 @@ directory. Parse arguments per [input](references/input.md).
    [report schema](references/report-schema.md), then run
    `node <skill-dir>/scripts/inventory.mjs <out>/report.json`. User paths
    reach the script only through `report.json`, never the command text. On
-   exit 1, relay its stderr line and stop; exit 2 is a usage error. Stop when
+   exit 1, relay its stderr and stop; exit 2 is a usage error. Stop when
    no file has `status: "text"`. Never edit `inventory.json`; rerun instead.
 3. **Probe the coverage file** when given, before measuring. Stop if the
    first 200 lines hold no per-line record under a source path, if one text

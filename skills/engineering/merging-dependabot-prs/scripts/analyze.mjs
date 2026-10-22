@@ -25,6 +25,7 @@
 //   2    usage: unknown flag or a PR argument that is not all digits
 //   3    the repository disallows squash merges (merge mode only)
 //   127  gh not found on PATH
+import { fileURLToPath } from "node:url";
 import {
   GhError,
   PR_NUMBER_PATTERN,
@@ -38,9 +39,12 @@ import {
   readCi,
   readPr,
   runGh,
+  writeToolError,
 } from "./lib.mjs";
 
 const SCRIPT = "analyze.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 // Dependabot's open-PR limit defaults to 5 per ecosystem, so 200 covers any realistic
 // backlog; a list exactly this long may have been cut off.
 const LIST_LIMIT = 200;
@@ -49,13 +53,16 @@ const ALERT_FIELDS =
 
 function usage() {
   process.stderr.write(`${SCRIPT}: usage: ${SCRIPT} [--rebase-only] [<pr-number>...]\n`);
+  process.stderr.write(`see ${DOC_PATH}\n`);
   return 2;
 }
 
 function squashAllowed() {
   const run = runGh(["repo", "view", "--json", "squashMergeAllowed"]);
-  if (run.status !== 0)
-    throw new GhError(`gh repo view exited ${run.status}: ${run.stderr.trim()}`);
+  if (run.status !== 0) {
+    writeToolError(run.stderr);
+    throw new GhError(`gh repo view exited ${run.status}`);
+  }
   return JSON.parse(run.stdout).squashMergeAllowed === true;
 }
 
@@ -72,7 +79,10 @@ function listNumbers() {
     "--json",
     "number",
   ]);
-  if (run.status !== 0) throw new GhError(`gh pr list exited ${run.status}: ${run.stderr.trim()}`);
+  if (run.status !== 0) {
+    writeToolError(run.stderr);
+    throw new GhError(`gh pr list exited ${run.status}`);
+  }
   const numbers = JSON.parse(run.stdout).map((pr) => String(pr.number));
   if (numbers.length === LIST_LIMIT) {
     process.stderr.write(
@@ -93,7 +103,8 @@ function readAlerts() {
   ]);
   if (run.status !== 0) {
     if (/\(HTTP 40[34]\)/.test(run.stderr)) return null;
-    throw new GhError(`gh api dependabot/alerts exited ${run.status}: ${run.stderr.trim()}`);
+    writeToolError(run.stderr);
+    throw new GhError(`gh api dependabot/alerts exited ${run.status}`);
   }
   return run.stdout
     .split("\n")
@@ -152,6 +163,7 @@ function main(argv) {
   try {
     if (!rebaseOnly && !squashAllowed()) {
       process.stderr.write(`${SCRIPT}: the repository disallows squash merges\n`);
+      process.stderr.write(`see ${DOC_PATH}\n`);
       return 3;
     }
     const targets = numbers.length > 0 ? [...new Set(numbers)] : listNumbers();
@@ -164,6 +176,7 @@ function main(argv) {
   } catch (error) {
     if (!(error instanceof GhError) && !(error instanceof SyntaxError)) throw error;
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return error.missing ? 127 : 1;
   }
 }

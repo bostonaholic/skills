@@ -803,6 +803,7 @@ test("set-status.sh skips with 10 a card that changed or left the board, or a fu
     const result = run(env, "set-status.sh", SET(env, extra));
     assert.equal(result.status, 10, line);
     assert.deepEqual(result.lines, [line]);
+    assert.doesNotMatch(result.stderr, /^see /m, line);
     assert.ok(!result.ghCalls.some((call) => call[0] === "api"), "nothing is written");
   }
 });
@@ -829,6 +830,57 @@ test("set-status.sh exits 1 when the Status does not read back as the column", (
   assert.equal(result.status, 1);
   assert.match(result.stderr, /reads 'Backlog' after the write, not 'Ready'/);
   assert.equal(result.stdout, "");
+});
+
+function lineStartIndex(text, prefix) {
+  return text.split("\n").findIndex((line) => line.startsWith(prefix));
+}
+
+test("grooming scripts show jq's own error before their error line", async (t) => {
+  await t.test("load-board.sh shows jq's error for a board that is not JSON", (st) => {
+    const env = setup(st, { routes: loadRoutes({ board: "not json\n" }) });
+    const result = run(env, "load-board.sh", [env.runDir, "5", "acme"]);
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineStartIndex(result.stderr, "jq: ");
+    const own = lineStartIndex(result.stderr, "error: board.json is partial or not JSON");
+    assert.notEqual(tool, -1, `jq's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `jq's line is not before the script's line:\n${result.stderr}`);
+  });
+
+  await t.test("load-board.sh shows jq's error for issues that are not JSON", (st) => {
+    const env = setup(st, { routes: loadRoutes({ issues: "not json\n" }) });
+    const result = run(env, "load-board.sh", [env.runDir, "5", "acme"]);
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineStartIndex(result.stderr, "jq: ");
+    const own = lineStartIndex(result.stderr, "error: issues.json is not a JSON array");
+    assert.notEqual(tool, -1, `jq's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `jq's line is not before the script's line:\n${result.stderr}`);
+  });
+
+  await t.test("load-board.sh shows jq's error for comments that are not JSON", (st) => {
+    const routes = loadRoutes();
+    routes.unshift({ match: "issues/9/comments", ...reply("not json\n") });
+    const env = setup(st, { routes });
+    const result = run(env, "load-board.sh", [env.runDir, "5", "acme"]);
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineStartIndex(result.stderr, "jq: ");
+    const own = lineStartIndex(result.stderr, "error: comments on #9 are not JSON");
+    assert.notEqual(tool, -1, `jq's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `jq's line is not before the script's line:\n${result.stderr}`);
+  });
+
+  await t.test("set-status.sh shows jq's error for a fresh board that is not JSON", (st) => {
+    const env = setup(st, {
+      routes: statusRoutes({ fresh: "not json\n" }),
+      files: { "board.json": BOARD },
+    });
+    const result = run(env, "set-status.sh", SET(env));
+    assert.equal(result.status, 1, result.stderr);
+    const tool = lineStartIndex(result.stderr, "jq: ");
+    const own = lineStartIndex(result.stderr, "error: the fresh board read is partial or not JSON");
+    assert.notEqual(tool, -1, `jq's line is missing from stderr:\n${result.stderr}`);
+    assert.ok(tool < own, `jq's line is not before the script's line:\n${result.stderr}`);
+  });
 });
 
 // --- link-blocked-by.sh ---------------------------------------------------------------
@@ -937,6 +989,7 @@ test("link-blocked-by.sh skips with 10 a closed or changed endpoint, or a link t
     const result = run(env, "link-blocked-by.sh", [env.runDir, REPO, "12", "15"]);
     assert.equal(result.status, 10, reason);
     assert.deepEqual(result.lines, [`skipped #12 blocked-by #15 ${reason}`]);
+    assert.doesNotMatch(result.stderr, /^see /m, reason);
     assert.ok(!result.ghCalls.some((call) => call.includes("POST")));
   }
 });
@@ -1063,6 +1116,7 @@ test("close-issue.sh skips with 10 an issue that closed, was edited, moved, or d
     const result = run(env, "close-issue.sh", CLOSE(env));
     assert.equal(result.status, 10, reason);
     assert.equal(result.lines.at(-1), `skipped #12 ${reason}`);
+    assert.doesNotMatch(result.stderr, /^see /m, reason);
     assert.ok(
       !result.ghCalls.some(
         (call) => call.includes("POST") || call[1] === "close" || call[1] === "edit",

@@ -13,8 +13,28 @@
 #   2 usage, or run from inside <worktree-path>.
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=references/per-pr-procedure.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+fail() {
+  echo "cleanup-worktree.sh: $2" >&2
+  see_doc
+  exit "$1"
+}
+
 usage() {
   echo "usage: cleanup-worktree.sh <worktree-path> <branch> <created> <branch-created>" >&2
+  see_doc
   exit 2
 }
 
@@ -35,20 +55,13 @@ fi
 
 inside=$(git -C "$worktree_path" rev-parse --show-toplevel 2>/dev/null || echo "")
 if [ "$(git rev-parse --show-toplevel)" = "$inside" ]; then
-  echo "cleanup-worktree.sh: run from the main checkout, not from inside $worktree_path" >&2
-  exit 2
+  fail 2 "run from the main checkout, not from inside $worktree_path"
 fi
 
-git worktree remove --force "$worktree_path" || {
-  echo "cleanup-worktree.sh: could not remove worktree $worktree_path" >&2
-  exit 1
-}
+git worktree remove --force "$worktree_path" || fail 1 "could not remove worktree $worktree_path"
 echo "Removed worktree $worktree_path." >&2
 
 if [ "$branch_created" = true ]; then
-  git branch -D "$branch" >/dev/null || {
-    echo "cleanup-worktree.sh: could not delete local branch $branch" >&2
-    exit 1
-  }
+  git branch -D "$branch" >/dev/null || fail 1 "could not delete local branch $branch"
   echo "Deleted local branch $branch." >&2
 fi

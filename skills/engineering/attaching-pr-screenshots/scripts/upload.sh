@@ -49,9 +49,27 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  printf '%s\n' "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [ "$#" -ne 1 ]; then
-  printf 'usage: %s <run-dir>\n' "$0" >&2
-  exit 2
+  die 2 "usage: $0 <run-dir>"
 fi
 RUN_DIR="$1"
 # A run directory that does not exist gets no marker: the failed write would
@@ -61,14 +79,12 @@ trap 'rc=$?; if [ -d "$RUN_DIR" ]; then printf "%s\n" "$rc" >"$RUN_DIR/upload-ex
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 for TOOL in gh jq file node; do
   if ! command -v "$TOOL" >/dev/null 2>&1; then
-    printf 'missing required tool: %s\n' "$TOOL" >&2
-    exit 2
+    die 2 "missing required tool: $TOOL"
   fi
 done
 for REQUIRED in pr-host number repo-spec entries-file pre-image.md; do
   if [ ! -r "$RUN_DIR/$REQUIRED" ]; then
-    printf 'run directory has no %s — run resolve-pr.sh and pre-image.sh first\n' "$REQUIRED" >&2
-    exit 2
+    die 2 "run directory has no $REQUIRED — run resolve-pr.sh and pre-image.sh first"
   fi
 done
 
@@ -99,6 +115,7 @@ PRE_IMAGE="${PRE_IMAGE%x}"
 
 refuse() {
   printf '%s\n' "$1" >&2
+  see_doc
   exit 1
 }
 
@@ -116,7 +133,9 @@ if [ ! -r "$ENTRIES_FILE" ]; then
 fi
 # The shape refusals, before any `gh` call. A silently shortened list is
 # indistinguishable from a caller that meant to send fewer images, so one bad
-# entry refuses the whole run, named by its zero-based index.
+# entry refuses the whole run, named by its zero-based index. jq's stderr
+# passes straight through. On a parse failure its stdout is dropped, since it
+# can hold this check's result for a value read before the bad bytes.
 if ! ENTRIES_PROBLEM="$(jq -r '
   if type != "object" then "the entries file is not a JSON object"
   elif (.entries | type) != "array" then "the entries file has no entries array"
@@ -140,8 +159,8 @@ if ! ENTRIES_PROBLEM="$(jq -r '
       elif (.notes != null) and ((.notes | type) != "array" or any(.notes[]; type != "string"))
         then "the entries file has notes that are not an array of strings"
       else "" end
-  end' "$ENTRIES_FILE" 2>&1)"; then
-  refuse "the entries file is not valid JSON: $ENTRIES_PROBLEM"
+  end' "$ENTRIES_FILE")"; then
+  refuse 'the entries file is not valid JSON'
 fi
 if [ -n "$ENTRIES_PROBLEM" ]; then
   refuse "$ENTRIES_PROBLEM"
@@ -177,8 +196,7 @@ GH_EDIT_HELP="$(gh pr edit --help 2>&1 </dev/null)" || true
 case "$GH_EDIT_HELP" in
   *--attach*) : ;;
   *)
-    printf 'upgrade gh: this gh pr edit has no --attach flag\n' >&2
-    exit 3
+    die 3 "upgrade gh: this gh pr edit has no --attach flag"
     ;;
 esac
 
@@ -309,7 +327,7 @@ while IFS= read -r ENTRY_PATH; do
   esac
   # By content type, never by extension, and no type fails: unverified is not
   # an image. That keeps a .env or an id_ed25519 off a public URL.
-  MIME="$(file -b --mime-type -- "$RESOLVED" 2>/dev/null || true)"
+  MIME="$(file -b --mime-type -- "$RESOLVED" || true)"
   case "$MIME" in
     image/*) : ;;
     *)
@@ -393,8 +411,7 @@ printf '%s' "$AFTER" >"$RUN_DIR/after.md"
 
 if [ "$READ_FAILED" = yes ]; then
   : >"$RUN_DIR/read-failed"
-  printf 'a body re-read failed, so the baseline cannot be proved current\n' >&2
-  exit 4
+  die 4 "a body re-read failed, so the baseline cannot be proved current"
 fi
 if [ -z "$PRE_IMAGE" ]; then
   # A line is this run's own only if it is blank, or an image line whose URL
@@ -431,15 +448,13 @@ if [ -z "$PRE_IMAGE" ]; then
     fi
   done <<<"$AFTER"
   if [ -n "$FOREIGN" ]; then
-    printf 'the body was empty and now holds a line this run did not append: %s\n' "$FOREIGN" >&2
-    exit 4
+    die 4 "the body was empty and now holds a line this run did not append: $FOREIGN"
   fi
 else
   case "$AFTER" in
     "$PRE_IMAGE"*) : ;;
     *)
-      printf 'the body no longer starts with the pre-image — another writer replaced it\n' >&2
-      exit 4
+      die 4 "the body no longer starts with the pre-image — another writer replaced it"
       ;;
   esac
 fi

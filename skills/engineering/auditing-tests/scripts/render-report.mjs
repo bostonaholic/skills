@@ -7,7 +7,10 @@
 //   exit 2  no report.json argument; stderr prints the usage line
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 export const MARKS = ["R", "F", "C", "D"];
 export const JUNK_CLASSES = [
@@ -349,6 +352,7 @@ function main(args) {
     process.stderr.write(
       "render-report.mjs: usage: render-report.mjs <report.json> [<report.md>]\n",
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   let report;
@@ -356,24 +360,28 @@ function main(args) {
     report = JSON.parse(readFileSync(input, "utf8"));
   } catch (error) {
     process.stderr.write(`render-report.mjs: cannot read ${input}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const errors = validateReport(report);
   if (errors.length > 0) {
     process.stderr.write(`render-report.mjs: ${errors.length} error(s); nothing written\n`);
     for (const error of errors) process.stderr.write(`- ${error}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const target = output ?? join(dirname(input), "report.md");
   const refusal = writeRefusal(target);
   if (refusal) {
     process.stderr.write(`render-report.mjs: ${refusal}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   try {
     writeFileSync(target, renderReport(report));
   } catch (error) {
     process.stderr.write(`render-report.mjs: cannot write ${target}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   process.stdout.write(`${target}\n`);

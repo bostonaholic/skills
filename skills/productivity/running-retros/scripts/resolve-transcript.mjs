@@ -63,7 +63,10 @@ import {
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each failure.
+const DOC_PATH = fileURLToPath(new URL("../references/reading-sources.md", import.meta.url));
 
 /**
  * The hosts whose stores this file can read, and the shape of each store.
@@ -984,6 +987,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     process.stderr.write(
       "usage: resolve-transcript.mjs <run-cache-dir> [store-root | --file <transcript.jsonl>]\n",
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   }
 
@@ -1007,6 +1011,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     process.stderr.write(`${failure}\n`);
     for (const line of tried ?? []) process.stderr.write(`  tried: ${line}\n`);
     if (note) process.stderr.write(`  note: ${note}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   };
 

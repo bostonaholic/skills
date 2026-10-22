@@ -9,7 +9,10 @@
 import { spawn } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 const SCRIPT = "inventory.mjs";
 // git's own binary test: a NUL byte in the first 8,000 bytes.
@@ -101,8 +104,10 @@ async function git(args, cwd) {
   }
   const { code, error } = await closed;
   if (error) throw new AuditError(`cannot run git: ${error.message}`);
-  if (code !== 0)
-    throw new AuditError(`git ${args.join(" ")} failed: ${stderr.trim() || `exit code ${code}`}`);
+  if (code !== 0) {
+    if (stderr) process.stderr.write(stderr.endsWith("\n") ? stderr : `${stderr}\n`);
+    throw new AuditError(`git ${args.join(" ")} exited ${code}`);
+  }
   return stdout;
 }
 
@@ -214,6 +219,7 @@ async function main(args) {
   const [input] = args;
   if (!input) {
     process.stderr.write(`${SCRIPT}: usage: ${SCRIPT} <report.json>\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   const target = join(dirname(input), "inventory.json");
@@ -224,12 +230,14 @@ async function main(args) {
   } catch (error) {
     if (!(error instanceof AuditError)) throw error;
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   try {
     writeFileSync(target, `${JSON.stringify(inventory, null, 2)}\n`);
   } catch (error) {
     process.stderr.write(`${SCRIPT}: cannot write ${target}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   process.stdout.write(`${target}\n`);

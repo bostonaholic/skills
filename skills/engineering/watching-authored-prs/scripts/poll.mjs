@@ -109,6 +109,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "poll.mjs";
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} <pr-url> --state <state.json> --out <feedback.json> --feedback-grant <present-then-stop|authorized> --ci-grant <report|fix>`;
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const FETCH_SCRIPT = fileURLToPath(
   new URL("../shared/scripts/fetch-pr-feedback.mjs", import.meta.url),
 );
@@ -525,6 +527,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
         ? `${error.message}\n`
         : `${SCRIPT}: ${error.message}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exitCode = error.exitCode;
   }
 }

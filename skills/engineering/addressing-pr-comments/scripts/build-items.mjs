@@ -56,9 +56,11 @@
  */
 
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "build-items.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} <feedback-file> [--exclude-ids <ids-file>]`;
 
 // A record a review skill posted for its own bookkeeping, not feedback to triage.
@@ -236,6 +238,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
         ? `${error.message}\n`
         : `${SCRIPT}: ${error.message}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exitCode = EXIT_USAGE;
   }
 }

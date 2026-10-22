@@ -25,13 +25,28 @@ include_forks=false
 skip_drafts=false
 author=""
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
 usage() {
   echo "usage: list-prs.sh [--author <login>] [--include-forks] [--skip-drafts] [--limit <n>]" >&2
+  see_doc
   exit 2
 }
 
 command -v gh >/dev/null && command -v jq >/dev/null || {
   echo "list-prs.sh: requires gh and jq" >&2
+  see_doc
   exit 127
 }
 

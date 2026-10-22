@@ -55,10 +55,12 @@
 
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "ci-fix-preflight.mjs";
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} <pr-url> <polled-head>`;
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/ci-fix.md", import.meta.url));
 
 // Same shape poll.mjs and fetch-pr-feedback.mjs accept.
 const PR_URL_PATTERN =
@@ -149,8 +151,10 @@ function checkBinding(pr, polledHead) {
   if (mustRun("git", ["status", "--porcelain"]) !== "") throw new Verdict("dirty-worktree");
   const branchRun = spawn("git", ["symbolic-ref", "-q", "--short", "HEAD"]);
   if (branchRun.status === 1) throw new Verdict("detached-head");
-  if (branchRun.status !== 0)
+  if (branchRun.status !== 0) {
+    process.stderr.write(branchRun.stderr ?? "");
     throw new Failure(EXIT_FAILURE, `git symbolic-ref exited ${branchRun.status}`);
+  }
   const branch = branchRun.stdout.trim();
 
   const view = readPr(pr, "headRefOid,headRefName,headRepository,headRepositoryOwner");
@@ -250,6 +254,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
         ? `${error.message}\n`
         : `${SCRIPT}: ${error.message}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exitCode = error.exitCode;
   }
 }

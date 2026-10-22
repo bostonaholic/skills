@@ -7,8 +7,9 @@
  * on a canonical PR URL and returns its parsed JSON; its exit 1, 2, and 127
  * become a `Failure` with the same exit code. `runGh(args)` runs `gh` and
  * returns the `spawnSync` result, throwing exit 127 when `gh` is not on PATH.
- * `runCli(script, main)` runs `main(argv)` and maps a `Failure` to its exit
- * code and one `<script>: <reason>` line on stderr.
+ * `runCli(script, docPath, main)` runs `main(argv)` and maps a `Failure` to
+ * its exit code, one `<script>: <reason>` line on stderr, and a last line
+ * `see <docPath>` naming the skill file that explains the exit.
  */
 
 import { spawnSync } from "node:child_process";
@@ -77,12 +78,12 @@ export function fetchFeedback(url, { bodies }) {
   }
 }
 
-export function runCli(script, main) {
+export function runCli(script, docPath, main) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (error) {
     if (!(error instanceof Failure)) throw error;
-    process.stderr.write(`${script}: ${error.message}\n`);
+    process.stderr.write(`${script}: ${error.message}\nsee ${docPath}\n`);
     process.exitCode = error.exitCode;
   }
 }

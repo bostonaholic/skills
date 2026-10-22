@@ -211,6 +211,7 @@ test("finalize exits 1 without writing or deleting when a kept frame has no PNG"
 
   const result = run(args);
   assert.equal(result.status, 1);
+  assert.equal(result.stderr, "");
   assert.deepEqual(JSON.parse(result.stdout).missing, ["01-settings-populated.png"]);
   assert.ok(existsSync(join(out, "03-old-populated.png")));
   assert.equal(readFileSync(join(out, "manifest.md"), "utf8"), "### 03-old-populated.png\n");

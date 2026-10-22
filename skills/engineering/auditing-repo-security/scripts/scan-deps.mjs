@@ -53,7 +53,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, delimiter, dirname, join, relative, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 // Installed, vendored, and built code is not the repo's own dependency list.
 const SKIPPED_DIRS = new Set([".git", "node_modules", "vendor", "dist"]);
@@ -193,7 +196,12 @@ function runScanner(clone, lockPath, command, executable) {
       maxBuffer: MAX_BUFFER,
     });
     const ok = OK_EXITS[command.tool] ?? DEFAULT_OK_EXITS;
-    const fail = (reason) => ({ status: "error", exitCode: run.status, reason });
+    const fail = (reason) => {
+      if (typeof run.stderr === "string" && run.stderr !== "") {
+        process.stderr.write(run.stderr.endsWith("\n") ? run.stderr : `${run.stderr}\n`);
+      }
+      return { status: "error", exitCode: run.status, reason };
+    };
     if (run.error) return fail(`${command.tool}: ${run.error.message}`);
     if (!ok.includes(run.status)) {
       return fail((run.stderr || `${command.tool} exited ${run.status}`).slice(-STDERR_TAIL));
@@ -276,6 +284,7 @@ export function scanDeps(clone, path = process.env.PATH) {
 function main(args) {
   if (args.length !== 1) {
     console.error("scan-deps.mjs: usage: scan-deps.mjs <clone>");
+    console.error(`see ${DOC_PATH}`);
     return 2;
   }
   let clone;
@@ -284,13 +293,18 @@ function main(args) {
     if (!statSync(clone).isDirectory()) throw new Error();
   } catch {
     console.error(`scan-deps.mjs: not a directory: ${args[0]}`);
+    console.error(`see ${DOC_PATH}`);
     return 2;
   }
   const result = scanDeps(clone);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   const failed = result.lockfiles.filter((lock) => lock.status === "error");
   for (const lock of failed) console.error(`scan-deps.mjs: ${lock.scanner} failed on ${lock.path}`);
-  return failed.length ? 1 : 0;
+  if (failed.length) {
+    console.error(`see ${DOC_PATH}`);
+    return 1;
+  }
+  return 0;
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.

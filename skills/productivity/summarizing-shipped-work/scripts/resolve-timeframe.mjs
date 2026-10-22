@@ -32,9 +32,11 @@
  */
 
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "resolve-timeframe.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const EXIT_USAGE = 64;
 const DAY_MS = 86_400_000;
 
@@ -166,6 +168,7 @@ function main(argv) {
         ? `${SCRIPT}: ${error.message}\n`
         : `${SCRIPT}: ${error.message}\n${SCRIPT}: ${usage}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT_USAGE;
   }
 }

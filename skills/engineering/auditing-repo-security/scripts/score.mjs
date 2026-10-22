@@ -18,7 +18,10 @@
 //      repeated id or an unknown severity; stderr names each problem
 //   2  usage error: arguments given (the findings come on stdin)
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 // The points table in references/report-format.md.
 export const POINTS = { Critical: 25, High: 10, Medium: 5, Low: 2 };
@@ -70,6 +73,7 @@ export function score(findings) {
 function main(args) {
   if (args.length) {
     console.error("score.mjs: usage: score.mjs < findings.json");
+    console.error(`see ${DOC_PATH}`);
     return 2;
   }
   let findings;
@@ -77,11 +81,13 @@ function main(args) {
     findings = JSON.parse(readFileSync(0, "utf8"));
   } catch (error) {
     console.error(`score.mjs: stdin is not JSON: ${error.message}`);
+    console.error(`see ${DOC_PATH}`);
     return 1;
   }
   const errors = validate(findings);
   if (errors.length) {
     for (const error of errors) console.error(`score.mjs: ${error}`);
+    console.error(`see ${DOC_PATH}`);
     return 1;
   }
   process.stdout.write(`${JSON.stringify(score(findings))}\n`);

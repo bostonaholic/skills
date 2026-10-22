@@ -28,20 +28,36 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [[ $# -ne 1 ]]; then
-  echo "usage: $0 WORKSPACE" >&2
-  exit 64
+  die 64 "usage: $0 WORKSPACE"
 fi
 workspace=$1
 if [[ ! -d $workspace ]]; then
-  echo "error: not a directory: $workspace" >&2
-  exit 64
+  die 64 "error: not a directory: $workspace"
 fi
 
 for tool in awk find sort uniq; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: missing required tool: $tool" >&2
-    exit 69
+    die 69 "error: missing required tool: $tool"
   fi
 done
 

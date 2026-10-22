@@ -54,8 +54,34 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+# Promotion mode (--issue) documents its exits apart from board mode.
+board_doc=references/board-mode.md
+promotion_doc=references/promotion-mode.md
+
+# Prints `see <absolute path of the mode's doc>`. It resolves the physical
+# path with builtins only, so a symlinked scripts directory or a PATH without
+# dirname still names the real file, and a failed resolution never changes the
+# exit.
+see_doc() {
+  local dir=. real doc_file=$board_doc
+  if [[ -n ${issue:-} ]]; then doc_file=$promotion_doc; fi
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  local code=$1
+  shift
+  echo "error: $*" >&2
+  see_doc
+  exit "$code"
+}
+
 usage() {
   echo "usage: $0 RUN_DIR PROJECT OWNER [--issue N]" >&2
+  see_doc
   exit 64
 }
 
@@ -69,28 +95,13 @@ if [[ $# -eq 5 ]]; then
   issue=$5
 fi
 
-[[ -d $run_dir ]] || {
-  echo "error: RUN_DIR is not a directory: $run_dir" >&2
-  exit 64
-}
-[[ $project =~ ^[1-9][0-9]*$ ]] || {
-  echo "error: PROJECT is not a project number: $project" >&2
-  exit 64
-}
-[[ $owner == "@me" || $owner =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] || {
-  echo "error: OWNER is not a GitHub login: $owner" >&2
-  exit 64
-}
-[[ -z $issue || $issue =~ ^[1-9][0-9]*$ ]] || {
-  echo "error: --issue takes an issue number: $issue" >&2
-  exit 64
-}
+[[ -d $run_dir ]] || die 64 "RUN_DIR is not a directory: $run_dir"
+[[ $project =~ ^[1-9][0-9]*$ ]] || die 64 "PROJECT is not a project number: $project"
+[[ $owner == "@me" || $owner =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] || die 64 "OWNER is not a GitHub login: $owner"
+[[ -z $issue || $issue =~ ^[1-9][0-9]*$ ]] || die 64 "--issue takes an issue number: $issue"
 
 for tool in gh jq; do
-  command -v "$tool" >/dev/null 2>&1 || {
-    echo "error: missing required tool: $tool" >&2
-    exit 69
-  }
+  command -v "$tool" >/dev/null 2>&1 || die 69 "missing required tool: $tool"
 done
 
 # A board past this many items is too big to groom in one run; the totalCount
@@ -108,13 +119,14 @@ link_fields=blockedBy,blocking,parent,subIssues
 
 fail() {
   echo "error: $*" >&2
+  see_doc
   exit 1
 }
 
 board="$run_dir/board.json"
 gh project item-list "$project" --owner "$owner" --format json \
   --limit "$board_limit" >"$board" || fail "could not list project $project items"
-jq -e '.totalCount == (.items | length)' "$board" >/dev/null 2>&1 ||
+jq -e '.totalCount == (.items | length)' "$board" >/dev/null ||
   fail "board.json is partial or not JSON: loaded fewer items than totalCount"
 
 login=$(gh api user --jq .login) || fail "could not read the authenticated login"
@@ -127,27 +139,21 @@ expected_owner=$owner
 if [[ -n $issue ]]; then
   repos=$(jq -r --argjson n "$issue" '[.items[] | select(.content.type == "Issue"
     and .content.number == $n) | .content.repository] | unique | .[]' "$board")
-  [[ -n $repos ]] || {
-    echo "error: issue #$issue is not on project $project" >&2
-    exit 4
-  }
+  [[ -n $repos ]] || die 4 "issue #$issue is not on project $project"
 else
   repos=$(jq -r '[.items[].content.repository // empty] | unique | .[]' "$board")
-  [[ -n $repos ]] || {
-    echo "error: no item on project $project belongs to a repository" >&2
-    exit 4
-  }
+  [[ -n $repos ]] || die 4 "no item on project $project belongs to a repository"
 fi
 if [[ $(wc -l <<<"$repos") -gt 1 ]]; then
   echo "error: the items span several repositories; ask which to groom:" >&2
   printf '%s\n' "$repos" >&2
+  see_doc
   exit 3
 fi
 repo=$repos
 repo_owner=${repo%%/*}
 if [[ $(tr '[:upper:]' '[:lower:]' <<<"$repo_owner") != $(tr '[:upper:]' '[:lower:]' <<<"$expected_owner") ]]; then
-  echo "error: repository $repo is not owned by $expected_owner; ask which to groom" >&2
-  exit 3
+  die 3 "repository $repo is not owned by $expected_owner; ask which to groom"
 fi
 [[ $repo =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] || fail "unexpected repository name: $repo"
 
@@ -166,7 +172,7 @@ if ! load_issues "$issue_fields,$link_fields"; then
   links=unavailable
   load_issues "$issue_fields" || fail "could not load issues from $repo"
 fi
-jq -e 'type == "array"' "$issues" >/dev/null 2>&1 || fail "issues.json is not a JSON array"
+jq -e 'type == "array"' "$issues" >/dev/null || fail "issues.json is not a JSON array"
 if [[ -z $issue ]]; then
   jq -e --argjson limit "$issue_limit" 'length < $limit' "$issues" >/dev/null ||
     fail "the open-issue list reached $issue_limit, so it may be partial"
@@ -193,7 +199,7 @@ for n in $(jq -r '.[].number' "$issues"); do
   comments="$run_dir/comments-$n.json"
   gh api "repos/$repo/issues/$n/comments?per_page=$comment_page" >"$comments" ||
     fail "could not read the comments on #$n"
-  count=$(jq 'length' "$comments" 2>/dev/null) || fail "comments on #$n are not JSON"
+  count=$(jq 'length' "$comments") || fail "comments on #$n are not JSON"
   ((count < comment_page)) || echo "$n" >>"$run_dir/unloaded-threads.txt"
 done
 

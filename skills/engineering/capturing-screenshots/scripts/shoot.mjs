@@ -20,8 +20,11 @@
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { inspect } from "./png-check.mjs";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /** Per page operation (navigation, locator, screenshot) in one shot; a slower step fails the frame instead of hanging the run. */
 export const SHOT_TIMEOUT_MS = 30_000;
@@ -227,6 +230,8 @@ async function launch(chromium) {
     try {
       return { browser: await chromium.launch({ channel: "chrome" }), channel: "chrome" };
     } catch (chrome) {
+      writeFullMessage(bundled);
+      writeFullMessage(chrome);
       throw new Error(
         `no browser: bundled chromium: ${firstLine(bundled)}; chrome: ${firstLine(chrome)}`,
       );
@@ -234,10 +239,20 @@ async function launch(chromium) {
   }
 }
 
+function fullMessage(error) {
+  return String(error?.message ?? error);
+}
+
+// Playwright errors carry a call log after the first line. The report keeps
+// only that line, so the whole message goes to stderr.
+function writeFullMessage(error) {
+  const text = fullMessage(error);
+  if (!text) return;
+  process.stderr.write(text.endsWith("\n") ? text : `${text}\n`);
+}
+
 function firstLine(error) {
-  return String(error?.message ?? error)
-    .split("\n")[0]
-    .slice(0, MESSAGE_LENGTH);
+  return fullMessage(error).split("\n")[0].slice(0, MESSAGE_LENGTH);
 }
 
 function locate(page, spec) {
@@ -398,6 +413,7 @@ async function capture(browser, frame) {
     return result;
   } catch (error) {
     result.reason = firstLine(error);
+    if (result.reason !== fullMessage(error)) writeFullMessage(error);
     return result;
   } finally {
     await context.close();
@@ -408,6 +424,7 @@ async function main(argv) {
   const [listPath, outDir, ...rest] = argv;
   if (!listPath || !outDir || rest.length) {
     process.stderr.write("shoot.mjs: usage: shoot.mjs <shots.json> <out-dir>\n");
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
 
@@ -416,6 +433,7 @@ async function main(argv) {
     planned = planFrames(JSON.parse(readFileSync(listPath, "utf8")), resolve(outDir));
   } catch (error) {
     process.stderr.write(`shoot.mjs: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
 
@@ -425,6 +443,7 @@ async function main(argv) {
     process.stderr.write(
       `shoot.mjs: cannot create output directory ${resolve(outDir)}: ${firstLine(error)}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
 
@@ -433,6 +452,7 @@ async function main(argv) {
     process.stderr.write(
       "shoot.mjs: no playwright package in $PAPARAZZI_TOOLS or the working directory\n",
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 3;
   }
   let launched;
@@ -440,6 +460,7 @@ async function main(argv) {
     launched = await launch(loaded.playwright.chromium);
   } catch (error) {
     process.stderr.write(`shoot.mjs: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 3;
   }
 

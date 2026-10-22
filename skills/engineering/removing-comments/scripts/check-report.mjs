@@ -10,12 +10,15 @@
 //           encode, skipped}, where reviewed is remove + keep + encode; then removeCommentOnly,
 //           removeRootCause, keep, and encode, each a list of {file, line, detail} in report order,
 //           encode items also carrying enforcement; then skipped, a list of {file, reason}
-//   exit 1  the report is invalid; stdout is empty and each stderr line is
+//   exit 1  the report is invalid; stdout is empty and stderr has one line per failure,
 //           `invalid <contract> <detail>`, contract one of malformed-line, scope-escape,
 //           missing-verdict, extra-verdict, verdict-not-last, wrong-verdict
 //   exit 2  wrong arguments, or an unreadable or empty scope file; stderr names the problem
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 // Line numbers start at 1, so a finding at line 0 is malformed. The path is lazy so a detail that
 // itself cites `file:line [...]` cannot stretch the captured path.
@@ -112,29 +115,24 @@ export function checkReport(scope, reportText) {
   return { errors, result: { verdict: expected, counts, ...lists } };
 }
 
+function fail(code, text) {
+  process.stderr.write(`${text}\nsee ${DOC_PATH}\n`);
+  process.exit(code);
+}
+
 function main(argv) {
-  if (argv.length !== 1) {
-    process.stderr.write(`${USAGE}\n`);
-    process.exit(2);
-  }
+  if (argv.length !== 1) fail(2, USAGE);
   let scope;
   try {
     scope = parseScope(readFileSync(argv[0], "utf8"));
   } catch (error) {
-    process.stderr.write(`check-report.mjs: cannot read scope file: ${error.message}\n`);
-    process.exit(2);
+    fail(2, `check-report.mjs: cannot read scope file: ${error.message}`);
   }
   // An empty scope is a no-op the skill handles before any review, so a report against one is a
   // caller error, not a report to accept.
-  if (scope.size === 0) {
-    process.stderr.write(`check-report.mjs: scope file ${argv[0]} lists no files\n`);
-    process.exit(2);
-  }
+  if (scope.size === 0) fail(2, `check-report.mjs: scope file ${argv[0]} lists no files`);
   const { errors, result } = checkReport(scope, readFileSync(0, "utf8"));
-  if (errors.length > 0) {
-    process.stderr.write(`${errors.join("\n")}\n`);
-    process.exit(1);
-  }
+  if (errors.length > 0) fail(1, errors.join("\n"));
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 

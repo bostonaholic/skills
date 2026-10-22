@@ -53,7 +53,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 /** Same pattern shoot.mjs enforces: no slash or dot, so a name cannot leave `<out>`. */
 const NAME = /^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -303,12 +306,14 @@ function main(argv) {
       process.stderr.write(
         "finalize.mjs: usage: finalize.mjs <out> <frames.json> [<shoot.json>...] [--date YYYY-MM-DD]\n",
       );
+      process.stderr.write(`see ${DOC_PATH}\n`);
       return 2;
     }
     result = finalize(options);
   } catch (error) {
     if (!(error instanceof InputError)) throw error;
     process.stderr.write(`finalize.mjs: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

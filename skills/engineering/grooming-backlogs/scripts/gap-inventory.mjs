@@ -66,10 +66,12 @@
  */
 
 import { realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { readJson, readySlots } from "./ready-slots.mjs";
 
 const SCRIPT = "gap-inventory.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/board-mode.md", import.meta.url));
 const USAGE =
   `${SCRIPT}: usage: ${SCRIPT} <run-dir> --ready <column> --wip <n> --login <login> ` +
   "--in-flight <state> [--in-flight <state>...] [--priority-field <key>] " +
@@ -303,6 +305,7 @@ function main(argv) {
   const args = parseArgs(argv);
   if (!args) {
     process.stderr.write(USAGE);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   let inventory;
@@ -316,6 +319,7 @@ function main(argv) {
     inventory = gapInventory({ board, issues, milestones }, args.settings);
   } catch (error) {
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   process.stdout.write(`${JSON.stringify(inventory)}\n`);

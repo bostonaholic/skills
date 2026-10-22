@@ -255,7 +255,10 @@ test("a wrong argument count exits 2 with the usage line", () => {
   for (const args of [[], ["a", "b"]]) {
     const result = run(...args);
     assert.equal(result.status, 2);
-    assert.equal(result.stderr, "find-leads.mjs: usage: find-leads.mjs <app-root>\n");
+    assert.equal(
+      result.stderr,
+      `find-leads.mjs: usage: find-leads.mjs <app-root>\nsee ${realpathSync(resolve(SCRIPT, "../../SKILL.md"))}\n`,
+    );
   }
 });
 

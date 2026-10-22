@@ -35,15 +35,32 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [[ $# -ne 0 ]]; then
-  echo "usage: $0   (takes no arguments)" >&2
-  exit 64
+  die 64 "usage: $0   (takes no arguments)"
 fi
 
 for tool in awk df du sort uname; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: missing required tool: $tool" >&2
-    exit 69
+    die 69 "error: missing required tool: $tool"
   fi
 done
 
@@ -65,8 +82,7 @@ read -r size_k used_k free_k mount < <(
   df -Pk -- "$HOME" | awk 'NR == 2 { m = $0; sub(/^([^ ]+ +){5}/, "", m); print $2, $3, $4, m }'
 ) || true
 if ! is_count "${size_k:-}" || ! is_count "${used_k:-}" || ! is_count "${free_k:-}"; then
-  echo "error: df printed no size for the volume holding $HOME" >&2
-  exit 1
+  die 1 "error: df printed no size for the volume holding $HOME"
 fi
 
 size=$((size_k * 1024))
@@ -89,8 +105,7 @@ row() {
   out=$(du -skx -- "$path") || echo "warning: du could not read all of $path; its size is a lower bound" >&2
   kib=${out%%[[:space:]]*}
   if ! is_count "$kib"; then
-    echo "error: du printed no size for $path" >&2
-    exit 1
+    die 1 "error: du printed no size for $path"
   fi
   rows+=$(printf '%s\t%s\t%s\t%s\t%s\t%s' "$path" "$((kib * 1024))" "$2" "$3" "$4" "$5")$'\n'
 }
@@ -148,8 +163,7 @@ case $os in
       'bazel clean --expunge in each workspace; for an orphaned output base, chmod -R u+w <base> && rm -rf <base>' -
     ;;
   *)
-    echo "error: unsupported platform: $os (expected Darwin or Linux)" >&2
-    exit 1
+    die 1 "error: unsupported platform: $os (expected Darwin or Linux)"
     ;;
 esac
 

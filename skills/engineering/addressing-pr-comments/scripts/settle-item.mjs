@@ -53,9 +53,11 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "settle-item.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} <items-file> <item-id> --reply-file <file> --react THUMBS_UP|THUMBS_DOWN|none [--resolve] [--no-marker]`;
 
 const REACTIONS = new Set(["THUMBS_UP", "THUMBS_DOWN", "none"]);
@@ -316,6 +318,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
         ? `${error.message}\n`
         : `${SCRIPT}: ${error.message}\n`,
     );
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exitCode = error.exitCode;
   }
 }

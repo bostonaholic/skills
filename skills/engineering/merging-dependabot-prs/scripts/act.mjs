@@ -29,6 +29,7 @@
 //
 // Rerunning is safe after a merge (the gate then skips on state MERGED); rerunning after a
 // rebase-requested posts a second comment, so do not rerun that one.
+import { fileURLToPath } from "node:url";
 import {
   DEPENDABOT_AUTHOR,
   GhError,
@@ -39,9 +40,12 @@ import {
   readCi,
   readPr,
   runGh,
+  writeToolError,
 } from "./lib.mjs";
 
 const SCRIPT = "act.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const REBASE_COMMENT = "@dependabot rebase";
 
 function gate(pr, plannedHead) {
@@ -53,15 +57,22 @@ function gate(pr, plannedHead) {
 
 function requestRebase(number) {
   const run = runGh(["pr", "comment", number, "--body", REBASE_COMMENT]);
-  if (run.status !== 0) return { line: `failed ${firstLine(run.stderr)}`, code: 1 };
+  if (run.status !== 0) {
+    writeToolError(run.stderr);
+    return { line: `failed ${firstLine(run.stderr)}`, code: 1 };
+  }
   return { line: `rebase-requested ${firstLine(run.stdout)}`, code: 0 };
 }
 
 function merge(number, plannedHead) {
   const run = runGh(["pr", "merge", number, "--squash", "--match-head-commit", plannedHead]);
-  if (run.status !== 0) return { line: `failed ${firstLine(run.stderr)}`, code: 1 };
+  if (run.status !== 0) {
+    writeToolError(run.stderr);
+    return { line: `failed ${firstLine(run.stderr)}`, code: 1 };
+  }
   const check = runGh(["pr", "view", number, "--json", "state,mergeCommit"]);
   if (check.status !== 0) {
+    writeToolError(check.stderr);
     return { line: `failed merge ran but re-read failed: ${firstLine(check.stderr)}`, code: 1 };
   }
   const after = JSON.parse(check.stdout);
@@ -94,6 +105,7 @@ function main(argv) {
     !["merge", "rebase"].includes(action)
   ) {
     process.stderr.write(`${SCRIPT}: usage: ${SCRIPT} <pr-number> <planned-head> merge|rebase\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   try {
@@ -103,6 +115,7 @@ function main(argv) {
   } catch (error) {
     if (!(error instanceof GhError) && !(error instanceof SyntaxError)) throw error;
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     if (error.missing) return 127;
     process.stdout.write(`failed ${error.message}\n`);
     return 1;

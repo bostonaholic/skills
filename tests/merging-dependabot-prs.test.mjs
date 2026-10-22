@@ -672,3 +672,132 @@ test("act.mjs exits 127 when gh is missing", (t) => {
   assert.equal(result.status, 127);
   assert.equal(result.stdout, "");
 });
+
+function firstLines(text, count) {
+  return text.split("\n").slice(0, count).join("\n");
+}
+
+function lastLine(text) {
+  return text.replace(/\n$/, "").split("\n").at(-1);
+}
+
+test("Dependabot scripts forward gh's full stderr before their own line", async (t) => {
+  await t.test("analyze.mjs gh repo view", (st) => {
+    const result = run(st, "analyze.mjs", ["7"], {
+      "repo view --json squashMergeAllowed": {
+        status: 1,
+        stderr: "gh-repo-sentinel line 1\ngh-repo-sentinel line 2\n",
+      },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      firstLines(result.stderr, 3),
+      "gh-repo-sentinel line 1\ngh-repo-sentinel line 2\nanalyze.mjs: gh repo view exited 1",
+    );
+    assert.match(lastLine(result.stderr), /^see /);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("analyze.mjs gh pr list", (st) => {
+    const result = run(st, "analyze.mjs", [], {
+      ...SQUASH_OK,
+      "pr list --author app/dependabot --state open --limit 200 --json number": {
+        status: 1,
+        stderr: "gh-list-sentinel line 1\ngh-list-sentinel line 2\n",
+      },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      firstLines(result.stderr, 3),
+      "gh-list-sentinel line 1\ngh-list-sentinel line 2\nanalyze.mjs: gh pr list exited 1",
+    );
+    assert.match(lastLine(result.stderr), /^see /);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("analyze.mjs alerts failure other than HTTP 403 or 404", (st) => {
+    const result = run(st, "analyze.mjs", ["7"], {
+      ...SQUASH_OK,
+      [ALERTS]: { status: 1, stderr: "gh: Server Error (HTTP 500)\ngh-alerts-sentinel\n" },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      firstLines(result.stderr, 3),
+      "gh: Server Error (HTTP 500)\ngh-alerts-sentinel\nanalyze.mjs: gh api dependabot/alerts exited 1",
+    );
+    assert.match(lastLine(result.stderr), /^see /);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("act.mjs failed comment", (st) => {
+    const result = run(st, "act.mjs", ["7", HEAD, "rebase"], {
+      [VIEW_7]: view(7),
+      [COMMENT_7]: {
+        status: 1,
+        stderr: "GraphQL: Resource not accessible\ngh-comment-sentinel\n",
+      },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(result.stdout, "failed GraphQL: Resource not accessible\n");
+    assert.equal(result.stderr, "GraphQL: Resource not accessible\ngh-comment-sentinel\n");
+  });
+
+  await t.test("act.mjs failed merge", (st) => {
+    const result = run(st, "act.mjs", ["7", HEAD, "merge"], {
+      [VIEW_7]: view(7),
+      "pr checks 7 --json bucket": ok([{ bucket: "pass" }]),
+      [MERGE_7]: { status: 1, stderr: "Head branch was modified\ngh-merge-sentinel\n" },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(result.stdout, "failed Head branch was modified\n");
+    assert.equal(result.stderr, "Head branch was modified\ngh-merge-sentinel\n");
+  });
+
+  await t.test("act.mjs failed re-read after the merge", (st) => {
+    const result = run(st, "act.mjs", ["7", HEAD, "merge"], {
+      [VIEW_7]: view(7),
+      "pr checks 7 --json bucket": ok([{ bucket: "pass" }]),
+      [MERGE_7]: ok(""),
+      "pr view 7 --json state,mergeCommit": { status: 1, stderr: "HTTP 502\ngh-reread-sentinel\n" },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(result.stdout, "failed merge ran but re-read failed: HTTP 502\n");
+    assert.equal(result.stderr, "HTTP 502\ngh-reread-sentinel\n");
+  });
+
+  await t.test("lib.mjs ghJson failure reaching stderr through act.mjs", (st) => {
+    const result = run(st, "act.mjs", ["7", HEAD, "merge"], {
+      [VIEW_7]: { status: 1, stderr: "HTTP 502\ngh-view-sentinel\n" },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      firstLines(result.stderr, 3),
+      "HTTP 502\ngh-view-sentinel\nact.mjs: gh pr view 7 exited 1: HTTP 502",
+    );
+    assert.match(lastLine(result.stderr), /^see /);
+    assert.equal(result.stdout, "failed gh pr view 7 exited 1: HTTP 502\n");
+  });
+
+  await t.test("gh text with no final newline still leaves the script's line its own", (st) => {
+    const result = run(st, "analyze.mjs", ["7"], {
+      "repo view --json squashMergeAllowed": { status: 1, stderr: "gh-no-newline-sentinel" },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(
+      firstLines(result.stderr, 2),
+      "gh-no-newline-sentinel\nanalyze.mjs: gh repo view exited 1",
+    );
+  });
+
+  await t.test(
+    "a gh failure with empty stderr puts no blank line before the script's line",
+    (st) => {
+      const result = run(st, "analyze.mjs", ["7"], {
+        "repo view --json squashMergeAllowed": { status: 1, stderr: "" },
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(firstLines(result.stderr, 1), "analyze.mjs: gh repo view exited 1");
+      assert.match(lastLine(result.stderr), /^see /);
+    },
+  );
+});

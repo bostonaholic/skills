@@ -41,15 +41,32 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [[ $# -lt 1 || $# -gt 2 ]]; then
-  echo "usage: $0 CONSTANT [ROOT]" >&2
-  exit 2
+  die 2 "usage: $0 CONSTANT [ROOT]"
 fi
 
 for tool in grep sed awk sort tr mktemp rm; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: missing required tool: $tool" >&2
-    exit 3
+    die 3 "error: missing required tool: $tool"
   fi
 done
 
@@ -58,12 +75,10 @@ root=${2:-.}
 
 # Ruby constants start with an uppercase ASCII letter; segments join with ::.
 if [[ ! $constant =~ ^[A-Z][A-Za-z0-9_]*(::[A-Z][A-Za-z0-9_]*)*$ ]]; then
-  echo "error: not a Ruby constant path: $1" >&2
-  exit 2
+  die 2 "error: not a Ruby constant path: $1"
 fi
 if [[ ! -d $root ]]; then
-  echo "error: not a directory: $root" >&2
-  exit 2
+  die 2 "error: not a directory: $root"
 fi
 
 short=${constant##*::}
@@ -94,8 +109,7 @@ search() {
   shift
   out=$(cd "$root" && grep -rnI "${exclude_flags[@]}" "$@" .) || status=$?
   if ((status > 1)); then
-    echo "error: grep failed searching for $kind hits under $root" >&2
-    exit 4
+    die 4 "error: grep failed searching for $kind hits under $root"
   fi
   if [[ -n $out ]]; then
     printf '%s\n' "$out" | awk -v kind="$kind" '

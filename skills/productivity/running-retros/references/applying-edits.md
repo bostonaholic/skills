@@ -30,7 +30,7 @@ with the target `write-target.mjs` printed and the plan's pre-image (a blob id,
 or `absent` for a creation). Write only on `apply` (exit 0). On
 `skip: <reason>` (exit 3), skip that item and report the reason; this skill
 overwrites nothing it did not create. Exit 1 is an error: skip the item and
-report the stderr line.
+report the stderr.
 
 After each write, re-read the file and confirm it carries the approved text.
 Report any item that does not as skipped, with what the file holds instead.

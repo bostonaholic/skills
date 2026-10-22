@@ -43,16 +43,35 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
 die() {
   local code=$1
   shift
   echo "prepare-rebase: $*" >&2
+  see_doc
   exit "$code"
 }
 
-if [[ $# -gt 1 ]]; then
+usage() {
   echo "usage: prepare-rebase.sh [<pr-number-or-url>]" >&2
+  see_doc
   exit 2
+}
+
+if [[ $# -gt 1 ]]; then
+  usage
 fi
 pr=${1:-}
 if [[ -n $pr && ! $pr =~ ^[0-9]+$ && ! $pr =~ ^https://[^/]+/[^/]+/[^/]+/pull/[0-9]+/?$ ]]; then
@@ -91,7 +110,7 @@ else
 fi
 [[ -n ${base:-} && -n ${repo:-} ]] || die 1 "gh returned no base branch or repository"
 
-git check-ref-format --branch "$base" >/dev/null 2>&1 || die 4 "base is not a valid branch name: $base"
+git check-ref-format --branch "$base" >/dev/null || die 4 "base is not a valid branch name: $base"
 [[ $base != "$branch" ]] || die 4 "the current branch is the base ($base); check out the branch to rebase"
 
 # The remote whose URL ends in OWNER/REPO, with or without .git, compared

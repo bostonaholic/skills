@@ -43,13 +43,28 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
 usage() {
   echo "usage: $0 BASE TOPIC OUT -- FILE..." >&2
+  see_doc
   exit 2
 }
 
 fail() {
   echo "error: $1" >&2
+  see_doc
   exit "$2"
 }
 
@@ -64,7 +79,7 @@ out=$3
 shift 4
 files=("$@")
 
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "not inside a git working tree" 2
+git rev-parse --is-inside-work-tree >/dev/null || fail "not inside a git working tree" 2
 [[ -z $(git rev-parse --show-prefix) ]] || fail "run from the repository root" 2
 root=$(pwd -P)
 
@@ -85,7 +100,7 @@ fi
 branch=none
 if [[ $base != "$head" ]]; then
   branch="redo-previous-$topic"
-  git check-ref-format --branch "$branch" >/dev/null 2>&1 ||
+  git check-ref-format --branch "$branch" >/dev/null ||
     fail "not a valid branch name: $branch" 2
   if existing=$(git rev-parse --verify --quiet "refs/heads/$branch"); then
     [[ $existing == "$head" ]] || fail "branch $branch exists and is not at HEAD" 2

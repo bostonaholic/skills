@@ -39,11 +39,11 @@ reimplement it from scratch with the simplest design that meets them.
      are not `none`, and give the `restore=` commands, in order, as the way
      to bring the attempt back.
    - Exit 1: a save failed its check and nothing was reset. Stop and report
-     the stderr line.
+     the stderr.
    - Exit 2 or 3: fix the named argument or install the named tool, then
      rerun with a new `<out>`.
    - Exit 4: the saves are intact but the reset failed. Stop and report the
-     stderr line and `<out>`.
+     stderr and `<out>`.
 
 5. **Implement cleanly.** Write the new design from scratch rather than
    patching, carrying forward no abstraction, workaround, or dead code from

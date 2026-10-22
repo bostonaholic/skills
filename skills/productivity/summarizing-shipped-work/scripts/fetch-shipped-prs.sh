@@ -42,15 +42,32 @@
 
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 if [[ $# -lt 2 ]]; then
-  echo "usage: $0 START END [OWNER...]   (dates as YYYY-MM-DD)" >&2
-  exit 64
+  die 64 "usage: $0 START END [OWNER...]   (dates as YYYY-MM-DD)"
 fi
 
 for tool in gh jq; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: missing required tool: $tool" >&2
-    exit 69
+    die 69 "error: missing required tool: $tool"
   fi
 done
 
@@ -71,8 +88,7 @@ max_attempts=4
 body_chars=400
 
 if [[ ! $retry_base =~ ^[0-9]+$ ]]; then
-  echo "error: FETCH_SHIPPED_PRS_RETRY_SECONDS must be a whole number of seconds" >&2
-  exit 64
+  die 64 "error: FETCH_SHIPPED_PRS_RETRY_SECONDS must be a whole number of seconds"
 fi
 
 # Print the date N days after a YYYY-MM-DD date. GNU date first, then BSD.
@@ -103,13 +119,11 @@ is_date() {
 
 for date_arg in "$start_date" "$end_date"; do
   if ! is_date "$date_arg"; then
-    echo "error: not a YYYY-MM-DD date: $date_arg" >&2
-    exit 64
+    die 64 "error: not a YYYY-MM-DD date: $date_arg"
   fi
 done
 if [[ "$start_date" > "$end_date" ]]; then
-  echo "error: START $start_date is after END $end_date" >&2
-  exit 64
+  die 64 "error: START $start_date is after END $end_date"
 fi
 
 owner_flags=()
@@ -179,22 +193,18 @@ fetch_range() {
   if ! results=$(search_prs --author=@me --merged-at="$range" \
     ${owner_flags[@]+"${owner_flags[@]}"} --limit "$search_cap" \
     --json repository,number,title,closedAt,url,body); then
-    echo "error: search for PRs merged $range failed" >&2
-    exit 1
+    die 1 "error: search for PRs merged $range failed"
   fi
 
-  if ! count=$(jq 'length' <<<"$results" 2>/dev/null); then
-    echo "error: gh returned output that is not JSON for $range" >&2
-    exit 1
+  if ! count=$(jq 'length' <<<"$results"); then
+    die 1 "error: gh returned output that is not JSON for $range"
   fi
   if ((count >= search_cap)); then
     if [[ "$from" == "$to" ]]; then
-      echo "error: $from alone hit the $search_cap-result search cap; it cannot be split further" >&2
-      exit 1
+      die 1 "error: $from alone hit the $search_cap-result search cap; it cannot be split further"
     fi
     if ! span=$(days_between "$from" "$to") || ! mid=$(add_days "$from" $((span / 2))); then
-      echo "error: could not split $range" >&2
-      exit 1
+      die 1 "error: could not split $range"
     fi
     echo "$range hit the $search_cap-result search cap; splitting at $mid" >&2
     fetch_range "$from" "$mid"
@@ -210,8 +220,7 @@ fetch_range() {
 chunk_start=$start_date
 while [[ ! "$chunk_start" > "$end_date" ]]; do
   if ! chunk_end=$(add_days "$chunk_start" 30); then
-    echo "error: could not add 30 days to $chunk_start" >&2
-    exit 1
+    die 1 "error: could not add 30 days to $chunk_start"
   fi
   [[ "$chunk_end" > "$end_date" ]] && chunk_end=$end_date
 

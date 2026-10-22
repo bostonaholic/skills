@@ -34,11 +34,13 @@
  */
 
 import { readFileSync, realpathSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { EXIT_OK, EXIT_USAGE, Failure, runCli } from "./github.mjs";
 import { validateState } from "./poll.mjs";
 
 const SCRIPT = "render-approval.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/approve.md", import.meta.url));
 const USAGE = `usage: ${SCRIPT} <state.json> <poll.json>`;
 
 function count(n, noun, armCount) {
@@ -126,5 +128,5 @@ function main(argv) {
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  runCli(SCRIPT, main);
+  runCli(SCRIPT, DOC_PATH, main);
 }

@@ -43,10 +43,12 @@
 import { spawnSync } from "node:child_process";
 import { accessSync, constants, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { delimiter, dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const NAME = "collect-friction.mjs";
 const USAGE = `usage: ${NAME} [--workspace <dir>] [--no-frog]`;
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const LOG_SUBPATH = join(".agents", "friction-log");
 const GLOBAL = "global";
 const SEVERITIES = ["blocker", "major", "minor"];
@@ -78,12 +80,20 @@ function isDirectory(path) {
   }
 }
 
+// Writes a failed tool's stderr unaltered, ending it with a newline so the script's
+// own line starts on a line of its own.
+function writeToolError(text) {
+  if (!text) return;
+  process.stderr.write(text.endsWith("\n") ? text : `${text}\n`);
+}
+
 function resolveWorkspace(given) {
   if (given !== null) {
     if (!isDirectory(given)) return { error: `workspace is not a directory: ${given}` };
     return { workspace: given };
   }
   const run = spawnSync("git", ["worktree", "list", "--porcelain"], { encoding: "utf8" });
+  if (run.status !== 0) writeToolError(run.stderr);
   const first = run.status === 0 ? run.stdout.split("\n")[0] : "";
   if (!first.startsWith("worktree ")) {
     return { error: "not in a git repository; pass --workspace <dir>" };
@@ -140,6 +150,7 @@ function readWithFrog(scope) {
   });
   if (run.error) throw new Error(`frog list failed: ${run.error.message}`);
   if (run.status !== 0) {
+    writeToolError(run.stderr);
     throw new Error(`frog list exited ${run.status}: ${run.stderr.trim().split("\n")[0] ?? ""}`);
   }
   let entries;
@@ -300,16 +311,19 @@ export function main(argv) {
   const options = parseArgs(argv);
   if (options === null) {
     process.stderr.write(`${NAME}: ${USAGE}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const { workspace, error } = resolveWorkspace(options.workspace);
   if (error) {
     process.stderr.write(`${NAME}: ${error}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const found = discoverScopes(workspace);
   if (found.length === 0) {
     process.stderr.write(`${NAME}: no ${LOG_SUBPATH} directory under ${workspace}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const usedFrog = options.frog && frogOnPath();
@@ -326,6 +340,7 @@ export function main(argv) {
   }
   if (scopes.length === 0) {
     process.stderr.write(`${NAME}: no friction log could be read\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   const dashboard = renderDashboard({ workspace, scopes, unreadable, usedFrog });

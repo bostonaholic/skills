@@ -29,9 +29,11 @@
 
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "ready-slots.mjs";
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} <run-dir> --ready <column> --wip <n>\n`;
 
 /** The Ready column's occupancy on `board`, a parsed board.json. */
@@ -74,6 +76,7 @@ function main(argv) {
   const args = parseArgs(argv);
   if (!args) {
     process.stderr.write(USAGE);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
   }
   let board;
@@ -81,10 +84,12 @@ function main(argv) {
     board = readJson(args.runDir, "board.json");
   } catch (error) {
     process.stderr.write(`${SCRIPT}: ${error.message}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   if (!Array.isArray(board?.items)) {
     process.stderr.write(`${SCRIPT}: board.json has no items array\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   process.stdout.write(`${JSON.stringify(readySlots(board, args.column, args.wip))}\n`);

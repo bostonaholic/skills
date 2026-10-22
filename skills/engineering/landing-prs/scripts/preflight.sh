@@ -36,8 +36,22 @@
 #   127  gh or git is missing
 set -euo pipefail
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=SKILL.md
+
+# Prints `see <absolute path of doc_file>`. It resolves the physical path with
+# builtins only, so a symlinked scripts directory or a PATH without dirname
+# still names the real file, and a failed resolution never changes the exit.
+see_doc() {
+  local dir=. real
+  if [[ ${BASH_SOURCE[0]} == */* ]]; then dir=${BASH_SOURCE[0]%/*}; fi
+  real=$(CDPATH='' cd -P -- "$dir" && pwd -P) || real=$dir
+  echo "see ${real%/*}/$doc_file" >&2
+}
+
 die() {
   echo "preflight.sh: $2" >&2
+  see_doc
   exit "$1"
 }
 
@@ -75,7 +89,7 @@ squash=$(gh repo view "$host/$owner/$repo" --json squashMergeAllowed --jq .squas
 [[ $base_ref =~ $ref_pattern ]] || die 5 "base name '$base_ref' has a character outside [A-Za-z0-9._/-]"
 
 remote=$(git for-each-ref --format='%(push:remotename)' "refs/heads/$current")
-push=$(git rev-parse --abbrev-ref '@{push}' 2>/dev/null) || push=""
+push=$(git rev-parse --abbrev-ref '@{push}') || push=""
 [ -n "$remote" ] && [ "$push" = "$remote/$head_ref" ] ||
   die 6 "git push targets '${push:-nothing}', not ${remote:-<remote>}/$head_ref"
 remote_url=$(git remote get-url "$remote")

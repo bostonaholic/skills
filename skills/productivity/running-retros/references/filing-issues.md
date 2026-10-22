@@ -35,7 +35,7 @@ source line into a public tracker.
 
 Run `bash "<skill-dir>/scripts/file-issue.sh" "<run cache>" <n>`. On exit 0,
 record the URL from its `url:` line for the report. Exit 1, 2, or 3 leaves the
-item unfiled, with its stderr line as the reason. Any other `gh issue` call
+item unfiled, with its stderr as the reason. Any other `gh issue` call
 carries `--repo` explicitly.
 
 ## When filing fails

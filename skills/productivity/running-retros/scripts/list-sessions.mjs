@@ -31,7 +31,7 @@
 
 import { existsSync, realpathSync, statSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   HOSTS,
   detectHost,
@@ -41,6 +41,9 @@ import {
   storeRootFor,
   transcriptsUnder,
 } from "./resolve-transcript.mjs";
+
+// The skill file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/reading-sources.md", import.meta.url));
 
 /** The working directory a Codex rollout records in its `session_meta` header. */
 export function declaredCwd(headText) {
@@ -100,6 +103,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   const countArg = process.argv[3] ?? "";
   if (!repoArg || !/^[1-9][0-9]*$/.test(countArg) || process.argv.length > 4) {
     process.stderr.write("usage: list-sessions.mjs <repo-root> <count>\n");
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   }
 
@@ -107,6 +111,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     process.stderr.write(`${failure}\n`);
     for (const line of tried) process.stderr.write(`  tried: ${line}\n`);
     process.stderr.write(`  note: ${note}\n`);
+    process.stderr.write(`see ${DOC_PATH}\n`);
     process.exit(1);
   };
 

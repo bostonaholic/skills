@@ -33,9 +33,31 @@ set -euo pipefail
 # In a UTF-8 locale a bracket range such as [a-f] is collation-dependent.
 export LC_ALL=C
 
+# The skill file that explains each exit code, relative to the skill directory.
+doc_file=references/applying-edits.md
+
+# The physical scripts directory, resolved with builtins only, so a symlinked
+# scripts directory or a PATH without dirname still names the real file, and a
+# failed resolution never changes the exit. It is resolved here, before the
+# script changes directory, because a relative call path names a different
+# directory once the working directory changes.
+called_dir=.
+if [[ ${BASH_SOURCE[0]} == */* ]]; then called_dir=${BASH_SOURCE[0]%/*}; fi
+real_dir=$(CDPATH='' cd -P -- "$called_dir" && pwd -P) || real_dir=$called_dir
+
+# Prints `see <absolute path of doc_file>`.
+see_doc() {
+  echo "see ${real_dir%/*}/$doc_file" >&2
+}
+
+die() {
+  echo "$2" >&2
+  see_doc
+  exit "$1"
+}
+
 usage() {
-  echo "usage: check-edit-target.sh <repo-root> <path> <blob-id | absent>" >&2
-  exit 1
+  die 1 "usage: check-edit-target.sh <repo-root> <path> <blob-id | absent>"
 }
 
 [[ $# -eq 3 ]] || usage
@@ -46,23 +68,19 @@ pre_image=$3
 
 # A git blob id is 40 hex characters (SHA-1) or 64 (SHA-256 repositories).
 if [[ "$pre_image" != absent && ! "$pre_image" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]; then
-  echo "error: pre-image must be a blob id or 'absent', got '$pre_image'" >&2
-  exit 1
+  die 1 "error: pre-image must be a blob id or 'absent', got '$pre_image'"
 fi
 
 if ! command -v git >/dev/null 2>&1; then
-  echo "error: missing required tool: git" >&2
-  exit 1
+  die 1 "error: missing required tool: git"
 fi
 
 if [[ ! -d "$repo_root" ]]; then
-  echo "error: repo root is not a directory: $repo_root" >&2
-  exit 1
+  die 1 "error: repo root is not a directory: $repo_root"
 fi
 cd "$repo_root"
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
-  echo "error: not a git repository: $repo_root" >&2
-  exit 1
+if ! git rev-parse --git-dir >/dev/null; then
+  die 1 "error: not a git repository: $repo_root"
 fi
 
 skip() {
@@ -78,14 +96,10 @@ if [[ "$pre_image" == absent ]]; then
 fi
 
 git ls-files --error-unmatch -- "$target" >/dev/null 2>&1 || skip untracked
-status=$(git status --porcelain -- "$target") || {
-  echo "error: git status failed for $target" >&2
-  exit 1
-}
+status=$(git status --porcelain -- "$target") ||
+  die 1 "error: git status failed for $target"
 [[ -z "$status" ]] || skip dirty
-blob=$(git hash-object -- "$target") || {
-  echo "error: git hash-object failed for $target" >&2
-  exit 1
-}
+blob=$(git hash-object -- "$target") ||
+  die 1 "error: git hash-object failed for $target"
 [[ "$blob" == "$pre_image" ]] || skip changed
 echo apply

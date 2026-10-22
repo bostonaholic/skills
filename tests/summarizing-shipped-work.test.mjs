@@ -218,6 +218,21 @@ test("fetch-shipped-prs.sh retries a rate-limited search and fails fast on any o
   assert.match(denied.result.stderr, /search for PRs merged 2026-01-01\.\.2026-01-07 failed/);
 });
 
+test("fetch-shipped-prs.sh shows jq's own error before its count failure", (t) => {
+  const { result } = run(t, ["2026-01-01", "2026-01-07"], {
+    cases: `  *) echo 'not json' ;;`,
+  });
+  assert.equal(result.status, 1, result.stderr);
+  const lines = result.stderr.split("\n");
+  const tool = lines.findIndex((line) => line.startsWith("jq: "));
+  const own = lines.indexOf(
+    "error: gh returned output that is not JSON for 2026-01-01..2026-01-07",
+  );
+  assert.notEqual(tool, -1, `jq's line is missing from stderr:\n${result.stderr}`);
+  assert.ok(tool < own, `jq's line is not before the script's line:\n${result.stderr}`);
+  assert.equal(result.stdout, "");
+});
+
 test("fetch-shipped-prs.sh prints one line per PR with links de-duplicated and comments stripped", (t) => {
   const dir = scratch(t);
   const prs = [

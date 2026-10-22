@@ -241,6 +241,59 @@ test("names an unreadable scope in the footer and still renders the rest", (t) =
   assert.match(stderr, /cannot read api: frog list exited 3: boom/);
 });
 
+function lineIndex(text, line) {
+  return text.split("\n").indexOf(line);
+}
+
+function lineStartIndex(text, prefix) {
+  return text.split("\n").findIndex((line) => line.startsWith(prefix));
+}
+
+test("collect-friction.mjs passes git's and frog's own error text through", async (t) => {
+  await t.test("shows git's error before not in a git repository", (st) => {
+    const dir = scratch(st);
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, "git"),
+      "#!/bin/sh\necho 'fatal: git-worktree-sentinel: detected dubious ownership' >&2\nexit 128\n",
+    );
+    chmodSync(join(bin, "git"), 0o755);
+
+    const { status, stderr } = run([], { cwd: dir, pathDirs: [bin] });
+
+    assert.equal(status, 1);
+    const tool = lineIndex(stderr, "fatal: git-worktree-sentinel: detected dubious ownership");
+    const own = lineStartIndex(stderr, "collect-friction.mjs: not in a git repository");
+    assert.notEqual(tool, -1, `git's line is missing from stderr:\n${stderr}`);
+    assert.ok(tool < own, `git's line is not before the script's line:\n${stderr}`);
+  });
+
+  await t.test("shows frog's error before cannot read, and still exits 0", (st) => {
+    const ws = scratch(st);
+    const bin = fakeFrog(ws);
+    mkdirSync(join(ws, "api", LOG), { recursive: true });
+    writeFileSync(join(ws, "api", "frog.fail"), "");
+    mkdirSync(join(ws, "web", LOG), { recursive: true });
+    writeFileSync(
+      join(ws, "web", "frog.json"),
+      JSON.stringify([
+        { id: "20261001120015-c", title: "Port", severity: "minor", state: "pending" },
+      ]),
+    );
+
+    const { status, json, stderr } = run(["--workspace", ws], { pathDirs: [bin] });
+
+    assert.equal(status, 0);
+    const tool = lineIndex(stderr, "boom");
+    const own = lineStartIndex(stderr, "collect-friction.mjs: cannot read api:");
+    assert.notEqual(tool, -1, `frog's line is missing from stderr:\n${stderr}`);
+    assert.ok(tool < own, `frog's line is not before the script's line:\n${stderr}`);
+    assert.equal(json.footer, "- Could not read api: frog list exited 3: boom");
+    assert.doesNotMatch(stderr, /^see /m);
+  });
+});
+
 test("rejects frog output that is not a valid entry array", (t) => {
   const ws = scratch(t);
   const bin = fakeFrog(ws);

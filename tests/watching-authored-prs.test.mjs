@@ -736,6 +736,19 @@ test("an unreadable, unparseable, or capped file list exits 1 with no verdict", 
   }
 });
 
+test("ci-fix-preflight.mjs shows git's own error when symbolic-ref fails", (t) => {
+  const result = runPreflight(
+    t,
+    preflightRules({ branch: { exitCode: 128, stderr: "fatal: symbolic-ref sentinel\n" } }),
+  );
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "");
+  assert.match(
+    result.stderr,
+    /^fatal: symbolic-ref sentinel\nci-fix-preflight\.mjs: git symbolic-ref exited 128\n/,
+  );
+});
+
 test("ci-fix-preflight.mjs rejects bad arguments before running anything", (t) => {
   for (const args of [
     [PR_URL],

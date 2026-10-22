@@ -122,6 +122,26 @@ test("scan-patterns.sh exits 1 naming the check when grep fails", (t) => {
   assert.match(run.stderr, /grep failed for autorun\/npm-lifecycle/);
 });
 
+test("scan-patterns.sh names its own SKILL.md, not one in the clone, when run by a relative path", (t) => {
+  const dir = scratch(t);
+  symlinkSync(dirname(SCRIPTS), join(dir, "tool"));
+  mkdirSync(join(dir, "clone", "tool", "scripts"), { recursive: true });
+  const bin = binDir(dir, {
+    tools: PATTERN_TOOLS.filter((tool) => tool !== "grep"),
+    fakes: { grep: "exit 2" },
+  });
+  const run = spawnSync(BASH, ["tool/scripts/scan-patterns.sh", "clone"], {
+    cwd: dir,
+    encoding: "utf8",
+    env: { PATH: bin, LC_ALL: "C" },
+  });
+  assert.equal(run.status, 1, run.stderr);
+  assert.equal(
+    run.stderr.replace(/\n$/, "").split("\n").at(-1),
+    `see ${realpathSync(resolve("skills/engineering/auditing-repo-security/SKILL.md"))}`,
+  );
+});
+
 test("scan-patterns.sh prints every hit in fixed section order and skips installed code", (t) => {
   const dir = scratch(t);
   const clone = join(dir, "clone");
@@ -417,6 +437,72 @@ test("scan-deps.mjs exits 1 with the JSON still printed when a scanner fails", (
   assert.equal(garbled.run.status, 1);
   assert.equal(garbled.json.lockfiles[0].status, "error");
   assert.equal(garbled.json.lockfiles[0].reason, "cargo-audit printed output that is not JSON");
+});
+
+function lastLine(text) {
+  return text.replace(/\n$/, "").split("\n").at(-1);
+}
+
+test("scan-deps.mjs forwards each failed scanner's full stderr and keeps the reason tail", async (t) => {
+  await t.test("npm's error comes before its failed on line, and the reason stays", (st) => {
+    const { run, json } = scanDeps(
+      st,
+      { "package-lock.json": "{}" },
+      { npm: "echo 'npm ERR! network' >&2\nexit 2" },
+    );
+    assert.equal(run.status, 1);
+    const lines = run.stderr.split("\n");
+    const tool = lines.indexOf("npm ERR! network");
+    const own = lines.indexOf("scan-deps.mjs: npm failed on package-lock.json");
+    assert.notEqual(tool, -1, `npm's line is missing from stderr:\n${run.stderr}`);
+    assert.ok(tool < own, `npm's line is not before the script's line:\n${run.stderr}`);
+    assert.equal(json.lockfiles[0].reason, "npm ERR! network\n");
+    assert.match(lastLine(run.stderr), /^see /);
+  });
+
+  await t.test(
+    "a 3,000-character stderr reaches stderr whole, with a 2,000 tail in reason",
+    (st) => {
+      const head = "a".repeat(1000);
+      const tail = "b".repeat(2000);
+      const { run, json } = scanDeps(
+        st,
+        { "package-lock.json": "{}" },
+        { npm: `printf '%s' '${head}${tail}' >&2\nexit 2` },
+      );
+      assert.equal(run.status, 1);
+      assert.ok(
+        run.stderr.split("\n").includes(`${head}${tail}`),
+        `the 3,000 characters are not one whole line on stderr:\n${run.stderr.slice(0, 200)}`,
+      );
+      assert.equal(json.lockfiles[0].reason, tail);
+    },
+  );
+
+  await t.test("an empty stderr forwards no blank block before the failed on line", (st) => {
+    const { run } = scanDeps(st, { "package-lock.json": "{}" }, { npm: "exit 2" });
+    assert.equal(run.status, 1);
+    assert.equal(run.stderr.split("\n")[0], "scan-deps.mjs: npm failed on package-lock.json");
+  });
+
+  await t.test("two failed scanners forward in path order, then their failed on lines", (st) => {
+    const { run } = scanDeps(
+      st,
+      { "Cargo.lock": "", "package-lock.json": "{}" },
+      {
+        "cargo-audit": "echo 'cargo-sentinel: advisory db unreachable' >&2\nexit 2",
+        npm: "echo 'npm-sentinel: registry unreachable' >&2\nexit 2",
+      },
+    );
+    assert.equal(run.status, 1);
+    assert.deepEqual(run.stderr.split("\n").slice(0, 4), [
+      "cargo-sentinel: advisory db unreachable",
+      "npm-sentinel: registry unreachable",
+      "scan-deps.mjs: cargo-audit failed on Cargo.lock",
+      "scan-deps.mjs: npm failed on package-lock.json",
+    ]);
+    assert.match(lastLine(run.stderr), /^see /);
+  });
 });
 
 test("isPinned accepts only == pins, comments, and hash continuations", () => {
