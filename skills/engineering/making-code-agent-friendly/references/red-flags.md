@@ -4,11 +4,11 @@ Each flag names a code shape that breaks when many agents change one codebase in
 
 ## Contents
 
-- [C: Contention](#c-contention): AF1 to AF3
+- [C: Contention](#c-contention): AF1 to AF3, AF17
 - [B: Boundaries](#b-boundaries): AF4 to AF7
 - [K: Contracts](#k-contracts): AF8, AF9
-- [D: Discoverability](#d-discoverability): AF10 to AF13
-- [V: Verification](#v-verification): AF14 to AF16
+- [D: Discoverability](#d-discoverability): AF10 to AF13, AF18
+- [V: Verification](#v-verification): AF14 to AF16, AF19
 - [Severity](#severity)
 
 ## C: Contention
@@ -77,6 +77,16 @@ export const ERR_REFUND_WINDOW = "orders.refund_window_closed";
 Two agents adding errors in different modules can no longer pick the same value.
 
 **Not a flag when:** tooling assigns the number at merge time, or the number is fixed by an external protocol. Timestamped names (the fix) also appear in `sequences`; only hand-incremented sequential numbers are AF3.
+
+### AF17 Parallel duplicate
+
+**Signal:** two or more functions or modules on the main branch that do the same job under different names, added by separate changes close in time. Search for near-identical bodies and for synonyms of a helper's name (`formatMoney`, `toCurrency`); run `[duplication detector]` over the scope.
+
+**Why agents suffer:** two agents in parallel branches each add the same helper, and each change passes a "no new duplication against base" check, because neither base held the other's copy. Only the merged branch shows both, so no per-change gate can catch it; the next agent then copies whichever it finds first.
+
+**Fix:** P5. Keep one canonical home per concept, consolidate to it, and delete the copies. An Audit of the main branch is the check that sees across changes, so run it on a schedule, not only per change.
+
+**Not a flag when:** the copies are in modules that must not depend on each other, and each is small and tested.
 
 ## B: Boundaries
 
@@ -249,6 +259,16 @@ Example: [P10](principles.md#p10-knowledge-beside-the-code).
 
 **Not a flag when:** the module is trivial and its tests state its contract.
 
+### AF18 Copied precedent
+
+**Signal:** two idioms for one job coexist (two error-handling styles, two data-access patterns, a legacy and a current API client), and recent changes use the legacy one. Count call sites of each; check which one the newest files use.
+
+**Why agents suffer:** an agent learns local convention by copying the nearest similar code, so a legacy pattern spreads across many changes within days. A codebase that is uniform but plain is cheaper for agents than one that is half modern and half legacy.
+
+**Fix:** P11. Name the one current way and its canonical example in the module guide, add a lint rule that rejects the legacy idiom in new code, and migrate the rest.
+
+**Not a flag when:** the legacy idiom sits in code nobody changes and the lint rule already blocks new uses.
+
 ## V: Verification
 
 ### AF14 No fast scoped check
@@ -296,6 +316,16 @@ Example: [P11](principles.md#p11-mechanical-consistency).
 
 **Not a flag when:** the project is a single-writer prototype with no shared branches.
 
+### AF19 Weak checks
+
+**Signal:** tests whose assertions cannot fail (no assertion, only "does not throw", snapshot of everything), mocks of the unit under test, untyped boundaries, or a low mutation score from `[mutation testing tool]` on a changed module.
+
+**Why agents suffer:** when no person reviews a change, the checks are the review. A check that passes whatever the code does gives a green run that proves nothing, and agents merge on it.
+
+**Fix:** P8. Assert observable behavior at the module's public entry, type the boundaries, and confirm a check fails when the behavior breaks: break the code once and watch it go red.
+
+**Not a flag when:** the test is a deliberate smoke test and a stronger one covers the same behavior.
+
 ## Severity
 
 A finding's severity is how many parallel changes it blocks or corrupts.
@@ -303,5 +333,7 @@ A finding's severity is how many parallel changes it blocks or corrupts.
 - `high`: most feature work must touch it, or it produces false green or missed call sites.
 - `medium`: changes within one subsystem collide.
 - `low`: local friction that slows one agent without blocking others.
+
+Raise a finding one level when it sits on a public interface, schema, or contract that other modules depend on, since every dependent change waits on it. Lower it one level in private leaf code with no dependents, which an agent can cheaply rewrite.
 
 In a review, a `high` finding the diff introduces is `issue (blocking)`; `medium` and `low` are suggestions.

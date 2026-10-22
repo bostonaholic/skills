@@ -6,7 +6,7 @@ scale. An agent navigates by search, holds a bounded context window, works
 in its own branch while others edit the same tree, trusts only what a check
 proves, and cannot ask the author what was meant. Each principle below
 removes one way those constraints turn into a broken merge or a wrong
-change. Red-flag IDs (AF1 to AF16) name what each principle fixes.
+change. Red-flag IDs (AF1 to AF19) name what each principle fixes.
 
 ## Contents
 
@@ -148,7 +148,7 @@ The type checker tells a distant agent what `ship` accepts; it does not have to 
 Calls and imports are written out, and every name is specific and unique,
 so searching a symbol finds every definition and call site.
 
-Fixes: AF10, AF11
+Fixes: AF10, AF11, AF17
 
 Before:
 
@@ -249,9 +249,10 @@ Each agent's test hands in its own store, so no branch's tests see another's dat
 ## P8 Fast, hermetic, deterministic checks
 
 One command verifies one module in seconds, offline, with the same result on
-every run. Time, randomness, and I/O come in as parameters.
+every run. Time, randomness, and I/O come in as parameters. Each check fails
+when the behavior it covers breaks; without a human reviewer, it is the review.
 
-Fixes: AF14, AF15
+Fixes: AF14, AF15, AF19
 
 Before:
 
@@ -311,8 +312,10 @@ Each step merges on its own, so no change has to touch every module in lockstep.
 ## P10 Knowledge beside the code
 
 Each module carries a short README or AGENTS.md that states its purpose,
-public surface, invariants, and verify command. Keep it true: a lying doc is
-worse than none.
+public surface, invariants, and verify command. A constraint or rationale the
+code cannot show goes in a comment at the line it constrains: agents keep no
+memory between sessions, so a reason left in chat is lost. Keep both true: a
+lying doc is worse than none.
 
 Fixes: AF13
 
@@ -342,9 +345,10 @@ An agent learns the rules and the check from the one directory it already opened
 
 A formatter, a linter, and generators enforce one way to write things, run in
 CI, and fix what they can. Generated files carry a header and are never
-edited by hand.
+edited by hand. Agents copy the nearest example, so a lint rule retires a
+legacy idiom before it spreads.
 
-Fixes: AF16
+Fixes: AF16, AF18
 
 Before:
 
@@ -374,12 +378,15 @@ Run these before finishing new code. Each answer should be yes.
 - Do other modules reach the new code only through the module's public entry? (P3)
 - Does every new boundary input and output have a declared type or schema? (P4)
 - Can every call site of a new symbol be found by searching its name? (P5)
+- Before adding a helper, did a search find no existing one that does the same job? (P5)
 - Does every failure path raise or return an error with its cause? (P6)
 - Is state passed in, with nothing happening at import time? (P7)
 - Can the touched module's tests run alone, offline, in seconds, with the same result each time? (P8)
+- Does each new test fail when the behavior it covers is broken? (P8)
 - Is this one concern, small enough to merge without coordinating other changes? (P9)
 - If the public surface, an invariant, or the verify command changed, does the module's README or AGENTS.md say so in this change? (P10)
 - Did the formatter, linter, and generators run, with no hand edits to generated files? (P11)
+- Does the new code follow the module's current idiom, not a legacy one found nearby? (P11)
 
 ## Trade-offs
 

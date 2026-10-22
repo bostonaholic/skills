@@ -22,7 +22,7 @@ argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding>
 Code is clean for agents when it is safe for autonomous change at scale:
 hundreds of agents, each in its own branch, finding code by search, unable to
 ask the author, trusting only what a check proves. The
-[red flags](references/red-flags.md) (AF1 to AF16) are what to find, each with
+[red flags](references/red-flags.md) (AF1 to AF19) are what to find, each with
 its detection signal and false positives; the
 [principles](references/principles.md) (P1 to P11) are the target shape, with
 before and after examples and the writing checklist. Use their IDs in every
@@ -43,7 +43,9 @@ Pick the mode by the first word of `$ARGUMENTS`, else by the request:
 
 ## Audit
 
-Scope is the given paths, or the repository root.
+Scope is the given paths, or the repository root. Run it on the main branch:
+it is the one check that sees what parallel changes add together, such as
+duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 
 1. **Orient.** Read the root `AGENTS.md`, `CLAUDE.md`, or `README`, the
    manifest files, and the CI config to learn the modules, the test command,
@@ -87,8 +89,10 @@ For each changed file, ask: does the change edit a conflict magnet or append
 point that a new file could replace (AF1, AF2)? Does it allocate from a global
 sequence (AF3)? Does it cross a module boundary without a declared contract
 (AF5, AF8)? Can every call site of a new symbol be found by searching its name
-(AF10)? Does it swallow an error (AF9)? Does it come with a check that runs
-alone, offline, and deterministically (AF14, AF15)? Is it one concern, or a
+(AF10)? Does a helper it adds already exist (AF17), or does it copy a legacy
+idiom (AF18)? Does it swallow an error (AF9)? Does it come with a check that
+runs alone, offline, and deterministically (AF14, AF15), and fails when the
+behavior breaks (AF19)? Is it one concern, or a
 refactor mixed with a feature (cite P9; no red flag covers change size)?
 
 Write findings in the [finding format](shared/findings.md), each naming its
