@@ -24,7 +24,7 @@ skips these steps and the diff, stage, commit, and push.
      scope, then rerun every fix check. Never rerun a check with no edit.
 6. Delete any throwaway test.
 7. **Staging check:** the same `git status` lists only the touched files and
-   baseline paths.
+   baseline paths, and no touched file is a baseline path.
 
 Items that share one concern (the same defect or the same requested change)
 take one edit and one commit. Form groups before the pass's first item. Each
@@ -37,14 +37,16 @@ Confidence line names the stop and, where listed, its detail:
 
 - The clean-checkout check finds a path outside the baseline: that path, and
   that the user commits, stashes, or discards it, then reruns. When an earlier
-  item's leftover edit is that path, name the earlier item instead.
+  item's leftover edit is that path, name the earlier item in place of the
+  path.
 - A file the item creates already exists, or the item writes a baseline path:
   that path.
 - The reproduction passes before the edit.
 - The edit changes no path (the change is already in place).
-- A fix check still fails or times out, whether or not the extra edit was
-  made: the check, its result, and its first error line.
-- The staging check lists a path outside the touched files: each such path.
+- A fix check's last result is `failed` or `timed out`, whether or not the
+  extra edit was made: the check, its result, and its first error line.
+- The staging check lists a path outside the touched files and baseline
+  paths, or a touched file is a baseline path: each such path.
 - `git commit` fails: its first error line.
 
 An exclusion found during the edit also stops the item. A stopped item skips
