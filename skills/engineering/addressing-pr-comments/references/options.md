@@ -22,7 +22,5 @@ Placed on the item's opening comment when the option lands:
 
 ## Converging
 
-- A comment about code the PR did not introduce, or marked pre-existing,
-  recommends E unless the fix lies inside the lines the PR changed.
-- A comment that names a defect class and lists its instances asks for every
-  listed instance; A or B covers them all in one commit.
+- A comment its reviewer marked pre-existing recommends E, unless the fix lies
+  inside the lines the PR changed.

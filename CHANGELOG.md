@@ -5,14 +5,13 @@
 ### Changed
 
 - Write one review finding per defect class, listing every instance and the lint or instruction rule that would catch the class, in the shared finding format used by the review skills. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Mark review findings on code the change did not introduce as non-blocking and pre-existing, so they never set the verdict. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Cap review nitpicks at three and drop any a formatter or linter would catch. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Mark review findings on code the change did not introduce as non-blocking and pre-existing, so a review whose only findings are pre-existing approves. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Cap review nitpicks at three and drop any the project's configured formatter or linter already catches. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 - Raise an approach disagreement in the first review as non-blocking, never as a new blocker in a later round. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 - Open each `reviewing-code` summary with the finding count, or say plainly that nothing needs fixing. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 - Check in `reviewing-code` that a change does what its PR, commits, or plan say, and that a bug fix removes the cause instead of hiding the failure. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Re-review only the commits since the last reviewed head in `reviewing-code`, report each earlier finding by status instead of repeating it, and from round 4 with a blocker still open recommend reconsidering the approach. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Keep `watching-reviewed-prs` re-reviews to the tracked items, reporting any new defect to the user instead of posting it. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Recommend a follow-up in `addressing-pr-comments` for a comment about code the PR did not introduce, and fix every listed instance of a defect class in one commit. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Re-review only the commits since the head an earlier `reviewing-code` report in the conversation recorded, report each earlier finding by status instead of repeating it, and from round 4 with a blocker still open recommend reconsidering the approach. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Recommend a follow-up in `addressing-pr-comments` for a comment its reviewer marked pre-existing. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 
 ## [0.61.0] - 2026-10-23
 

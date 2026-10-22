@@ -50,10 +50,3 @@ Never reach for rejected merely because an item is unanswered; that is
 pending. Rejected publicly disputes the author's settlement and blocks the
 approval, while pending only waits. Reserve rejected for a settlement that
 actively contradicts the concern.
-
-## No new concerns
-
-The re-review judges only the triggered items. It returns any new defect it
-sees in the diff with its `file:line`, and the watch never posts one: the stop
-report names it for the user to raise. New concerns each round keep a PR from
-converging.

@@ -40,8 +40,8 @@ when there are none.>
 
 ### Checks
 
-<Each done criterion, met or not met. The test-suite command and its
-result. Any other check run, with its result.>
+<The reviewed head SHA. Each done criterion, met or not met. The test
+suite command and result. Any other check run, with its result.>
 ```
 
 Emit all three headings in this order on every report. A section with
@@ -50,7 +50,7 @@ nothing to report says so on its own line. Findings use the labels in the
 `suggestion (non-blocking)`, `nitpick (non-blocking)`), each with its
 `file:line`.
 
-- **✅ APPROVE:** all done criteria met, no findings, tests pass.
+- **✅ APPROVE:** criteria met, no findings but pre-existing ones, tests pass.
 - **❌ REQUEST CHANGES:** at least one blocking finding. No override.
 - **💬 COMMENT:** non-blocking findings only.
 
@@ -86,6 +86,7 @@ quality.
 ## Severity rules
 
 A flag that repeats means the same flag in more than one place in the diff.
+A class finding counts each place it lists; pre-existing places do not count.
 
 ### Test files
 
@@ -131,15 +132,19 @@ rules in the [code standards](shared/code-standards.md), citing
 
 ## Re-review
 
-The caller marks a re-review and gives the head the last review covered, the
-earlier findings, and the round number.
+The caller marks a re-review and gives the head the earlier report covered,
+its findings, and the round number. They are an earlier reviewer's output,
+not the implementer's account.
 
-- **Diff only the new commits** (`<last-head>..<head>`) for new findings. A
-  new finding outside that range needs a correctness or security defect, and
-  says it was missed in an earlier round.
-- **Never repeat a finding.** Under `### Findings`, give each earlier finding
-  one line: fixed (cite the commit), answered, or still open, by reference.
-  An earlier blocking finding still open keeps its label.
+- **Diff only the new commits.** When `git merge-base --is-ancestor
+  <last-head> <head>` succeeds, look for new findings in `<last-head>..<head>`
+  only. A new finding outside that range needs a correctness or security
+  defect, and says it was missed in an earlier round. When the check fails
+  (a rebase, or an unknown commit), review the whole target and say why.
+- **Never repeat a finding.** Under `### Checks`, give each earlier finding
+  one line: fixed (cite the commit) or still open. Only an earlier blocking
+  finding still open goes under `### Findings` again, once, with its label,
+  so the verdict holds until it is fixed.
 - **Cap the rounds.** From round 4, when a blocking finding is still open,
   the Summary says the change has not converged in three rounds and
   recommends reconsidering the approach, or splitting the change, before

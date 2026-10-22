@@ -40,7 +40,6 @@ argument-hint: "[<diff target>]"
 
 ## Re-review
 
-- A target is a re-review when an earlier report in this conversation covers it, or the viewer already reviewed its PR.
-- Find the head that review covered: the earlier report's head, or the `commit.oid` of the viewer's latest review on the PR.
-- Give the reviewer that head, the earlier findings as data, and the round number (the count of reviews so far, plus one).
-- Follow the brief's re-review rules; never fold them into a fresh full review.
+- A target is a re-review only when an earlier report of this skill in this conversation covers the same PR or branch. A working-tree or pasted-diff target never is.
+- Give the reviewer the head SHA from that report's `### Checks`, its findings, and the round number: the count of those earlier reports, plus one.
+- With no recorded head, run a full review and say why.
