@@ -4,15 +4,15 @@
 
 ### Changed
 
-- Skip a review summary in `addressing-pr-comments` when its author later approved the PR, so the summary leaves the triage report and no longer blocks the review re-request, and report how many it skipped. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Rate review comments in `addressing-pr-comments` by their concern rather than the commenter's account type, and confirm an automated comment's general rule holds in the PR before acting on it. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Check the code a reviewer asks to match in `addressing-pr-comments` before copying it, and offer a fix to both sites or a follow-up when that code is wrong. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Send review items whose asks conflict with each other to clarification in `addressing-pr-comments` instead of applying either. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Fix review items that share one concern in one commit in `addressing-pr-comments`, and pause an item whose change an earlier commit already made. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Run each fix's reproduction, covering tests, formatter, and linter in report-only mode before `addressing-pr-comments` commits it, allow one more edit after a failure, stop the fix if a check still fails, and show each result on the item's report line. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Apply fixes in `addressing-pr-comments` only when the checkout has no changes beyond the untracked files present at the start of the pass, and keep its temporary files outside the checkout. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Keep the edit of an `addressing-pr-comments` fix that fails its checks for the user, name each path it left, and pause that pass's later fixes. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
-- Write `addressing-pr-comments` throwaway tests only as new files, so deleting one never removes other work. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Skip a review summary in `addressing-pr-comments` when its author later approved the PR, so the summary leaves the triage report and no longer blocks the review re-request, and report how many it skipped. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Rate review comments in `addressing-pr-comments` by their concern rather than the commenter's account type, and confirm an automated comment's general rule holds in the PR before acting on it. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Check the code a reviewer asks to match in `addressing-pr-comments` before copying it, and offer a fix to both sites or a follow-up when that code is wrong. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Send review items whose asks conflict with each other to clarification in `addressing-pr-comments` instead of applying either. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Fix review items that share one concern in one commit in `addressing-pr-comments`, and pause an item whose change an earlier commit already made. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Run each fix's reproduction, covering tests, formatter, and linter in report-only mode before `addressing-pr-comments` commits it, allow one more edit after a failure, stop the fix if a check still fails or times out, and show each result on the item's report line. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Apply fixes in `addressing-pr-comments` only when the checkout has no changes beyond the untracked files present at the start of the pass, and keep its temporary files outside the checkout. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Keep the edit of an `addressing-pr-comments` fix that fails its checks for the user, name each path it left, and pause that pass's later fixes. [#137](https://github.com/bostonaholic/skills/pull/137)
+- Write `addressing-pr-comments` throwaway tests only as new files, so deleting one never removes other work. [#137](https://github.com/bostonaholic/skills/pull/137)
 
 ## [0.60.0] - 2026-10-22
 
