@@ -41,5 +41,5 @@ argument-hint: "[<diff target>]"
 ## Re-review
 
 - A target is a re-review only when an earlier report of this skill in this conversation covers the same PR or branch. A working-tree or pasted-diff target never is.
-- Give the reviewer the head SHA from that report's `### Checks`, its findings, and the round number: the count of those earlier reports, plus one.
+- Give the reviewer the head SHA from the most recent such report's `### Checks`, its findings, and the round number: the count of those earlier reports, plus one.
 - With no recorded head, run a full review and say why.

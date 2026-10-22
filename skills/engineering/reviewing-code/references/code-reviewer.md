@@ -50,9 +50,9 @@ nothing to report says so on its own line. Findings use the labels in the
 `suggestion (non-blocking)`, `nitpick (non-blocking)`), each with its
 `file:line`.
 
-- **✅ APPROVE:** criteria met, no findings but pre-existing ones, tests pass.
+- **✅ APPROVE:** all criteria met, any findings pre-existing, tests pass.
 - **❌ REQUEST CHANGES:** at least one blocking finding. No override.
-- **💬 COMMENT:** non-blocking findings only.
+- **💬 COMMENT:** non-blocking findings only, not all pre-existing.
 
 ## Scope and obligations
 
@@ -142,10 +142,11 @@ not the implementer's account.
   defect, and says it was missed in an earlier round. When the check fails
   (a rebase, or an unknown commit), review the whole target and say why.
 - **Never repeat a finding.** Under `### Checks`, give each earlier finding
-  one line: fixed (cite the commit) or still open. Only an earlier blocking
-  finding still open goes under `### Findings` again, once, with its label,
-  so the verdict holds until it is fixed.
+  one line: fixed (cite the commit), withdrawn (the evidence it was wrong),
+  or still open. Only an earlier blocking finding still open goes under
+  `### Findings` again, once, with its label, so the verdict holds until it
+  is fixed or withdrawn.
 - **Cap the rounds.** From round 4, when a blocking finding is still open,
-  the Summary says the change has not converged in three rounds and
+  the Summary says the change has not converged in <round - 1> rounds and
   recommends reconsidering the approach, or splitting the change, before
   another fix round.

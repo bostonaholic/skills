@@ -56,4 +56,5 @@ Where a brief's own labels, format, or scope differ, the brief wins.
 A finding is **blocking** when its label is `issue (blocking)`; one blocking
 finding makes the review verdict REQUEST CHANGES. `suggestion (non-blocking)`
 and `nitpick (non-blocking)` never block; a report with only these is
-COMMENT. List blocking findings first.
+COMMENT, unless every one is pre-existing, which approves. List blocking
+findings first.
