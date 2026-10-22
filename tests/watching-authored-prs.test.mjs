@@ -168,12 +168,21 @@ const check = (workflow, name, bucket, job = null) => ({
   link: job === null ? "" : `https://${HOST}/o/r/actions/runs/1/job/${job}`,
 });
 
-function pollRules({ head = HEAD, checks = [], checksResponse, viewResponse, feedback = {} } = {}) {
+function pollRules({
+  head = HEAD,
+  checks = [],
+  checksResponse,
+  viewResponse,
+  mergeable = "MERGEABLE",
+  feedback = {},
+} = {}) {
   return [
     {
       tool: "gh",
       prefix: ["pr", "view"],
-      ...(viewResponse ?? { stdout: JSON.stringify({ headRefOid: head, checks: checks.length }) }),
+      ...(viewResponse ?? {
+        stdout: JSON.stringify({ headRefOid: head, checks: checks.length, mergeable }),
+      }),
     },
     {
       tool: "gh",
@@ -231,6 +240,7 @@ test("cycle 0 reports existing feedback and failures, and writes state and the f
       "feedback present-then-stop, CI report | head aaaaaaa | threads 2, summaries 1, comments 1 | CI 1 pending, 2 passing, 3 failing | failing: `external`, `CI / lint`, `Deploy / preview` | pending: `CI / e2e`",
     terminal: null,
     approved: false,
+    conflicting: false,
     thirdParty: [],
     emptyChangesRequested: [],
     feedbackChange: true,
@@ -350,6 +360,18 @@ test("cycle 0 with no feedback is no feedback change, and an empty rollup skips 
   assert.ok(!result.calls.some((call) => call[1] === "pr" && call[2] === "checks"));
 });
 
+test("only a CONFLICTING mergeable state is a merge conflict", (t) => {
+  for (const [mergeable, conflicting] of [
+    ["CONFLICTING", true],
+    ["MERGEABLE", false],
+    ["UNKNOWN", false],
+  ]) {
+    const result = runPoll(t, pollRules({ mergeable }));
+    assert.equal(result.status, 0, `${mergeable}: ${result.stderr}`);
+    assert.equal(result.output.conflicting, conflicting, mergeable);
+  }
+});
+
 test("a merged or closed PR is terminal", (t) => {
   const result = runPoll(t, pollRules({ feedback: { state: "MERGED" } }));
   assert.equal(result.output.terminal, "MERGED");
@@ -436,7 +458,7 @@ test("a head that moves during the poll skips CI and reports no failure", (t) =>
     {
       tool: "gh",
       prefix: ["pr", "view"],
-      stdout: JSON.stringify({ headRefOid: HEAD, checks: 1 }),
+      stdout: JSON.stringify({ headRefOid: HEAD, checks: 1, mergeable: "MERGEABLE" }),
     },
     {
       tool: "gh",
@@ -475,7 +497,18 @@ test("a failed or malformed read is a poll failure that writes nothing", (t) => 
   const failures = [
     ["gh pr view fails", { viewResponse: { exitCode: 1, stderr: "HTTP 502" } }],
     ["gh pr view is not JSON", { viewResponse: { stdout: "oops" } }],
-    ["short head", { viewResponse: { stdout: JSON.stringify({ headRefOid: "abc", checks: 0 }) } }],
+    [
+      "short head",
+      {
+        viewResponse: {
+          stdout: JSON.stringify({ headRefOid: "abc", checks: 0, mergeable: "MERGEABLE" }),
+        },
+      },
+    ],
+    [
+      "no mergeable state",
+      { viewResponse: { stdout: JSON.stringify({ headRefOid: HEAD, checks: 0 }) } },
+    ],
     [
       "empty checks with a rollup",
       { checks: [check("CI", "a", "pass")], checksResponse: { stdout: "[]", exitCode: 1 } },

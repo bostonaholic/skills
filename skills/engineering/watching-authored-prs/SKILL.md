@@ -54,7 +54,8 @@ Print its `snapshot` line every poll, then act on its JSON in this order:
    reply, or resolve, and report the logins.
 4. `emptyChangesRequested` non-empty: stop as `Feedback exclusion`.
 5. `approved`: run the approval hand-off.
-6. `feedbackChange`: handle feedback, then CI. Otherwise CI only. A CI
+6. `conflicting`: stop as `Merge conflict`; name `/rebasing-branches <n>` next.
+7. `feedbackChange`: handle feedback, then CI. Otherwise CI only. A CI
    failure never goes to `addressing-pr-comments`.
 
 ## Feedback and CI
@@ -83,10 +84,9 @@ Print its `snapshot` line every poll, then act on its JSON in this order:
 ## Stops and the approval hand-off
 
 - Beyond the watch loop's own stops, this skill stops on, and reports by name:
-  `Approval`, `Merge or close`, `Third-party participant`, `Awaiting decision`,
-  `Feedback exclusion`, `Push failure`, `CI rerun bound`, `CI fix bound`, and
-  `CI exclusion`.
-  Green CI is not a stop.
+  `Approval`, `Merge or close`, `Merge conflict`, `Third-party participant`,
+  `Awaiting decision`, `Feedback exclusion`, `Push failure`, `CI rerun bound`,
+  `CI fix bound`, and `CI exclusion`. Green CI is not a stop.
 - On approval, hand off and never land: never run `/landing-prs` or
   `gh pr merge`, even when the arming instruction asks to merge once approved.
   The merge decision belongs to the user, and a push after approval can dismiss

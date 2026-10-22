@@ -11,10 +11,10 @@
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>`. Requires `gh` on
  * PATH, signed in to `<host>`; every `gh` call names the host.
  *
- * Reads, in order: `gh pr view` for the head SHA and the status-check rollup
- * length; `gh pr checks` when that length is above 0; then
- * `../shared/scripts/fetch-pr-feedback.mjs`, whose `pr.headRefOid` is the
- * second head read. The two head reads bracket the checks read.
+ * Reads, in order: `gh pr view` for the head SHA, the status-check rollup
+ * length, and the mergeable state; `gh pr checks` when that length is above
+ * 0; then `../shared/scripts/fetch-pr-feedback.mjs`, whose `pr.headRefOid` is
+ * the second head read. The two head reads bracket the checks read.
  *
  * `--out` receives the fetch script's complete JSON, bodies included, for
  * `addressing-pr-comments`. Stdout never carries a comment body.
@@ -66,6 +66,8 @@
  *     failure with no readable log carries `jobId: null` and a `noLog` reason.
  *   - When the two head reads differ, `ciSkipped` is "head-moved" and no
  *     failure is reported.
+ *   - conflicting: GitHub's mergeable state is CONFLICTING. UNKNOWN, while
+ *     GitHub computes it, is not a conflict; a later poll reads it again.
  *
  * Stdout, on exit 0 only, one line of JSON:
  *
@@ -73,6 +75,7 @@
  *     "head": "<40-hex>", "snapshot": "<the snapshot line>",
  *     "terminal": "MERGED" | "CLOSED" | null,
  *     "approved": <bool>,
+ *     "conflicting": <bool>,
  *     "thirdParty": [ { "thread": "<id>", "logins": [ "<login>" | null ] } ],
  *     "emptyChangesRequested": [ "<login>" | null ],
  *     "feedbackChange": <bool>,
@@ -97,8 +100,8 @@
  *
  *   0  the poll is complete; stdout, `--out`, and `--state` are written
  *   1  poll failure: a read failed or was incomplete, a head SHA is not 40 hex
- *      characters, or a non-empty rollup came with an empty or non-JSON checks
- *      list. Nothing is written; stderr names the failure
+ *      characters, `gh pr view` printed no mergeable state, or a non-empty
+ *      rollup came with an empty or non-JSON checks list. Nothing is written; stderr names the failure
  *   2  usage fault: a bad argument, a state file for another PR or of another
  *      shape or version, or a PR the fetch script cannot resolve. Nothing is
  *      written
@@ -241,9 +244,9 @@ function readHead(pr) {
         "--repo",
         `${pr.host}/${pr.owner}/${pr.repo}`,
         "--json",
-        "headRefOid,statusCheckRollup",
+        "headRefOid,statusCheckRollup,mergeable",
         "--jq",
-        "{headRefOid, checks: (.statusCheckRollup | length)}",
+        "{headRefOid, checks: (.statusCheckRollup | length), mergeable}",
       ],
       "gh pr view",
     ),
@@ -253,6 +256,8 @@ function readHead(pr) {
     throw new Failure(EXIT_FAILURE, "gh pr view printed a head SHA that is not 40 hex characters");
   if (!Number.isInteger(view.checks) || view.checks < 0)
     throw new Failure(EXIT_FAILURE, "gh pr view printed no status-check rollup length");
+  if (typeof view.mergeable !== "string" || view.mergeable === "")
+    throw new Failure(EXIT_FAILURE, "gh pr view printed no mergeable state");
   return view;
 }
 
@@ -490,6 +495,7 @@ function poll(argv) {
     }),
     terminal: ["MERGED", "CLOSED"].includes(feedback.pr.state) ? feedback.pr.state : null,
     approved: feedback.pr.reviewDecision === "APPROVED",
+    conflicting: view.mergeable === "CONFLICTING",
     thirdParty: thirdPartyThreads(unresolved, viewer),
     emptyChangesRequested: emptyChangesRequests(feedback, viewer),
     feedbackChange,
