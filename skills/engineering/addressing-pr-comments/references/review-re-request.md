@@ -11,8 +11,8 @@ changes.
   single item's apply.
 - A **decision pass** acts in a later turn on the user's chosen items from an
   earlier report or a watch stop. It runs the re-request after the last chosen
-  item reaches its outcome or stops. A chosen item that stops is not a
-  punch-list item.
+  item reaches its outcome or stops. A chosen item that stops has no outcome,
+  and its URL prints under `not sent`.
 
 An item reaches an outcome when A, B, E, or F executes, or the C or D reply
 posts. G items, could-not-apply, held security changes, failed pushes, and

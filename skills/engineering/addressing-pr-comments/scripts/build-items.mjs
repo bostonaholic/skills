@@ -82,7 +82,8 @@ const submittedTime = (review) =>
 
 /**
  * True when `reviews` holds an APPROVED review by the same non-null login with
- * a strictly later `submittedAt`. An unparseable time on either node gives false.
+ * a strictly later `submittedAt`. An unparseable summary time gives false; an
+ * approval with an unparseable time does not count.
  */
 export function isSupersededByApproval(review, reviews) {
   const author = login(review.author);
