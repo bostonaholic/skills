@@ -35,6 +35,7 @@
     "./skills/engineering/hillclimbing",
     "./skills/engineering/investigating-design-rationale",
     "./skills/engineering/landing-prs",
+    "./skills/engineering/making-code-agent-friendly",
     "./skills/engineering/merging-dependabot-prs",
     "./skills/engineering/proving-claims",
     "./skills/engineering/rebasing-branches",

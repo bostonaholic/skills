@@ -629,6 +629,14 @@ const ROWS = [
     target: "skills/engineering/auditing-complexity/SKILL.md",
   },
   {
+    label: "contention.mjs",
+    script: "skills/engineering/making-code-agent-friendly/scripts/contention.mjs",
+    interpreter: "node",
+    args: () => ["--bogus"],
+    exit: 2,
+    target: "skills/engineering/making-code-agent-friendly/SKILL.md",
+  },
+  {
     label: "auditing-complexity render-report.mjs",
     script: "skills/engineering/auditing-complexity/scripts/render-report.mjs",
     interpreter: "node",

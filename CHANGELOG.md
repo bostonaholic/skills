@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add making-code-agent-friendly, which audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts, with red flags, principles with examples, and a git contention script. [#130](https://github.com/bostonaholic/skills/pull/130)
+
 ## [0.56.0] - 2026-10-22
 
 ### Changed

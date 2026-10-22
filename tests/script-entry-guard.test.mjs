@@ -512,3 +512,23 @@ test("importing price-calc.mjs through a symlinked directory has no side effects
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
+
+test("contention.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const dir = symlinkedDir(t, "skills/engineering/making-code-agent-friendly/scripts");
+  const run = spawnSync(process.execPath, [join(dir, "contention.mjs"), "--bogus"], {
+    encoding: "utf8",
+  });
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /\ncontention\.mjs: usage: contention\.mjs /);
+});
+
+test("importing contention.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(
+      symlinkedDir(t, "skills/engineering/making-code-agent-friendly/scripts"),
+      "contention.mjs",
+    ),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
