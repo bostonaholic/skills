@@ -38,6 +38,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[hillclimbing](./skills/engineering/hillclimbing/SKILL.md)**: Iterate on measured changes until the criteria pass.
 - **[investigating-design-rationale](./skills/engineering/investigating-design-rationale/SKILL.md)**: Investigate why code is shaped as it is. Calls: `explaining-architecture`.
 - **[landing-prs](./skills/engineering/landing-prs/SKILL.md)**: Land a reviewed pull request on explicit request. Calls: `rebasing-branches`.
+- **[making-code-agent-friendly](./skills/engineering/making-code-agent-friendly/SKILL.md)**: Audit, review, and refactor code so many agents can change it in parallel.
 - **[merging-dependabot-prs](./skills/engineering/merging-dependabot-prs/SKILL.md)**: Plan and merge safe Dependabot updates one at a time, or only request rebases. Explicit invocation only.
 - **[proving-claims](./skills/engineering/proving-claims/SKILL.md)**: Prove claims or a PR test plan with rated evidence.
 - **[rebasing-branches](./skills/engineering/rebasing-branches/SKILL.md)**: Rebase the current branch onto its base and force-push with a lease.

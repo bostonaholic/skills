@@ -1,0 +1,4 @@
+interface:
+  display_name: "Making Code Agent-Friendly"
+  short_description: "Audit, review, and refactor code so many agents can change it in parallel"
+  default_prompt: "Use $making-code-agent-friendly to audit this codebase for where parallel coding agents will conflict and plan refactors that make it safe for autonomous change."
