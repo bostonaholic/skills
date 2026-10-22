@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-10-22
+
+### Added
+
+- Add `updating-bostonaholic-skills`, which updates the existing plugin installs and skill copies of the collection to the latest release. [#135](https://github.com/bostonaholic/skills/pull/135)
+
 ## [0.59.0] - 2026-10-22
 
 ### Added
@@ -785,5 +791,7 @@
 
 [0.58.0]: https://github.com/bostonaholic/skills/compare/v0.57.0...v0.58.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.59.0...HEAD
 [0.59.0]: https://github.com/bostonaholic/skills/compare/v0.58.0...v0.59.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.60.0...HEAD
+[0.60.0]: https://github.com/bostonaholic/skills/compare/v0.59.0...v0.60.0

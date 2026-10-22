@@ -2,6 +2,8 @@
 
 Three ways in. The Claude Code and Cursor plugins install every skill as one bundle that you update in one step. `npx skills` copies the skills you pick into your project or home directory, for Claude Code, Codex, Cursor, and other agents; you own and edit the copies. Grok Bot gets its own copy script below. Pick one per agent: installing two ways on one agent gives it every skill twice.
 
+To update every install on a machine at once, run the `updating-bostonaholic-skills` skill. It plans first and changes only installs that exist: the Claude Code and Codex plugins, the Cursor plugin clone (a fast-forward pull of the clone's own branch), and each skill already present in the Antigravity (`~/.gemini/antigravity-cli/skills`), OpenCode, Cursor (`~/.cursor/skills`), and Grok Bot (`~/agent-data/workflows`) skill directories, whatever installed it. It backs up every copy it replaces. It does not touch `~/.claude/skills`, `~/.agents/skills`, or project-level `npx skills` installs; use `npx skills@latest update` for those.
+
 ## Claude Code
 
 ```sh

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Updating Bostonaholic Skills"
+  short_description: "Update the bostonaholic plugin installs and skill copies to the latest release"
+  default_prompt: "Use $updating-bostonaholic-skills to update the bostonaholic plugin installs and skill copies on this machine to the latest release."
+policy:
+  allow_implicit_invocation: false
