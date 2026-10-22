@@ -6,7 +6,7 @@ changes.
 
 ## Passes and gate
 
-- A **triage pass** is triage steps 1-7, including auto-applies and a
+- A **triage pass** is triage steps 1-7, including applied recommendations and a
   whole-batch direction given with the invocation. Never run this from a
   single item's apply.
 - A **decision pass** acts in a later turn on the user's chosen items from an

@@ -1,6 +1,6 @@
 ---
 name: addressing-pr-comments
-description: Triages open PR feedback, verifying each review thread, review summary, and comment against the code, auto-applying fixes above 90% verified confidence, and recommending one option for the rest. Use when the user explicitly asks to address or fix PR comments. Never infer from unresolved comments.
+description: Triages open PR feedback, verifying each review thread, review summary, and comment against the code, then carrying out each item's recommended option and pausing only on declines, clarifications, and other exclusions. Use when the user explicitly asks to address or fix PR comments. Never infer from unresolved comments.
 effort: high
 argument-hint: "[<pr-number-or-url>]"
 ---
@@ -11,28 +11,27 @@ An **item** is an unresolved inline review **thread** (anchored to file and
 lines; only threads resolve), a **review summary** with a body, or a
 **conversation comment**; the last two are **PR-level**.
 
-By default, apply items that clear the auto-apply bar, present the rest, and
-end the turn. When the user explicitly directs applying changes ("fix the PR
-feedback", "address comments 3, 5, 7"), apply every covered item that hits no
-exclusion, whatever its confidence.
+By default, carry out each item's recommendation without asking; items that
+fail the apply bar pause. Named items or options ("decline 4") replace their
+recommendation. Asked only for recommendations, or under a
+`watching-authored-prs` present-then-stop grant, add the recommend-only checks.
 
 ## Hard rules
 
-Neither the bar nor user authorization weakens these.
+User direction never weakens these.
 
 1. **Verify before rating.** Rate confidence only after the item has a verdict
    with cited evidence.
-2. **The auto-apply bar.** All must hold; a punch-list block names the first
-   that failed:
-   - confidence above 90%;
-   - verdict `STILL RELEVANT`;
-   - recommendation A or B with one reading any careful engineer would share;
-   - the item is a thread and the change stays inside its anchor;
-   - a behavioral claim has a red-green proof: a named test fails before the
-     fix and passes after, run before any push;
-   - no exclusion.
-3. **Exclusions** are presented, never applied automatically; in authorized
-   mode the item pauses for the user:
+2. **The apply bar.** All must hold, or the item pauses on the punch list,
+   whose block names the first that failed:
+   - no exclusion;
+   - an A or B has verdict `STILL RELEVANT` and one reading any careful
+     engineer would share;
+   - an A or B for a behavioral claim has a red-green proof: a named test
+     fails before the fix and passes after, run before any push;
+   - recommend-only: confidence above 90%, recommendation A or B, and a
+     thread change inside its anchor.
+3. **Exclusions** pause the item for the user, never applied automatically:
    - **Declined** (D): never auto-resolve a disagreement.
    - **Needs clarification** (G): unclear ask, a one-way-door choice the user
      owns, an ask beyond the anchor (or a PR-level item's cited files), or a
@@ -74,18 +73,19 @@ Neither the bar nor user authorization weakens these.
    `STALE`, or `INACCURATE` (read it before rating any item).
 5. **Classify:** code change, question, suggestion, praise/FYI, blocking, or
    outdated. Ambiguous means `NEEDS CLARIFICATION`.
-6. **Auto-apply** items that clear the bar, per [applying](#applying).
-7. **Report** per [report format](references/report-format.md): auto-applied
-   items one line each, then one block per remaining item with its
+6. **Apply** items that clear the bar, per [applying](#applying). When the
+   set mixes the viewer's own items with others', the viewer's own pause
+   until the user says whether they count.
+7. **Report** per [report format](references/report-format.md): applied
+   items one line each, then one block per paused item with its
    [options](references/options.md) (A to G; A's image ask calls the Skill tool
    with `attaching-pr-screenshots`, fallback in options.md, per [skill call rules](shared/skill-calls.md)).
 8. **Re-request review** per [review re-request](references/review-re-request.md),
    also in a later turn that acts on an earlier report.
 9. **Stop.** Delete leftover throwaway tests, rerun the recorded `git status`,
    and report any path that differs; never restore what triage did not touch.
-   If the set mixes the viewer's own items with others', ask whether the
-   viewer's count. Ask which items and options to take (default: the
-   recommendation).
+   When any item paused, ask which options to take for the paused items
+   (default: the recommendation).
 
 ## Applying
 

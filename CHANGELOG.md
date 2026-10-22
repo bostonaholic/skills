@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Make addressing-pr-comments carry out each item's recommended option by default instead of stopping for a pick, pausing only items that hit an exclusion; the 90% bar now applies only when asked for recommendations alone. [#133](https://github.com/bostonaholic/skills/pull/133)
+
 ## [0.57.0] - 2026-10-22
 
 ### Added
