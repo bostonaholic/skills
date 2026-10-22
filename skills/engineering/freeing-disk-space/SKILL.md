@@ -28,12 +28,12 @@ Find where the space went, then remove only what a tool can recreate.
 
 ## Find where the space went
 
-Run `scripts/measure-caches.sh` in the background; `du` can take minutes. It
-prints the volume line, with its target, then one row per known location.
-Take each row's class, recreated-by, command, and close-first as printed,
-filling any `<placeholder>`; report keep rows, never propose them. On exit 1
-or 69, report the error and measure with `df -h` and `du -x` by hand. Exit 64
-means an argument was given; run it with none.
+- Run `scripts/measure-caches.sh` in the background; `du` can take minutes.
+- It prints the volume line, with its target, then one row per known location.
+- Take each row's class, recreated-by, command, and close-first as printed,
+  filling any `<placeholder>`; report keep rows, never propose them.
+- On exit 1 or 69, report the error and measure with `df -h` and `du -x` by
+  hand. Exit 64 means an argument was given; run it with none.
 
 Then descend with `du -x` from the home directory into trees the script did
 not list, and check [cache locations](references/cache-locations.md) for each

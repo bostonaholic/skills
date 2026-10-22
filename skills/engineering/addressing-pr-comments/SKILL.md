@@ -69,81 +69,38 @@ Neither the bar nor user authorization weakens these.
 4. **Verify each item** against the current code (compare with `diffHunk`),
    the whole thread, and history since the comment. A runtime-behavior claim
    needs a named test with its run result. Items share one working tree, so
-   an item running a test runs alone. Verdicts:
-   - `STILL RELEVANT`
-   - `ALREADY ADDRESSED` (cite the SHA; maps to F)
-   - `STALE`: the code was removed or rewritten
-   - `INACCURATE`: **rate the concern, not the premise.** A comment citing the
-     wrong line, version, or symbol whose concern survives is
-     `STILL RELEVANT`, and the reply corrects the citation.
+   an item running a test runs alone. Give it a
+   [verdict](references/verdicts.md): `STILL RELEVANT`, `ALREADY ADDRESSED`,
+   `STALE`, or `INACCURATE` (read it before rating any item).
 5. **Classify:** code change, question, suggestion, praise/FYI, blocking, or
    outdated. Ambiguous means `NEEDS CLARIFICATION`.
 6. **Auto-apply** items that clear the bar, per [applying](#applying).
-7. **Report.** Auto-applied items, one line each (confidence, commit SHA,
-   reaction). Then one block per remaining item in exactly this format, with
-   2 to 4 options tailored to the item and `PR-level` in place of
-   `<path>:<line>` for a PR-level item:
-
-   ```text
-   [#] <path>:<line>  —  @<author>  —  <class>[, OUTDATED]
-       > <1–2 line excerpt of the comment body>
-       URL: <item url>
-       Verified: <STILL RELEVANT|ALREADY ADDRESSED|STALE|INACCURATE>  —  <one-line evidence>
-       Reaction: none yet — the option you pick places it
-       Confidence: <NN%>  —  <the auto-apply check it failed>
-
-       Options:
-         A. <concrete option tailored to this comment>  →  reacts 👍
-         C. <reply-only option>  →  reacts none
-
-       Recommendation: <A|B|C|D|…>  —  <one-line why>
-   ```
-
-   Group by file, PR-level after files, clarification items last; number
-   blocks globally. End with `Skipped <n> review-record comments.` when
-   `skippedReviewRecords` is above 0.
-
-8. **Re-request review** per [review re-request](references/review-re-request.md).
+7. **Report** per [report format](references/report-format.md): auto-applied
+   items one line each, then one block per remaining item with its
+   [options](references/options.md) (A to G; A's image ask calls the Skill tool
+   with `attaching-pr-screenshots`, fallback in options.md, per [skill call rules](shared/skill-calls.md)).
+8. **Re-request review** per [review re-request](references/review-re-request.md),
+   also in a later turn that acts on an earlier report.
 9. **Stop.** Delete leftover throwaway tests, rerun the recorded `git status`,
    and report any path that differs; never restore what triage did not touch.
    If the set mixes the viewer's own items with others', ask whether the
    viewer's count. Ask which items and options to take (default: the
    recommendation).
 
-## Options
-
-- **A. Apply the change.** For an image ask, capture it and call the Skill
-  tool with `attaching-pr-screenshots`; if it is not installed, say so and
-  leave the description alone ([skill call rules](shared/skill-calls.md)).
-- **B. Apply a variation** that meets the concern differently.
-- **C. Reply with the answer.**
-- **D. Decline**, with a one-line rationale.
-- **E. Defer**: file a follow-up, then resolve with its link.
-- **F. Resolve as-is**, citing the commit or line.
-- **G. Needs clarification**: ask the reviewer, or the user for a one-way door.
-
-Reactions on the item's opening comment when the option lands: 👍 for A, B,
-E, F; 👎 for D only when it rests on an `INACCURATE` verdict; none for C, G,
-a D about priority or scope, or the viewer's own comment.
-
 ## Applying
 
 For each A or B: delete any throwaway reproduction once it passes, show the
 planned diff, stage only the touched files (never `git add -A`), commit, and
-push. The reply cites the exact commit SHA as bare text; a PR-level reply
-links the item's url. Then, for every option that replies, run:
+push.
+
+The reply cites the exact commit SHA as bare text; a PR-level reply links the
+item's url. Then, for every option that replies, run:
 
 `node <skill-dir>/scripts/settle-item.mjs <tmp>/items.json <item-id> --reply-file <file> --react <THUMBS_UP|THUMBS_DOWN|none> [--resolve]`
 
-with the reaction from [Options](#options) and `--resolve` for a thread whose
-option resolves it. A G reply passes `--no-marker` and `--react none`, since
-only an outcome reply carries the marker `scripts/re-request-review.mjs`
-counts. Exit 0 (`verified`) is the only done. Exit 1 names the failed step:
-report it, fix the cause, and rerun (completed writes are skipped). Exit 2 is
-a usage fault; nothing was written. Any other exit: stop and report its
-stderr. A `reaction-failed` line is a warning on the item's report line, never
-an exclusion.
-
-A later turn acting on an earlier report runs the
-[review re-request](references/review-re-request.md) after the last chosen
-item reaches its outcome.
+- Pass the reaction from the [options](references/options.md#reactions), and
+  `--resolve` for a thread whose option resolves it.
+- A G reply passes `--no-marker` and `--react none`, since only an outcome
+  reply carries the marker `scripts/re-request-review.mjs` counts.
+- Exit 0 (`verified`) is the only done; read
+  [settling items](references/settling-items.md) for any other exit.

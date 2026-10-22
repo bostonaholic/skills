@@ -71,17 +71,18 @@ finding citing every location.
 
 ## Verify Critical and High hits
 
-Before scoring, reopen each Critical and High hit and read at least 20 lines
-around it plus anything it calls. Apply the
-[false-positive rules](references/detection-patterns.md#false-positives),
-then recompute the counts. Every finding in the report cites `file:line` and
-the exact code.
+- Before scoring, reopen each Critical and High hit and read at least 20 lines
+  around it plus anything it calls.
+- Apply the [false-positive rules](references/detection-patterns.md#false-positives),
+  then recompute the counts.
+- Every finding in the report cites `file:line` and the exact code.
 
 ## Phase 5: score and report
 
-Rate each verified finding with [report format](references/report-format.md),
-then pipe them as `[{"id": "F1", "severity": "Critical"}, ...]` into
-`node <skill-dir>/scripts/score.mjs` and copy its `score`, `grade`, and
-`safeToRun` into the report. Exit 1 names each malformed finding: fix the list
-and rerun. Exit 2 is a usage error. Write the report with the report format's
-template.
+- Rate each verified finding with [report format](references/report-format.md),
+  then pipe them as `[{"id": "F1", "severity": "Critical"}, ...]` into
+  `node <skill-dir>/scripts/score.mjs` and copy its `score`, `grade`, and
+  `safeToRun` into the report.
+- Exit 1 names each malformed finding: fix the list and rerun. Exit 2 is a
+  usage error.
+- Write the report with the report format's template.

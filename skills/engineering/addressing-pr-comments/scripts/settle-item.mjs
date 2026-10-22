@@ -57,7 +57,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "settle-item.mjs";
 // The skill file that explains each exit code.
-const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
+const DOC_PATH = fileURLToPath(new URL("../references/settling-items.md", import.meta.url));
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} <items-file> <item-id> --reply-file <file> --react THUMBS_UP|THUMBS_DOWN|none [--resolve] [--no-marker]`;
 
 const REACTIONS = new Set(["THUMBS_UP", "THUMBS_DOWN", "none"]);

@@ -13,10 +13,11 @@ idea; fix the thinking, not just the words.
 
 ## Brevity
 
-AI-assisted writing runs long: paragraph after paragraph of plausible-sounding
-text that says little. Cut to what you'd say out loud to a busy person. Keep
-every idea the reader needs and drop the words that carry none. If a cut loses
-meaning, keep the words. If it only loses padding, cut.
+- AI-assisted writing runs long: paragraph after paragraph of plausible-sounding
+  text that says little.
+- Cut to what you'd say out loud to a busy person. Keep every idea the reader
+  needs and drop the words that carry none.
+- If a cut loses meaning, keep the words. If it only loses padding, cut.
 
 ```text
 # Bad

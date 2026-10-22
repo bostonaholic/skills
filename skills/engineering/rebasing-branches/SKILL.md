@@ -8,10 +8,12 @@ argument-hint: "[<pr-number-or-url>]"
 # Rebasing Branches
 
 Rebase the current branch onto the latest base, resolve conflicts from both
-sides' intent, and confirm the branch still works before publishing it. The
-explicit invocation, or a call from `landing-prs` whose land request covers
-it, authorizes the history rewrite and the force-push; do not stop to confirm
-them. This skill does not wait for CI and does not merge.
+sides' intent, and confirm the branch still works before publishing it.
+
+- The explicit invocation, or a call from `landing-prs` whose land request
+  covers it, authorizes the history rewrite and the force-push; do not stop to
+  confirm them.
+- This skill does not wait for CI and does not merge.
 
 The scripts live in `<skill-dir>/scripts/` and run from inside the
 repository. Each documents its usage, output, and exit codes in its header.
@@ -37,23 +39,28 @@ Whenever the run stops after a successful prepare, report
 
 ## Baseline checks
 
-Run the project's checks (from its agent instructions, package scripts,
-Makefile, and CI workflow) once before rebasing and record each command and
-exit code. A check that already fails does not block the rebase; it is the
-baseline the post-rebase run is compared against. Choosing the checks stays
-with the model, since which commands count as a project's checks is judgment.
+- Run the project's checks (from its agent instructions, package scripts,
+  Makefile, and CI workflow) once before rebasing and record each command and
+  exit code.
+- A check that already fails does not block the rebase; it is the baseline the
+  post-rebase run is compared against.
+- Choosing the checks stays with the model, since which commands count as a
+  project's checks is judgment.
 
 ## Rebase
 
 Run `git rebase refs/remotes/<BASE_REMOTE>/<BASE>`, adding `--rebase-merges`
 when `MERGES` is above `0`, or the rebase flattens them.
 
-On a conflict, read all three stages (`git show :1:<path>` is the common
-ancestor) and keep both sides' intent. During a rebase `--ours` (stage 2) is
-the base and `--theirs` (stage 3) is the commit being replayed, the reverse of
-a merge. Never take a side whole and never `git rebase --skip`. When the code
-and its history do not decide a conflict, ask the user. Continue with
-`GIT_EDITOR=true git rebase --continue`.
+On a conflict:
+
+- Read all three stages (`git show :1:<path>` is the common ancestor) and keep
+  both sides' intent.
+- During a rebase `--ours` (stage 2) is the base and `--theirs` (stage 3) is
+  the commit being replayed, the reverse of a merge.
+- Never take a side whole and never `git rebase --skip`.
+- When the code and its history do not decide a conflict, ask the user.
+- Continue with `GIT_EDITOR=true git rebase --continue`.
 
 ## Verify, then publish
 

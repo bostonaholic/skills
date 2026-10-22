@@ -23,14 +23,15 @@ metadata:
 
 ## Edit the source, not the symlink
 
-Startup files usually live in a dotfiles repo and are symlinked into `$HOME`
-(or `$ZDOTDIR`). Write to the repo file, not the link: many editors and write
-tools replace a symlink with a regular file. Register a new startup file
-wherever the repo creates its links, and ask before running its installer.
-
-If the repo links a `<name>.plugin.zsh` into
-`${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/<name>/`, follow the
-[oh-my-zsh plugin layout](references/oh-my-zsh-plugin-layout.md).
+- Startup files usually live in a dotfiles repo and are symlinked into `$HOME`
+  (or `$ZDOTDIR`).
+- Write to the repo file, not the link: many editors and write tools replace a
+  symlink with a regular file.
+- Register a new startup file wherever the repo creates its links, and ask
+  before running its installer.
+- If the repo links a `<name>.plugin.zsh` into
+  `${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/<name>/`, follow the
+  [oh-my-zsh plugin layout](references/oh-my-zsh-plugin-layout.md).
 
 ## Choose the startup file
 
@@ -50,13 +51,15 @@ already define it: `zsh -ic 'whence -v <name>'`.
 
 ## Aliases that shadow commands
 
-An alias that replaces a standard command (`ls`, `cat`, `grep`, `rm`, `cd`)
-breaks scripts and agents that shell out through this config. Agent harnesses
-may replay aliases captured from an interactive shell, so an interactivity
-check alone does not protect them. If the config already has a guard for
-shadowing aliases, put the new alias behind it. Otherwise ask the user
-before adding one, and suggest a guard that also checks agent markers such as
-`CLAUDECODE`. Aliases with new names (`lg`, `gti`) need no guard.
+- An alias that replaces a standard command (`ls`, `cat`, `grep`, `rm`, `cd`)
+  breaks scripts and agents that shell out through this config.
+- Agent harnesses may replay aliases captured from an interactive shell, so an
+  interactivity check alone does not protect them.
+- If the config already has a guard for shadowing aliases, put the new alias
+  behind it.
+- Otherwise ask the user before adding one, and suggest a guard that also
+  checks agent markers such as `CLAUDECODE`.
+- Aliases with new names (`lg`, `gti`) need no guard.
 
 ## Validate
 

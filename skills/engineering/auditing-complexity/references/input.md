@@ -1,6 +1,6 @@
 # Input
 
-`$ARGUMENTS` holds optional scope paths, an optional `--out <dir>`, and an
+The request names optional scope paths, an optional `--out <dir>`, and an
 optional `--coverage <file>`. Stop and name an unknown flag.
 
 - **Path base.** Every relative path (scope, `--out`, `--coverage`) resolves

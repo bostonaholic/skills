@@ -75,25 +75,22 @@ In a gem, every public constant is API that other projects may call.
 
 ## Before removing or inlining a class
 
-Run `bash <skill-dir>/scripts/find-callers.sh <Constant> <project>` for
-each class. Exit 0: account for every `reference` and `require` hit, and
-decide for each `dynamic` hit whether the name it builds can be the class;
-that takes reading the code, so it stays with you. Exit 1: no caller found.
-Exit 2: fix the argument. Exit 3: install the named tool. Exit 4: report the
-grep error. A controller is also reached from `config/routes.rb` by its
-snake_case resource name, which the script does not search; read that file.
-In a review, drop or downgrade a finding whose callers you cannot account
-for.
+- Run `bash <skill-dir>/scripts/find-callers.sh <Constant> <project>` for
+  each class.
+- Exit 0: account for every `reference` and `require` hit, and decide for
+  each `dynamic` hit whether the name it builds can be the class; that takes
+  reading the code, so it stays with you.
+- Exit 1: no caller found. Exit 2: fix the argument. Exit 3: install the
+  named tool. Exit 4: report the grep error.
+- A controller is also reached from `config/routes.rb` by its snake_case
+  resource name, which the script does not search; read that file.
+- In a review, drop or downgrade a finding whose callers you cannot account
+  for.
 
 ## Review findings
 
-Group findings as **Critical** (causes or hides
-bugs, forces heavy mocking, or is copied across many files) then
-**Improvement**. Each finding gives its pattern, `file:line`, the problem
-and its callers, before and after code, complexity (S: one file, no caller
-changes; M: several files, same public API; L: public API, many callers, or
-persisted data or jobs), and migration steps. End with a recommended order:
-critical first, then lowest complexity.
+Read [review findings](references/review-findings.md) when reporting a
+review: the grouping, the fields of each finding, and the closing order.
 
 ## Refactoring
 

@@ -5,12 +5,13 @@ description: Drafts technical design docs that are directionally correct, not pe
 
 # Writing Technical Design Docs
 
-A design doc is a decision artifact, not a specification. Its job is to
-align people on a direction with enough rigor that work can start and
-enough humility that the plan can change. Aim for directionally correct,
-not perfect: a 60% draft circulated now gets better feedback than a 95%
-draft circulated in three weeks. If the doc takes longer to write than the
-first slice of implementation, it is over-engineered.
+- A design doc is a decision artifact, not a specification.
+- Its job is to align people on a direction with enough rigor that work can
+  start and enough humility that the plan can change.
+- Aim for directionally correct, not perfect: a 60% draft circulated now gets
+  better feedback than a 95% draft circulated in three weeks.
+- If the doc takes longer to write than the first slice of implementation, it
+  is over-engineered.
 
 ## Principles
 
@@ -53,12 +54,13 @@ A default to adapt; fold it into the team's own template where one exists.
 5. **Close with a Reversibility table:** each major decision rated one-way
    or two-way. No section follows it.
 
-Before returning the draft, call the Skill tool with `reviewing-design-docs`
-on it for an adversarial review. If it is not installed or cannot run here
-(for example, it cannot save the draft to a file), then below a separator
-after the doc, say that no independent review was done, why, and the next
-step: save the draft to a file, then run `/reviewing-design-docs <path>`.
-Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
+- Before returning the draft, call the Skill tool with `reviewing-design-docs`
+  on it for an adversarial review.
+- If it is not installed or cannot run here (for example, it cannot save the
+  draft to a file), then below a separator after the doc, say that no
+  independent review was done, why, and the next step: save the draft to a
+  file, then run `/reviewing-design-docs <path>`.
+- Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 
 ## When not to use this skill
 

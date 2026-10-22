@@ -160,14 +160,72 @@ test("A5 reports a description without a Use when clause", (t) => {
   );
 });
 
-test("C1 reports a SKILL.md body of 500 lines or more", (t) => {
-  const body = `${LINKS}${"Line.\n".repeat(499)}`;
+test("C1 reports a SKILL.md body over 100 lines and accepts one of 100", (t) => {
+  // The fixture header adds four lines (blank, heading, blank, links) before the items.
+  const items = (count) => `${LINKS}${"- Item.\n".repeat(count)}`;
   assertReports(
     t,
-    compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }),
+    compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body: items(97) }) }),
     "C1",
-    /body is \d+ lines; keep it under 500/,
+    /body is 101 lines; keep it to 100/,
   );
+  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body: items(96) }) }));
+  assert.deepEqual(run, { status: 0, output: "" });
+});
+
+test("C6 reports a prose paragraph over 50 words and ignores lists, tables, and fences", (t) => {
+  const words = (count) => `${"word ".repeat(count).trim()}\n`;
+  assertReports(
+    t,
+    compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body: `${LINKS}\n${words(51)}` }) }),
+    "C6",
+    /body line \d+: 51-word paragraph/,
+  );
+  const body = `${LINKS}\n${words(50)}\n- ${words(80)}\n| ${words(80)}\n\n\`\`\`text\n${words(80)}\`\`\`\n`;
+  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }));
+  assert.deepEqual(run, { status: 0, output: "" });
+});
+
+test("B3 reports harness substitutions, unknown frontmatter keys, and stray files", (t) => {
+  for (const [text, name] of [
+    ["`$ARGUMENTS` names the diff.", "\\$ARGUMENTS"],
+    ["Read `$1` first.", "\\$N"],
+    ["Run `${CLAUDE_SKILL_DIR}/scripts/x.sh`.", "\\$\\{CLAUDE_\\*\\}"],
+    ["Status: !`git status`", "!`command`"],
+  ]) {
+    const body = `${LINKS}${text}\n`;
+    assertReports(
+      t,
+      compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }),
+      "B3",
+      new RegExp(`${name} is a harness substitution`),
+    );
+  }
+  const hooked = skillFile().replace("---\n\n", "hooks:\n  PreToolUse: []\n---\n\n");
+  assertReports(
+    t,
+    compliant({ [`${SKILL}/SKILL.md`]: hooked }),
+    "B3",
+    /frontmatter key "hooks" is harness-specific/,
+  );
+  assertReports(
+    t,
+    compliant({ [`${SKILL}/hooks/hooks.json`]: "{}\n" }),
+    "B3",
+    /hooks\/hooks\.json is outside SKILL\.md/,
+  );
+});
+
+test("B3 accepts invocation metadata other harnesses ignore", (t) => {
+  const meta = skillFile().replace(
+    "---\n\n",
+    "argument-hint: <path>\neffort: low\ndisable-model-invocation: true\nmetadata:\n  owner: me\n---\n\n",
+  );
+  const run = runLint(
+    t,
+    compliant({ [`${SKILL}/SKILL.md`]: meta, [`${SKILL}/agents/openai.yaml`]: "policy: {}\n" }),
+  );
+  assert.deepEqual(run, { status: 0, output: "" });
 });
 
 test("C3 reports a bundled file that SKILL.md names only in a code span", (t) => {

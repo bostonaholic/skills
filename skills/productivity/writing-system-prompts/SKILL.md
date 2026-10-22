@@ -46,11 +46,12 @@ and good and bad examples.
 
 ## Write
 
-Infer what the conversation and supplied files already answer. Ask only the
-rest, in one message, and wait: what the AI does, who its user is, which tools
-it has, what "done" looks like, what must never happen, and the expected output
-format. Deliver the prompt in a fenced block, followed by one line per
-assumption you made.
+- Infer what the conversation and supplied files already answer.
+- Ask only the rest, in one message, and wait: what the AI does, who its user
+  is, which tools it has, what "done" looks like, what must never happen, and
+  the expected output format.
+- Deliver the prompt in a fenced block, followed by one line per assumption you
+  made.
 
 ## Review
 

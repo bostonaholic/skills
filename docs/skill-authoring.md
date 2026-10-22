@@ -8,6 +8,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 
 ## Contents
 
+- Two rules
 - Description form
 - A. Metadata
 - B. Concision and freedom
@@ -26,6 +27,18 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Before and after a skill edit
     - Traces and the G3 review
 - Checks
+
+## Two rules
+
+Every rule below serves one of these two. They apply to every skill, and every
+skill that creates or edits a skill applies them to its output.
+
+- **Agent-agnostic.** A skill is a `SKILL.md` and its scripts, plus
+  `references/`, `shared/`, and `agents/openai.yaml` metadata, nothing else.
+  No harness-specific hooks, frontmatter, or substitutions (B3).
+- **Short prompt.** `SKILL.md` stays short and checklist-shaped: at most 100
+  body lines (C1), steps and rules as list items, prose only in short
+  paragraphs (C6). Detail goes in `references/` (C2).
 
 ## Description form
 
@@ -56,22 +69,23 @@ with it.
 Tell the model what you care about, then stay out of its way: a skill holds
 only what a frontier model would otherwise get wrong.
 
-| ID  | Rule                                                                                                                                                                                                                             |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1  | Assume the agent is capable. Cut what it already knows; every paragraph must justify its tokens.                                                                                                                                 |
-| B2  | Match freedom to fragility: heuristics for open tasks, exact commands for fragile or ordered operations.                                                                                                                         |
-| B3  | Don't depend on one host's quirks.                                                                                                                                                                                               |
-| B4  | Keep verbatim any exact format, value, or edge case the user cares about. A model drops a loose summary of one: in [#81](https://github.com/bostonaholic/skills/pull/81), three such cuts each failed their eval until restored. |
+| ID  | Rule                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | Assume the agent is capable. Cut what it already knows; every paragraph must justify its tokens.                                                                                                                                                                                                                                                                                                                                  |
+| B2  | Match freedom to fragility: heuristics for open tasks, exact commands for fragile or ordered operations.                                                                                                                                                                                                                                                                                                                          |
+| B3  | Agent-agnostic: no `hooks` or other frontmatter outside the specification's fields and ignorable invocation metadata (`argument-hint`, `effort`, `disable-model-invocation`, `user-invocable`); no files beyond `SKILL.md`, `agents/openai.yaml`, `references/`, `scripts/`, and `shared/`; and no `$ARGUMENTS`, `$N`, `${CLAUDE_*}`, or `` !`command` `` in `SKILL.md`. Say what an argument stands for in plain words. **lint** |
+| B4  | Keep verbatim any exact format, value, or edge case the user cares about. A model drops a loose summary of one: in [#81](https://github.com/bostonaholic/skills/pull/81), three such cuts each failed their eval until restored.                                                                                                                                                                                                  |
 
 ## C. Structure and progressive disclosure
 
 | ID  | Rule                                                                                                                                        |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | The SKILL.md body stays under 500 lines. Split detail into references before reaching it. **lint**                                          |
+| C1  | The SKILL.md body is at most 100 lines. Move detail into references before reaching it. **lint**                                            |
 | C2  | SKILL.md is an overview that routes to references, each with a clause saying when to read it.                                               |
 | C3  | Every file in the skill's `references/` and `shared/` is linked from SKILL.md as a markdown link, so no file sits two levels deep. **lint** |
 | C4  | A file over 100 lines opens with a `## Contents` section listing its sections. **lint**                                                     |
 | C5  | File names describe their content; directories group by domain; paths use forward slashes. **lint** (slashes)                               |
+| C6  | SKILL.md is checklist-shaped: steps and rules are list items, and no prose paragraph runs over 50 words. **lint**                           |
 
 ## D. Workflows and feedback loops
 

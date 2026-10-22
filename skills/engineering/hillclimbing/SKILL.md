@@ -7,10 +7,11 @@ description: Iterates toward a goal one measured change at a time, keeping what 
 
 ## 1. Fix the check before the first change
 
-Turn the criteria into a check with a pass or fail result and a score that
-moves as the work gets closer. Record, verbatim: the goal and criteria as
-stated, the check and its threshold, guardrails (checks that pass now and must
-still pass), and the budget, only if the user gave one.
+- Turn the criteria into a check with a pass or fail result and a score that
+  moves as the work gets closer.
+- Record, verbatim: the goal and criteria as stated, the check and its
+  threshold, guardrails (checks that pass now and must still pass), and the
+  budget, only if the user gave one.
 
 If a criterion cannot be made checkable, ask once, now, and propose a check.
 This is the only planned question.
@@ -21,11 +22,16 @@ outside the working tree, and reread it after a context reset.
 
 ## 2. Climb
 
-Each iteration, make one change chosen from the last run's evidence, small
-enough to trace a score change to it. Rerun the check and guardrails. Keep it
-only if the score improved and every guardrail passes; otherwise revert it
-exactly. Log one line: change, score, kept or reverted. Keep the best state
-recoverable. Never ask whether to continue between iterations.
+Each iteration:
+
+- Make one change chosen from the last run's evidence, small enough to trace a
+  score change to it.
+- Rerun the check and guardrails.
+- Keep it only if the score improved and every guardrail passes; otherwise
+  revert it exactly.
+- Log one line: change, score, kept or reverted.
+- Keep the best state recoverable.
+- Never ask whether to continue between iterations.
 
 A noisy score needs several runs per measurement; compare medians.
 

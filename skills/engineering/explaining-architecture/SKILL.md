@@ -21,8 +21,8 @@ The skill is read-only: it writes no files and changes no state.
 
 ## Input
 
-`$ARGUMENTS` is a subsystem, a feature flow, or a placement question ("where
-should this validation live"). When it is empty or vague, infer the target
+The request names a subsystem, a feature flow, or a placement question ("where
+should this validation live"). When it names none or is vague, infer the target
 from conversation context and state your interpretation in one line before
 exploring. Do not ask first.
 
