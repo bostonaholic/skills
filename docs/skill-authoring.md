@@ -465,6 +465,7 @@ never joins `npm test` or CI.
 npm run eval:handoff                                 # Sonnet, 3 runs per arm, $36 cap
 npm run eval:handoff -- --runs 1 --model haiku       # smoke run, $6 cap
 npm run eval:handoff -- --max-cost-usd 20            # explicit cap
+npm run eval:handoff -- --dry-run                    # print the claude commands only
 ```
 
 The fixture in `evals/engineering/making-code-agent-friendly/handoff/` is a
@@ -491,6 +492,16 @@ Flags:
   measured cost per run yet. Each claude run gets `--max-budget-usd` equal to
   the cap divided by 6 x `--runs`, rounded down to the cent. Another model
   needs an explicit cap.
+- `--dry-run`: checks the arguments, the repository root, and the fixture,
+  then prints each claude command of one arm-run per arm with `<run root>`
+  placeholders and the stdin source of each prompt. It creates no directory,
+  spawns nothing, and spends nothing.
+- `-h`, `--help`: prints the usage.
+
+Run the command from the repository root. Before the scaffold and any spend,
+a preflight needs `claude`, git 2.38 or later for `git merge-tree
+--write-tree`, and Node 22.14 or later for the test flags. A failed preflight
+or a failed `scaffold.sh` exits 1 before any claude run.
 
 The arms differ in three parts of the stage-1 command, and in nothing else:
 
@@ -585,7 +596,10 @@ with: complete 3/3, both passed 3/3, merged clean 3/3 (conflict 0, broken 0), to
   the two tasks, over complete arm-runs only. An even count takes the mean of
   the two middle values as the median.
 
-The command exits 0 when every arm-run is complete and 1 when any is not.
+The command exits 0 when every arm-run is complete. It exits 1 when any
+arm-run is incomplete, on a stop rule, and on a preflight or scaffold failure.
+It exits 2 with one stderr line on a bad argument, an incomplete fixture, or a
+run outside the repository root.
 
 Every claude run in both arms and both stages gets the same budget, so a
 stop leaves the arms at most one arm-run apart. Four stop rules end the

@@ -2,7 +2,7 @@
 // Runs the handoff eval for making-code-agent-friendly, as docs/skill-authoring.md#handoff-eval
 // describes. It measures whether a refactor made with the skill is cheaper for a later,
 // skill-free agent to change than a refactor made without it.
-//   npm run eval:handoff -- [--model <m>] [--runs <1-5>] [--max-cost-usd <usd>]
+//   npm run eval:handoff -- [--model <m>] [--runs <1-5>] [--max-cost-usd <usd>] [--dry-run]
 // For each run index it does one with-arm arm-run, then one without-arm arm-run. An arm-run is a
 // stage-1 refactor of the fixture, two stage-2 follow-on tasks on its result, and a merge of the
 // two tasks. Only the with-arm stage-1 run loads a one-skill plugin and its slash command.
@@ -19,12 +19,17 @@
 // skipped, and prints the rule and both summaries.
 // Prints one line per arm-run and one summary line per arm, and writes
 // evals/results/<stamp>-<model>-handoff/handoff-result.json after each arm-run.
-// Exit 0 when every arm-run is complete, 1 when any is not or a stop rule fired, and 2 on a bad
-// argument.
+// Preflight needs claude, git 2.38 or later, and Node 22.14 or later, and runs before the
+// scaffold, so a broken setup spends nothing. --dry-run validates the arguments, the repository
+// root, and the fixture, prints each claude command, and creates and spawns nothing.
+// Exit 0 when every arm-run is complete, 1 when any is not, on a stop rule, or on a preflight or
+// scaffold failure, and 2 on a bad argument, an incomplete fixture, or a run outside the
+// repository root.
 import { spawnSync } from "node:child_process";
 import {
   closeSync,
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   openSync,
@@ -35,9 +40,16 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+const USAGE = `usage: npm run eval:handoff -- [options]
+  --model <m>          model for every claude run (default sonnet)
+  --runs <1-5>         arm-runs per arm (default 3)
+  --max-cost-usd <usd> command cap, split equally over 6 x --runs claude runs
+                       (default haiku $1, sonnet $2, opus $5 per claude run)
+  --dry-run            print the claude commands and run nothing
+  -h, --help           print this usage`;
 const DEFAULTS = { model: "sonnet", runs: 3, dryRun: false };
 const MAX_RUNS = 5;
 // Provisional per-claude-run amounts in USD; the default cap is this times the planned runs.
@@ -64,6 +76,16 @@ const RESULTS_ROOT = "evals/results";
 const RESULTS_FILE = "handoff-result.json";
 const HIDDEN_DIR = "eval-hidden";
 const HIDDEN_SUFFIX = ".test.mjs";
+const FIXTURE_FILES = [
+  "scaffold.sh",
+  "refactor.md",
+  `accept/baseline${HIDDEN_SUFFIX}`,
+  `accept/stage1${HIDDEN_SUFFIX}`,
+];
+// The merge metric compares exactly two parallel changes.
+const TASK_COUNT = 2;
+const GIT_MIN_VERSION = [2, 38];
+const NODE_MIN_VERSION = [22, 14];
 const SCRATCH_DATE = "2026-01-01T00:00:00Z";
 // git output and blobs can pass spawnSync's 1 MiB default buffer.
 const GIT_MAX_BUFFER = 256 * 1024 * 1024;
@@ -90,7 +112,8 @@ export function parseArgs(args) {
     else if (arg === "--runs") options.runs = Number(value(arg));
     else if (arg === "--max-cost-usd") capUsd = Number(value(arg));
     else if (arg === "--dry-run") options.dryRun = true;
-    else throw new UsageError(`unknown argument ${arg}`);
+    else if (arg === "-h" || arg === "--help") return { help: true };
+    else throw new UsageError(`unknown argument ${arg}; see --help`);
   }
   if (!Number.isInteger(options.runs) || options.runs < 1 || options.runs > MAX_RUNS)
     throw new UsageError(`--runs must be an integer from 1 to ${MAX_RUNS}`);
@@ -317,22 +340,35 @@ export function formatSummary(arm, summary) {
   );
 }
 
-// Reads the fixture's closed file set. Tasks run in name order.
+// Reads the fixture's closed file set and names the first missing file. Tasks run in name
+// order.
 export function readFixture(dir) {
   const fixture = resolve(dir);
-  const tasks = readdirSync(join(fixture, "tasks"))
-    .filter((file) => file.endsWith(".md"))
-    .sort()
-    .map((file) => {
-      const name = file.slice(0, -".md".length);
-      return {
-        name,
-        prompt: readFileSync(join(fixture, "tasks", file), "utf8"),
-        accept: join(fixture, "accept", `${name}${HIDDEN_SUFFIX}`),
-      };
-    });
+  const fixtureFile = (path) => {
+    if (!existsSync(join(fixture, path)))
+      throw new UsageError(`incomplete fixture ${dir}: missing ${path}`);
+    return join(fixture, path);
+  };
+  for (const path of FIXTURE_FILES) fixtureFile(path);
+  const taskFiles = existsSync(join(fixture, "tasks"))
+    ? readdirSync(join(fixture, "tasks")).filter((file) => file.endsWith(".md"))
+    : [];
+  if (taskFiles.length !== TASK_COUNT)
+    throw new UsageError(
+      `incomplete fixture ${dir}: needs exactly ${TASK_COUNT} tasks/*.md files, found ${taskFiles.length}`,
+    );
+  const tasks = taskFiles.sort().map((file) => {
+    const name = file.slice(0, -".md".length);
+    return {
+      name,
+      promptPath: join(fixture, "tasks", file),
+      prompt: readFileSync(join(fixture, "tasks", file), "utf8"),
+      accept: fixtureFile(`accept/${name}${HIDDEN_SUFFIX}`),
+    };
+  });
   return {
     scaffold: join(fixture, "scaffold.sh"),
+    refactorPath: join(fixture, "refactor.md"),
     refactor: readFileSync(join(fixture, "refactor.md"), "utf8"),
     tasks,
     baseline: join(fixture, "accept", `baseline${HIDDEN_SUFFIX}`),
@@ -689,6 +725,30 @@ function writeResults(path, record) {
   writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
 }
 
+function atLeast([major, minor], [minMajor, minMinor]) {
+  return major > minMajor || (major === minMajor && minor >= minMinor);
+}
+
+// Returns { claudeVersion } or { problem }. Versions compare as numbers: 2.9 is older than 2.38.
+function preflight(claude) {
+  const version = spawnSync(claude, ["--version"], { encoding: "utf8" });
+  if (version.error) return { problem: `${claude} --version: ${version.error.message}` };
+  if (version.status !== 0) return { problem: `${claude} --version exited ${version.status}` };
+  const gitRun = spawnSync("git", ["--version"], { encoding: "utf8" });
+  if (gitRun.error) return { problem: `git --version: ${gitRun.error.message}` };
+  const gitMatch = /git version (\d+)\.(\d+)/.exec(gitRun.stdout);
+  if (!gitMatch || !atLeast([Number(gitMatch[1]), Number(gitMatch[2])], GIT_MIN_VERSION))
+    return {
+      problem: `needs git ${GIT_MIN_VERSION.join(".")} or later for merge-tree --write-tree, found "${gitRun.stdout.trim()}"`,
+    };
+  const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+  if (!atLeast([nodeMajor, nodeMinor], NODE_MIN_VERSION))
+    return {
+      problem: `needs Node ${NODE_MIN_VERSION.join(".")} or later for the test flags, found ${process.versions.node}`,
+    };
+  return { claudeVersion: version.stdout.trim() };
+}
+
 // Runs the whole command and returns its exit code. The claude path, the results root, and the
 // timeouts are arguments, so a test can pass a fake executable, a temp directory, and short
 // timeouts.
@@ -703,12 +763,13 @@ export async function runHandoff({
   testTimeoutSeconds = TEST_TIMEOUT_SECONDS,
 }) {
   const fixture = readFixture(fixtureDir);
-  const manifest = JSON.parse(
-    readFileSync(join(repoRoot, ".claude-plugin", "plugin.json"), "utf8"),
-  );
-  const version = spawnSync(claude, ["--version"], { encoding: "utf8" });
-  if (version.error) throw version.error;
-  const claudeVersion = version.stdout.trim();
+  const manifest = readManifest(repoRoot);
+  const checked = preflight(claude);
+  if (checked.problem) {
+    console.error(`eval-handoff.mjs: preflight: ${checked.problem}`);
+    return 1;
+  }
+  const { claudeVersion } = checked;
 
   const startedAt = new Date().toISOString();
   mkdirSync(resultsRoot, { recursive: true });
@@ -730,8 +791,11 @@ export async function runHandoff({
   mkdirSync(base);
   const scaffold = spawnSync("bash", [fixture.scaffold], { cwd: base, encoding: "utf8" });
   if (scaffold.error) throw scaffold.error;
-  if (scaffold.status !== 0)
-    throw new Error(`scaffold.sh exited ${scaffold.status}: ${scaffold.stderr.trim()}`);
+  if (scaffold.status !== 0) {
+    const detail = scaffold.stderr.trim().replaceAll("\n", " ");
+    console.error(`eval-handoff.mjs: scaffold.sh exited ${scaffold.status}: ${detail}`);
+    return 1;
+  }
   const gitDir = join(runRoot, "scratch.git");
   gitOk(gitDir, ["init", "-q", "--bare"]);
   const ctx = {
@@ -792,8 +856,61 @@ export async function runHandoff({
   return runs.every((run) => run.complete) ? 0 : 1;
 }
 
+function readManifest(repoRoot) {
+  return JSON.parse(readFileSync(join(repoRoot, ".claude-plugin", "plugin.json"), "utf8"));
+}
+
+function shellQuote(arg) {
+  return /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", "'\\''")}'`;
+}
+
+// Lists each claude command of one arm-run per arm, with placeholder paths and stdin sources.
+function dryRunLines(options, fixture, manifest, repoRoot) {
+  const lines = [
+    `== handoff dry run: ${options.model}, ${options.runs} runs per arm, cap $${options.capUsd} ` +
+      `(${formatUsd(options.runBudgetUsd)} per claude run). Each command runs in its workspace ` +
+      "under <run root>, once per run index.",
+  ];
+  const shown = (path) => relative(repoRoot, path);
+  for (const arm of ARMS) {
+    const pluginDir = loadsSkill(arm, "stage1")
+      ? `<run root>/${arm}-<i>/plugin-<random>`
+      : undefined;
+    const prefix = loadsSkill(arm, "stage1")
+      ? `"/${manifest.name}:${SKILL_NAME} refactor " followed by `
+      : "";
+    const stages = [
+      { stage: "stage1", prompt: fixture.refactorPath, prefix },
+      ...fixture.tasks.map((task) => ({ stage: task.name, prompt: task.promptPath, prefix: "" })),
+    ];
+    for (const { stage, prompt, prefix: stdinPrefix } of stages) {
+      const args = claudeArgs({
+        arm,
+        stage,
+        model: options.model,
+        budgetUsd: options.runBudgetUsd,
+        pluginDir,
+      });
+      lines.push(`# ${arm} ${stage}: stdin is ${stdinPrefix}${shown(prompt)}`);
+      lines.push(["claude", ...args].map(shellQuote).join(" "));
+    }
+  }
+  return lines;
+}
+
 async function main(args) {
   const options = parseArgs(args);
+  if (options.help) {
+    console.log(USAGE);
+    return 0;
+  }
+  if (!existsSync(".claude-plugin/plugin.json") || !existsSync(join(SKILL_DIR, "SKILL.md")))
+    throw new UsageError("run from the repository root");
+  if (options.dryRun) {
+    const lines = dryRunLines(options, readFixture(FIXTURE_DIR), readManifest("."), resolve("."));
+    for (const line of lines) console.log(line);
+    return 0;
+  }
   return runHandoff({
     options,
     fixtureDir: FIXTURE_DIR,
