@@ -23,7 +23,7 @@ import { posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The skill file that explains each exit code.
-const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
+const DOC_PATH = fileURLToPath(new URL("../references/contention.md", import.meta.url));
 
 const SCRIPT = "contention.mjs";
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} [--max-commits <n>] [--top <n>] [-- <pathspec>...]`;

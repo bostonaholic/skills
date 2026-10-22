@@ -634,7 +634,7 @@ const ROWS = [
     interpreter: "node",
     args: () => ["--bogus"],
     exit: 2,
-    target: "skills/engineering/making-code-agent-friendly/SKILL.md",
+    target: "skills/engineering/making-code-agent-friendly/references/contention.md",
   },
   {
     label: "auditing-complexity render-report.mjs",

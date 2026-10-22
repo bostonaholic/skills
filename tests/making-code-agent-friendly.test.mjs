@@ -18,7 +18,7 @@ import {
 } from "../skills/engineering/making-code-agent-friendly/scripts/contention.mjs";
 
 const SCRIPT = resolve("skills/engineering/making-code-agent-friendly/scripts/contention.mjs");
-const DOC = resolve("skills/engineering/making-code-agent-friendly/SKILL.md");
+const DOC = resolve("skills/engineering/making-code-agent-friendly/references/contention.md");
 
 // ---------------------------------------------------------------------------------------------
 // Fixtures and helpers
