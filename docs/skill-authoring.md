@@ -541,8 +541,26 @@ Record that command as not run.
 
 The script owns all git work in a scratch git directory outside the
 workspaces. It fills each workspace and each test directory from a commit,
-and it counts a stage's files as the paths that its commit changes. Each test
-step runs two Node test runs on the committed tree:
+and it counts a stage's files as the paths that its commit changes. A move
+counts as two paths. The commit is the only record of a stage:
+
+- Git reads an agent's `.gitignore` and `.gitattributes` when the script
+  commits the workspace. A file that the agent's `.gitignore` excludes never
+  reaches the commit, so no count, test, or later stage sees it. A `text` or
+  `eol` attribute can change line endings in the commit. The changed paths
+  show the agent's `.gitignore` or `.gitattributes`.
+- A fill writes each committed blob as a regular file and reads no
+  attributes, so `export-ignore` and `export-subst` change nothing. It keeps
+  mode 755 on an executable file.
+- A committed symbolic link makes the stage `error: symlink`, because a test
+  run could follow it out of the run root. Any other entry that is not a file,
+  such as a nested repository, makes the stage `error: mode <mode>`. The
+  arm-run is incomplete, and the command goes on.
+- A `git merge-tree` failure that is not a conflict makes the merge `error`,
+  with git's stderr unchanged in the merge record's `error` field. The
+  arm-run is incomplete.
+
+Each test step runs two Node test runs on the committed tree:
 
 - The suite run runs the workspace's own tests.
 - The hidden run runs only the fixture's `accept/` tests, which the script
@@ -584,11 +602,11 @@ with: complete 3/3, both passed 3/3, merged clean 3/3 (conflict 0, broken 0), to
 
 - Stage 1 is `ok`, `fail`, or `error: <reason>`. A task is `pass`, `fail`,
   `error: <reason>`, or `skipped`. Stage 2 runs only after stage 1 is `ok`.
-- The merge is `clean`, `conflict`, `broken`, or `n/a`. `broken` means the
+- The merge is `clean`, `conflict`, `broken`, `error`, or `n/a`. `broken` means the
   merge is clean as text but fails a test, for example two `0044_*.sql`
   migrations. `n/a` means a task did not pass, so no merge ran.
-- An arm-run is complete when stage 1 is `ok` and each task is `pass` or
-  `fail`.
+- An arm-run is complete when stage 1 is `ok`, each task is `pass` or
+  `fail`, and the merge is not `error`.
 - `both passed s/c` counts complete arm-runs where both tasks passed.
   `merged clean m/s` counts their clean merges.
 - Tokens are the sum of the four `modelUsage` token fields of the result

@@ -11,6 +11,8 @@
 // permission model. Each claude run gets an equal share of the cap: cap / (6 x --runs), and a
 // 900-second timeout that ends it with SIGTERM. Each test run gets 120 seconds, then SIGKILL.
 // A test run passes only when Node's TAP report shows every hidden file ran and passed.
+// Counts and fills read only the committed tree. A committed symlink or other non-file entry
+// makes its stage error, and a git merge-tree failure makes the merge error; the command goes on.
 // Every claude run gets the isolation flags, and its init event must show only the planned
 // plugins and skills.
 // Stop rules, first match wins: isolation (an init event fails that check), budget (a run
@@ -27,6 +29,7 @@
 // repository root.
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   closeSync,
   cpSync,
   existsSync,
@@ -55,8 +58,6 @@ const MAX_RUNS = 5;
 // Provisional per-claude-run amounts in USD; the default cap is this times the planned runs.
 const PER_RUN_USD = { haiku: 1, sonnet: 2, opus: 5 };
 const ARMS = ["with", "without"];
-// One stage-1 refactor and two follow-on tasks per arm-run.
-const CLAUDE_RUNS_PER_ARM_RUN = 3;
 // Absorbs float error such as 0.29 * 100 = 28.999999999999996 before the cent floor.
 const CENT_EPSILON = 1e-9;
 const ISOLATION_FLAGS = [
@@ -84,8 +85,14 @@ const FIXTURE_FILES = [
 ];
 // The merge metric compares exactly two parallel changes.
 const TASK_COUNT = 2;
+// One stage-1 refactor and one run per follow-on task.
+const CLAUDE_RUNS_PER_ARM_RUN = 1 + TASK_COUNT;
 const GIT_MIN_VERSION = [2, 38];
 const NODE_MIN_VERSION = [22, 14];
+const EXECUTABLE_MODE = "100755";
+const FILE_MODES = new Set(["100644", EXECUTABLE_MODE]);
+const SYMLINK_MODE = "120000";
+const OBJECT_ID = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
 const SCRATCH_DATE = "2026-01-01T00:00:00Z";
 // git output and blobs can pass spawnSync's 1 MiB default buffer.
 const GIT_MAX_BUFFER = 256 * 1024 * 1024;
@@ -97,6 +104,15 @@ const TEST_TIMEOUT_SECONDS = 120;
 const PLUGIN_DESCRIPTION = "One-skill plugin built by scripts/eval-handoff.mjs.";
 
 class UsageError extends Error {}
+
+// A committed tree entry that a fill cannot write as a regular file. Its reason becomes the
+// stage status, such as "error: symlink".
+class FillError extends Error {
+  constructor(reason, path) {
+    super(`${reason} at ${path}`);
+    this.reason = reason;
+  }
+}
 
 export function parseArgs(args) {
   const options = { ...DEFAULTS };
@@ -458,12 +474,19 @@ export function commitWorkspace(gitDir, parent, workspace) {
 }
 
 // Writes each blob of the tree as a regular file. It reads no .gitattributes, so the filled
-// directory holds the committed bytes.
+// directory holds the committed bytes. A symbolic link would let a test run follow it out of
+// the run root, so a symlink or any other non-file entry throws FillError before any write.
 export function fillFromTree(gitDir, treeish, dest) {
-  for (const entry of listTree(gitDir, treeish)) {
+  const entries = listTree(gitDir, treeish);
+  for (const { mode, path } of entries) {
+    if (mode === SYMLINK_MODE) throw new FillError("symlink", path);
+    if (!FILE_MODES.has(mode)) throw new FillError(`mode ${mode}`, path);
+  }
+  for (const entry of entries) {
     const target = join(dest, entry.path);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, gitOk(gitDir, ["cat-file", "blob", entry.oid], { encoding: "buffer" }));
+    if (entry.mode === EXECUTABLE_MODE) chmodSync(target, 0o755);
   }
 }
 
@@ -484,19 +507,21 @@ export function changedPaths(gitDir, parent, commit) {
     .filter(Boolean);
 }
 
-// Merges two task commits without a work tree. Exit 0 is clean and exit 1 is a conflict; the
-// output starts with the merged tree id, then the conflicted paths up to a blank line.
+// Merges two task commits without a work tree. Exit 0 is clean. A conflict exits 1 and its
+// output starts with the merged tree id, then the conflicted paths up to a blank line. git also
+// exits 1 for a bad commit id, with no tree id, so only the tree id tells the two apart. Any
+// other result is an error that keeps git's stderr unchanged.
 export function mergeCheck(gitDir, a, b) {
   const run = git(gitDir, ["merge-tree", "--write-tree", "--name-only", a, b]);
   if (run.error) throw run.error;
   const [tree, ...rest] = run.stdout.split("\n");
   if (run.status === 0) return { status: "clean", tree, conflicts: [], error: null };
-  if (run.status === 1) {
+  if (run.status === 1 && OBJECT_ID.test(tree)) {
     const end = rest.indexOf("");
     const conflicts = [...new Set(end === -1 ? rest : rest.slice(0, end))];
     return { status: "conflict", tree, conflicts, error: null };
   }
-  throw new Error(`git merge-tree exited ${run.status}: ${run.stderr.trim()}`);
+  return { status: "error", tree: null, conflicts: [], error: run.stderr };
 }
 
 function hiddenPrefix(path) {
@@ -628,8 +653,16 @@ function runStage(
   if (stop !== null) error ??= stop.rule;
   let status = "error";
   if (error === null) {
-    const passed = testStep(ctx, commit, stageDir, hiddenFiles);
-    status = passed ? verdicts.pass : verdicts.fail;
+    try {
+      const passed = testStep(ctx, commit, stageDir, hiddenFiles);
+      status = passed ? verdicts.pass : verdicts.fail;
+    } catch (fillError) {
+      // The test step is the first fill of this agent's commit. The workspace fill reads the
+      // base or a stage-1 commit that already passed this fill, so a FillError there is a
+      // fixture bug and stays fatal.
+      if (!(fillError instanceof FillError)) throw fillError;
+      error = fillError.reason;
+    }
   }
   const record = {
     status,
@@ -712,7 +745,10 @@ function runArm(ctx, { arm, index }) {
   const armRun = {
     arm,
     index,
-    complete: stage1.status === "ok" && tasks.every((task) => COMPLETE_TASK.has(task.status)),
+    complete:
+      stage1.status === "ok" &&
+      tasks.every((task) => COMPLETE_TASK.has(task.status)) &&
+      merge.status !== "error",
     costUsd: stages.reduce((sum, stage) => sum + (stage.costUsd ?? 0), 0),
     stage1,
     tasks,
@@ -793,7 +829,7 @@ export async function runHandoff({
   if (scaffold.error) throw scaffold.error;
   if (scaffold.status !== 0) {
     const detail = scaffold.stderr.trim().replaceAll("\n", " ");
-    console.error(`eval-handoff.mjs: scaffold.sh exited ${scaffold.status}: ${detail}`);
+    console.error(`eval-handoff.mjs: scaffold.sh exited ${scaffold.status} in ${base}: ${detail}`);
     return 1;
   }
   const gitDir = join(runRoot, "scratch.git");
