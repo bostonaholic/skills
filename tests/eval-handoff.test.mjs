@@ -1643,6 +1643,17 @@ describe("slice 6: count, fill, and merge from the committed tree only", () => {
       assert.equal(statSync(join(dest, "run.sh")).mode & 0o777, 0o755);
     });
 
+    await t.test("a path with a tab fills under its full name", (t) => {
+      const { root, gitDir } = bareRepo(t);
+      const workspace = join(root, "workspace");
+      writeFiles(workspace, { "dir\twith tab/a\tb.txt": "tab\n" });
+      const commit = commitWorkspace(gitDir, null, workspace);
+      const dest = join(root, "fill");
+      mkdirSync(dest);
+      fillFromTree(gitDir, commit, dest);
+      assert.equal(readFileSync(join(dest, "dir\twith tab", "a\tb.txt"), "utf8"), "tab\n");
+    });
+
     await t.test("a file an agent .gitignore excludes is neither counted nor filled", (t) => {
       const { root, gitDir } = bareRepo(t);
       const workspace = join(root, "workspace");

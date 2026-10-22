@@ -502,9 +502,10 @@ function listTree(gitDir, treeish) {
     .split("\0")
     .filter(Boolean)
     .map((record) => {
-      const [meta, path] = record.split("\t");
-      const [mode, , oid] = meta.split(" ");
-      return { mode, oid, path };
+      // Only the first tab separates the metadata, because a path can hold a tab.
+      const tab = record.indexOf("\t");
+      const [mode, , oid] = record.slice(0, tab).split(" ");
+      return { mode, oid, path: record.slice(tab + 1) };
     });
 }
 
