@@ -250,6 +250,25 @@ const ROWS = [
     exit: 127,
     target: "skills/engineering/watching-authored-prs/references/ci-fix.md",
   },
+  {
+    label: "rerun-transient.mjs usage",
+    script: "skills/engineering/watching-authored-prs/scripts/rerun-transient.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/watching-authored-prs/references/ci-rerun.md",
+  },
+  {
+    label: "rerun-transient.mjs missing gh",
+    script: "skills/engineering/watching-authored-prs/scripts/rerun-transient.mjs",
+    interpreter: "node",
+    args: (dir) => {
+      writeFileSync(join(dir, "job.log"), "npm error code ECONNRESET\n");
+      return ["https://github.com/o/r/pull/1", "a".repeat(40), "7", join(dir, "job.log")];
+    },
+    exit: 127,
+    target: "skills/engineering/watching-authored-prs/references/ci-rerun.md",
+  },
   // watching-reviewed-prs
   {
     label: "arm.mjs usage",

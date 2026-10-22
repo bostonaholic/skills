@@ -8,6 +8,7 @@ Attempt a fix only when all of these hold; otherwise report which failed and
 keep watching:
 
 - the check has a readable log, read this cycle
+- the [CI rerun](ci-rerun.md) step did not re-run it this cycle
 - the logical check has fewer than 2 attempts
 - this is not the cycle-3 poll, because no later poll can read the result
 - the PR is not approved, because a push after approval can dismiss it
@@ -35,7 +36,8 @@ node <skill-dir>/scripts/ci-fix-preflight.mjs <pr-url> <head>
 
 Quote one log line that names a file, test, or symbol in the editable set.
 Otherwise report "not attributable to this branch" and change nothing; flaky
-tests, runner and network faults, and missing secrets end here.
+tests, runner and network faults the CI rerun step left, and missing secrets
+end here.
 
 ## Fence and commit
 

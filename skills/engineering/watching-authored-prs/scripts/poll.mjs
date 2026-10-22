@@ -6,7 +6,7 @@
  * watch's state file, and prints what changed.
  *
  *     node "<skill-dir>/scripts/poll.mjs" <pr-url> --state <state.json> --out <feedback.json> \
- *       --feedback-grant <present-then-stop|authorized> --ci-grant <report|fix>
+ *       --feedback-grant <present-then-stop|authorized> --ci-grant <report|rerun|fix>
  *
  * `<pr-url>` is `https://<host>/<owner>/<repo>/pull/<n>`. Requires `gh` on
  * PATH, signed in to `<host>`; every `gh` call names the host.
@@ -25,14 +25,14 @@
  * rename) as:
  *
  *   {
- *     "version": 1,
+ *     "version": 2,
  *     "pr": "<pr-url>",
  *     "head": "<40-hex head SHA at this poll>",
  *     "state": "OPEN" | "MERGED" | "CLOSED",
  *     "reviewDecision": "<GitHub reviewDecision>" | null,
  *     "unresolvedThreadIds": [ "<thread id>", ... ],
  *     "triagedPrLevelIds": [ "<review or comment id>", ... ],
- *     "reportedFailures": [ [ "<head SHA>", "<workflow>", "<name>" ], ... ]
+ *     "reportedFailures": [ [ "<head SHA>", "<workflow>", "<name>", "<jobId>" | "" ], ... ]
  *   }
  *
  * Arrays are sorted. A PR-level id joins `triagedPrLevelIds` when a poll
@@ -56,7 +56,8 @@
  *     body, and who has no comment in any review thread.
  *   - CI buckets: `pass` and `skipping` pass, `pending` is pending, anything
  *     else fails. A logical check is `workflow` plus `name`; a failure event is
- *     the head SHA plus the logical check.
+ *     the head SHA, the logical check, and its `jobId` ("" with none), so a
+ *     re-run job that fails again on the same head is a new event.
  *   - newFailures: failing checks whose failure event is not yet reported,
  *     sorted by workflow then name. A `fail` whose link is an Actions job URL
  *     of this repository carries its numeric `jobId`; at most
@@ -99,7 +100,8 @@
  *      characters, or a non-empty rollup came with an empty or non-JSON checks
  *      list. Nothing is written; stderr names the failure
  *   2  usage fault: a bad argument, a state file for another PR or of another
- *      shape, or a PR the fetch script cannot resolve. Nothing is written
+ *      shape or version, or a PR the fetch script cannot resolve. Nothing is
+ *      written
  *   127  `gh` is not on PATH
  */
 
@@ -108,7 +110,7 @@ import { readFileSync, realpathSync, renameSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "poll.mjs";
-const USAGE = `${SCRIPT}: usage: ${SCRIPT} <pr-url> --state <state.json> --out <feedback.json> --feedback-grant <present-then-stop|authorized> --ci-grant <report|fix>`;
+const USAGE = `${SCRIPT}: usage: ${SCRIPT} <pr-url> --state <state.json> --out <feedback.json> --feedback-grant <present-then-stop|authorized> --ci-grant <report|rerun|fix>`;
 // The skill file that explains each exit code.
 const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 const FETCH_SCRIPT = fileURLToPath(
@@ -129,7 +131,7 @@ const MAX_LOG_FAILURES_PER_CYCLE = 3;
 // The fetch script allows 256 MiB of gh output; its own JSON can be as large.
 const OUTPUT_LIMIT_BYTES = 256 * 1024 * 1024;
 const FEEDBACK_GRANTS = ["present-then-stop", "authorized"];
-const CI_GRANTS = ["report", "fix"];
+const CI_GRANTS = ["report", "rerun", "fix"];
 const PASSING_BUCKETS = new Set(["pass", "skipping"]);
 const OPINIONATED_REVIEW_STATES = new Set(["APPROVED", "CHANGES_REQUESTED", "DISMISSED"]);
 
@@ -192,7 +194,7 @@ function loadState(path, url) {
   const valid =
     state !== null &&
     typeof state === "object" &&
-    state.version === 1 &&
+    state.version === 2 &&
     state.pr === url &&
     typeof state.head === "string" &&
     typeof state.state === "string" &&
@@ -200,8 +202,8 @@ function loadState(path, url) {
     isStringArray(state.unresolvedThreadIds) &&
     isStringArray(state.triagedPrLevelIds) &&
     Array.isArray(state.reportedFailures) &&
-    state.reportedFailures.every((event) => isStringArray(event) && event.length === 3);
-  if (!valid) throw new Failure(EXIT_USAGE, `${path} is not a version 1 watch state for ${url}`);
+    state.reportedFailures.every((event) => isStringArray(event) && event.length === 4);
+  if (!valid) throw new Failure(EXIT_USAGE, `${path} is not a version 2 watch state for ${url}`);
   return state;
 }
 
@@ -386,11 +388,11 @@ function classifyCi(checks, head, reported, pr) {
   let logged = 0;
   let deferred = 0;
   for (const check of failing) {
-    const event = [head, check.workflow, check.name];
+    const jobId = check.bucket === "fail" ? jobIdOf(check, pr) : null;
+    const event = [head, check.workflow, check.name, jobId ?? ""];
     const key = JSON.stringify(event);
     if (seen.has(key)) continue;
     seen.add(key);
-    const jobId = check.bucket === "fail" ? jobIdOf(check, pr) : null;
     if (jobId !== null && logged === MAX_LOG_FAILURES_PER_CYCLE) {
       deferred++;
       continue;
@@ -498,7 +500,7 @@ function poll(argv) {
   };
 
   const state = {
-    version: 1,
+    version: 2,
     pr: pr.url,
     head,
     state: feedback.pr.state,
