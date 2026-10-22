@@ -19,8 +19,13 @@ skill to a copy directory that did not hold it.
 - **Apply only the confirmed id.** A changed plan exits 3 and runs nothing.
 - **Stop at blockers.** Exit 4 means a harness needs the user's action first.
 - **Never delete a skill.** A retired or unrecognized copy is only reported.
-- **`npx skills` installs are out of scope.** Point the user at
-  `npx skills@latest update` from the repository's INSTALL.md.
+- **Refreshed:** the Claude Code and Codex plugins, the Cursor plugin clone
+  (`git pull --ff-only` on its own branch, not the release tag), and any
+  collection-named real copy in `~/.gemini/antigravity-cli/skills`,
+  `${XDG_CONFIG_HOME:-~/.config}/opencode/skills`, `~/.cursor/skills`, and
+  `~/agent-data/workflows`, whatever installed it. Each old copy is backed up.
+- **Not touched:** `~/.claude/skills`, `~/.agents/skills`, and project-level
+  `npx skills` installs. Point the user at `npx skills@latest update`.
 
 ## Steps
 

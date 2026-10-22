@@ -15,9 +15,9 @@
  * plan has the id the user confirmed. With DRY_RUN=true it prints each
  * command and copy instead of running it.
  *
- * Harnesses, each inspected only when its install exists. Nothing is ever
- * installed into a harness that lacks the collection, and a skill is never
- * added to a copy directory that did not already hold it:
+ * Harnesses, each inspected only when an install of the collection exists in
+ * it. Nothing is ever installed into a harness that lacks the collection, and
+ * a skill is never added to a copy directory that did not already hold it:
  *
  *   claude         `bostonaholic@skills` at user scope in `claude plugin
  *                  list --json`, behind the release: `claude plugin
@@ -26,23 +26,37 @@
  *   codex          `bostonaholic@skills` in `codex plugin list --json`, behind
  *                  the release: `codex plugin marketplace upgrade skills`,
  *                  then `codex plugin add bostonaholic@skills`
- *   cursor-plugin  ~/.cursor/plugins/local/bostonaholic, a clean clone behind
- *                  the release: `git pull --ff-only`. A dirty, diverged, or
- *                  detached clone blocks the plan
+ *   cursor-plugin  ~/.cursor/plugins/local/bostonaholic, a clean clone on a
+ *                  branch with an upstream, behind the release tag:
+ *                  `git pull --ff-only`. That moves the clone to the tip of
+ *                  its own branch, which can be ahead of the tag. A dirty,
+ *                  diverged, detached, upstream-less, or foreign clone blocks
+ *                  the plan
+ *
+ * A `plugin list --json` that fails blocks the plan only when the harness's
+ * own files show the collection installed (installed_plugins.json for Claude
+ * Code, config.toml for Codex); otherwise that harness is skipped with a
+ * `left:` line. The same files make a missing CLI a blocker.
+ *
+ * Copy directories, plain copies with no version stamp:
+ *
  *   antigravity    ~/.gemini/antigravity-cli/skills
  *   opencode       ${XDG_CONFIG_HOME:-~/.config}/opencode/skills
  *   cursor         ~/.cursor/skills
  *   grok-bot       ~/agent-data/workflows, whose copies hold only SKILL.md,
  *                  references/, scripts/, and shared/
- *                  The last four are plain copies with no version stamp. Each
- *                  collection skill already there as a real directory with a
- *                  SKILL.md is compared with the release's copy and replaced
- *                  when it differs. The old copy moves to
- *                  ${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>,
- *                  and the new copy is staged beside the old one, then moved
- *                  in whole. A symlink or file where a collection skill goes,
- *                  and a skill the collection has retired, are left alone and
- *                  reported.
+ *
+ * In these four directories, whatever installed the copies (a copy script,
+ * `npx skills` in copy mode, or by hand), each collection skill already there
+ * as a real directory with a SKILL.md is compared with the release's copy and
+ * replaced when it differs. The old copy moves to
+ * ${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>,
+ * and the new copy is staged beside the old one, then moved in whole. A symlink
+ * or file where a collection skill goes, and a skill the collection has
+ * retired, are left alone and reported.
+ *
+ * Not touched: ~/.claude/skills, ~/.agents/skills, and project-level
+ * `npx skills` installs. Update those with `npx skills@latest update`.
  *
  * Environment: HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, CLAUDE_CONFIG_DIR, and
  * CODEX_HOME locate the installs. UPDATING_BOSTONAHOLIC_SKILLS_SOURCE
@@ -88,7 +102,6 @@ import { delimiter, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "update.mjs";
-// The reference that says what to do about each failure and blocker.
 const DOC_PATH = fileURLToPath(new URL("../references/blockers-and-failures.md", import.meta.url));
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} plan | ${SCRIPT} apply <plan-id>\n`;
 
@@ -140,7 +153,7 @@ function environment() {
 // ---------------------------------------------------------------------------
 // Tools
 
-// Runs a tool and captures its output. A tool that cannot start is the script's own failure.
+// A tool that cannot start is the script's own failure.
 function capture(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: "utf8", ...options });
   if (result.error) throw new UpdateError(`cannot run ${command}: ${result.error.message}`);
@@ -316,12 +329,31 @@ function newPlan(release) {
   return { release, found: [], steps: [], blockers: [], left: [] };
 }
 
+function claudeInstallEvidence(context) {
+  const installed = readJsonIfPresent(
+    join(context.claudeDirectory, "plugins/installed_plugins.json"),
+  );
+  return Boolean(installed?.plugins?.[PLUGIN_ID]?.some((entry) => entry.scope === "user"));
+}
+
+function codexInstallEvidence(context) {
+  const configuration = join(context.codexDirectory, "config.toml");
+  return (
+    existsSync(configuration) &&
+    readFileSync(configuration, "utf8").includes(`[plugins."${PLUGIN_ID}"]`)
+  );
+}
+
+// A listing that cannot be read blocks only when the harness's files show an install.
+function unreadableListing(plan, harness, installed, listing) {
+  const reason = `cannot read '${harness} plugin list --json': ${oneLine(listing.stderr) || "no JSON output"}`;
+  if (installed) plan.blockers.push(`${harness}: ${reason}`);
+  else plan.left.push(`${harness}: skipped, no install found and ${reason}`);
+}
+
 function inspectClaude(context, plan) {
   if (!onPath("claude")) {
-    const installed = readJsonIfPresent(
-      join(context.claudeDirectory, "plugins/installed_plugins.json"),
-    );
-    if (installed?.plugins?.[PLUGIN_ID]?.some((entry) => entry.scope === "user")) {
+    if (claudeInstallEvidence(context)) {
       plan.blockers.push(`claude: ${PLUGIN_ID} is installed but the claude CLI is not on PATH`);
     }
     return;
@@ -334,9 +366,7 @@ function inspectClaude(context, plan) {
     entries = undefined;
   }
   if (!Array.isArray(entries)) {
-    plan.blockers.push(
-      `claude: cannot read 'claude plugin list --json': ${oneLine(listing.stderr) || "no JSON output"}`,
-    );
+    unreadableListing(plan, "claude", claudeInstallEvidence(context), listing);
     return;
   }
   const mine = entries.filter((entry) => entry.id === PLUGIN_ID);
@@ -361,11 +391,7 @@ function inspectClaude(context, plan) {
 
 function inspectCodex(context, plan) {
   if (!onPath("codex")) {
-    const configuration = join(context.codexDirectory, "config.toml");
-    if (
-      existsSync(configuration) &&
-      readFileSync(configuration, "utf8").includes(`[plugins."${PLUGIN_ID}"]`)
-    ) {
+    if (codexInstallEvidence(context)) {
       plan.blockers.push(`codex: ${PLUGIN_ID} is installed but the codex CLI is not on PATH`);
     }
     return;
@@ -378,9 +404,7 @@ function inspectCodex(context, plan) {
     installed = undefined;
   }
   if (!Array.isArray(installed)) {
-    plan.blockers.push(
-      `codex: cannot read 'codex plugin list --json': ${oneLine(listing.stderr) || "no JSON output"}`,
-    );
+    unreadableListing(plan, "codex", codexInstallEvidence(context), listing);
     return;
   }
   const mine = installed.find((entry) => entry.pluginId === PLUGIN_ID && entry.installed);
@@ -398,7 +422,7 @@ function inspectCodex(context, plan) {
 }
 
 // Treats ssh and https GitHub URLs, a trailing `.git`, and a trailing slash as the same remote.
-function normalizeRemote(url) {
+export function normalizeRemote(url) {
   return url
     .trim()
     .replace(/^git@github\.com:/, "https://github.com/")
@@ -430,6 +454,9 @@ function inspectCursorPlugin(context, plan) {
   }
   if (git("symbolic-ref", "--quiet", "HEAD").status !== 0) {
     return block("has a detached HEAD. Check out its branch, then run the plan again.");
+  }
+  if (git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}").status !== 0) {
+    return block("has no upstream branch for git pull. Set one, then run the plan again.");
   }
   const releaseCommit = captureOrFail(
     "git",
@@ -570,7 +597,6 @@ function renderPlan(context, plan) {
 // ---------------------------------------------------------------------------
 // Apply
 
-// Renames a directory, copying across filesystems when a rename cannot cross one.
 function moveDirectory(source, destination) {
   mkdirSync(join(destination, ".."), { recursive: true });
   try {

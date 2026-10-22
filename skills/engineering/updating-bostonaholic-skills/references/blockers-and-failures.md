@@ -28,13 +28,17 @@ Nothing runs while any blocker stands, in any harness.
   exists but its CLI cannot run. Put the CLI on PATH, or update that harness by
   hand and re-plan.
 - **`cannot read 'claude plugin list --json'`** or the Codex equivalent: the CLI
-  printed its own error, quoted in the line. Codex lists nothing while any
-  marketplace root lacks a manifest; remove the dead marketplace with
-  `codex plugin marketplace remove <name>`, then re-plan.
-- **`cursor-plugin` dirty, detached, diverged, or foreign origin**: the clone at
-  `~/.cursor/plugins/local/bostonaholic` is not a clean clone of the release
-  repository on a branch that fast-forwards. Commit or discard its changes,
-  check out its branch, or move it aside and clone again per INSTALL.md.
+  printed its own error, quoted in the line, and the harness's own files
+  (`installed_plugins.json`, `config.toml`) show the collection installed.
+  Codex lists nothing while any marketplace root lacks a manifest; remove the
+  dead marketplace with `codex plugin marketplace remove <name>`, then re-plan.
+  Without such files the harness is skipped with a `left:` line instead.
+- **`cursor-plugin` dirty, detached, diverged, upstream-less, or foreign
+  origin**: the clone at `~/.cursor/plugins/local/bostonaholic` is not a clean
+  clone of the release repository on a branch with an upstream that
+  fast-forwards. Commit or discard its changes, check out its branch, set its
+  upstream, or move it aside and clone again per INSTALL.md. The pull follows
+  the clone's own branch, so it can land past the release tag.
 
 ## Failed steps
 
@@ -49,8 +53,10 @@ appears in it.
 
 - A symlink or file where a collection skill goes, such as an `npx skills`
   install linked into `~/.cursor/skills`. Update it with `npx skills@latest update`.
+  A real directory under a collection name is refreshed, whatever installed it.
 - A directory with no `SKILL.md` under a collection name.
 - A skill the collection has retired. Delete it by hand if unwanted.
+- A Claude Code or Codex listing that failed where no install is shown.
 - `bostonaholic@skills` installed in Claude Code at project or local scope.
   Update it with the `claude plugin update` command the line shows.
 

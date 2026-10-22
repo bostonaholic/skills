@@ -2,7 +2,7 @@
 // skill to a copy directory that lacked it, deletes or overwrites a copy without a backup,
 // changes anything on a dry run or when the plan id differs, runs steps past a blocker or a
 // failed step, runs the Claude Code or Codex commands out of order, or leaves a failure
-// without a final `see` line. The release is a local bare repository, the machine a fake
+// without a final `see` line. The release is a local bare repository read through file://, so its clone is shallow, the machine a fake
 // HOME, and the Claude Code and Codex CLIs fake executables on PATH that log each call.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -22,6 +22,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test, { after } from "node:test";
+import { normalizeRemote } from "../skills/engineering/updating-bostonaholic-skills/scripts/update.mjs";
 
 const SCRIPT = resolve("skills/engineering/updating-bostonaholic-skills/scripts/update.mjs");
 const BASH = spawnSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
@@ -107,7 +108,7 @@ function createRelease() {
   }
   git(root, "init", "--quiet", "--bare", "--initial-branch=main", bare);
   git(work, "push", "--quiet", bare, "main", "--tags");
-  return { bare, work };
+  return { bare, work, url: `file://${bare}` };
 }
 
 function writeExecutable(path, body) {
@@ -132,13 +133,15 @@ function makeMachine(t, release) {
   return machine;
 }
 
-function fakeCli(machine, name, listing) {
+function fakeCli(machine, name, listing, { failList = false } = {}) {
   const listingFile = join(machine.home, `${name}-listing.json`);
   write(listingFile, JSON.stringify(listing));
   writeExecutable(
     join(machine.bin, name),
     `echo "${name} $*" >> "${machine.log}"
-if [ "$1 $2" = "plugin list" ]; then ${CAT} "${listingFile}"; exit 0; fi
+if [ "$1 $2" = "plugin list" ]; then
+  ${failList ? 'echo "oops: listing broke" >&2; exit 1' : `${CAT} "${listingFile}"; exit 0`}
+fi
 case "$*" in *"$FAKE_FAIL"*) [ -n "$FAKE_FAIL" ] && { echo boom >&2; exit 7; } ;; esac
 exit 0
 `,
@@ -162,7 +165,7 @@ function run(machine, args, env = {}) {
     env: {
       PATH: machine.bin,
       HOME: machine.home,
-      UPDATING_BOSTONAHOLIC_SKILLS_SOURCE: machine.release.bare,
+      UPDATING_BOSTONAHOLIC_SKILLS_SOURCE: machine.release.url,
       ...GIT_ENV,
       ...env,
     },
@@ -399,12 +402,83 @@ test("an install whose CLI is not on PATH blocks the plan", (t) => {
 });
 
 // ---------------------------------------------------------------------------
+// Unreadable listings and missing CLIs
+
+function claudeEvidence(machine) {
+  write(
+    join(machine.home, ".claude/plugins/installed_plugins.json"),
+    JSON.stringify({ plugins: { "bostonaholic@skills": [{ scope: "user", version: "1.1.0" }] } }),
+  );
+}
+
+function codexEvidence(machine) {
+  write(
+    join(machine.home, ".codex/config.toml"),
+    '[plugins."bostonaholic@skills"]\nenabled = true\n',
+  );
+}
+
+test("a Codex install without the codex CLI blocks the plan", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  codexEvidence(machine);
+  const result = plan(machine);
+  assert.equal(result.status, 4);
+  assert.match(
+    result.stdout,
+    /codex: bostonaholic@skills is installed but the codex CLI is not on PATH/,
+  );
+  const applied = run(machine, ["apply", result.id]);
+  assert.equal(applied.status, 4);
+  seeLine(applied.stderr);
+});
+
+test("a missing CLI with no install on file is not a blocker", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
+});
+
+for (const [harness, evidence, listing] of [
+  ["claude", claudeEvidence, claudeListing("1.1.0")],
+  ["codex", codexEvidence, codexListing("1.1.0")],
+]) {
+  test(`an unreadable ${harness} listing blocks the plan when its files show an install`, (t) => {
+    const machine = makeMachine(t, makeRelease());
+    fakeCli(machine, harness, listing, { failList: true });
+    evidence(machine);
+    const result = plan(machine);
+    assert.equal(result.status, 4);
+    assert.match(
+      result.stdout,
+      new RegExp(`${harness}: cannot read '${harness} plugin list --json': oops: listing broke`),
+    );
+  });
+
+  test(`an unreadable ${harness} listing with no install on file is skipped and blocks nothing`, (t) => {
+    const machine = makeMachine(t, makeRelease());
+    fakeCli(machine, harness, listing, { failList: true });
+    const other = harness === "claude" ? "codex" : "claude";
+    fakeCli(machine, other, other === "claude" ? claudeListing("1.1.0") : codexListing("1.1.0"));
+    const result = plan(machine);
+    assert.equal(result.status, 0);
+    assert.match(
+      result.stdout,
+      new RegExp(`^left: ${harness}: skipped, no install found and cannot read`, "m"),
+    );
+    assert.match(
+      result.stdout,
+      new RegExp(`\\[${other}\\] bostonaholic@skills 1\\.1\\.0 is behind`),
+    );
+    assert.doesNotMatch(result.stdout, /Blocked/);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Cursor plugin clone
 
 function cursorClone(machine, behind) {
   const clone = join(machine.home, ".cursor/plugins/local/bostonaholic");
   mkdirSync(dirname(clone), { recursive: true });
-  git(machine.home, "clone", "--quiet", machine.release.bare, clone);
+  git(machine.home, "clone", "--quiet", machine.release.url, clone);
   if (behind) git(clone, "reset", "--quiet", "--hard", "v1.1.0");
   return clone;
 }
@@ -458,6 +532,55 @@ test("a diverged Cursor plugin clone blocks the plan", (t) => {
   const result = plan(machine);
   assert.equal(result.status, 4);
   assert.match(result.stdout, /cannot fast-forward/);
+});
+
+function blockedBy(machine, pattern) {
+  const result = plan(machine);
+  assert.equal(result.status, 4, result.stdout);
+  assert.match(result.stdout, pattern);
+  const applied = run(machine, ["apply", result.id]);
+  assert.equal(applied.status, 4);
+  seeLine(applied.stderr);
+}
+
+test("a Cursor plugin directory that is not a git clone blocks the plan", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  write(join(machine.home, ".cursor/plugins/local/bostonaholic/README.md"), "a copy\n");
+  blockedBy(machine, /cursor-plugin: .*is not a git clone/);
+});
+
+test("a Cursor plugin clone of another origin blocks the plan", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  const clone = cursorClone(machine, true);
+  git(clone, "remote", "set-url", "origin", "https://github.com/someone/else.git");
+  blockedBy(machine, /cursor-plugin: .*has origin https:\/\/github\.com\/someone\/else\.git/);
+});
+
+test("a Cursor plugin clone on a detached HEAD blocks the plan", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  const clone = cursorClone(machine, true);
+  git(clone, "checkout", "--quiet", "--detach", "v1.1.0");
+  blockedBy(machine, /cursor-plugin: .*has a detached HEAD/);
+});
+
+test("a Cursor plugin clone whose branch has no upstream blocks the plan", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  const clone = cursorClone(machine, true);
+  git(clone, "branch", "--unset-upstream");
+  blockedBy(machine, /cursor-plugin: .*has no upstream branch/);
+});
+
+test("ssh and https GitHub origins, with or without .git or a slash, name the same remote", () => {
+  const forms = [
+    "https://github.com/bostonaholic/skills.git",
+    "https://github.com/bostonaholic/skills",
+    "https://github.com/bostonaholic/skills/",
+    "git@github.com:bostonaholic/skills.git",
+    "ssh://git@github.com/bostonaholic/skills.git\n",
+  ];
+  for (const form of forms)
+    assert.equal(normalizeRemote(form), "https://github.com/bostonaholic/skills", form);
+  assert.notEqual(normalizeRemote("git@github.com:someone/skills.git"), normalizeRemote(forms[0]));
 });
 
 // ---------------------------------------------------------------------------
