@@ -1055,7 +1055,7 @@ describe("slice 3: isolate every run and stop when a plugin or skill leaks", () 
     "--allowed-tools",
     "Read,Grep,Glob,Edit,Write,Skill,Bash(npm test:*)",
     "--settings",
-    '{"sandbox":{"enabled":true}}',
+    '{"sandbox":{"enabled":true,"failIfUnavailable":true,"allowUnsandboxedCommands":false}}',
   ];
 
   test("claudeArgs builds one command per arm and stage", async (t) => {

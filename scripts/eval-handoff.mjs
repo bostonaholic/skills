@@ -69,7 +69,11 @@ const ISOLATION_FLAGS = [
 ];
 const TOOLS = "Read,Grep,Glob,Edit,Write,Skill,Bash";
 const ALLOWED_TOOLS = "Read,Grep,Glob,Edit,Write,Skill,Bash(npm test:*)";
-const SANDBOX_SETTINGS = '{"sandbox":{"enabled":true}}';
+// failIfUnavailable makes claude exit at startup when the sandbox cannot start, instead of running
+// Bash unconfined. allowUnsandboxedCommands false drops the unsandboxed retry, which the
+// Bash(npm test:*) rule would otherwise approve.
+const SANDBOX_SETTINGS =
+  '{"sandbox":{"enabled":true,"failIfUnavailable":true,"allowUnsandboxedCommands":false}}';
 const SKILL_NAME = "making-code-agent-friendly";
 const FIXTURE_DIR = "evals/engineering/making-code-agent-friendly/handoff";
 const SKILL_DIR = "skills/engineering/making-code-agent-friendly";
