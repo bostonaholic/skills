@@ -1,6 +1,6 @@
 ---
 name: redoing-implementations
-description: Rebuilds the current implementation from scratch as the simplest design that satisfies what was learned, after the user approves the design. Use when the user explicitly asks to redo the work, start over, scrap the approach, or rewrite it more simply. Never infer from a failing or complex implementation.
+description: Rebuilds the current implementation from scratch as the simplest design that satisfies what was learned, after the user approves the design. Use when the user explicitly asks to redo the work, start over, scrap the approach, or rewrite it more simply. Never infer from a failing or complex implementation. Not for fitting a new requirement into an existing design; use redesigning-from-first-principles.
 disable-model-invocation: true
 ---
 

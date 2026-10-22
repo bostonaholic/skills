@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `redesigning-from-first-principles`, an explicit-invocation skill that fits a new requirement into an existing design by redesigning as if it had always been there, then updating every reference in working increments. [#129](https://github.com/bostonaholic/skills/pull/129)
+
 ## [0.54.0] - 2026-10-22
 
 ### Changed
