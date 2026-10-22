@@ -1,0 +1,6 @@
+interface:
+  display_name: "Redesigning From First Principles"
+  short_description: "Redesign as if a new requirement was always there"
+  default_prompt: "Use $redesigning-from-first-principles to redesign the current design as if the new requirement had been a founding assumption."
+policy:
+  allow_implicit_invocation: false
