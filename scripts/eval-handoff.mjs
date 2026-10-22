@@ -1,0 +1,674 @@
+#!/usr/bin/env node
+// Runs the handoff eval for making-code-agent-friendly, as docs/skill-authoring.md#handoff-eval
+// describes. It measures whether a refactor made with the skill is cheaper for a later,
+// skill-free agent to change than a refactor made without it.
+//   npm run eval:handoff -- [--model <m>] [--runs <1-5>] [--max-cost-usd <usd>]
+// For each run index it does one with-arm arm-run, then one without-arm arm-run. An arm-run is a
+// stage-1 refactor of the fixture, two stage-2 follow-on tasks on its result, and a merge of the
+// two tasks. Only the with-arm stage-1 run loads a one-skill plugin and its slash command.
+// Every workspace and test directory is filled from a commit in a scratch git directory, and
+// every test step runs the workspace suite and the fixture's hidden tests under the Node
+// permission model. Each claude run gets an equal share of the cap: cap / (6 x --runs).
+// Prints one line per arm-run and one summary line per arm, and writes
+// evals/results/<stamp>-<model>-handoff/handoff-result.json after each arm-run.
+// Exit 0 when every arm-run is complete, 1 when any is not, and 2 on a bad argument.
+import { spawnSync } from "node:child_process";
+import {
+  closeSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const DEFAULTS = { model: "sonnet", runs: 3, dryRun: false };
+const MAX_RUNS = 5;
+// Provisional per-claude-run amounts in USD; the default cap is this times the planned runs.
+const PER_RUN_USD = { haiku: 1, sonnet: 2, opus: 5 };
+const ARMS = ["with", "without"];
+// One stage-1 refactor and two follow-on tasks per arm-run.
+const CLAUDE_RUNS_PER_ARM_RUN = 3;
+// Absorbs float error such as 0.29 * 100 = 28.999999999999996 before the cent floor.
+const CENT_EPSILON = 1e-9;
+const TOOLS = "Read,Grep,Glob,Edit,Write,Skill,Bash";
+const ALLOWED_TOOLS = "Read,Grep,Glob,Edit,Write,Skill,Bash(npm test:*)";
+const SANDBOX_SETTINGS = '{"sandbox":{"enabled":true}}';
+const SKILL_NAME = "making-code-agent-friendly";
+const FIXTURE_DIR = "evals/engineering/making-code-agent-friendly/handoff";
+const SKILL_DIR = "skills/engineering/making-code-agent-friendly";
+const RESULTS_ROOT = "evals/results";
+const RESULTS_FILE = "handoff-result.json";
+const HIDDEN_DIR = "eval-hidden";
+const HIDDEN_SUFFIX = ".test.mjs";
+const SCRATCH_DATE = "2026-01-01T00:00:00Z";
+// git output and blobs can pass spawnSync's 1 MiB default buffer.
+const GIT_MAX_BUFFER = 256 * 1024 * 1024;
+const PLUGIN_DESCRIPTION = "One-skill plugin built by scripts/eval-handoff.mjs.";
+
+class UsageError extends Error {}
+
+export function parseArgs(args) {
+  const options = { ...DEFAULTS };
+  const rest = [...args];
+  let capUsd;
+  const value = (flag) => {
+    if (rest.length === 0) throw new UsageError(`${flag} needs a value`);
+    return rest.shift();
+  };
+  while (rest.length > 0) {
+    const arg = rest.shift();
+    if (arg === "--model") options.model = value(arg);
+    else if (arg === "--runs") options.runs = Number(value(arg));
+    else if (arg === "--max-cost-usd") capUsd = Number(value(arg));
+    else if (arg === "--dry-run") options.dryRun = true;
+    else throw new UsageError(`unknown argument ${arg}`);
+  }
+  if (!Number.isInteger(options.runs) || options.runs < 1 || options.runs > MAX_RUNS)
+    throw new UsageError(`--runs must be an integer from 1 to ${MAX_RUNS}`);
+  const plannedRuns = plannedClaudeRuns(options.runs);
+  if (capUsd === undefined) {
+    if (!(options.model in PER_RUN_USD))
+      throw new UsageError(`no default cap for model ${options.model}; pass --max-cost-usd`);
+    capUsd = PER_RUN_USD[options.model] * plannedRuns;
+  } else if (!(Number.isFinite(capUsd) && capUsd > 0)) {
+    throw new UsageError("--max-cost-usd must be a number above 0");
+  }
+  const runBudgetUsd = Math.floor((capUsd / plannedRuns) * 100 + CENT_EPSILON) / 100;
+  if (runBudgetUsd < 0.01)
+    throw new UsageError(
+      `--max-cost-usd ${capUsd} gives under $0.01 per claude run over ${plannedRuns} runs`,
+    );
+  return { model: options.model, runs: options.runs, capUsd, runBudgetUsd, dryRun: options.dryRun };
+}
+
+function plannedClaudeRuns(runs) {
+  return ARMS.length * CLAUDE_RUNS_PER_ARM_RUN * runs;
+}
+
+// Alternates the arms within each run index, so a stop leaves them at most one arm-run apart.
+export function planRuns(runs) {
+  const plan = [];
+  for (let index = 1; index <= runs; index++) for (const arm of ARMS) plan.push({ arm, index });
+  return plan;
+}
+
+function loadsSkill(arm, stage) {
+  return arm === "with" && stage === "stage1";
+}
+
+export function claudeArgs({ arm, stage, model, budgetUsd, pluginDir }) {
+  const args = ["-p", "--output-format", "stream-json", "--verbose"];
+  args.push("--model", model, "--max-budget-usd", String(budgetUsd));
+  args.push("--tools", TOOLS, "--allowed-tools", ALLOWED_TOOLS, "--settings", SANDBOX_SETTINGS);
+  if (loadsSkill(arm, stage))
+    args.push("--plugin-dir", pluginDir, "--add-dir", join(pluginDir, "skills", SKILL_NAME));
+  return args;
+}
+
+// Reads a stream-json transcript. Tokens sum the four usage fields over every model in the
+// result event's modelUsage, which also covers a run that a budget stop ended.
+export function readStreamResult(text) {
+  let init = null;
+  let result = null;
+  for (const line of text.split("\n")) {
+    if (line.trim() === "") continue;
+    const event = JSON.parse(line);
+    if (event.type === "system" && event.subtype === "init") init = event;
+    else if (event.type === "result") result = event;
+  }
+  if (result === null)
+    return {
+      init,
+      tokens: null,
+      costUsd: null,
+      isError: false,
+      subtype: null,
+      errorReason: "no result",
+    };
+  const tokens = Object.values(result.modelUsage ?? {}).reduce(
+    (sum, usage) =>
+      sum +
+      usage.inputTokens +
+      usage.outputTokens +
+      usage.cacheReadInputTokens +
+      usage.cacheCreationInputTokens,
+    0,
+  );
+  const isError = result.is_error === true;
+  return {
+    init,
+    tokens,
+    costUsd: result.total_cost_usd,
+    isError,
+    subtype: result.subtype ?? null,
+    errorReason: isError ? result.subtype : null,
+  };
+}
+
+// The stage's error reason, or null. A non-zero exit outranks the result event's own subtype.
+function runErrorReason(status, signal, stream) {
+  if (status !== 0) return `exit ${status ?? signal}`;
+  return stream.errorReason;
+}
+
+// Passes a Node TAP report only when the run exited 0, the end-of-run summary shows no failure
+// or cancellation, and each hidden file has a passing top-level test with its name prefix. Exit
+// 0 alone is not enough: agent source shares the hidden run's process and can end it early.
+export function judgeTestRun({ status, tap, hiddenPrefixes }) {
+  if (status !== 0) return { passed: false, reason: `exit ${status}` };
+  const fail = tap.match(/^# fail (\d+)$/m);
+  const cancelled = tap.match(/^# cancelled (\d+)$/m);
+  if (!fail || !cancelled) return { passed: false, reason: "no summary" };
+  if (fail[1] !== "0") return { passed: false, reason: `fail ${fail[1]}` };
+  if (cancelled[1] !== "0") return { passed: false, reason: `cancelled ${cancelled[1]}` };
+  for (const prefix of hiddenPrefixes) {
+    const line = new RegExp(`^ok \\d+ - ${escapeRegExp(prefix)}: `, "m");
+    if (!line.test(tap)) return { passed: false, reason: `no passing ${prefix} test` };
+  }
+  return { passed: true, reason: null };
+}
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Summarizes one arm. Tokens and files are per-arm-run sums over the two tasks, taken over
+// complete arm-runs only; cost sums every arm-run.
+export function summarizeArm(armRuns, runsPerArm) {
+  const complete = armRuns.filter((run) => run.complete);
+  const bothPassed = complete.filter((run) => run.tasks.every((task) => task.status === "pass"));
+  const merges = (status) => bothPassed.filter((run) => run.merge.status === status).length;
+  const taskSum = (run, field) => run.tasks.reduce((sum, task) => sum + task[field], 0);
+  return {
+    runs: runsPerArm,
+    complete: complete.length,
+    bothPassed: bothPassed.length,
+    mergedClean: merges("clean"),
+    conflict: merges("conflict"),
+    broken: merges("broken"),
+    tokens: spread(complete.map((run) => taskSum(run, "tokens"))),
+    files: spread(complete.map((run) => taskSum(run, "files"))),
+    costUsd: armRuns.reduce((sum, run) => sum + run.costUsd, 0),
+  };
+}
+
+// An even count takes the mean of the two middle values, so no half of the spread is hidden.
+function spread(values) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  return { min: sorted[0], max: sorted.at(-1), median };
+}
+
+function formatSpread(range) {
+  return range === null ? "n/a" : `${range.min}-${range.max} median ${range.median}`;
+}
+
+function formatUsd(usd) {
+  return `$${usd.toFixed(2)}`;
+}
+
+function formatStatus(stage) {
+  return stage.status === "error" ? `error: ${stage.error}` : stage.status;
+}
+
+export function formatRunLine(run) {
+  const parts = [`stage1 ${formatStatus(run.stage1)} files ${run.stage1.files}`];
+  for (const task of run.tasks) {
+    if (task.status === "skipped") parts.push(`${task.name} skipped`);
+    else parts.push(`${task.name} ${formatStatus(task)} tokens ${task.tokens} files ${task.files}`);
+  }
+  parts.push(`merge ${run.merge.status}`);
+  parts.push(`${formatUsd(run.costUsd)} ${run.complete ? "complete" : "incomplete"}`);
+  return `${run.arm} ${run.index}: ${parts.join(" | ")}`;
+}
+
+export function formatSummary(arm, summary) {
+  const { runs, complete, bothPassed, mergedClean, conflict, broken } = summary;
+  return (
+    `${arm}: complete ${complete}/${runs}, both passed ${bothPassed}/${complete}, ` +
+    `merged clean ${mergedClean}/${bothPassed} (conflict ${conflict}, broken ${broken}), ` +
+    `tokens ${formatSpread(summary.tokens)}, files ${formatSpread(summary.files)}, ` +
+    `cost ${formatUsd(summary.costUsd)}`
+  );
+}
+
+// Reads the fixture's closed file set. Tasks run in name order.
+export function readFixture(dir) {
+  const fixture = resolve(dir);
+  const tasks = readdirSync(join(fixture, "tasks"))
+    .filter((file) => file.endsWith(".md"))
+    .sort()
+    .map((file) => {
+      const name = file.slice(0, -".md".length);
+      return {
+        name,
+        prompt: readFileSync(join(fixture, "tasks", file), "utf8"),
+        accept: join(fixture, "accept", `${name}${HIDDEN_SUFFIX}`),
+      };
+    });
+  return {
+    scaffold: join(fixture, "scaffold.sh"),
+    refactor: readFileSync(join(fixture, "refactor.md"), "utf8"),
+    tasks,
+    baseline: join(fixture, "accept", `baseline${HIDDEN_SUFFIX}`),
+    stage1: join(fixture, "accept", `stage1${HIDDEN_SUFFIX}`),
+  };
+}
+
+// Builds a fresh plugin that holds only the skill. The with-arm agent can write the copy through
+// --add-dir, so each run gets its own and no edit carries into the next run.
+export function buildSkillPlugin(skillDir, manifest, parentDir) {
+  const pluginDir = mkdtempSync(join(parentDir, "plugin-"));
+  cpSync(skillDir, join(pluginDir, "skills", SKILL_NAME), { recursive: true });
+  mkdirSync(join(pluginDir, ".claude-plugin"));
+  const pluginManifest = {
+    name: manifest.name,
+    version: manifest.version,
+    description: PLUGIN_DESCRIPTION,
+    skills: [`./skills/${SKILL_NAME}`],
+  };
+  writeFileSync(
+    join(pluginDir, ".claude-plugin", "plugin.json"),
+    `${JSON.stringify(pluginManifest, null, 2)}\n`,
+  );
+  return pluginDir;
+}
+
+// Scratch git ignores the maintainer's config, ignore file, and attributes file, so the commit
+// records exactly what the agent left. It sets no signing: these commits never leave the run root.
+const SCRATCH_GIT_FLAGS = [
+  "-c",
+  "user.name=Eval Fixture",
+  "-c",
+  "user.email=eval@example.invalid",
+  "-c",
+  "core.excludesFile=/dev/null",
+  "-c",
+  "core.attributesFile=/dev/null",
+];
+
+function scratchGitEnv(extra) {
+  // Drops inherited GIT_* variables, such as a hook's GIT_DIR or GIT_INDEX_FILE.
+  const inherited = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+  );
+  return {
+    ...inherited,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_AUTHOR_DATE: SCRATCH_DATE,
+    GIT_COMMITTER_DATE: SCRATCH_DATE,
+    ...extra,
+  };
+}
+
+function git(gitDir, args, { env = {}, encoding = "utf8" } = {}) {
+  return spawnSync("git", [`--git-dir=${gitDir}`, ...SCRATCH_GIT_FLAGS, ...args], {
+    env: scratchGitEnv(env),
+    encoding,
+    maxBuffer: GIT_MAX_BUFFER,
+  });
+}
+
+function gitOk(gitDir, args, options) {
+  const run = git(gitDir, args, options);
+  if (run.error) throw run.error;
+  if (run.status !== 0)
+    throw new Error(`git ${args.join(" ")} exited ${run.status}: ${String(run.stderr).trim()}`);
+  return run.stdout;
+}
+
+// Commits the workspace as a child of parent, or as a root commit when parent is null. The index
+// starts as the parent's tree, so a file the agent deleted shows as a deleted path.
+export function commitWorkspace(gitDir, parent, workspace) {
+  const indexDir = mkdtempSync(join(gitDir, "eval-index-"));
+  const env = { GIT_INDEX_FILE: join(indexDir, "index") };
+  try {
+    if (parent !== null) gitOk(gitDir, ["read-tree", parent], { env });
+    gitOk(gitDir, [`--work-tree=${workspace}`, "add", "-A"], { env });
+    const tree = gitOk(gitDir, ["write-tree"], { env }).trim();
+    const parentArgs = parent === null ? [] : ["-p", parent];
+    return gitOk(gitDir, ["commit-tree", tree, ...parentArgs, "-m", "eval-handoff"], {
+      env,
+    }).trim();
+  } finally {
+    rmSync(indexDir, { recursive: true, force: true });
+  }
+}
+
+// Writes each blob of the tree as a regular file. It reads no .gitattributes, so the filled
+// directory holds the committed bytes.
+export function fillFromTree(gitDir, treeish, dest) {
+  for (const entry of listTree(gitDir, treeish)) {
+    const target = join(dest, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, gitOk(gitDir, ["cat-file", "blob", entry.oid], { encoding: "buffer" }));
+  }
+}
+
+function listTree(gitDir, treeish) {
+  return gitOk(gitDir, ["ls-tree", "-r", "-z", treeish])
+    .split("\0")
+    .filter(Boolean)
+    .map((record) => {
+      const [meta, path] = record.split("\t");
+      const [mode, , oid] = meta.split(" ");
+      return { mode, oid, path };
+    });
+}
+
+export function changedPaths(gitDir, parent, commit) {
+  return gitOk(gitDir, ["diff", "--name-only", "--no-renames", "-z", parent, commit])
+    .split("\0")
+    .filter(Boolean);
+}
+
+// Merges two task commits without a work tree. Exit 0 is clean and exit 1 is a conflict; the
+// output starts with the merged tree id, then the conflicted paths up to a blank line.
+export function mergeCheck(gitDir, a, b) {
+  const run = git(gitDir, ["merge-tree", "--write-tree", "--name-only", a, b]);
+  if (run.error) throw run.error;
+  const [tree, ...rest] = run.stdout.split("\n");
+  if (run.status === 0) return { status: "clean", tree, conflicts: [], error: null };
+  if (run.status === 1) {
+    const end = rest.indexOf("");
+    const conflicts = [...new Set(end === -1 ? rest : rest.slice(0, end))];
+    return { status: "conflict", tree, conflicts, error: null };
+  }
+  throw new Error(`git merge-tree exited ${run.status}: ${run.stderr.trim()}`);
+}
+
+function hiddenPrefix(path) {
+  const file = path.split("/").at(-1);
+  return file.slice(0, -HIDDEN_SUFFIX.length);
+}
+
+// One test run under the Node permission model: it can read and write only its own test
+// directory and start no child process. A hidden run names its hidden files, so Node loads no
+// agent test file beside them.
+function testRun({ gitDir, treeish, dir, hiddenFiles }) {
+  mkdirSync(dir);
+  fillFromTree(gitDir, treeish, dir);
+  const hiddenArgs = [];
+  if (hiddenFiles.length > 0) mkdirSync(join(dir, HIDDEN_DIR), { recursive: true });
+  for (const file of hiddenFiles) {
+    const name = file.split("/").at(-1);
+    cpSync(file, join(dir, HIDDEN_DIR, name));
+    hiddenArgs.push(`${HIDDEN_DIR}/${name}`);
+  }
+  const tapPath = `${dir}.tap`;
+  const tapFd = openSync(tapPath, "w");
+  let run;
+  try {
+    run = spawnSync(
+      process.execPath,
+      [
+        "--permission",
+        `--allow-fs-read=${dir}`,
+        `--allow-fs-write=${dir}`,
+        "--test",
+        "--experimental-test-isolation=none",
+        "--test-reporter=tap",
+        ...hiddenArgs,
+      ],
+      { cwd: dir, env: { PATH: process.env.PATH }, stdio: ["ignore", tapFd, "pipe"] },
+    );
+  } finally {
+    closeSync(tapFd);
+  }
+  if (run.error) throw run.error;
+  return judgeTestRun({
+    status: run.status,
+    signal: run.signal,
+    tap: readFileSync(tapPath, "utf8"),
+    hiddenPrefixes: hiddenFiles.map(hiddenPrefix),
+  });
+}
+
+// A test step passes only when the workspace suite and the hidden tests both pass.
+function testStep(gitDir, treeish, stageDir, hiddenFiles) {
+  const suite = testRun({ gitDir, treeish, dir: join(stageDir, "test-suite"), hiddenFiles: [] });
+  const hidden = testRun({ gitDir, treeish, dir: join(stageDir, "test-hidden"), hiddenFiles });
+  return suite.passed && hidden.passed;
+}
+
+// One stage: a claude run in a workspace filled from parent, a commit of what it left, and a
+// test step on that commit. Stdout goes straight to the trace file, so a transcript larger than
+// spawnSync's buffer still parses. A run that errors gets no test step.
+function runStage(ctx, { arm, stage, stageDir, parent, prompt, pluginDir, hiddenFiles, verdicts }) {
+  const workspace = join(stageDir, "workspace");
+  mkdirSync(workspace, { recursive: true });
+  fillFromTree(ctx.gitDir, parent, workspace);
+  const args = claudeArgs({
+    arm,
+    stage,
+    model: ctx.options.model,
+    budgetUsd: ctx.options.runBudgetUsd,
+    pluginDir,
+  });
+  const trace = join(stageDir, "trace.jsonl");
+  const traceFd = openSync(trace, "w");
+  let run;
+  try {
+    run = spawnSync(ctx.claude, args, {
+      cwd: workspace,
+      input: prompt,
+      stdio: ["pipe", traceFd, "pipe"],
+    });
+  } finally {
+    closeSync(traceFd);
+  }
+  if (run.error) throw run.error;
+  const stream = readStreamResult(readFileSync(trace, "utf8"));
+  const commit = commitWorkspace(ctx.gitDir, parent, workspace);
+  const paths = changedPaths(ctx.gitDir, parent, commit);
+  const error = runErrorReason(run.status, run.signal, stream);
+  let status = "error";
+  if (error === null) {
+    const passed = testStep(ctx.gitDir, commit, stageDir, hiddenFiles);
+    status = passed ? verdicts.pass : verdicts.fail;
+  }
+  return {
+    status,
+    error,
+    costUsd: stream.costUsd,
+    tokens: stream.tokens,
+    files: paths.length,
+    paths,
+    commit,
+    trace,
+  };
+}
+
+function skippedStage(name) {
+  return {
+    name,
+    status: "skipped",
+    error: null,
+    costUsd: null,
+    tokens: null,
+    files: null,
+    paths: [],
+    commit: null,
+    trace: null,
+  };
+}
+
+const NO_MERGE = { status: "n/a", conflicts: [], error: null };
+const COMPLETE_TASK = new Set(["pass", "fail"]);
+
+function runArm(ctx, { arm, index }) {
+  const armDir = join(ctx.runRoot, `${arm}-${index}`);
+  mkdirSync(armDir);
+  const pluginDir =
+    arm === "with" ? buildSkillPlugin(ctx.skillDir, ctx.manifest, armDir) : undefined;
+  const slashPrefix = arm === "with" ? `/${ctx.manifest.name}:${SKILL_NAME} refactor ` : "";
+  const stage1 = runStage(ctx, {
+    arm,
+    stage: "stage1",
+    stageDir: join(armDir, "stage1"),
+    parent: ctx.baseCommit,
+    prompt: `${slashPrefix}${ctx.fixture.refactor}`,
+    pluginDir,
+    hiddenFiles: [ctx.fixture.baseline, ctx.fixture.stage1],
+    verdicts: { pass: "ok", fail: "fail" },
+  });
+
+  const tasks = ctx.fixture.tasks.map((task) => {
+    if (stage1.status !== "ok") return skippedStage(task.name);
+    const result = runStage(ctx, {
+      arm,
+      stage: task.name,
+      stageDir: join(armDir, task.name),
+      parent: stage1.commit,
+      prompt: task.prompt,
+      hiddenFiles: [ctx.fixture.baseline, task.accept],
+      verdicts: { pass: "pass", fail: "fail" },
+    });
+    return { name: task.name, ...result };
+  });
+
+  let merge = NO_MERGE;
+  if (tasks.every((task) => task.status === "pass")) {
+    const { tree, ...record } = mergeCheck(ctx.gitDir, tasks[0].commit, tasks[1].commit);
+    merge = record;
+    if (record.status === "clean") {
+      const hidden = [ctx.fixture.baseline, ...ctx.fixture.tasks.map((task) => task.accept)];
+      const mergeDir = join(armDir, "merge");
+      mkdirSync(mergeDir);
+      if (!testStep(ctx.gitDir, tree, mergeDir, hidden)) merge = { ...record, status: "broken" };
+    }
+  }
+
+  const stages = [stage1, ...tasks];
+  return {
+    arm,
+    index,
+    complete: stage1.status === "ok" && tasks.every((task) => COMPLETE_TASK.has(task.status)),
+    costUsd: stages.reduce((sum, stage) => sum + (stage.costUsd ?? 0), 0),
+    stage1,
+    tasks,
+    merge,
+  };
+}
+
+function writeResults(path, record) {
+  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+}
+
+// Runs the whole command and returns its exit code. The claude path and the results root are
+// arguments, so a test can pass a fake executable and a temp directory.
+export async function runHandoff({ options, fixtureDir, skillDir, repoRoot, resultsRoot, claude }) {
+  const fixture = readFixture(fixtureDir);
+  const manifest = JSON.parse(
+    readFileSync(join(repoRoot, ".claude-plugin", "plugin.json"), "utf8"),
+  );
+  const version = spawnSync(claude, ["--version"], { encoding: "utf8" });
+  if (version.error) throw version.error;
+  const claudeVersion = version.stdout.trim();
+
+  const startedAt = new Date().toISOString();
+  mkdirSync(resultsRoot, { recursive: true });
+  const resultsDir = join(
+    resultsRoot,
+    `${startedAt.replace(/[:.]/g, "-")}-${options.model}-handoff`,
+  );
+  // Not recursive, so a rerun in the same millisecond fails instead of replacing a result.
+  mkdirSync(resultsDir);
+  const resultsPath = join(resultsDir, RESULTS_FILE);
+  const runRoot = realpathSync(mkdtempSync(join(tmpdir(), "eval-handoff-")));
+  console.log(
+    `== handoff: ${options.model}, ${options.runs} runs per arm, cap $${options.capUsd} ` +
+      `(${formatUsd(options.runBudgetUsd)} per claude run) -> ${resultsDir}/`,
+  );
+  console.log(`== run root: ${runRoot}`);
+
+  const base = join(runRoot, "base");
+  mkdirSync(base);
+  const scaffold = spawnSync("bash", [fixture.scaffold], { cwd: base, encoding: "utf8" });
+  if (scaffold.error) throw scaffold.error;
+  if (scaffold.status !== 0)
+    throw new Error(`scaffold.sh exited ${scaffold.status}: ${scaffold.stderr.trim()}`);
+  const gitDir = join(runRoot, "scratch.git");
+  gitOk(gitDir, ["init", "-q", "--bare"]);
+  const ctx = {
+    options,
+    fixture,
+    manifest,
+    claude,
+    skillDir: resolve(skillDir),
+    runRoot,
+    gitDir,
+    baseCommit: commitWorkspace(gitDir, null, base),
+  };
+
+  const runs = [];
+  const record = () => ({
+    schemaVersion: 1,
+    claudeVersion,
+    startedAt,
+    model: options.model,
+    runsPerArm: options.runs,
+    capUsd: options.capUsd,
+    runBudgetUsd: options.runBudgetUsd,
+    costUsd: runs.reduce((sum, run) => sum + run.costUsd, 0),
+    stopped: null,
+    finished: false,
+    runRoot,
+    runs,
+    summary: Object.fromEntries(
+      ARMS.map((arm) => [
+        arm,
+        summarizeArm(
+          runs.filter((run) => run.arm === arm),
+          options.runs,
+        ),
+      ]),
+    ),
+  });
+  for (const planned of planRuns(options.runs)) {
+    const armRun = runArm(ctx, planned);
+    runs.push(armRun);
+    console.log(formatRunLine(armRun));
+    writeResults(resultsPath, record());
+  }
+  const final = { ...record(), finished: true };
+  writeResults(resultsPath, final);
+  for (const arm of ARMS) console.log(formatSummary(arm, final.summary[arm]));
+  console.log(`== results: ${resultsPath}`);
+  return runs.every((run) => run.complete) ? 0 : 1;
+}
+
+async function main(args) {
+  const options = parseArgs(args);
+  return runHandoff({
+    options,
+    fixtureDir: FIXTURE_DIR,
+    skillDir: SKILL_DIR,
+    repoRoot: ".",
+    resultsRoot: RESULTS_ROOT,
+    claude: "claude",
+  });
+}
+
+// Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
+  try {
+    process.exitCode = await main(process.argv.slice(2));
+  } catch (error) {
+    if (!(error instanceof UsageError)) throw error;
+    console.error(`eval-handoff.mjs: ${error.message}`);
+    process.exitCode = 2;
+  }
+}

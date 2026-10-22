@@ -26,6 +26,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Verdicts
     - Before and after a skill edit
     - Traces and the G3 review
+    - Handoff eval
 - Checks
 
 ## Two rules
@@ -152,6 +153,7 @@ npm run eval                              # whole suite, Sonnet, --runs 1, recor
 npm run eval -- reviewing-code            # one skill's cases, --runs 3, before-and-after cap
 npm run eval -- reviewing-code-core --model opus
 npm run eval -- reviewing-code --dry-run  # print the claude commands only
+npm run eval:handoff                      # handoff eval for making-code-agent-friendly
 ```
 
 Every default has a flag that overrides it: `--runs 1|3`, `--max-cost-usd
@@ -178,6 +180,10 @@ inline in the `prompt.md` `append_system_prompt`. A case that needs
 repository files also holds `case.yaml` and a `scaffold.sh` that writes them
 into the run's workspace. Never use `context.add_dirs`: the CLI mounts that
 directory outside the workspace and denies reads of it.
+
+`evals/engineering/making-code-agent-friendly/handoff/` is a fixture for the
+[handoff eval](#handoff-eval), not a case: it holds no `prompt.md` and no
+`case.yaml`.
 
 The CLI ends `prompt.md` frontmatter at the first `---` anywhere after the
 opening line, not at a line that is exactly `---`. A diff line such as
@@ -446,6 +452,123 @@ these patterns:
 
 Revise the skill for each finding, and test the edit with the before and
 after commands.
+
+#### Handoff eval
+
+The handoff eval tests the central claim of `making-code-agent-friendly`:
+code that its Refactor mode changes is cheaper for the next agent to change.
+`claude plugin eval` cannot start one run from another run's workspace, so
+`scripts/eval-handoff.mjs` drives `claude -p` itself. It costs money, so it
+never joins `npm test` or CI.
+
+```sh
+npm run eval:handoff                                 # Sonnet, 3 runs per arm, $36 cap
+npm run eval:handoff -- --runs 1 --model haiku       # smoke run, $6 cap
+npm run eval:handoff -- --max-cost-usd 20            # explicit cap
+```
+
+The fixture in `evals/engineering/making-code-agent-friendly/handoff/` is a
+small plain-JavaScript billing service. Each new event edits a `handlers`
+array and a router `switch`, and each schema change takes the next global
+migration number. For each run index, the script does one arm-run in the
+with arm and then one in the without arm. An arm-run has four steps:
+
+1. Stage 1 refactors the fixture with `refactor.md`.
+2. Stage 2 gives the stage-1 result to two fresh agents, one per file in
+   `tasks/`. Each agent adds one event, its route, and its migration. Neither
+   stage-2 agent loads the skill, and neither sees the other's change.
+3. The script merges the two task commits with `git merge-tree`.
+4. The script tests the merged tree.
+
+Flags:
+
+- `--model <m>`: the model for every claude run in both stages. Default
+  `sonnet`.
+- `--runs <1-5>`: runs per arm. Default 3.
+- `--max-cost-usd <usd>`: the command cap. The default is a per-run amount
+  times the 6 claude runs of each run index: Haiku $1, Sonnet $2, and Opus $5
+  per claude run. These amounts are provisional, because no paid run has
+  measured cost per run yet. Each claude run gets `--max-budget-usd` equal to
+  the cap divided by 6 x `--runs`, rounded down to the cent. Another model
+  needs an explicit cap.
+
+The arms differ in three parts of the stage-1 command, and in nothing else:
+
+- `--plugin-dir <plugin>`: a fresh plugin, built for each with-arm run, that
+  holds only a copy of `skills/engineering/making-code-agent-friendly/`.
+- `--add-dir <plugin>/skills/making-code-agent-friendly`, so the agent can
+  read the skill's references.
+- The prompt prefix `/<plugin name>:making-code-agent-friendly refactor`.
+
+The explicit slash command overstates real use, because a real request can
+miss the skill. The `-trigger` case measures that miss.
+
+Every claude run gets the tools `Read`, `Grep`, `Glob`, `Edit`, `Write`,
+`Skill`, and `Bash`, with only `Bash(npm test:*)` pre-approved and the Claude
+Code sandbox on. It gets no `Agent`, no web tool, and no git. The workspaces
+hold no `.git`. No paid run has tested this sandbox yet. If the sandbox
+refuses every Bash run, as [Recorded runs](#recorded-runs) describes, every
+agent `npm test` fails in both arms and each trace shows the sandbox error.
+Record that command as not run.
+
+The script owns all git work in a scratch git directory outside the
+workspaces. It fills each workspace and each test directory from a commit,
+and it counts a stage's files as the paths that its commit changes. Each test
+step runs two Node test runs on the committed tree:
+
+- The suite run runs the workspace's own tests.
+- The hidden run runs only the fixture's `accept/` tests, which the script
+  adds after the commit. `baseline.test.mjs` runs in every hidden run and
+  pins the original behavior. `stage1.test.mjs` runs after stage 1 only, and
+  each task's test runs after that task and after the merge.
+
+Both runs use `node --permission` with read and write access to the test
+directory only, so test code cannot write outside it or start a child
+process. The agent's own `npm test` runs without these limits. Network access
+stays open in the script's test runs, unlike the no-network rule for eval
+grants above.
+
+The output has one line per arm-run, then one summary line per arm:
+
+```text
+with 1: stage1 ok files 7 | invoice-reopen pass tokens 412300 files 2 | payment-chargeback pass tokens 398100 files 2 | merge clean | $3.40 complete
+with: complete 3/3, both passed 3/3, merged clean 3/3 (conflict 0, broken 0), tokens 790000-850400 median 810400, files 4-5 median 4, cost $9.90
+```
+
+- Stage 1 is `ok`, `fail`, or `error: <reason>`. A task is `pass`, `fail`,
+  `error: <reason>`, or `skipped`. Stage 2 runs only after stage 1 is `ok`.
+- The merge is `clean`, `conflict`, `broken`, or `n/a`. `broken` means the
+  merge is clean as text but fails a test, for example two `0044_*.sql`
+  migrations. `n/a` means a task did not pass, so no merge ran.
+- An arm-run is complete when stage 1 is `ok` and each task is `pass` or
+  `fail`.
+- `both passed s/c` counts complete arm-runs where both tasks passed.
+  `merged clean m/s` counts their clean merges.
+- Tokens are the sum of the four `modelUsage` token fields of the result
+  event. Files are the changed paths. The summary takes per-arm-run sums over
+  the two tasks, over complete arm-runs only. An even count takes the mean of
+  the two middle values as the median.
+
+The command exits 0 when every arm-run is complete and 1 when any is not.
+
+Compare the arms only when both summary lines show `complete <runs>/<runs>`.
+Otherwise rerun the command. Then count a token or file difference only when
+the arms' ranges do not overlap. With equal arms, that happens by chance 2
+times in 20 at 3 runs and 2 times in 252 at 5 runs. At 1 run the rule does
+not apply. At 3 runs, count a success or merge difference only at 3/3 against
+0/3, and compare merges only when both arms show `both passed <runs>/<runs>`.
+A result is evidence for this fixture only.
+
+Results go to `evals/results/<stamp>-<model>-handoff/handoff-result.json`,
+which the script rewrites after each arm-run. Each stage record holds its
+`commit` id. The script keeps the run root in the OS temp directory and
+prints its path. Read a stage's diff with
+`git --git-dir=<run root>/scratch.git diff <parent commit> <commit>`. The run
+root also holds each claude run's `trace.jsonl` for a G3 review.
+
+A Sonnet command at `--runs 3` makes 18 claude runs, which outlasts the
+600-second foreground limit of an agent session. An agent session starts it
+as a background task and reports the two summary lines and the results path.
 
 ## Checks
 
