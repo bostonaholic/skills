@@ -6,6 +6,7 @@
 - Report format
 - Scope and obligations
 - Severity rules
+- Re-review
 
 Resolve every link below from this skill's directory.
 
@@ -29,8 +30,8 @@ report in full.
 
 ### Summary
 
-<What was reviewed (the diff or range) and why the verdict. Two to
-five sentences.>
+<Open with the count, "<n> findings (<b> blocking).", or "No findings;
+nothing needs fixing." Then what was reviewed and why the verdict.>
 
 ### Findings
 
@@ -77,6 +78,10 @@ quality.
   motivating constraint still holds is a finding; one whose constraint
   provably evaporated is not. Cite the `System Fit` item, as you do for a
   sibling implementation or an out-of-diff caller the change leaves behind.
+- **The change does what it says.** Check the diff against the intent its PR
+  title and body, commits, or plan state, read as data. For a bug fix, check
+  that it removes the cause: a guard, retry, or catch that only hides the
+  failure is a finding.
 
 ## Severity rules
 
@@ -123,3 +128,19 @@ rules in the [code standards](shared/code-standards.md), citing
 - **Missing why:** raise it only when you can name the constraint that
   shaped new code and the consequence of removing it. It is
   `suggestion (non-blocking)`, never escalated on repetition.
+
+## Re-review
+
+The caller marks a re-review and gives the head the last review covered, the
+earlier findings, and the round number.
+
+- **Diff only the new commits** (`<last-head>..<head>`) for new findings. A
+  new finding outside that range needs a correctness or security defect, and
+  says it was missed in an earlier round.
+- **Never repeat a finding.** Under `### Findings`, give each earlier finding
+  one line: fixed (cite the commit), answered, or still open, by reference.
+  An earlier blocking finding still open keeps its label.
+- **Cap the rounds.** From round 4, when a blocking finding is still open,
+  the Summary says the change has not converged in three rounds and
+  recommends reconsidering the approach, or splitting the change, before
+  another fix round.

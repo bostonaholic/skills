@@ -28,7 +28,25 @@ file: src/api/users.ts:42
 
 **suggestion (non-blocking):** author may accept or decline.
 
-**nitpick (non-blocking):** minor style/naming; never blocks.
+**nitpick (non-blocking):** minor style/naming; never blocks. At most three per
+review; drop the rest, and drop any a formatter or linter would catch.
+
+## Converging
+
+Each rule below keeps a review from needing another round.
+
+- **One finding per class.** When one defect recurs, write one finding that
+  names the class and lists every instance's `file:line`, so the author fixes
+  them together. When a linter rule or a line in the repository's agent
+  instructions would catch the class, name it so the class is fixed at its
+  source.
+- **Pre-existing is not the author's.** A defect in code the change did not
+  introduce (`git blame` on the base revision shows it) takes the
+  `(non-blocking, pre-existing)` decoration and never sets the verdict, unless
+  the change makes it newly reachable. A brief that drops such defects wins.
+- **Raise the approach first.** A disagreement with the overall approach goes
+  in the first review, as `suggestion (non-blocking)`. Never introduce one as
+  blocking in a later round.
 
 ## Severity
 

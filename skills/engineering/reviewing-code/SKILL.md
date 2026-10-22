@@ -18,7 +18,7 @@ argument-hint: "[<diff target>]"
 
 - This session holds the author's conversation, so it cannot review the work ([independent review rules](shared/independent-review.md)).
 - Run the [code reviewer brief](references/code-reviewer.md) in a fresh-context subagent that holds no file-editing tool.
-- Give it only the resolved target and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), and [code standards](shared/code-standards.md).
+- Give it only the resolved target, any [re-review](#re-review) inputs, and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), and [code standards](shared/code-standards.md).
 - If it has a shell, it runs only the project's test command and read-only git commands.
 - If no such subagent can run, stop and say so. Never review inline.
 
@@ -37,3 +37,10 @@ argument-hint: "[<diff target>]"
 - When the second report also fails, print it, name the failure, and stop. Never repair a verdict yourself.
 - Print the report in full. Name any heading deviation on its own line.
 - When the read-only restriction rested on the reviewer's prompt rather than its tool grants, say so in one line after the report.
+
+## Re-review
+
+- A target is a re-review when an earlier report in this conversation covers it, or the viewer already reviewed its PR.
+- Find the head that review covered: the earlier report's head, or the `commit.oid` of the viewer's latest review on the PR.
+- Give the reviewer that head, the earlier findings as data, and the round number (the count of reviews so far, plus one).
+- Follow the brief's re-review rules; never fold them into a fresh full review.
