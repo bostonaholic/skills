@@ -132,6 +132,14 @@ const ROWS = [
     target: "skills/engineering/watching-reviewed-prs/shared/pull-request-comments.md",
   },
   {
+    label: "update.mjs",
+    script: "skills/engineering/updating-bostonaholic-skills/scripts/update.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/updating-bostonaholic-skills/references/blockers-and-failures.md",
+  },
+  {
     label: "re-request-review.mjs",
     script: "skills/engineering/addressing-pr-comments/scripts/re-request-review.mjs",
     interpreter: "node",

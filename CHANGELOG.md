@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `updating-bostonaholic-skills`, an explicit-invocation skill that plans, then applies after one confirmation, an update of every existing install of the collection to the latest release across Claude Code, Codex, the Cursor plugin clone, and the Antigravity, OpenCode, Cursor, and Grok Bot skill copies, backing up each replaced copy. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.59.0] - 2026-10-22
 
 ### Added
