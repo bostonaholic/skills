@@ -1,8 +1,10 @@
 // Fails when watching-authored-prs's poll.mjs misreads a change against its state file, reports a
 // failure event twice or past its per-cycle cap, writes state after a failed poll, or lets a body
 // reach stdout; when ci-log.sh stops keeping the last 200 lines or reaching gh with a bad job id;
-// or when ci-fix-preflight.mjs passes a binding condition that fails, lets a PR field reach a
-// command line, or trusts a truncated file list.
+// when ci-fix-preflight.mjs passes a binding condition that fails, lets a PR field reach a
+// command line, or trusts a truncated file list; or when rerun-transient.mjs re-runs a job whose
+// log shows no known runner or network fault, re-runs one past its bound or on a moved head, or
+// lets log text reach stdout or a command line.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -24,6 +26,7 @@ const SCRIPTS = resolve("skills/engineering/watching-authored-prs/scripts");
 const POLL = join(SCRIPTS, "poll.mjs");
 const CI_LOG = join(SCRIPTS, "ci-log.sh");
 const PREFLIGHT = join(SCRIPTS, "ci-fix-preflight.mjs");
+const RERUN = join(SCRIPTS, "rerun-transient.mjs");
 const BASH = spawnSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
 
 const HOST = "ghe.example.invalid";
@@ -165,12 +168,21 @@ const check = (workflow, name, bucket, job = null) => ({
   link: job === null ? "" : `https://${HOST}/o/r/actions/runs/1/job/${job}`,
 });
 
-function pollRules({ head = HEAD, checks = [], checksResponse, viewResponse, feedback = {} } = {}) {
+function pollRules({
+  head = HEAD,
+  checks = [],
+  checksResponse,
+  viewResponse,
+  mergeable = "MERGEABLE",
+  feedback = {},
+} = {}) {
   return [
     {
       tool: "gh",
       prefix: ["pr", "view"],
-      ...(viewResponse ?? { stdout: JSON.stringify({ headRefOid: head, checks: checks.length }) }),
+      ...(viewResponse ?? {
+        stdout: JSON.stringify({ headRefOid: head, checks: checks.length, mergeable }),
+      }),
     },
     {
       tool: "gh",
@@ -228,6 +240,7 @@ test("cycle 0 reports existing feedback and failures, and writes state and the f
       "feedback present-then-stop, CI report | head aaaaaaa | threads 2, summaries 1, comments 1 | CI 1 pending, 2 passing, 3 failing | failing: `external`, `CI / lint`, `Deploy / preview` | pending: `CI / e2e`",
     terminal: null,
     approved: false,
+    conflicting: false,
     thirdParty: [],
     emptyChangesRequested: [],
     feedbackChange: true,
@@ -253,7 +266,7 @@ test("cycle 0 reports existing feedback and failures, and writes state and the f
     deferredFailures: 0,
   });
   assert.deepEqual(result.state, {
-    version: 1,
+    version: 2,
     pr: PR_URL,
     head: HEAD,
     state: "OPEN",
@@ -261,9 +274,9 @@ test("cycle 0 reports existing feedback and failures, and writes state and the f
     unresolvedThreadIds: ["T1", "T2"],
     triagedPrLevelIds: ["IC1", "R1"],
     reportedFailures: [
-      [HEAD, "", "external"],
-      [HEAD, "CI", "lint"],
-      [HEAD, "Deploy", "preview"],
+      [HEAD, "", "external", ""],
+      [HEAD, "CI", "lint", "901"],
+      [HEAD, "Deploy", "preview", ""],
     ],
   });
   assert.equal(JSON.parse(result.out).reviewSummaries.length, 4, "the feedback file is complete");
@@ -299,6 +312,30 @@ test("the same failing check on a new head is a new failure event", (t) => {
   assert.equal(second.state.reportedFailures.length, 2);
 });
 
+test("a rerun job that fails again on the same head is a new failure event", (t) => {
+  const dir = scratch(t);
+  assert.equal(
+    runPoll(t, pollRules({ checks: [check("CI", "lint", "fail", 901)] }), { dir }).status,
+    0,
+  );
+  const rerun = runPoll(t, pollRules({ checks: [check("CI", "lint", "fail", 902)] }), { dir });
+  assert.deepEqual(
+    rerun.output.newFailures.map((failure) => failure.jobId),
+    ["902"],
+  );
+  const again = runPoll(t, pollRules({ checks: [check("CI", "lint", "fail", 902)] }), { dir });
+  assert.deepEqual(again.output.newFailures, []);
+});
+
+test("the rerun CI grant is accepted and named in the snapshot", (t) => {
+  const root = scratch(t);
+  const args = [POLL, PR_URL, "--state", join(root, "s"), "--out", join(root, "o")];
+  const grants = ["--feedback-grant", "authorized", "--ci-grant", "rerun"];
+  const result = runPoll(t, pollRules(), { dir: root, args: [...args, ...grants] });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.output.snapshot, /^feedback authorized, CI rerun \| /);
+});
+
 test("a changed thread set, state, or review decision is a feedback change", (t) => {
   for (const [label, next] of [
     ["resolved thread", { threads: [thread("T1", ["bob"], true)] }],
@@ -321,6 +358,18 @@ test("cycle 0 with no feedback is no feedback change, and an empty rollup skips 
   assert.equal(result.output.approved, true);
   assert.match(result.output.snapshot, / \| CI 0 checks$/);
   assert.ok(!result.calls.some((call) => call[1] === "pr" && call[2] === "checks"));
+});
+
+test("only a CONFLICTING mergeable state is a merge conflict", (t) => {
+  for (const [mergeable, conflicting] of [
+    ["CONFLICTING", true],
+    ["MERGEABLE", false],
+    ["UNKNOWN", false],
+  ]) {
+    const result = runPoll(t, pollRules({ mergeable }));
+    assert.equal(result.status, 0, `${mergeable}: ${result.stderr}`);
+    assert.equal(result.output.conflicting, conflicting, mergeable);
+  }
 });
 
 test("a merged or closed PR is terminal", (t) => {
@@ -409,7 +458,7 @@ test("a head that moves during the poll skips CI and reports no failure", (t) =>
     {
       tool: "gh",
       prefix: ["pr", "view"],
-      stdout: JSON.stringify({ headRefOid: HEAD, checks: 1 }),
+      stdout: JSON.stringify({ headRefOid: HEAD, checks: 1, mergeable: "MERGEABLE" }),
     },
     {
       tool: "gh",
@@ -448,7 +497,18 @@ test("a failed or malformed read is a poll failure that writes nothing", (t) => 
   const failures = [
     ["gh pr view fails", { viewResponse: { exitCode: 1, stderr: "HTTP 502" } }],
     ["gh pr view is not JSON", { viewResponse: { stdout: "oops" } }],
-    ["short head", { viewResponse: { stdout: JSON.stringify({ headRefOid: "abc", checks: 0 }) } }],
+    [
+      "short head",
+      {
+        viewResponse: {
+          stdout: JSON.stringify({ headRefOid: "abc", checks: 0, mergeable: "MERGEABLE" }),
+        },
+      },
+    ],
+    [
+      "no mergeable state",
+      { viewResponse: { stdout: JSON.stringify({ headRefOid: HEAD, checks: 0 }) } },
+    ],
     [
       "empty checks with a rollup",
       { checks: [check("CI", "a", "pass")], checksResponse: { stdout: "[]", exitCode: 1 } },
@@ -497,11 +557,25 @@ test("bad arguments and foreign state files are usage faults", (t) => {
     assert.equal(result.status, 2, args.join(" "));
     assert.deepEqual(result.calls, [], "nothing ran");
   }
-  for (const content of ["not json", JSON.stringify({ version: 1, pr: "https://x/o/r/pull/1" })]) {
+  const version1 = {
+    version: 1,
+    pr: PR_URL,
+    head: HEAD,
+    state: "OPEN",
+    reviewDecision: null,
+    unresolvedThreadIds: [],
+    triagedPrLevelIds: [],
+    reportedFailures: [[HEAD, "CI", "lint"]],
+  };
+  for (const content of [
+    "not json",
+    JSON.stringify({ version: 2, pr: "https://x/o/r/pull/1" }),
+    JSON.stringify(version1),
+  ]) {
     writeFileSync(state, content);
     const result = runPoll(t, pollRules(), { dir });
     assert.equal(result.status, 2, content);
-    assert.match(result.stderr, /is not a version 1 watch state/);
+    assert.match(result.stderr, /is not a version 2 watch state/);
     assert.equal(readFileSync(state, "utf8"), content, "the state file is untouched");
   }
 });
@@ -766,4 +840,177 @@ test("ci-fix-preflight.mjs exits 127 when git is missing", (t) => {
   const result = runPreflight(t, preflightRules(), [PR_URL, HEAD], { fakes: ["gh"] });
   assert.equal(result.status, 127);
   assert.match(result.stderr, /git is not on PATH/);
+});
+
+// ---------- rerun-transient.mjs ----------
+
+const LOG_SENTINEL = "LOG-SENTINEL-q3m9";
+const TRANSIENT_LOG = [
+  `${LOG_SENTINEL} npm ci`,
+  "npm error code ECONNRESET",
+  "npm error network aborted",
+  "Error: Process completed with exit code 1.",
+].join("\n");
+const TEST_FAILURE_LOG = [
+  `${LOG_SENTINEL} FAIL src/a.test.js`,
+  "expected 2 to equal 3",
+  "Error: Process completed with exit code 1.",
+].join("\n");
+const JOB_PATH = "repos/o/r/actions/jobs/901";
+const RUN_PATH = "repos/o/r/actions/runs/55";
+
+function rerunRules({ job = {}, run = {}, rerun = {} } = {}) {
+  return [
+    {
+      tool: "gh",
+      prefix: ["api", "--hostname", HOST, JOB_PATH],
+      stdout: JSON.stringify({
+        id: 901,
+        run_id: 55,
+        head_sha: HEAD,
+        status: "completed",
+        conclusion: "failure",
+        ...job,
+      }),
+    },
+    {
+      tool: "gh",
+      prefix: ["api", "--hostname", HOST, RUN_PATH],
+      stdout: JSON.stringify({ id: 55, status: "completed", run_attempt: 1, ...run }),
+    },
+    {
+      tool: "gh",
+      prefix: ["api", "--hostname", HOST, "--method", "POST", `${JOB_PATH}/rerun`],
+      stdout: "",
+      ...rerun,
+    },
+  ];
+}
+
+function runRerun(t, rules, { log = TRANSIENT_LOG, args, fakes = ["gh"] } = {}) {
+  const root = scratch(t);
+  const logPath = join(root, "job.log");
+  if (log !== null) writeFileSync(logPath, log);
+  const result = run(t, process.execPath, args ?? [RERUN, PR_URL, HEAD, "901", logPath], {
+    rules,
+    fakes,
+    dir: root,
+  });
+  return { ...result, output: result.status === 0 ? JSON.parse(result.stdout) : null };
+}
+
+const posted = (calls) => calls.some((call) => call.includes("POST"));
+
+test("a known network fault on a completed first attempt re-runs the job", (t) => {
+  const result = runRerun(t, rerunRules());
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.output, {
+    rerun: true,
+    reason: null,
+    signature: "connection-reset",
+    lineNumber: 2,
+    runId: "55",
+    attempt: 2,
+  });
+  assert.ok(posted(result.calls), "the job was re-run");
+  assert.ok(!result.stdout.includes(LOG_SENTINEL), "stdout carries no log text");
+  assert.ok(!result.calls.flat().join(" ").includes("ECONNRESET"), "no log text reaches gh");
+});
+
+test("each runner or network signature is transient, and the last matching line is named", (t) => {
+  const cases = [
+    ["The runner has received a shutdown signal.", "runner-shutdown"],
+    ["The hosted runner: GitHub Actions 3 lost communication with the server.", "runner-lost"],
+    ["getaddrinfo EAI_AGAIN registry.npmjs.org", "dns"],
+    ["Temporary failure in name resolution", "dns"],
+    ["read ETIMEDOUT", "network-timeout"],
+    ["net/http: TLS handshake timeout", "network-timeout"],
+    ["fatal: unable to access 'https://x/': The requested URL returned error: 503", "upstream-5xx"],
+    ["Received 502 Bad Gateway from the registry", "upstream-5xx"],
+    ["curl: (56) Recv failure: Connection reset by peer", "connection-reset"],
+  ];
+  for (const [line, signature] of cases) {
+    const log = ["socket hang up", "step output", line, "done"].join("\n");
+    const result = runRerun(t, rerunRules(), { log });
+    assert.equal(result.status, 0, `${line}: ${result.stderr}`);
+    assert.equal(result.output.signature, signature, line);
+    assert.equal(result.output.lineNumber, 3, line);
+  }
+});
+
+test("a log with no known fault re-runs nothing and calls no gh", (t) => {
+  for (const log of [TEST_FAILURE_LOG, "", "No space left on device", "exit code 137"]) {
+    const result = runRerun(t, rerunRules(), { log });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.output, {
+      rerun: false,
+      reason: "not-transient",
+      signature: null,
+      lineNumber: null,
+      runId: null,
+      attempt: null,
+    });
+    assert.deepEqual(result.calls, [], JSON.stringify(log));
+  }
+});
+
+test("a moved head, unfinished run, spent bound, or non-failed job re-runs nothing", (t) => {
+  const cases = [
+    ["head-moved", { job: { head_sha: OTHER_HEAD } }, null],
+    ["not-failed", { job: { conclusion: "cancelled" } }, null],
+    ["run-in-progress", { run: { status: "in_progress" } }, 1],
+    ["rerun-bound", { run: { run_attempt: 3 } }, 3],
+  ];
+  for (const [reason, options, attempt] of cases) {
+    const result = runRerun(t, rerunRules(options));
+    assert.equal(result.status, 0, `${reason}: ${result.stderr}`);
+    assert.equal(result.output.rerun, false, reason);
+    assert.equal(result.output.reason, reason);
+    assert.equal(result.output.signature, "connection-reset", reason);
+    assert.equal(result.output.attempt, attempt, reason);
+    assert.ok(!posted(result.calls), `${reason}: nothing was re-run`);
+  }
+});
+
+test("a failed or malformed gh read or re-run request exits 1 with gh's error", (t) => {
+  const cases = [
+    ["job read fails", [{ ...rerunRules()[0], stdout: "", stderr: "HTTP 404", exitCode: 1 }]],
+    ["job read is not JSON", [{ ...rerunRules()[0], stdout: "oops" }]],
+    ["run read is malformed", rerunRules({ run: { run_attempt: "one" } })],
+    ["re-run is refused", rerunRules({ rerun: { stderr: "HTTP 403", exitCode: 1 } })],
+  ];
+  for (const [label, rules] of cases) {
+    const result = runRerun(t, rules);
+    assert.equal(result.status, 1, `${label}: ${result.stderr}`);
+    assert.equal(result.stdout, "", label);
+    assert.match(result.stderr, /rerun-transient\.mjs: /, label);
+  }
+  const refused = runRerun(t, rerunRules({ rerun: { stderr: "HTTP 403 refused\n", exitCode: 1 } }));
+  assert.match(refused.stderr, /HTTP 403 refused/);
+});
+
+test("rerun-transient.mjs rejects bad arguments and an unreadable log before calling gh", (t) => {
+  const root = scratch(t);
+  const log = join(root, "job.log");
+  writeFileSync(log, TRANSIENT_LOG);
+  const cases = [
+    [RERUN],
+    [RERUN, PR_URL, HEAD, "901"],
+    [RERUN, "https://ghe.example.invalid/o/r/issues/7", HEAD, "901", log],
+    [RERUN, PR_URL, "abc", "901", log],
+    [RERUN, PR_URL, HEAD, "9x1", log],
+    [RERUN, PR_URL, HEAD, "901", join(root, "missing.log")],
+    [RERUN, PR_URL, HEAD, "901", log, "--extra"],
+  ];
+  for (const args of cases) {
+    const result = runRerun(t, rerunRules(), { args });
+    assert.equal(result.status, 2, args.join(" "));
+    assert.deepEqual(result.calls, [], "nothing ran");
+  }
+});
+
+test("rerun-transient.mjs exits 127 when gh is missing", (t) => {
+  const result = runRerun(t, [], { fakes: [] });
+  assert.equal(result.status, 127);
+  assert.match(result.stderr, /gh is not on PATH/);
 });
