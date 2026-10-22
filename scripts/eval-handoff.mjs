@@ -538,7 +538,9 @@ function hiddenPrefix(path) {
 
 // One test run under the Node permission model: it can read and write only its own test
 // directory and start no child process. A hidden run names its hidden files, so Node loads no
-// agent test file beside them.
+// agent test file beside them. The TAP report goes to a file and stderr is discarded, so no
+// amount of test output overflows spawnSync's buffer. A spawn error other than the timeout fails
+// the run instead of ending the command.
 function testRun({ gitDir, treeish, dir, hiddenFiles, timeoutSeconds }) {
   mkdirSync(dir);
   fillFromTree(gitDir, treeish, dir);
@@ -567,7 +569,7 @@ function testRun({ gitDir, treeish, dir, hiddenFiles, timeoutSeconds }) {
       {
         cwd: dir,
         env: { PATH: process.env.PATH },
-        stdio: ["ignore", tapFd, "pipe"],
+        stdio: ["ignore", tapFd, "ignore"],
         timeout: timeoutSeconds * 1000,
         // Test code can catch SIGTERM, and spawnSync waits for the child to exit.
         killSignal: "SIGKILL",
@@ -576,7 +578,8 @@ function testRun({ gitDir, treeish, dir, hiddenFiles, timeoutSeconds }) {
   } finally {
     closeSync(tapFd);
   }
-  if (run.error && run.error.code !== "ETIMEDOUT") throw run.error;
+  if (run.error && run.error.code !== "ETIMEDOUT")
+    return { passed: false, reason: `spawn ${run.error.code ?? run.error.message}` };
   return judgeTestRun({
     status: run.status,
     signal: run.signal,
@@ -619,8 +622,9 @@ function stopRule(ctx, { arm, index, stage, stream, error }) {
 }
 
 // One stage: a claude run in a workspace filled from parent, a commit of what it left, and a
-// test step on that commit. Stdout goes straight to the trace file, so a transcript larger than
-// spawnSync's buffer still parses. A run that errors or trips a stop rule gets no test step.
+// test step on that commit. Stdout goes straight to the trace file and stderr to stderr.log, so
+// output larger than spawnSync's buffer neither truncates nor crashes the command. A run that
+// errors or trips a stop rule gets no test step.
 function runStage(
   ctx,
   { arm, index, stage, stageDir, parent, prompt, pluginDir, hiddenFiles, verdicts },
@@ -637,17 +641,19 @@ function runStage(
   });
   const trace = join(stageDir, "trace.jsonl");
   const traceFd = openSync(trace, "w");
+  const stderrFd = openSync(join(stageDir, "stderr.log"), "w");
   let run;
   try {
     run = spawnSync(ctx.claude, args, {
       cwd: workspace,
       input: prompt,
-      stdio: ["pipe", traceFd, "pipe"],
+      stdio: ["pipe", traceFd, stderrFd],
       timeout: ctx.claudeTimeoutSeconds * 1000,
       killSignal: "SIGTERM",
     });
   } finally {
     closeSync(traceFd);
+    closeSync(stderrFd);
   }
   const timedOut = run.error?.code === "ETIMEDOUT";
   if (run.error && !timedOut) throw run.error;

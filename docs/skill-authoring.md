@@ -668,7 +668,9 @@ which the script rewrites after each arm-run. Each stage record holds its
 the OS temp directory, prints both paths, and records them as `runRoot` and
 `scratchGitDir`. Read a stage's diff with
 `git --git-dir=<scratchGitDir> diff <parent commit> <commit>`. The run root
-also holds each claude run's `trace.jsonl` for a G3 review.
+also holds each claude run's `trace.jsonl` for a G3 review, and its stderr in
+`stderr.log` beside the trace. The script discards the stderr of its own test
+runs.
 
 A Sonnet command at `--runs 3` makes 18 claude runs, which outlasts the
 600-second foreground limit of an agent session. An agent session starts it

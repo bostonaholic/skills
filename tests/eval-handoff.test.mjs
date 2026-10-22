@@ -19,7 +19,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import test, { describe } from "node:test";
 import { pathToFileURL } from "node:url";
 
@@ -139,6 +139,7 @@ if (action.padBytes) {
   writeSync(1, JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } }) + "\n");
 }
 if (action.badLine) writeSync(1, "this line is not JSON\n");
+if (action.stderrBytes) writeSync(2, "e".repeat(action.stderrBytes));
 if (action.sleepSeconds) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, action.sleepSeconds * 1000);
 if (!action.noResult) {
   const [inputTokens, outputTokens, cacheReadInputTokens, cacheCreationInputTokens] = action.tokens ?? [1, 1, 1, 1];
@@ -1338,6 +1339,32 @@ describe("slice 4: pass a test run only when every hidden test ran, and kill hun
         false,
       );
     });
+  });
+
+  test("runHandoff survives more than 1 MiB of stderr from claude or a test run", async (t) => {
+    const noisy =
+      'import test from "node:test";\n\n' +
+      'test("writes 2 MiB to stderr", () => {\n' +
+      '  process.stderr.write("n".repeat(2 * 1024 * 1024));\n' +
+      "});\n";
+    const { code, lines, results, claudeRuns } = await runScenario(t, {
+      options: { model: "sonnet", runs: 1, capUsd: 12, runBudgetUsd: 2, dryRun: false },
+      scenario: [
+        { write: { "test/noisy.test.js": noisy }, stderrBytes: 2 * 1024 * 1024 },
+        {},
+        {},
+        {},
+        {},
+        {},
+      ],
+    });
+
+    assert.match(runLines(lines)[0], /^with 1: stage1 ok /);
+    const stderrLog = join(dirname(results.runs[0].stage1.trace), "stderr.log");
+    assert.equal(statSync(stderrLog).size, 2 * 1024 * 1024);
+    assert.equal(results.finished, true);
+    assert.equal(code, 0);
+    assert.equal(claudeRuns, 6);
   });
 
   test("runHandoff kills a test run that ignores SIGTERM", async (t) => {
