@@ -9,7 +9,8 @@
 // Every workspace and test directory is filled from a commit in a scratch git directory, and
 // every test step runs the workspace suite and the fixture's hidden tests under the Node
 // permission model. Each claude run gets an equal share of the cap: cap / (6 x --runs), and a
-// 900-second timeout that ends it with SIGTERM.
+// 900-second timeout that ends it with SIGTERM. Each test run gets 120 seconds, then SIGKILL.
+// A test run passes only when Node's TAP report shows every hidden file ran and passed.
 // Every claude run gets the isolation flags, and its init event must show only the planned
 // plugins and skills.
 // Stop rules, first match wins: isolation (an init event fails that check), budget (a run
@@ -70,6 +71,7 @@ const BUDGET_SUBTYPE = "error_max_budget_usd";
 const LIMIT_PATTERN = /(usage|rate)[ -]limit/i;
 const EXIT_OUTRANKED_BY = new Set(["bad output", "budget", "limit"]);
 const CLAUDE_TIMEOUT_SECONDS = 900;
+const TEST_TIMEOUT_SECONDS = 120;
 const PLUGIN_DESCRIPTION = "One-skill plugin built by scripts/eval-handoff.mjs.";
 
 class UsageError extends Error {}
@@ -217,10 +219,13 @@ export function checkIsolation(init, { arm, stage, pluginName }) {
   return null;
 }
 
-// Passes a Node TAP report only when the run exited 0, the end-of-run summary shows no failure
-// or cancellation, and each hidden file has a passing top-level test with its name prefix. Exit
-// 0 alone is not enough: agent source shares the hidden run's process and can end it early.
-export function judgeTestRun({ status, tap, hiddenPrefixes }) {
+// Passes a Node TAP report only when the run exited 0 unkilled, the end-of-run summary shows no
+// failure or cancellation, each hidden file has a passing top-level test with its name prefix,
+// and no hidden test carries a SKIP or TODO directive. Exit 0 alone is not enough: agent source
+// shares the hidden run's process and can end it early. "# fail 0" alone is not enough either:
+// a skipped or TODO test does not count as a failure.
+export function judgeTestRun({ status, signal, tap, hiddenPrefixes }) {
+  if (signal) return { passed: false, reason: `killed by ${signal}` };
   if (status !== 0) return { passed: false, reason: `exit ${status}` };
   const fail = tap.match(/^# fail (\d+)$/m);
   const cancelled = tap.match(/^# cancelled (\d+)$/m);
@@ -228,8 +233,11 @@ export function judgeTestRun({ status, tap, hiddenPrefixes }) {
   if (fail[1] !== "0") return { passed: false, reason: `fail ${fail[1]}` };
   if (cancelled[1] !== "0") return { passed: false, reason: `cancelled ${cancelled[1]}` };
   for (const prefix of hiddenPrefixes) {
-    const line = new RegExp(`^ok \\d+ - ${escapeRegExp(prefix)}: `, "m");
-    if (!line.test(tap)) return { passed: false, reason: `no passing ${prefix} test` };
+    const name = escapeRegExp(prefix);
+    if (!new RegExp(`^ok \\d+ - ${name}: `, "m").test(tap))
+      return { passed: false, reason: `no passing ${prefix} test` };
+    if (new RegExp(`^(not )?ok \\d+ - ${name}: .*# (skip|todo)\\b`, "im").test(tap))
+      return { passed: false, reason: `a ${prefix} test was skipped or marked todo` };
   }
   return { passed: true, reason: null };
 }
@@ -463,7 +471,7 @@ function hiddenPrefix(path) {
 // One test run under the Node permission model: it can read and write only its own test
 // directory and start no child process. A hidden run names its hidden files, so Node loads no
 // agent test file beside them.
-function testRun({ gitDir, treeish, dir, hiddenFiles }) {
+function testRun({ gitDir, treeish, dir, hiddenFiles, timeoutSeconds }) {
   mkdirSync(dir);
   fillFromTree(gitDir, treeish, dir);
   const hiddenArgs = [];
@@ -488,12 +496,19 @@ function testRun({ gitDir, treeish, dir, hiddenFiles }) {
         "--test-reporter=tap",
         ...hiddenArgs,
       ],
-      { cwd: dir, env: { PATH: process.env.PATH }, stdio: ["ignore", tapFd, "pipe"] },
+      {
+        cwd: dir,
+        env: { PATH: process.env.PATH },
+        stdio: ["ignore", tapFd, "pipe"],
+        timeout: timeoutSeconds * 1000,
+        // Test code can catch SIGTERM, and spawnSync waits for the child to exit.
+        killSignal: "SIGKILL",
+      },
     );
   } finally {
     closeSync(tapFd);
   }
-  if (run.error) throw run.error;
+  if (run.error && run.error.code !== "ETIMEDOUT") throw run.error;
   return judgeTestRun({
     status: run.status,
     signal: run.signal,
@@ -503,9 +518,10 @@ function testRun({ gitDir, treeish, dir, hiddenFiles }) {
 }
 
 // A test step passes only when the workspace suite and the hidden tests both pass.
-function testStep(gitDir, treeish, stageDir, hiddenFiles) {
-  const suite = testRun({ gitDir, treeish, dir: join(stageDir, "test-suite"), hiddenFiles: [] });
-  const hidden = testRun({ gitDir, treeish, dir: join(stageDir, "test-hidden"), hiddenFiles });
+function testStep(ctx, treeish, stageDir, hiddenFiles) {
+  const shared = { gitDir: ctx.gitDir, treeish, timeoutSeconds: ctx.testTimeoutSeconds };
+  const suite = testRun({ ...shared, dir: join(stageDir, "test-suite"), hiddenFiles: [] });
+  const hidden = testRun({ ...shared, dir: join(stageDir, "test-hidden"), hiddenFiles });
   return suite.passed && hidden.passed;
 }
 
@@ -576,7 +592,7 @@ function runStage(
   if (stop !== null) error ??= stop.rule;
   let status = "error";
   if (error === null) {
-    const passed = testStep(ctx.gitDir, commit, stageDir, hiddenFiles);
+    const passed = testStep(ctx, commit, stageDir, hiddenFiles);
     status = passed ? verdicts.pass : verdicts.fail;
   }
   const record = {
@@ -652,7 +668,7 @@ function runArm(ctx, { arm, index }) {
       const hidden = [ctx.fixture.baseline, ...ctx.fixture.tasks.map((task) => task.accept)];
       const mergeDir = join(armDir, "merge");
       mkdirSync(mergeDir);
-      if (!testStep(ctx.gitDir, tree, mergeDir, hidden)) merge = { ...record, status: "broken" };
+      if (!testStep(ctx, tree, mergeDir, hidden)) merge = { ...record, status: "broken" };
     }
   }
 
@@ -684,6 +700,7 @@ export async function runHandoff({
   resultsRoot,
   claude,
   claudeTimeoutSeconds = CLAUDE_TIMEOUT_SECONDS,
+  testTimeoutSeconds = TEST_TIMEOUT_SECONDS,
 }) {
   const fixture = readFixture(fixtureDir);
   const manifest = JSON.parse(
@@ -723,6 +740,7 @@ export async function runHandoff({
     manifest,
     claude,
     claudeTimeoutSeconds,
+    testTimeoutSeconds,
     claudeRuns: 0,
     skillDir: resolve(skillDir),
     runRoot,

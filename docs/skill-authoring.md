@@ -545,6 +545,25 @@ process. The agent's own `npm test` runs without these limits. Network access
 stays open in the script's test runs, unlike the no-network rule for eval
 grants above.
 
+A test run passes only when all of these hold:
+
+- Node exits 0, and the 120-second timeout did not fire. A test run past 120
+  seconds gets `SIGKILL`, because test code can catch `SIGTERM` and the
+  script waits for the process to exit.
+- The TAP report holds Node's end-of-run summary with `# fail 0` and
+  `# cancelled 0`.
+- Each hidden file has at least one top-level `ok` line whose test name starts
+  with the file name minus `.test.mjs`, then a colon, such as `baseline:`.
+- No top-level hidden test line carries a `# SKIP` or `# TODO` directive, in
+  any letter case. An agent's own skipped test does not fail the run.
+
+Exit 0 alone does not show that the hidden tests ran, because the hidden
+tests import agent source, which runs in the same process and can end it
+early. A test step passes only when both of its test runs pass. A residual
+risk stays: agent source can change module state that a hidden test reads, or
+change `node:test` itself. The pass rule cannot see that. Both arms carry the
+risk, and the traces show each source file.
+
 The output has one line per arm-run, then one summary line per arm:
 
 ```text
