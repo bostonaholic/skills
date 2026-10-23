@@ -28,11 +28,34 @@ file: src/api/users.ts:42
 
 **suggestion (non-blocking):** author may accept or decline.
 
-**nitpick (non-blocking):** minor style/naming; never blocks.
+**nitpick (non-blocking):** minor style/naming; never blocks. At most three per
+review; drop the rest, and drop any the project's configured formatter or
+linter already catches.
+
+## Converging
+
+Each rule below keeps a review of a code diff from needing another round.
+Where a brief's own labels, format, or scope differ, the brief wins.
+
+- **One finding per class.** When one defect recurs, write one finding that
+  names the class and lists every instance's `file:line`, so the author fixes
+  them together. When a linter rule the project could enable, or a line in
+  its agent instructions, would catch the class, name it so the class is
+  fixed at its source.
+- **Pre-existing is not the author's.** A defect in code the change did not
+  introduce (`git blame` on the base revision shows it) is
+  `suggestion (non-blocking, pre-existing)` and never sets the verdict: a
+  report whose only findings are pre-existing approves. A defect the change
+  makes newly reachable is the change's own.
+- **Raise the approach first.** A disagreement with the overall approach goes
+  in the first review, as `suggestion (non-blocking)`. Never introduce one as
+  blocking in a later round.
 
 ## Severity
 
 A finding is **blocking** when its label is `issue (blocking)`; one blocking
 finding makes the review verdict REQUEST CHANGES. `suggestion (non-blocking)`
 and `nitpick (non-blocking)` never block; a report with only these is
-COMMENT. List blocking findings first.
+COMMENT, unless every one is pre-existing, which approves when the brief's
+other APPROVE conditions hold. A brief's own verdict rules win. List blocking
+findings first.
