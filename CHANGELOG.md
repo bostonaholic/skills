@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-10-23
+
 ### Changed
 
 - Skip a review summary in `addressing-pr-comments` when its author later approved the PR, so the summary leaves the triage report and no longer blocks the review re-request, and report how many it skipped. [#137](https://github.com/bostonaholic/skills/pull/137)
@@ -805,5 +807,7 @@
 
 [0.59.0]: https://github.com/bostonaholic/skills/compare/v0.58.0...v0.59.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.60.0...HEAD
 [0.60.0]: https://github.com/bostonaholic/skills/compare/v0.59.0...v0.60.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.61.0...HEAD
+[0.61.0]: https://github.com/bostonaholic/skills/compare/v0.60.0...v0.61.0
