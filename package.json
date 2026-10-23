@@ -17,6 +17,7 @@
     "sync-shared": "node scripts/sync-shared.mjs",
     "readme": "node scripts/catalog.mjs --write",
     "eval": "node scripts/eval.mjs",
+    "eval:handoff": "node scripts/eval-handoff.mjs",
     "site": "node scripts/build-site.mjs _site",
     "release:prepare": "node scripts/release.mjs prepare",
     "release:check": "node scripts/release.mjs check",

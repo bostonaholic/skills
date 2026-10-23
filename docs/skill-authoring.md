@@ -26,6 +26,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Verdicts
     - Before and after a skill edit
     - Traces and the G3 review
+    - Handoff eval
 - Checks
 
 ## Two rules
@@ -152,6 +153,7 @@ npm run eval                              # whole suite, Sonnet, --runs 1, recor
 npm run eval -- reviewing-code            # one skill's cases, --runs 3, before-and-after cap
 npm run eval -- reviewing-code-core --model opus
 npm run eval -- reviewing-code --dry-run  # print the claude commands only
+npm run eval:handoff                      # handoff eval for making-code-agent-friendly
 ```
 
 Every default has a flag that overrides it: `--runs 1|3`, `--max-cost-usd
@@ -178,6 +180,10 @@ inline in the `prompt.md` `append_system_prompt`. A case that needs
 repository files also holds `case.yaml` and a `scaffold.sh` that writes them
 into the run's workspace. Never use `context.add_dirs`: the CLI mounts that
 directory outside the workspace and denies reads of it.
+
+`evals/engineering/making-code-agent-friendly/handoff/` is a fixture for the
+[handoff eval](#handoff-eval), not a case: it holds no `prompt.md` and no
+`case.yaml`.
 
 The CLI ends `prompt.md` frontmatter at the first `---` anywhere after the
 opening line, not at a line that is exactly `---`. A diff line such as
@@ -446,6 +452,235 @@ these patterns:
 
 Revise the skill for each finding, and test the edit with the before and
 after commands.
+
+#### Handoff eval
+
+The handoff eval tests the central claim of `making-code-agent-friendly`:
+code that its Refactor mode changes is cheaper for the next agent to change.
+`claude plugin eval` cannot start one run from another run's workspace, so
+`scripts/eval-handoff.mjs` drives `claude -p` itself. It costs money, so it
+never joins `npm test` or CI.
+
+```sh
+npm run eval:handoff                                 # Sonnet, 3 runs per arm, $36 cap
+npm run eval:handoff -- --runs 1 --model haiku       # smoke run, $6 cap
+npm run eval:handoff -- --max-cost-usd 20            # explicit cap
+npm run eval:handoff -- --dry-run                    # print the claude commands only
+```
+
+The fixture in `evals/engineering/making-code-agent-friendly/handoff/` is a
+small plain-JavaScript billing service. Each new event edits a `handlers`
+array and a router `switch`, and each schema change takes the next global
+migration number. For each run index, the script does one arm-run in the
+with arm and then one in the without arm. An arm-run has four steps:
+
+1. Stage 1 refactors the fixture with `refactor.md`.
+2. Stage 2 gives the stage-1 result to two fresh agents, one per file in
+   `tasks/`. Each agent adds one event, its route, and its migration. Neither
+   stage-2 agent loads the skill, and neither sees the other's change.
+3. The script merges the two task commits with `git merge-tree`.
+4. The script tests the merged tree.
+
+Flags:
+
+- `--model <m>`: the model for every claude run in both stages. Default
+  `sonnet`.
+- `--runs <1-5>`: runs per arm. Default 3.
+- `--max-cost-usd <usd>`: the command cap. The default is a per-run amount
+  times the 6 claude runs of each run index: Haiku $1, Sonnet $2, and Opus $5
+  per claude run. These amounts are provisional, because no paid run has
+  measured cost per run yet. Each claude run gets `--max-budget-usd` equal to
+  the cap divided by 6 x `--runs`, rounded down to the cent. Another model
+  needs an explicit cap.
+- `--dry-run`: checks the arguments, the repository root, and the fixture,
+  then prints each claude command of one arm-run per arm with `<run root>`
+  placeholders and the stdin source of each prompt. It creates no directory,
+  spawns nothing, and spends nothing.
+- `-h`, `--help`: prints the usage.
+
+Run the command from the repository root. Before the scaffold and any spend,
+a preflight needs `claude`, git 2.38 or later for `git merge-tree
+--write-tree`, and Node 22.14 or later for the test flags. A failed preflight
+or a failed `scaffold.sh` exits 1 before any claude run.
+
+The arms differ in three parts of the stage-1 command, and in nothing else:
+
+- `--plugin-dir <plugin>`: a fresh plugin, built for each with-arm run, that
+  holds only a copy of `skills/engineering/making-code-agent-friendly/`.
+- `--add-dir <plugin>/skills/making-code-agent-friendly`, so the agent can
+  read the skill's references.
+- The prompt prefix `/<plugin name>:making-code-agent-friendly refactor`.
+
+The explicit slash command overstates real use, because a real request can
+miss the skill. The `-trigger` case measures that miss.
+
+Every claude run gets `--restricted --strict-mcp-config --permission-mode
+dontAsk --no-session-persistence`. Without these flags, a `claude -p` run on a
+maintainer machine loaded 11 installed plugins, two of them copies of this
+repository, plus user `CLAUDE.md` and `SessionStart` hooks. `--safe-mode`
+lost because it strips the skills of a `--plugin-dir` plugin, so the slash
+command does not resolve. `--bare` lost because it needs `ANTHROPIC_API_KEY`.
+`--restricted` also denies file tools outside the working directories with no
+prompt.
+
+The script checks each run's init event. The run must list no MCP server.
+Apart from the `@builtin` plugins, only the with-arm stage-1 run lists a
+plugin, `<plugin name>@inline`, and only that run lists a skill ending in
+`making-code-agent-friendly`. The check shows that the skill was available,
+not that the slash command loaded it, because no stream event carries the
+skill text. The results file records `claudeVersion`, so a changed CLI shows
+beside its result.
+
+Every claude run gets the tools `Read`, `Grep`, `Glob`, `Edit`, `Write`,
+`Skill`, and `Bash`, with only `Bash(npm test:*)` pre-approved and the Claude
+Code sandbox on. It gets no `Agent`, no web tool, and no git. The workspaces
+hold no `.git`. The sandbox settings also set `failIfUnavailable: true`, so
+claude exits at startup when the sandbox cannot start instead of running Bash
+unconfined, and `allowUnsandboxedCommands: false`, so the `Bash(npm test:*)`
+rule cannot approve a retry outside the sandbox. They also set
+`autoAllowBashIfSandboxed: false`, because its default of `true` approves any
+command that runs in the sandbox. `Bash(npm test:*)` stays the only Bash
+grant, and `dontAsk` denies every other Bash command. The claude process keeps
+the maintainer's environment, because its login needs it, so sandboxed Bash
+sees that environment too. No paid run has tested this sandbox yet. Before the
+first paid run, confirm that it confines agent `npm test`: under these flags,
+a control test must pass, and probe tests that write to `$HOME` or fetch a URL
+must fail. If the sandbox refuses every Bash run, as
+[Recorded runs](#recorded-runs) describes, every agent `npm test` fails in
+both arms and each trace shows the sandbox error. Record that command as not
+run.
+
+The script owns all git work in a scratch git directory in its own temp
+directory, outside the run root that holds the workspaces. Scratch git reads
+no global or system config and runs no `core.fsmonitor` hook. It fills each
+workspace and each test directory from a commit,
+and it counts a stage's files as the paths that its commit changes. A move
+counts as two paths. The commit is the only record of a stage:
+
+- Git reads an agent's `.gitignore` and `.gitattributes` when the script
+  commits the workspace. A file that the agent's `.gitignore` excludes never
+  reaches the commit, so no count, test, or later stage sees it. A `text` or
+  `eol` attribute can change line endings in the commit. The changed paths
+  show the agent's `.gitignore` or `.gitattributes`.
+- A fill writes each committed blob as a regular file and reads no
+  attributes, so `export-ignore` and `export-subst` change nothing. It keeps
+  mode 755 on an executable file.
+- A committed symbolic link makes the stage `error: symlink`, because a test
+  run could follow it out of the run root. Any other entry that is not a file,
+  such as a nested repository, makes the stage `error: mode <mode>`. The
+  arm-run is incomplete, and the command goes on.
+- A `git merge-tree` failure that is not a conflict makes the merge `error`,
+  with git's stderr unchanged in the merge record's `error` field. The
+  arm-run is incomplete.
+
+Each test step runs two Node test runs on the committed tree:
+
+- The suite run runs the workspace's own tests.
+- The hidden run runs only the fixture's `accept/` tests, which the script
+  adds after the commit. `baseline.test.mjs` runs in every hidden run and
+  pins the original behavior. `stage1.test.mjs` runs after stage 1 only, and
+  each task's test runs after that task and after the merge.
+
+Both runs use `node --permission` with read and write access to the test
+directory only, so test code cannot write outside it or start a child
+process. The agent's own `npm test` runs without these limits. Network access
+stays open in the script's test runs, unlike the no-network rule for eval
+grants above.
+
+A test run passes only when all of these hold:
+
+- Node exits 0, and the 120-second timeout did not fire. A test run past 120
+  seconds gets `SIGKILL`, because test code can catch `SIGTERM` and the
+  script waits for the process to exit.
+- The TAP report holds Node's end-of-run summary with `# fail 0` and
+  `# cancelled 0`.
+- Each hidden file has at least one top-level `ok` line whose test name starts
+  with the file name minus `.test.mjs`, then a colon, such as `baseline:`.
+- No top-level hidden test line carries a `# SKIP` or `# TODO` directive, in
+  any letter case. An agent's own skipped test does not fail the run.
+
+Exit 0 alone does not show that the hidden tests ran, because the hidden
+tests import agent source, which runs in the same process and can end it
+early. A test step passes only when both of its test runs pass. A residual
+risk stays: agent source can change module state that a hidden test reads, or
+change `node:test` itself. The pass rule cannot see that. Both arms carry the
+risk, and the traces show each source file.
+
+The output has one line per arm-run, then one summary line per arm:
+
+```text
+with 1: stage1 ok files 7 | invoice-reopen pass tokens 412300 files 2 | payment-chargeback pass tokens 398100 files 2 | merge clean | $3.40 complete
+with: complete 3/3, both passed 3/3, merged clean 3/3 (conflict 0, broken 0), tokens 790000-850400 median 810400, files 4-5 median 4, cost $9.90
+```
+
+- Stage 1 is `ok`, `fail`, or `error: <reason>`. A task is `pass`, `fail`,
+  `error: <reason>`, or `skipped`. Stage 2 runs only after stage 1 is `ok`.
+- The merge is `clean`, `conflict`, `broken`, `error`, or `n/a`. `broken` means the
+  merge is clean as text but fails a test, for example two `0044_*.sql`
+  migrations. `n/a` means a task did not pass, so no merge ran.
+- An arm-run is complete when stage 1 is `ok`, each task is `pass` or
+  `fail`, and the merge is not `error`.
+- `both passed s/c` counts complete arm-runs where both tasks passed.
+  `merged clean m/s` counts their clean merges.
+- Tokens are the sum of the four `modelUsage` token fields of the result
+  event. Files are the changed paths. The summary takes per-arm-run sums over
+  the two tasks, over complete arm-runs only. An even count takes the mean of
+  the two middle values as the median.
+
+The command exits 0 when every arm-run is complete. It exits 1 when any
+arm-run is incomplete, on a stop rule, and on a preflight or scaffold failure.
+It exits 2 with one stderr line on a bad argument, an incomplete fixture, or a
+run outside the repository root.
+
+Every claude run in both arms and both stages gets the same budget, so a
+stop leaves the arms at most one arm-run apart. Four stop rules end the
+command early with exit 1. When two apply, the first in this list wins:
+
+1. `isolation`: an init event fails the check above.
+2. `budget`: a run reports a cost above its budget, or the CLI ended it at
+   its `--max-budget-usd`. A cost equal to the budget does not stop.
+3. `no cost`: a run reports no usable `total_cost_usd`, or ends with no result
+   event.
+4. `first run`: the command's first claude run ends in any error. A login,
+   flag, or setup fault repeats on every run. When that run fails before its
+   init event, `first run` wins over `isolation` and `no cost`, because the
+   run never started a session.
+
+A stop starts no more claude runs. The script marks the rest of the current
+arm-run `skipped`, prints `== stopped: <rule>. <detail>`, both summary lines,
+and `== results: <path>`, and writes `stopped` and `finished: true` to the
+results file. Every
+run before the stopping run spent at most its budget, so spend passes the cap
+by at most the stopping run's overshoot. In the one observed budget stop,
+the run ended one model call past its budget. That bound is inferred, not
+proven, and one call costs more on a large context.
+
+A claude run that passes 900 seconds gets `SIGTERM` and reads
+`error: timeout`. It emits no result event, so its spend is not observed and
+the `no cost` rule stops the command. An arm-run cost with a run of unknown
+cost prints `+unknown` after the known sum, for example `$0.30+unknown`.
+
+Compare the arms only when both summary lines show `complete <runs>/<runs>`.
+Otherwise rerun the command. Then count a token or file difference only when
+the arms' ranges do not overlap. With equal arms, that happens by chance 2
+times in 20 at 3 runs and 2 times in 252 at 5 runs. At 1 run the rule does
+not apply. At 3 runs, count a success or merge difference only at 3/3 against
+0/3, and compare merges only when both arms show `both passed <runs>/<runs>`.
+A result is evidence for this fixture only.
+
+Results go to `evals/results/<stamp>-<model>-handoff/handoff-result.json`,
+which the script rewrites after each arm-run. Each stage record holds its
+`commit` id. The script keeps the run root and the scratch git directory in
+the OS temp directory, prints both paths, and records them as `runRoot` and
+`scratchGitDir`. Read a stage's diff with
+`git --git-dir=<scratchGitDir> diff <parent commit> <commit>`. The run root
+also holds each claude run's `trace.jsonl` for a G3 review, and its stderr in
+`stderr.log` beside the trace. The script discards the stderr of its own test
+runs.
+
+A Sonnet command at `--runs 3` makes 18 claude runs, which outlasts the
+600-second foreground limit of an agent session. An agent session starts it
+as a background task and reports the two summary lines and the results path.
 
 ## Checks
 
