@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-10-23
+
 ### Changed
 
 - Write one review finding per defect class, listing every instance and the lint or instruction rule that would catch the class, in the shared finding format used by the review skills. [#140](https://github.com/bostonaholic/skills/pull/140)
@@ -820,5 +822,7 @@
 
 [0.60.0]: https://github.com/bostonaholic/skills/compare/v0.59.0...v0.60.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.61.0...HEAD
 [0.61.0]: https://github.com/bostonaholic/skills/compare/v0.60.0...v0.61.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.62.0...HEAD
+[0.62.0]: https://github.com/bostonaholic/skills/compare/v0.61.0...v0.62.0
