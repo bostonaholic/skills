@@ -1,7 +1,8 @@
-// Fails when build-items.mjs keeps a resolved thread, a PENDING or empty review, or the viewer's
-// review-record comment, drops an item it should keep, or accepts input the fetch never prints;
-// or when settle-item.mjs writes twice on a rerun, writes after a usage fault, keeps going after
-// a failed reply or resolve, reports success it did not verify, or calls gh without --hostname.
+// Fails when build-items.mjs keeps a resolved thread, a PENDING or empty review, a review summary
+// its author later approved, or the viewer's review-record comment, drops an item it should keep,
+// or accepts input the fetch never prints; or when settle-item.mjs writes twice on a rerun, writes
+// after a usage fault, keeps going after a failed reply or resolve, reports success it did not
+// verify, or calls gh without --hostname.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -113,13 +114,22 @@ const thread = (
   comments,
 });
 
-const review = (n, { login = "alice", state = "COMMENTED", body = `review body ${n}` } = {}) => ({
+const review = (
+  n,
+  {
+    login = "alice",
+    author = { login },
+    state = "COMMENTED",
+    body = `review body ${n}`,
+    submittedAt = "2026-10-01T00:00:00Z",
+  } = {},
+) => ({
   id: `PRR_${n}`,
   databaseId: n,
-  author: { login },
+  author,
   body,
   state,
-  submittedAt: "2026-10-01T00:00:00Z",
+  submittedAt,
   url: `${PR_URL}#pullrequestreview-${n}`,
   reactionGroups: [],
 });
@@ -185,6 +195,7 @@ test("build-items keeps open feedback and drops what is not an item", (t) => {
   assert.deepEqual(output.pr, PR);
   assert.deepEqual(output.viewer, { login: "me" });
   assert.equal(output.skippedReviewRecords, 1);
+  assert.equal(output.supersededReviews, 0);
   assert.equal(output.excluded, 0);
   assert.deepEqual(
     output.items.map((item) => [item.kind, item.id]),
@@ -285,6 +296,189 @@ test("build-items --exclude-ids drops and counts the listed ids", (t) => {
     ["T2"],
   );
   assert.equal(output.excluded, 2);
+});
+
+const T1 = "2026-10-01T00:00:00Z";
+const T2 = "2026-10-02T00:00:00Z";
+const T3 = "2026-10-03T00:00:00Z";
+
+function withoutSubmittedAt(node) {
+  const { submittedAt: _omitted, ...rest } = node;
+  return rest;
+}
+
+test("build-items drops a review summary its author later approved", async (t) => {
+  const cases = [
+    [
+      "a later empty-body approval by the same login",
+      [review(1, { submittedAt: T1 }), review(2, { state: "APPROVED", body: "", submittedAt: T2 })],
+      [],
+      1,
+    ],
+    [
+      "two summaries before one approval",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { submittedAt: T2 }),
+        review(3, { state: "APPROVED", body: "", submittedAt: T3 }),
+      ],
+      [],
+      2,
+    ],
+    [
+      "an approval before the summary",
+      [review(1, { state: "APPROVED", body: "", submittedAt: T1 }), review(2, { submittedAt: T2 })],
+      ["PRR_2"],
+      0,
+    ],
+    [
+      "an approval at the same submittedAt",
+      [review(1, { submittedAt: T1 }), review(2, { state: "APPROVED", body: "", submittedAt: T1 })],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a later approval by another login",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { login: "bob", state: "APPROVED", body: "", submittedAt: T2 }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a later DISMISSED review by the same login",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { state: "DISMISSED", body: "", submittedAt: T2 }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a null author on both the summary and the approval",
+      [
+        review(1, { author: null, submittedAt: T1 }),
+        review(2, { author: null, state: "APPROVED", body: "", submittedAt: T2 }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a null author on the approval",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { author: null, state: "APPROVED", body: "", submittedAt: T2 }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a summary with no submittedAt key",
+      [withoutSubmittedAt(review(1)), review(2, { state: "APPROVED", body: "", submittedAt: T2 })],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a summary with a null submittedAt",
+      [
+        review(1, { submittedAt: null }),
+        review(2, { state: "APPROVED", body: "", submittedAt: T2 }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "a summary with an unparseable submittedAt",
+      [
+        review(1, { submittedAt: "not-a-date" }),
+        review(2, { state: "APPROVED", body: "", submittedAt: T2 }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "an approval with no submittedAt key",
+      [
+        review(1, { submittedAt: T1 }),
+        withoutSubmittedAt(review(2, { state: "APPROVED", body: "" })),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "an approval with a null submittedAt",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { state: "APPROVED", body: "", submittedAt: null }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "an approval with an unparseable submittedAt",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { state: "APPROVED", body: "", submittedAt: "not-a-date" }),
+      ],
+      ["PRR_1"],
+      0,
+    ],
+    [
+      "an approval with a body, then a later approval by the same login",
+      [
+        review(1, { state: "APPROVED", body: "approved, one note", submittedAt: T1 }),
+        review(2, { state: "APPROVED", body: "second note", submittedAt: T2 }),
+      ],
+      ["PRR_2"],
+      1,
+    ],
+    [
+      "a summary, an approval, then a changes request by the same login",
+      [
+        review(1, { submittedAt: T1 }),
+        review(2, { state: "APPROVED", body: "", submittedAt: T2 }),
+        review(3, { state: "CHANGES_REQUESTED", body: "one more fix", submittedAt: T3 }),
+      ],
+      ["PRR_3"],
+      1,
+    ],
+  ];
+  for (const [name, reviewSummaries, expectedReviewIds, expectedSuperseded] of cases) {
+    await t.test(name, (st) => {
+      const result = buildItems(st, feedback({ reviewSummaries }));
+      assert.equal(result.status, 0, result.stderr);
+      const output = JSON.parse(result.stdout);
+      assert.deepEqual(
+        output.items.filter((item) => item.kind === "review").map((item) => item.id),
+        expectedReviewIds,
+      );
+      assert.equal(output.supersededReviews, expectedSuperseded);
+    });
+  }
+});
+
+test("build-items counts a superseded summary the caller excluded only in excluded", (t) => {
+  const idsPath = writeJson(t, "PRR_1\n");
+  const result = buildItems(
+    t,
+    feedback({
+      reviewSummaries: [
+        review(1, { submittedAt: T1 }),
+        review(2, { submittedAt: T2 }),
+        review(3, { state: "APPROVED", body: "", submittedAt: T3 }),
+      ],
+    }),
+    ["--exclude-ids", idsPath],
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout);
+  assert.deepEqual(
+    output.items.filter((item) => item.kind === "review").map((item) => item.id),
+    [],
+  );
+  assert.equal(output.excluded, 1);
+  assert.equal(output.supersededReviews, 1);
 });
 
 test("build-items refuses input the fetch script never prints", async (t) => {
