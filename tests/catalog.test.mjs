@@ -1,7 +1,8 @@
 // Fails when the README skill catalog or the generated site drifts from the tracked skills: a
-// skill added or re-described without `npm run readme`, a site that drops a skill, the install
-// prompt, or the extraction note, or a site that prints an argument hint without escaping it.
-// The note and the install prompt come from scripts/catalog.mjs; this file holds no copy of
+// skill added or re-described without `npm run readme`, a README or site that drops the Claude
+// Code install command, a site that drops a skill, the install prompt, or the extraction note,
+// or a site that prints an argument hint without escaping it. The note, the Claude Code install
+// command, and the install prompt come from scripts/catalog.mjs; this file holds no copy of
 // them. The fixture cases run the real CLIs in a temporary repository built with `git init` plus
 // `git add`, never a commit.
 import assert from "node:assert/strict";
@@ -159,6 +160,23 @@ test("the committed README generated block equals renderReadme(loadCatalog())", 
   assert.equal(generatedBlock(readme), renderReadme(await loadCatalog()));
 });
 
+test("the README Install section shows the Claude Code install command in a text fence under its label", async () => {
+  const { CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_INSTALL_LABEL, loadCatalog, renderReadme } =
+    await catalogModule();
+  const block = renderReadme(await loadCatalog());
+  const expected = [
+    CLAUDE_CODE_INSTALL_LABEL,
+    "",
+    "```text",
+    CLAUDE_CODE_INSTALL_COMMAND,
+    "```",
+  ].join("\n");
+  assert.ok(
+    block.includes(expected),
+    `README Install section lacks the Claude Code install command in a text fence under its label:\n${expected}`,
+  );
+});
+
 // ---------------------------------------------------------------------------------------------
 // The built site
 
@@ -170,13 +188,29 @@ test("the site has one section per tracked skill, keyed by the skill name", (t) 
   assert.deepEqual(sections, skills);
 });
 
-test("the site shows the install prompt and links an installation doc that exists", async (t) => {
-  const { INSTALL_DOC, INSTALL_PROMPT, INSTALL_PROMPT_LABEL } = await catalogModule();
+test("the site shows the Claude Code install command, the install prompt, and links an installation doc that exists", async (t) => {
+  const {
+    CLAUDE_CODE_INSTALL_COMMAND,
+    CLAUDE_CODE_INSTALL_LABEL,
+    INSTALL_DOC,
+    INSTALL_PROMPT,
+    INSTALL_PROMPT_LABEL,
+  } = await catalogModule();
   assert.ok(existsSync(join(REPO, INSTALL_DOC)), `missing ${INSTALL_DOC}`);
   const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
-  for (const text of [INSTALL_PROMPT_LABEL, INSTALL_PROMPT, `/blob/main/${INSTALL_DOC}`]) {
+  for (const text of [
+    CLAUDE_CODE_INSTALL_LABEL,
+    CLAUDE_CODE_INSTALL_COMMAND,
+    INSTALL_PROMPT_LABEL,
+    INSTALL_PROMPT,
+    `/blob/main/${INSTALL_DOC}`,
+  ]) {
     assert.ok(html.includes(escaped(text)), `index.html lacks ${text}`);
   }
+  assert.ok(
+    html.includes(`<pre><code>${escaped(CLAUDE_CODE_INSTALL_COMMAND)}</code></pre>`),
+    `index.html lacks a <pre><code> block holding ${CLAUDE_CODE_INSTALL_COMMAND}`,
+  );
 });
 
 test("the site shows the subtitle exported by the catalog", async (t) => {
