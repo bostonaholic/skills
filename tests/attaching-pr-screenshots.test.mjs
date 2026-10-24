@@ -638,6 +638,24 @@ test("write-result.mjs shows gh's error when POST /markdown fails", (t) => {
   assert.equal(result.stderr, "gh: render sentinel\n");
 });
 
+test("write-result.mjs shows gh's error when gh exits before reading a body larger than a pipe", (t) => {
+  const dir = scratch(t);
+  const pull = join(dir, "pull.json");
+  writeFileSync(pull, JSON.stringify({ body: "x".repeat(1 << 20), body_html: "" }));
+  const run = finishedRun(
+    t,
+    { "write-exit": "0\n" },
+    [
+      `  "api --hostname github.com repos/o/r/pulls/7 "*) cat '${pull}' ;;`,
+      `  "api --hostname github.com --method POST markdown --input -") echo 'gh: render sentinel' >&2; exit 1 ;;`,
+    ].join("\n"),
+  );
+  const result = run.node("write-result.mjs");
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "outcome unverified\nfailed the body could not be read back\n");
+  assert.equal(result.stderr, "gh: render sentinel\n");
+});
+
 test("write-result.mjs renders the stored body through POST /markdown when body_html is empty", (t) => {
   const run = resultRun(t, "", {}, { body: "## Screenshots\n", markdownHtml: LANDED_HTML });
   const result = run.node("write-result.mjs");
