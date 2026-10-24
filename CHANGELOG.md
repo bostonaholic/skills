@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `making-code-agent-friendly` reference links resolve from the skill directory. [#148](https://github.com/bostonaholic/skills/pull/148)
+- `auditing-rails-tech-debt` names the application directory without a `-root` placeholder. [#148](https://github.com/bostonaholic/skills/pull/148)
+- `investigating-design-rationale` links the skill-call rules it follows when calling another skill. [#148](https://github.com/bostonaholic/skills/pull/148)
+- `running-retros` links the skill-call rules it follows when calling another skill. [#148](https://github.com/bostonaholic/skills/pull/148)
+
 ## [0.65.0] - 2026-10-24
 
 ### Changed
