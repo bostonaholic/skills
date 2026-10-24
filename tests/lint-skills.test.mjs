@@ -63,6 +63,12 @@ function assertReports(t, files, id, pattern) {
   assert.match(run.output, new RegExp(`: ${id} .*${pattern.source}`), run.output);
 }
 
+function assertReportsLine(t, files, line) {
+  const run = runLint(t, files);
+  assert.equal(run.status, 1, run.output);
+  assert.ok(run.output.split("\n").includes(line), `want the line\n${line}\nin:\n${run.output}`);
+}
+
 function assertReportsMatch(t, files, pattern) {
   const run = runLint(t, files);
   assert.equal(run.status, 1, run.output);
@@ -370,4 +376,189 @@ test("the lint IDs equal the skill-authoring rows marked lint", () => {
     .filter(Boolean)
     .sort();
   assert.deepEqual([...lint.LINT_IDS].sort(), marked);
+});
+
+// ---------------------------------------------------------------------------------------------
+// C7: links and <skill-dir>/ paths name tracked files in the skill. C8: -dir and -root placeholders
+
+test("C7 reports a link or <skill-dir>/ path that names no tracked file in the skill", async (t) => {
+  // LONG_GUIDE ends on line 108, so an appended line is line 109.
+  await t.test("a sibling link from references/ names the references/ fix", (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({
+          body: `${LINKS}Read [the notes](references/notes.md).\n`,
+        }),
+        [`${SKILL}/references/guide.md`]: `${LONG_GUIDE}See [the notes](notes.md).\n`,
+        [`${SKILL}/references/notes.md`]: "# Notes\n",
+      }),
+      'skills/engineering/reviewing-widgets/references/guide.md: C7 line 109: "notes.md" is not a tracked file at skills/engineering/reviewing-widgets/notes.md. Link from the skill directory, as in references/notes.md',
+    );
+  });
+
+  await t.test("a link in a shared/ copy resolves from shared/", (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        [`${SKILL}/shared/rule.md`]: "# Rule\n\nSee [the guide](references/guide.md).\n",
+      }),
+      'skills/engineering/reviewing-widgets/shared/rule.md: C7 line 3: "references/guide.md" is not a tracked file at skills/engineering/reviewing-widgets/shared/references/guide.md.',
+    );
+  });
+
+  // skillFile puts the body's first line on line 8, so the line after LINKS is line 9.
+  await t.test("<skill-dir>/scripts/missing.mjs", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({
+          body: `${LINKS}Run \`node <skill-dir>/scripts/missing.mjs\`.\n`,
+        }),
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: C7 line 9: [^\n]*scripts\/missing\.mjs/m,
+    );
+  });
+
+  await t.test("<reviewing-widgets-skill-dir>/missing.md", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({
+          body: `${LINKS}Read \`<reviewing-widgets-skill-dir>/missing.md\`.\n`,
+        }),
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: C7 line 9: [^\n]*missing\.md/m,
+    );
+  });
+
+  await t.test("a <skill-dir>/scripts/ path with no tracked file under scripts/", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({
+          body: `${LINKS}List \`<skill-dir>/scripts/\` first.\n`,
+        }),
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: C7 line 9: [^\n]*scripts\//m,
+    );
+  });
+});
+
+test("C7 accepts tracked targets and skips targets it cannot resolve", async (t) => {
+  const withScript = (body) =>
+    compliant({
+      [`${SKILL}/SKILL.md`]: skillFile({ body: `${LINKS}${body}` }),
+      [`${SKILL}/scripts/run.sh`]: "#!/bin/sh\n",
+    });
+
+  await t.test("a quoted <skill-dir>/ path", (t) => {
+    const run = runLint(t, withScript('Run `bash "<skill-dir>/scripts/run.sh"`.\n'));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("a <skill-dir>/ path before a comma", (t) => {
+    const run = runLint(t, withScript("Run <skill-dir>/scripts/run.sh, then read its output.\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("a <skill-dir>/ path before a trailing period", (t) => {
+    const run = runLint(t, withScript("Then run <skill-dir>/scripts/run.sh.\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("<skill-dir>/scripts/<name> reads as scripts/", (t) => {
+    const run = runLint(t, withScript("Run `node <skill-dir>/scripts/<name>`.\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("<skill-dir>/ alone names the skill directory", (t) => {
+    const run = runLint(t, withScript("Work inside `<skill-dir>/`.\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("https: and mailto: targets", (t) => {
+    const run = runLint(
+      t,
+      withScript(
+        "See [the spec](https://example.com/missing.md) or [mail us](mailto:widgets@example.com).\n",
+      ),
+    );
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("a bare #anchor", (t) => {
+    const run = runLint(t, withScript("Go [back to the top](#reviewing-widgets).\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("a target with a leading <", (t) => {
+    const run = runLint(t, withScript("See [the raw file](<missing.md>).\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("an extensionless target", (t) => {
+    const run = runLint(t, withScript("See [the folder](missing).\n"));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("a backslash target gets only its C5 line", (t) => {
+    const run = runLint(t, withScript("See [the guide](references\\missing.md).\n"));
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /: C5 line 9: use forward slashes in "references\\missing\.md"/);
+    assert.doesNotMatch(run.output, /: C7 /);
+  });
+
+  await t.test("<reviewing-code-skill-dir>/x.md gets only its C8 line", (t) => {
+    const run = runLint(t, withScript("Read `<reviewing-code-skill-dir>/x.md`.\n"));
+    assert.equal(run.status, 1, run.output);
+    assert.match(run.output, /: C8 line 9: /);
+    assert.doesNotMatch(run.output, /: C7 /);
+  });
+});
+
+test("C8 reports a -dir or -root placeholder that does not name the skill's own directory", async (t) => {
+  await t.test("<app-root> fails", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({ body: `${LINKS}Run \`cd <app-root>\`.\n` }),
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: C8 line 9: placeholder "<?app-root>?" ends in -dir or -root but does not name this skill's directory; rename it, as in <out>$/m,
+    );
+  });
+
+  await t.test("<out-dir> fails", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({ body: `${LINKS}Write to \`<out-dir>\`.\n` }),
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: C8 line 9: placeholder "<?out-dir>?" ends in -dir or -root/m,
+    );
+  });
+
+  await t.test("<reviewing-code-skill-dir> fails outside reviewing-code", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({
+          body: `${LINKS}List \`<reviewing-code-skill-dir>\`.\n`,
+        }),
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: C8 line 9: placeholder "<?reviewing-code-skill-dir>?" ends in -dir or -root/m,
+    );
+  });
+
+  await t.test("<skill-dir> passes", (t) => {
+    const body = `${LINKS}List \`<skill-dir>\`.\n`;
+    const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("<reviewing-widgets-skill-dir> passes in reviewing-widgets", (t) => {
+    const body = `${LINKS}List \`<reviewing-widgets-skill-dir>\`.\n`;
+    const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
 });

@@ -43,7 +43,7 @@ N+1, `default_scope`, SQL interpolation in scopes); and
 
 ## Leads
 
-- Run `node <skill-dir>/scripts/find-leads.mjs <app-root>`. On exit 1 or 2,
+- Run `node <skill-dir>/scripts/find-leads.mjs <app>`. On exit 1 or 2,
   fix what stderr names and rerun. On exit 3, apply the schema rules to
   `db/structure.sql` by reading.
 - Start from `Gemfile`, `config/routes.rb`, `db/schema.rb`, and the largest

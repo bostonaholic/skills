@@ -80,14 +80,16 @@ only what a frontier model would otherwise get wrong.
 
 ## C. Structure and progressive disclosure
 
-| ID  | Rule                                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | The SKILL.md body is at most 100 lines. Move detail into references before reaching it. **lint**                                            |
-| C2  | SKILL.md is an overview that routes to references, each with a clause saying when to read it.                                               |
-| C3  | Every file in the skill's `references/` and `shared/` is linked from SKILL.md as a markdown link, so no file sits two levels deep. **lint** |
-| C4  | A file over 100 lines opens with a `## Contents` section listing its sections. **lint**                                                     |
-| C5  | File names describe their content; directories group by domain; paths use forward slashes. **lint** (slashes)                               |
-| C6  | SKILL.md is checklist-shaped: steps and rules are list items, and no prose paragraph runs over 50 words. **lint**                           |
+| ID  | Rule                                                                                                                                                                                                                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | The SKILL.md body is at most 100 lines. Move detail into references before reaching it. **lint**                                                                                                                                                                                         |
+| C2  | SKILL.md is an overview that routes to references, each with a clause saying when to read it.                                                                                                                                                                                            |
+| C3  | Every file in the skill's `references/` and `shared/` is linked from SKILL.md as a markdown link, so no file sits two levels deep. **lint**                                                                                                                                              |
+| C4  | A file over 100 lines opens with a `## Contents` section listing its sections. **lint**                                                                                                                                                                                                  |
+| C5  | File names describe their content; directories group by domain; paths use forward slashes. **lint** (slashes)                                                                                                                                                                            |
+| C6  | SKILL.md is checklist-shaped: steps and rules are list items, and no prose paragraph runs over 50 words. **lint**                                                                                                                                                                        |
+| C7  | Every link, code-span path, and script path resolves inside the skill directory, from one base per file: a file in a skill's `shared/` links its siblings; every other file links from the skill directory (`shared/X.md`, `references/X.md`). **lint** (links and `<skill-dir>/` paths) |
+| C8  | `<skill-dir>`, or `<x-skill-dir>` where `x` is the skill's own name, names the skill's own directory; a placeholder for any other location must not end in `-dir` or `-root` (for example `<out>`). **lint** (Markdown)                                                                  |
 
 ## D. Workflows and feedback loops
 

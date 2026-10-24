@@ -7,11 +7,12 @@
 // skill call only with a shared/skill-calls.md link from SKILL.md, C1 SKILL.md body of at most
 // 100 lines, C3 every references/ and shared/ file linked from SKILL.md, C4 a `## Contents` table
 // of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
-// 50 words. Acts on the git repository at the working directory; skills come from `git ls-files`,
+// 50 words, C7 links and <skill-dir>/ paths that name tracked files in the skill, C8 -dir and -root
+// placeholders that name only the skill's own directory. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { basename, dirname, posix } from "node:path";
 import { pathToFileURL } from "node:url";
 import { FRONTMATTER, SKILL_CALL, scalar } from "./catalog.mjs";
 import { references } from "./sync-shared.mjs";
@@ -31,6 +32,8 @@ export const LINT_IDS = Object.freeze([
   "C4",
   "C5",
   "C6",
+  "C7",
+  "C8",
 ]);
 
 // Limits from the Agent Skills frontmatter specification and Anthropic's authoring guide.
@@ -78,6 +81,15 @@ const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 // The fallback for harnesses with no Skill tool, which every skill that calls another links.
 const SKILL_CALL_RULES = "shared/skill-calls.md";
+// A path from the skill directory. Skill script and reference names use only these characters, so
+// the path ends at the first quote, backtick, comma, `<`, or space around it.
+const SKILL_DIR_PATH = /<((?:[a-z0-9-]+-)?skill-dir)>\/([A-Za-z0-9._/-]*)/g;
+// Placeholders for a directory. Only the skill's own directory may use these endings.
+const DIR_PLACEHOLDER = /<([a-z0-9-]+)-(dir|root)>/g;
+// A URL or other target outside the repository, such as https: or mailto:.
+const URL_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+// The C5 test for a path-like target: one that ends in a file extension.
+const FILE_EXTENSION = /\.[a-z]+$/i;
 
 function lsFiles(...pathspecs) {
   return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" })
@@ -211,8 +223,61 @@ function checkFile(path, text, report) {
       );
   }
   for (const { line, target } of references(text, { spans: true })) {
-    if (target.includes("\\") && /\.[a-z]+$/i.test(target))
+    if (target.includes("\\") && FILE_EXTENSION.test(target))
       report("C5", `line ${line}: use forward slashes in "${target}"`);
+  }
+}
+
+function lineAt(text, index) {
+  return text.slice(0, index).split("\n").length;
+}
+
+function ownsPlaceholder(dir, name) {
+  return name === "skill" || name === `${basename(dir)}-skill`;
+}
+
+// C7. Links resolve from shared/ inside a shared/ copy and from the skill directory elsewhere;
+// <skill-dir>/ paths always resolve from the skill directory.
+function checkLinkTargets(dir, path, text, tracked, report) {
+  const inShared = path.startsWith(`${dir}/shared/`);
+  const base = inShared ? `${dir}/shared` : dir;
+  for (const { line, target: raw } of references(text, { spans: false })) {
+    if (URL_SCHEME.test(raw) || raw.startsWith("#") || raw.startsWith("<") || raw.includes("\\"))
+      continue;
+    const target = raw.split("#")[0].replace(/^\.\//, "");
+    if (!FILE_EXTENSION.test(target)) continue;
+    const resolved = posix.normalize(posix.join(base, target));
+    if (resolved.startsWith(`${dir}/`) && tracked.has(resolved)) continue;
+    const prefix = posix.dirname(path).slice(dir.length + 1);
+    const hint =
+      !inShared && prefix && tracked.has(`${dir}/${prefix}/${target}`)
+        ? ` Link from the skill directory, as in ${prefix}/${target}`
+        : "";
+    report("C7", `line ${line}: "${target}" is not a tracked file at ${resolved}.${hint}`);
+  }
+  for (const match of text.matchAll(SKILL_DIR_PATH)) {
+    if (!ownsPlaceholder(dir, match[1].replace(/-dir$/, ""))) continue;
+    const relative = match[2].replace(/\.$/, "");
+    const resolved = `${dir}/${relative}`;
+    const found = relative.endsWith("/")
+      ? [...tracked].some((file) => file.startsWith(resolved))
+      : !relative || tracked.has(resolved);
+    if (!found)
+      report(
+        "C7",
+        `line ${lineAt(text, match.index)}: "<${match[1]}>/${relative}" is not a tracked ${relative.endsWith("/") ? "directory" : "file"} at ${resolved}.`,
+      );
+  }
+}
+
+// C8
+function checkPlaceholders(dir, text, report) {
+  for (const match of text.matchAll(DIR_PLACEHOLDER)) {
+    if (match[2] === "dir" && ownsPlaceholder(dir, match[1])) continue;
+    report(
+      "C8",
+      `line ${lineAt(text, match.index)}: placeholder "${match[0]}" ends in -dir or -root but does not name this skill's directory; rename it, as in <out>`,
+    );
   }
 }
 
@@ -251,7 +316,12 @@ export function lintSkills() {
     const linked = linkTargets(skillText);
     checkLinks(dir, linked, files, report);
     checkSkillCalls(dir, linked, texts, report);
-    for (const [path, text] of texts) checkFile(path, text, reportFor(path));
+    const trackedSet = new Set(tracked);
+    for (const [path, text] of texts) {
+      checkFile(path, text, reportFor(path));
+      checkLinkTargets(dir, path, text, trackedSet, reportFor(path));
+      checkPlaceholders(dir, text, reportFor(path));
+    }
   }
   return problems;
 }
