@@ -25,7 +25,7 @@ skill to a copy directory that did not hold it.
   `${XDG_CONFIG_HOME:-~/.config}/opencode/skills`, `~/.cursor/skills`, and
   `~/agent-data/workflows`, whatever installed it. Each old copy is backed up.
 - **Not touched:** `~/.claude/skills`, `~/.agents/skills`, and project-level
-  `npx skills` installs. Point the user at `npx skills@latest update`.
+  `skills` CLI installs. Point the user at the update command in INSTALL.md's "One skill" section.
 
 ## Steps
 

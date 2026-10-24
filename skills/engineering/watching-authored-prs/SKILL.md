@@ -25,8 +25,8 @@ argument-hint: "[<pr-number-or-url>]"
 - Bind `<host>/<owner>/<repo>` from the PR's `url` and pass it to every `gh` call
   (`--repo`, or `--hostname` for `gh api`).
 - For triage, call the Skill tool with `addressing-pr-comments`. When it is not
-  installed, stop before arming and tell the user to run
-  `npx skills@latest add bostonaholic/skills --skill addressing-pr-comments`.
+  installed, stop before arming and tell the user to install it from
+  `bostonaholic/skills` with the `skills` CLI, as INSTALL.md's "One skill" section shows.
   Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 - The arming instruction sets two grants for the life of the watch: feedback and
   CI. Read [grants](references/grants.md) to resolve its phrasing. A merge, land,
