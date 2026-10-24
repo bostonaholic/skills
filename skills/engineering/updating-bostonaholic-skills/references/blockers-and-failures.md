@@ -52,8 +52,8 @@ appears in it.
 
 `left:` lines are reports, not errors. The script never changes these:
 
-- A symlink or file where a collection skill goes, such as an `npx skills`
-  install linked into `~/.cursor/skills`. Update it with `npx skills@latest update`.
+- A symlink or file where a collection skill goes, such as a `skills` CLI
+  install linked into `~/.cursor/skills`. Update it as INSTALL.md's "One skill" section shows.
   A real directory under a collection name is refreshed, whatever installed it.
 - A directory with no `SKILL.md` under a collection name.
 - A skill the collection has retired. Delete it by hand if unwanted.

@@ -27,7 +27,7 @@ read frontmatter config.
 Write the diagram to `<out>/diagram.mmd` in a scratch directory and render it:
 
 ```sh
-npx -y @mermaid-js/mermaid-cli -i <out>/diagram.mmd -o <out>/diagram.png
+npx -y @mermaid-js/mermaid-cli@12.0.0 -i <out>/diagram.mmd -o <out>/diagram.png
 ```
 
 For a Markdown file, `-i doc.md -o <out>/doc.md` renders every mermaid block.

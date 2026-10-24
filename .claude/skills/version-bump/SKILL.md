@@ -28,8 +28,8 @@ failure during review do not authorize versioning. Read `docs/versioning.md`.
    Site-only and other development-only PRs need no changelog entry. Correct
    any required entries and commit those edits before preparation, which
    requires a clean checkout. Run `npm run release:prepare -- <level> origin/<base>`. The script decides
-   whether runtime changed, synchronizes shared files, updates manifest/package/
-   lockfile versions, and cuts `[Unreleased]` into a dated release section. It
+   whether runtime changed, synchronizes shared files, updates manifest and package
+   versions, and cuts `[Unreleased]` into a dated release section. It
    refuses empty notes. Add accurate bullets and retry if necessary. Its
    `runtime: false` result means no bump, no cut, and a plain conventional title.
    An `alreadyPrepared` result reuses the prepared version; never increment twice.

@@ -61,8 +61,8 @@ the plugin manifest also excludes it. It remains available to repository maintai
 2. Run `npm run release:prepare -- minor origin/main` (choose the actual level
    and base). This regenerates shared copies, computes the version from the
    fetched base, updates `.claude-plugin/plugin.json`,
-   `.cursor-plugin/plugin.json`, `package.json`, and both
-   root versions in `package-lock.json`, and cuts the dated changelog section.
+   `.cursor-plugin/plugin.json`, and `package.json`, and cuts the dated
+   changelog section.
 3. Review the generated diff, run `npm test`, and make a signed
    `chore(version): X.Y.Z` commit. Verify its signature.
 4. Run `npm run release:check -- origin/main`. For runtime changes, set the PR
@@ -102,6 +102,9 @@ and no runtime change occurred since them. Existing releases are left intact.
 This allows development-only merges and repairs a tag-pushed/release-failed run
 without replacing a tag. Tag collisions, unsigned tags, missing notes, stale
 shared copies, and inconsistent versions fail the job.
+
+Once the plugin is listed, the [Claude plugin directory](directory.md) scans
+each commit on `main`.
 
 ## Signing
 

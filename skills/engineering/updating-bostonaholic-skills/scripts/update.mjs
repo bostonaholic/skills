@@ -48,7 +48,7 @@
  *                  references/, scripts/, and shared/
  *
  * In these four directories, whatever installed the copies (a copy script,
- * `npx skills` in copy mode, or by hand), each collection skill already there
+ * the `skills` CLI in copy mode, or by hand), each collection skill already there
  * as a real directory with a SKILL.md is compared with the release's copy and
  * replaced when it differs. The old copy moves to
  * ${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>,
@@ -57,7 +57,7 @@
  * retired, are left alone and reported.
  *
  * Not touched: ~/.claude/skills, ~/.agents/skills, and project-level
- * `npx skills` installs. Update those with `npx skills@latest update`.
+ * `skills` CLI installs. Update those as INSTALL.md's "One skill" section shows.
  *
  * Environment: HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, CLAUDE_CONFIG_DIR, and
  * CODEX_HOME locate the installs. UPDATING_BOSTONAHOLIC_SKILLS_SOURCE
