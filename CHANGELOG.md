@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- Retire `using-gh-cli`: it rarely triggered, and models handled its gh cases as well without it. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.62.0] - 2026-10-23
 
 ### Changed
