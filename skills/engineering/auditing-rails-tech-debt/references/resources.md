@@ -19,7 +19,7 @@ Everything linked from Fowler's
 1. **[Patterns of Enterprise Application Architecture (PoEAA) catalog](https://martinfowler.com/eaaCatalog/).**
    Enterprise application architecture within a layered architecture: domain
    logic, web presentation, database interaction, offline concurrency, and
-   distribution patterns. All 51 patterns are documented with Rails mappings in
+   distribution patterns. Every catalog pattern is documented with Rails mappings in
    the `references/poeaa-*.md` files of this skill.
 2. **[Core J2EE Patterns](http://www.corej2eepatterns.com/).** Enterprise
    architecture patterns for Java; the principles (Service Locator, Session

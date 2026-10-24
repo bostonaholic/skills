@@ -8,7 +8,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 
 ## Contents
 
-- Two rules
+- Core rules
 - Description form
 - A. Metadata
 - B. Concision and freedom
@@ -29,9 +29,9 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Handoff eval
 - Checks
 
-## Two rules
+## Core rules
 
-Every rule below serves one of these two. They apply to every skill, and every
+Every rule below serves one of these. They apply to every skill, and every
 skill that creates or edits a skill applies them to its output.
 
 - **Agent-agnostic.** A skill is a `SKILL.md` and its scripts, plus
@@ -166,7 +166,7 @@ below explain each default and the triage the wrapper does not do.
 
 #### Layout
 
-Each active skill has three cases in `evals/<category>/<skill>/`:
+Each active skill has at least these cases in `evals/<category>/<skill>/`:
 
 - `<skill>-trigger`: a realistic request. The skill fires and does its work.
 - `<skill>-guard`: a near miss. The skill does not fire, or it refuses or
@@ -202,15 +202,15 @@ a cut that leaves valid YAML loads cleanly. After a paid run, check each
 case's `promptMarkdown` in `aggregate-result.json`: it should hold only the
 intended prompt body and no fixture text.
 
-Every case carries one of two run tags:
+Every case carries one of these run tags:
 
 - `readonly`: no Bash, Edit, or Write. The `agent` and `no-agent` tags split
   these cases by whether the skill dispatches subagents, so you can run them
   as two commands with separate caps.
-- `bash`: the command line grants Edit, two read-only `git` patterns, and
-  `npm test`, so a case can rerun its scaffolded tests. Edit can write the
-  workspace's git config, and `git status` or `git diff` then runs any
-  command that config names, such as `core.fsmonitor`, inside the Bash
+- `bash`: the command line grants Edit, the read-only `git status` and
+  `git diff` patterns, and `npm test`, so a case can rerun its scaffolded tests.
+  Edit can write the workspace's git config, and `git status` or `git diff` then
+  runs any command that config names, such as `core.fsmonitor`, inside the Bash
   sandbox. Edit can likewise rewrite the `test` script in `package.json`, and
   `npm test` then runs it inside the same sandbox. Run `bash` cases, like
   `--scaffold`, only on this repository's own reviewed cases.
@@ -265,7 +265,7 @@ each grader `pattern` and `input_match` with `new RegExp()` in Node.
 
 The check passes when no output line reports `failed to load` and the exit
 code is not 1. At the $0 cap the command always exits 2, the cap-hit code,
-so run the two commands separately and never chain them with `&&`.
+so run each command separately and never chain them with `&&`.
 
 These warnings are expected and do not fail the check:
 
@@ -421,9 +421,9 @@ Opus $30.
      --max-cost-usd <cap> --no-publish
    ```
 
-   Keep two commands, because one command would grant Bash and Edit to the
-   `readonly` cases. If the skill has no `bash` case, the second command exits
-   1 with "No eval cases found".
+   Keep the commands separate, because one command would grant Bash and Edit to
+   the `readonly` cases. If the skill has no `bash` case, the second command
+   exits 1 with "No eval cases found".
 
 3. Run the verdict script on each results file.
 4. Make the edit, then run the same commands and the verdict script again.
@@ -472,7 +472,7 @@ The fixture in `evals/engineering/making-code-agent-friendly/handoff/` is a
 small plain-JavaScript billing service. Each new event edits a `handlers`
 array and a router `switch`, and each schema change takes the next global
 migration number. For each run index, the script does one arm-run in the
-with arm and then one in the without arm. An arm-run has four steps:
+with arm and then one in the without arm. An arm-run has these steps:
 
 1. Stage 1 refactors the fixture with `refactor.md`.
 2. Stage 2 gives the stage-1 result to two fresh agents, one per file in
@@ -503,7 +503,7 @@ a preflight needs `claude`, git 2.38 or later for `git merge-tree
 --write-tree`, and Node 22.14 or later for the test flags. A failed preflight
 or a failed `scaffold.sh` exits 1 before any claude run.
 
-The arms differ in three parts of the stage-1 command, and in nothing else:
+The arms differ only in these parts of the stage-1 command:
 
 - `--plugin-dir <plugin>`: a fresh plugin, built for each with-arm run, that
   holds only a copy of `skills/engineering/making-code-agent-friendly/`.
@@ -573,7 +573,7 @@ counts as two paths. The commit is the only record of a stage:
   with git's stderr unchanged in the merge record's `error` field. The
   arm-run is incomplete.
 
-Each test step runs two Node test runs on the committed tree:
+Each test step runs these Node test runs on the committed tree:
 
 - The suite run runs the workspace's own tests.
 - The hidden run runs only the fixture's `accept/` tests, which the script
@@ -633,7 +633,7 @@ It exits 2 with one stderr line on a bad argument, an incomplete fixture, or a
 run outside the repository root.
 
 Every claude run in both arms and both stages gets the same budget, so a
-stop leaves the arms at most one arm-run apart. Four stop rules end the
+stop leaves the arms at most one arm-run apart. These stop rules end the
 command early with exit 1. When two apply, the first in this list wins:
 
 1. `isolation`: an init event fails the check above.

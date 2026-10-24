@@ -44,7 +44,7 @@ when there are none.>
 suite command and result. Any other check run, with its result.>
 ```
 
-Emit all three headings in this order on every report. A section with
+Emit every heading in this order on every report. A section with
 nothing to report says so on its own line. Findings use the labels in the
 [finding format](shared/findings.md) (`issue (blocking)`,
 `suggestion (non-blocking)`, `nitpick (non-blocking)`), each with its

@@ -9,8 +9,8 @@ argument-hint: "[<path or subsystem> ...] [--out <dir>]"
 
 Audit every test in scope against the [testing rules](shared/testing.md).
 Mark each test declaration **R** (retain), **F** (fix the assertion), **C**
-(consolidate into a named owner), or **D** (delete, with all seven
-removal-evidence fields).
+(consolidate into a named owner), or **D** (delete, with every
+removal-evidence field).
 
 The audit edits, deletes, stages, and commits nothing; it writes only
 `report.json` and the rendered `report.md` into its output directory. Test

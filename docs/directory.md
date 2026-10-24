@@ -44,7 +44,7 @@ Once the plugin is listed, the directory validates and scans each new commit on
 | Component front matter is valid                                 | Met                           |
 | Security scan: the README states what the plugin runs and sends | Met                           |
 
-The portal alone decides the two "Portal only" rows. `name` is `bostonaholic`,
+The portal alone decides the "Portal only" rows. `name` is `bostonaholic`,
 `author.name` is `Matthew Boston`, and no `displayName` is set. The plugin has
 no hooks or MCP servers, so the validator has no hook or MCP script to follow.
 
@@ -113,7 +113,7 @@ Validate reports these results, and none stops submission.
   and, by default, each new version, so the hold adds little delay.
 - A Policy hold, "Runs a pinned npx or uvx package". The checklist holds a
   pinned launcher for a reviewer even when the plugin meets every other check.
-  Three lines in loaded files run one:
+  These lines in loaded files run one:
   `skills/engineering/drawing-mermaid-diagrams/SKILL.md:30`,
   `skills/engineering/diagnosing-react-code/SKILL.md:29`, and `:34`. Running
   react-doctor is the purpose of `diagnosing-react-code`. The mermaid-cli line
@@ -177,13 +177,13 @@ git grep -n -w -E 'npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run' -- ':!skills/
 If Validate flags a line in one of these groups, make its fallback edit with the
 development-only procedure below.
 
-| Group                                     | Files                                                                                                                                                                                                       | Fallback edit                                                                                          |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `npx skills@latest` commands              | `INSTALL.md`, `scripts/catalog.mjs` (`NPX_ADD_SKILL`, which only the site reads), `skills/deprecated/reviewing-rails-code/SKILL.md.disabled`, and `skills/deprecated/reviewing-ruby-code/SKILL.md.disabled` | Pin `skills@<exact version>` in `INSTALL.md` and `scripts/catalog.mjs`. Reword the two archived lines. |
-| Unpinned commands in fixtures             | `evals/engineering/drawing-mermaid-diagrams/drawing-mermaid-diagrams-guard/graders/rubric.md`, and two fixture strings in `tests/paparazzi.test.mjs`                                                        | Quote the pinned mermaid command in the rubric. Change the fixture error text, then run `npm test`.    |
-| `uv run` with no `--locked` or `--frozen` | `.github/workflows/lint.yml` and `docs/skill-authoring.md`                                                                                                                                                  | Add the flag and the lockfile it needs.                                                                |
-| `npx skills` named with no command        | `INSTALL.md`, `AGENTS.md`, `docs/versioning.md`, and `CHANGELOG.md`                                                                                                                                         | Reword to "the `skills` CLI". The changelog edit rewrites one history bullet.                          |
-| Pinned, or no package named               | The `uvx` lines in `.github/workflows/lint.yml`, files under `evals/engineering/diagnosing-react-code/`, and `docs/directory.md`                                                                            | None.                                                                                                  |
+| Group                                     | Files                                                                                                                                                                                                       | Fallback edit                                                                                       |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `npx skills@latest` commands              | `INSTALL.md`, `scripts/catalog.mjs` (`NPX_ADD_SKILL`, which only the site reads), `skills/deprecated/reviewing-rails-code/SKILL.md.disabled`, and `skills/deprecated/reviewing-ruby-code/SKILL.md.disabled` | Pin `skills@<exact version>` in `INSTALL.md` and `scripts/catalog.mjs`. Reword the archived lines.  |
+| Unpinned commands in fixtures             | `evals/engineering/drawing-mermaid-diagrams/drawing-mermaid-diagrams-guard/graders/rubric.md`, and the fixture strings in `tests/paparazzi.test.mjs`                                                        | Quote the pinned mermaid command in the rubric. Change the fixture error text, then run `npm test`. |
+| `uv run` with no `--locked` or `--frozen` | `.github/workflows/lint.yml` and `docs/skill-authoring.md`                                                                                                                                                  | Add the flag and the lockfile it needs.                                                             |
+| `npx skills` named with no command        | `INSTALL.md`, `AGENTS.md`, `docs/versioning.md`, and `CHANGELOG.md`                                                                                                                                         | Reword to "the `skills` CLI". The changelog edit rewrites one history bullet.                       |
+| Pinned, or no package named               | The `uvx` lines in `.github/workflows/lint.yml`, files under `evals/engineering/diagnosing-react-code/`, and `docs/directory.md`                                                                            | None.                                                                                               |
 
 ## Fix a new finding
 

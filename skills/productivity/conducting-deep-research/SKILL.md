@@ -10,7 +10,7 @@ establishes, and who performs and funds the work. Ask one clarifying question
 only when a missing choice (goal, scope, timeframe, geography) would materially
 change the research; otherwise state assumptions and proceed.
 
-Cover three lanes: scholarly literature; research institutions and public
+Cover these lanes: scholarly literature; research institutions and public
 funders (grant databases, agency award pages, trial registries); and companies
 active in the field (research portals, filings, official program pages).
 

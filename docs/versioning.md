@@ -37,6 +37,9 @@ choose the level.
 - Multiple changes from one PR each get their own bullet and repeat that PR link.
 - Omit implementation narratives, commit lists, and review history. The linked
   PR contains those details.
+- Name what changed instead of counting it: "Trim the audit skills'
+  instructions", not "Trim 23 skills' instructions". A count goes stale while
+  the PR changes, and the linked PR holds the detail.
 - Add entries under `[Unreleased]` during review only for changes requiring a
   release. Site-only and other development-only changes need no entry. Check
   this format before cutting the release section; preserve the bullets and

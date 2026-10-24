@@ -24,7 +24,7 @@ Trace the exact-text history of the code in question to its PRs and
 tickets. Fetch PR discussion per
 [pull-request comment retrieval](shared/pull-request-comments.md).
 
-Search seven categories: **source control**, **issue/ticket tracker**, **long-form documents**, **team chat**, **infrastructure observability**, **error tracking**, and **analytics warehouse**.
+Search every category: **source control**, **issue/ticket tracker**, **long-form documents**, **team chat**, **infrastructure observability**, **error tracking**, and **analytics warehouse**.
 
 - A category with no tool is a named gap.
 - Skip one only when it is provably irrelevant, never because it "probably has nothing".

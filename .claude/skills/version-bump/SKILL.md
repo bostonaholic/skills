@@ -23,8 +23,9 @@ failure during review do not authorize versioning. Read `docs/versioning.md`.
    uses `minor`, compatible fixes use `patch`. Declaring 1.0 is a separate owner
    decision. Bootstrap uses `minor` and prepares `0.1.0`.
 3. For PRs requiring a release, check `[Unreleased]` against
-   `docs/versioning.md#changelog-entries`: one short bullet per released change,
-   each ending with its actual `[#NNN](https://github.com/bostonaholic/skills/pull/NNN)` link.
+   `docs/versioning.md#changelog-entries`: one short bullet per released change
+   that names what changed without counting it, each ending with its actual
+   `[#NNN](https://github.com/bostonaholic/skills/pull/NNN)` link.
    Site-only and other development-only PRs need no changelog entry. Correct
    any required entries and commit those edits before preparation, which
    requires a clean checkout. Run `npm run release:prepare -- <level> origin/<base>`. The script decides

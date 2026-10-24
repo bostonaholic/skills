@@ -49,7 +49,7 @@ exactly, so counts compare across lanes and runs:
 - The function body is nesting depth 0, and each control block inside it adds one level. At depth 0, `deepestLine` is the function's own `line`.
 - The hot functions are the top 3 by cyclomatic complexity, plus the deepest, longest, and most-parameter function when not already listed. `<module>` competes for the top 3 and the deepest only.
 
-Two more rules apply:
+These rules also apply:
 
 - Parameters: each declared parameter counts once, including one rest or variadic parameter and one destructured parameter. A receiver such as `this`, `self`, or `cls` does not count.
 - A tie in any hot-function pick goes to the lowest `line`.

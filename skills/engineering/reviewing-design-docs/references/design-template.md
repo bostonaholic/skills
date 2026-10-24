@@ -31,7 +31,7 @@ Put intentional deferrals in Out of scope.>
 <Numbered decisions: decision, each serious alternative and why it lost, the chosen approach's risk and mitigation, and the surfaces that must change together. Derive every closed set by enumeration and record its command. Mark self-resolved choices "Assumption — chosen without user review".>
 
 ## Experiments
-<Include ONLY when an unresolved question is answerable by observation and a disposable prototype can settle it. One record per question, with all five fields: Question, Alternatives, Experiment, Observation, Decision. Run each alternative on matching inputs and record the observed result. Prototype code is disposable scratch — never promoted into production without the normal implementation checks (test-first, independent review), and never the authority that approves the design.>
+<Include ONLY when an unresolved question is answerable by observation and a disposable prototype can settle it. One record per question, with every field: Question, Alternatives, Experiment, Observation, Decision. Run each alternative on matching inputs and record the observed result. Prototype code is disposable scratch — never promoted into production without the normal implementation checks (test-first, independent review), and never the authority that approves the design.>
 
 ## Out of scope
 <Specific exclusions: non-goals, excluded stories, and work a reader might otherwise assume is included.>

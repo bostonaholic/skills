@@ -72,7 +72,7 @@ IDs. Cite Table Module (to name what the code accidentally is) and Domain Model
   application's boundary with a layer of services that establishes a set of
   available operations and coordinates the application's response in each
   operation."
-- **Rails relevance:** `app/services`. Two opposite smells:
+- **Rails relevance:** `app/services`. Opposite smells:
   1. **Missing Service Layer:** multi-model orchestration (transactions,
      external calls, notifications) embedded in controllers or model callbacks.
   2. **Degenerate Service Layer:** services that contain _all_ domain logic,

@@ -45,3 +45,13 @@ real uncertainty or scope, never to hedge against criticism.
 
 House style bans em dashes. Before delivering, search the text for `—` and
 rewrite each hit with a comma, period, colon, or parentheses.
+
+## No counts that go stale
+
+- Never state how many items a changing set holds ("our 12 services", "the
+  four steps below"). Name the items, link the list, or write "every" or
+  "these".
+- Before delivering, test each number: does adding or removing one item make
+  it wrong? If yes, rewrite it.
+- Keep numbers in quotes and code. Keep numbers that set a limit, record a
+  measurement or past event, or state a fact that cannot change.

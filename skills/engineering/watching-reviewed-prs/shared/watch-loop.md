@@ -5,8 +5,8 @@
 Read a linked rule from this file's own directory when a step uses it. If a read fails, stop that step and report the exact path.
 
 A consuming skill owns what each cycle _does_; this reference owns how the
-loop is paced, bounded, and ended. A consumer binds three slots and nothing
-else:
+loop is paced, bounded, and ended. A consumer binds only these
+slots:
 
 | Slot            | What the consumer supplies                                    |
 | --------------- | ------------------------------------------------------------- |
@@ -50,7 +50,7 @@ file with `sleep` loops.
 
 ## Stop conditions this reference owns
 
-Three stop conditions are loop mechanics rather than consumer actions, and
+These stop conditions are loop mechanics rather than consumer actions, and
 each is reported by name:
 
 - **User interrupt** — the escape hatch. Pressing Esc or sending a message
@@ -60,12 +60,12 @@ each is reported by name:
 - **3 consecutive poll failures** — stop and name the error.
 
 A consumer adds its own terminal conditions and reports them the same way.
-It never restates the three above.
+It never restates the ones above.
 
 ## Third-party definition
 
 Each watch loop owns its own third-party stop; this section only defines the
-term, and neither loop gains a fourth mechanics-owned condition from it.
+term, and neither loop gains another mechanics-owned condition from it.
 
 A **third login** is a comment author login on a thread that is neither
 the viewer's login nor the login of the thread's earliest non-viewer

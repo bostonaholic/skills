@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-10-24
+
+### Changed
+
+- `writing-prose` names a changing set's members instead of stating how many there are. [#147](https://github.com/bostonaholic/skills/pull/147)
+- Skill instructions name or link the lists they mean instead of counting them. [#147](https://github.com/bostonaholic/skills/pull/147)
+
 ## [0.64.0] - 2026-10-24
 
 ### Changed
@@ -851,5 +858,7 @@
 
 [0.63.1]: https://github.com/bostonaholic/skills/compare/v0.63.0...v0.63.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.64.0...HEAD
 [0.64.0]: https://github.com/bostonaholic/skills/compare/v0.63.1...v0.64.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.65.0...HEAD
+[0.65.0]: https://github.com/bostonaholic/skills/compare/v0.64.0...v0.65.0

@@ -53,8 +53,8 @@ approval, then survey if the target is still unmet.
 
 Classify each candidate as **regenerates** (the tool refills it on demand),
 **rebuildable** (costs a rebuild or re-download), or **keep** (user data,
-state no tool recreates, or held open by a running process). Only the first
-two enter the plan.
+state no tool recreates, or held open by a running process). Only regenerates
+and rebuildable candidates enter the plan.
 
 Present one table, largest first, and stop for approval:
 

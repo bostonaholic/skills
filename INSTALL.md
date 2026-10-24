@@ -1,6 +1,6 @@
 # Installing
 
-Three ways in. The Claude Code and Cursor plugins install every skill as one bundle that you update in one step. `npx skills` copies the skills you pick into your project or home directory, for Claude Code, Codex, Cursor, and other agents; you own and edit the copies. Grok Bot gets its own copy script below. Pick one per agent: installing two ways on one agent gives it every skill twice.
+The Claude Code and Cursor plugins install every skill as one bundle that you update in one step. `npx skills` copies the skills you pick into your project or home directory, for Claude Code, Codex, Cursor, and other agents; you own and edit the copies. Grok Bot gets its own copy script below. Pick one per agent: installing two ways on one agent gives it every skill twice.
 
 To update every install on a machine at once, run the `updating-bostonaholic-skills` skill. It plans first and changes only installs that exist: the Claude Code and Codex plugins, the Cursor plugin clone (a fast-forward pull of the clone's own branch), and each skill already present in the Antigravity (`~/.gemini/antigravity-cli/skills`), OpenCode, Cursor (`~/.cursor/skills`), and Grok Bot (`~/agent-data/workflows`) skill directories, whatever installed it. It backs up every copy it replaces. It does not touch `~/.claude/skills`, `~/.agents/skills`, or project-level `npx skills` installs; use `npx skills@latest update` for those.
 
@@ -86,7 +86,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 
 An agent installing on a user's behalf:
 
-1. In Claude Code, run the two Claude Code commands above. In Cursor, run the Cursor clone command above. In Grok Bot, run the two Grok Bot commands above on the bot's computer, adding `--set strategy` when the bot does not write code; add the plugin instead only when the account's team marketplace offers it.
+1. In Claude Code, run the Claude Code install commands above. In Cursor, run the Cursor clone command above. In Grok Bot, run the Grok Bot install commands above on the bot's computer, adding `--set strategy` when the bot does not write code; add the plugin instead only when the account's team marketplace offers it.
 2. Elsewhere, install without prompts: `npx skills@latest add bostonaholic/skills --skill '*' --agent <agent> --yes`. Pass `--agent '*'` to install on every agent. Add `--global` for a user-level install; ask the user which scope they want if they did not say.
 3. Install one way per agent, never two. The subagents in `agents/` come only with the Claude Code or Cursor plugin.
 4. Confirm the install: `claude plugin list` shows `bostonaholic@skills`, `~/.cursor/plugins/local/bostonaholic/.cursor-plugin/plugin.json` exists, `ls ~/agent-data/workflows` lists the skills on a Grok Bot computer, or `npx skills@latest list` shows the skills.

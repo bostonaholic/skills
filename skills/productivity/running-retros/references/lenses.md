@@ -1,7 +1,7 @@
 # The lenses
 
-Without a prompt, three passes over `transcript.jsonl`, each looking for one
-thing:
+Without a prompt, one pass per lens over `transcript.jsonl`, each looking for
+one thing:
 
 - **judgment**: where guidance was absent, ambiguous, or misleading, and the
   user had to correct course. The evidence is the correction itself.
@@ -15,7 +15,7 @@ thing:
 - **divergent**: where the session did something no skill describes, whether or
   not it worked. The evidence is the absence of a skill that covers it.
 
-With a prompt, one **prompt pass** replaces all three: it asks the prompt's
+With a prompt, one **prompt pass** replaces every lens: it asks the prompt's
 question of every source the run gathered (`transcript.jsonl` and each file in
 `sources/`). The question decides what counts as a finding, and the rules below
 bind it exactly as they bind a lens.
@@ -32,7 +32,7 @@ findings.
 - Each finding is one line carrying a file path, a turn index, or a source URL.
   A lens reports at most 30 lines, so it keeps the patterns worth a durable
   change rather than every incident; the prompt pass reports at most 60, since
-  it stands in for three lenses.
+  it stands in for every lens.
 - A pass's only output is its findings list. It writes nowhere, proposes no file
   text, and never decides what happens to a finding; sorting happens once, in
   synthesis.

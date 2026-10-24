@@ -34,7 +34,7 @@ A production build and a dev-server-backed browser suite share one build directo
 - A baseline is comparable only under the same isolation. Run both sides of a before/after comparison the same way: a false red recorded as the pre-change state reclassifies a later regression as pre-existing, and that failure goes unnoticed because it errs in the safe direction.
 - Coverage is reported, not gated. Report the delta on changed files and never gate on an absolute threshold. Test count and coverage are data, not proof the tests are good ([value bar](testing.md#value-bar)).
 
-## Separate three failures
+## Separate the failure causes
 
 When a maintained verification recipe stops passing, separate the cause before touching code:
 

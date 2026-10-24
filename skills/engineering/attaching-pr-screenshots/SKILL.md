@@ -40,7 +40,7 @@ exit codes. Exit 2 from any script is a fault: report it and stop (in step 5, go
    Exit 1 is `refused` (go to step 7). Every later `gh` call uses
    `--repo "$(cat "$RUN_DIR/repo-spec")"`, never `owner/repo`. Merged, closed,
    and draft PRs are in scope; say which state was edited. Never re-run these
-   two lines mid-run: they strand this run's outputs.
+   lines mid-run: they strand this run's outputs.
 
 2. **Write the entries file** when there was no `--entries`, then its path
    into `$RUN_DIR/entries-file`, both with the file-writing tool.

@@ -45,7 +45,7 @@ It identifies the session by the id the host exported, or, where the host
 exports none, by a fixed-string search for the marker. It never takes the newest
 file, guesses from the working directory, or picks among candidates. A named
 failure (exit 1, the name on the first stderr line, then `tried:` and `note:`
-lines) stops the run; report all three.
+lines) stops the run; report each of them.
 
 Report the script's printed counts with the sources, and any prior history the
 file does not carry: a Codex thread forked from another one leaves its earlier

@@ -179,7 +179,7 @@ notes a LOB cannot be queried, so promote it once querying starts.
   ([Fowler](https://martinfowler.com/eaaCatalog/singleTableInheritance.html)):
   "Represents an inheritance hierarchy of classes as a single table that has
   columns for all the fields of the various classes."
-- **Rails relevance:** the `type` column. Two smells: (1) hand-rolled type
+- **Rails relevance:** the `type` column. Smells: (1) hand-rolled type
   switches instead of STI; (2) STI abuse, with subclasses so divergent the table
   is mostly NULL columns.
 

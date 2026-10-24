@@ -18,8 +18,8 @@ Print `Armed at head <pr.head>, auto-merge <on|off>` in the arm report.
 
 ## Classify the viewer's PR-level feedback
 
-This is one of the two places a body is read: `prLevel` holds only the
-viewer's own review summaries and conversation comments.
+This is one of the places the hard rules let a body be read: `prLevel` holds
+only the viewer's own review summaries and conversation comments.
 
 Track one that raises a concern, asks a question about the code, or requests a
 change, including one that mixes an ask with chatter. Skip an approval note, a

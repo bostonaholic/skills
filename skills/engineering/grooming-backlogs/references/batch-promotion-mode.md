@@ -1,7 +1,7 @@
 # Batch promotion mode
 
 Ready the top `<count>` candidates in one run. It applies
-[promotion mode](references/promotion-mode.md)'s four moves to each selected
+[promotion mode](references/promotion-mode.md)'s moves to each selected
 issue and relaxes none of its gates.
 
 ## Pool and selection

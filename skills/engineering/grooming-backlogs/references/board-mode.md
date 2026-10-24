@@ -69,8 +69,8 @@ work inside a milestone and never justify one of their own.
 
 ## Dependencies
 
-Declared links arrived with the load. Undeclared ones come from the cache two
-ways: textual ("depends on", "blocked by", "after X lands", "requires",
+Declared links arrived with the load. Undeclared ones come from the cache in
+these ways: textual ("depends on", "blocked by", "after X lands", "requires",
 "follow-up to"; a bare `#N` is a citation, and comments outrank bodies), and
 structural (one issue introduces the schema, interface, flag, or endpoint
 another consumes; the weaker signal).

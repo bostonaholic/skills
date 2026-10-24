@@ -45,7 +45,7 @@ When a kept test goes red, suspect the product first: reproduce, repair the owni
 
 ## Removal evidence
 
-Before a change deletes or weakens a base-branch test while keeping the behavior it covers, fill in all seven fields:
+Before a change deletes or weakens a base-branch test while keeping the behavior it covers, fill in every field:
 
 | Field            | What to record                                                                             |
 | ---------------- | ------------------------------------------------------------------------------------------ |

@@ -1,7 +1,7 @@
-# The two skill rules
+# The skill rules
 
 Read this when classifying a skill, and again before Validate. Every cut leaves
-the skill meeting both.
+the skill meeting them.
 
 ## Agent-agnostic
 
