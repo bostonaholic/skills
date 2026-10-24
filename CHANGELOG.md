@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-10-24
+
 ### Removed
 
 - Retire `using-gh-cli`: it rarely triggered, and models handled its gh cases as well without it. [#141](https://github.com/bostonaholic/skills/pull/141)
@@ -828,5 +830,7 @@
 
 [0.61.0]: https://github.com/bostonaholic/skills/compare/v0.60.0...v0.61.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.62.0...HEAD
 [0.62.0]: https://github.com/bostonaholic/skills/compare/v0.61.0...v0.62.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.63.0...HEAD
+[0.63.0]: https://github.com/bostonaholic/skills/compare/v0.62.0...v0.63.0
