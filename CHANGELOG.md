@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Show gh's error in `attaching-pr-screenshots` when `gh` exits before reading the body sent to `POST /markdown`, instead of dropping it. [#143](https://github.com/bostonaholic/skills/pull/143)
+
 ## [0.63.0] - 2026-10-24
 
 ### Removed

@@ -201,14 +201,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const repo = required("repo").trim();
     const prNumber = required("number").trim();
     // The `unverified` outcome on stdout does not say why gh failed, so gh's own
-    // error goes to stderr. A spawn error is not gh's failure and has no text.
+    // error goes to stderr. A spawn error is not gh's failure and has no text,
+    // but EPIPE only means gh exited before reading its input, so it still has.
     const gh = (args, input) => {
       const run = spawnSync("gh", ["api", "--hostname", host, ...args], {
         encoding: "utf8",
         input,
         maxBuffer: 16 * 1024 * 1024, // a 65,536-character body renders well under this
       });
-      if (!run.error && run.status !== 0 && run.stderr) {
+      const ran = !run.error || run.error.code === "EPIPE";
+      if (ran && run.status !== 0 && run.stderr) {
         process.stderr.write(run.stderr.endsWith("\n") ? run.stderr : `${run.stderr}\n`);
       }
       return run;
