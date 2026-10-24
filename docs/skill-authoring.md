@@ -56,14 +56,15 @@ with it.
 
 ## A. Metadata
 
-| ID  | Rule                                                                                                                 |
-| --- | -------------------------------------------------------------------------------------------------------------------- |
-| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint** |
-| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. **lint**   |
-| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                     |
-| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**              |
-| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                        |
-| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                              |
+| ID  | Rule                                                                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint**                                                                       |
+| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. **lint**                                                                         |
+| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                                                                                           |
+| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**                                                                                    |
+| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                                                                                              |
+| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                                                                                                    |
+| A7  | Each skill has `agents/openai.yaml`. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`. **lint** |
 
 ## B. Concision and freedom
 

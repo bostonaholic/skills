@@ -32,6 +32,7 @@ function compliant(overrides = {}) {
     [`${SKILL}/SKILL.md`]: skillFile(),
     [`${SKILL}/references/guide.md`]: LONG_GUIDE,
     [`${SKILL}/shared/rule.md`]: "# Rule\n\nKeep it short.\n",
+    [`${SKILL}/agents/openai.yaml`]: OPENAI_YAML,
     "evals/engineering/reviewing-widgets/reviewing-widgets-trigger/prompt.md":
       "Review this widget.\n",
     "evals/engineering/reviewing-widgets/reviewing-widgets-guard/prompt.md":
@@ -254,7 +255,10 @@ test("B3 accepts invocation metadata other harnesses ignore", (t) => {
   );
   const run = runLint(
     t,
-    compliant({ [`${SKILL}/SKILL.md`]: meta, [`${SKILL}/agents/openai.yaml`]: "policy: {}\n" }),
+    compliant({
+      [`${SKILL}/SKILL.md`]: meta,
+      [`${SKILL}/agents/openai.yaml`]: "policy:\n  allow_implicit_invocation: false\n",
+    }),
   );
   assert.deepEqual(run, { status: 0, output: "" });
 });
@@ -638,4 +642,91 @@ test("every EVALS_PENDING entry names an active skill that still lacks a case", 
     return [];
   });
   assert.deepEqual(problems, []);
+});
+
+// ---------------------------------------------------------------------------------------------
+// A7: agents/openai.yaml exists and agrees with SKILL.md on invocation
+
+function withInvocation(value) {
+  return skillFile().replace("---\n\n", `disable-model-invocation: ${value}\n---\n\n`);
+}
+
+test("A7 reports a missing openai.yaml, a disagreeing invocation pair, and a value other than true or false", async (t) => {
+  await t.test("no agents/openai.yaml", (t) => {
+    const files = compliant();
+    delete files[`${SKILL}/agents/openai.yaml`];
+    assertReportsLine(
+      t,
+      files,
+      "skills/engineering/reviewing-widgets/SKILL.md: A7 no agents/openai.yaml; add one",
+    );
+  });
+
+  await t.test("disable-model-invocation: true with no policy block", (t) => {
+    assertReportsLine(
+      t,
+      compliant({ [`${SKILL}/SKILL.md`]: withInvocation("true") }),
+      "skills/engineering/reviewing-widgets/SKILL.md: A7 disable-model-invocation is true, so agents/openai.yaml must set policy.allow_implicit_invocation: false",
+    );
+  });
+
+  await t.test("disable-model-invocation: true with allow_implicit_invocation: true", (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: withInvocation("true"),
+        [`${SKILL}/agents/openai.yaml`]: `${OPENAI_YAML}policy:\n  allow_implicit_invocation: true\n`,
+      }),
+      "skills/engineering/reviewing-widgets/SKILL.md: A7 disable-model-invocation is true, so agents/openai.yaml must set policy.allow_implicit_invocation: false",
+    );
+  });
+
+  await t.test("allow_implicit_invocation: false on a model-invoked skill", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/agents/openai.yaml`]: `${OPENAI_YAML}policy:\n  allow_implicit_invocation: false\n`,
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: A7 [^\n]*allow_implicit_invocation/m,
+    );
+  });
+
+  await t.test('"true # note" is quoted', (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: withInvocation("true # note"),
+        [`${SKILL}/agents/openai.yaml`]: `${OPENAI_YAML}policy:\n  allow_implicit_invocation: false\n`,
+      }),
+      'skills/engineering/reviewing-widgets/SKILL.md: A7 disable-model-invocation is "true # note"; write true or false',
+    );
+  });
+
+  await t.test('"yes" is quoted', (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        [`${SKILL}/agents/openai.yaml`]: `${OPENAI_YAML}policy:\n  allow_implicit_invocation: yes\n`,
+      }),
+      'skills/engineering/reviewing-widgets/SKILL.md: A7 allow_implicit_invocation is "yes"; write true or false',
+    );
+  });
+});
+
+test("A7 accepts a matching pair and reads disable-model-invocation: false as model-invoked", async (t) => {
+  await t.test("disable-model-invocation: true with allow_implicit_invocation: false", (t) => {
+    const run = runLint(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: withInvocation("true"),
+        [`${SKILL}/agents/openai.yaml`]: `${OPENAI_YAML}policy:\n  allow_implicit_invocation: false\n`,
+      }),
+    );
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
+
+  await t.test("disable-model-invocation: false with no policy block", (t) => {
+    const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: withInvocation("false") }));
+    assert.deepEqual(run, { status: 0, output: "" });
+  });
 });

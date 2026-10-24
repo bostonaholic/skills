@@ -3,7 +3,7 @@
 // prints one `path: ID message` line per violation.
 //   node scripts/lint-skills.mjs  exit 1 when any skill breaks a rule, 0 when all pass
 // Rules: A1 name, A2 gerund name, A3 description limits, A4 third-person description, A5 "Use
-// when" clause, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, B5 a
+// when" clause, A7 agents/openai.yaml present and agreeing on invocation, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, B5 a
 // skill call only with a shared/skill-calls.md link from SKILL.md, C1 SKILL.md body of at most
 // 100 lines, C3 every references/ and shared/ file linked from SKILL.md, C4 a `## Contents` table
 // of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
@@ -26,6 +26,7 @@ export const LINT_IDS = Object.freeze([
   "A3",
   "A4",
   "A5",
+  "A7",
   "B3",
   "B5",
   "C1",
@@ -164,6 +165,35 @@ function checkPortability(dir, frontmatter, body, files, report) {
   for (const [pattern, name] of HARNESS_SUBSTITUTIONS)
     if (pattern.test(body))
       report("B3", `${name} is a harness substitution; say what it stands for in plain words`);
+}
+
+// A7. A missing policy block allows implicit invocation, which is Codex's default.
+function checkInvocation(dir, frontmatter, tracked, report) {
+  const yamlPath = `${dir}/agents/openai.yaml`;
+  if (!tracked.has(yamlPath)) return report("A7", "no agents/openai.yaml; add one");
+  const disable = scalar(frontmatter, "disable-model-invocation");
+  const allow = scalar(readFileSync(yamlPath, "utf8"), "allow_implicit_invocation");
+  let malformed = false;
+  for (const [key, value] of [
+    ["disable-model-invocation", disable],
+    ["allow_implicit_invocation", allow],
+  ]) {
+    if (value !== undefined && value !== "true" && value !== "false") {
+      report("A7", `${key} is "${value}"; write true or false`);
+      malformed = true;
+    }
+  }
+  if (malformed) return;
+  if (disable === "true" && allow !== "false")
+    report(
+      "A7",
+      "disable-model-invocation is true, so agents/openai.yaml must set policy.allow_implicit_invocation: false",
+    );
+  if (disable !== "true" && allow === "false")
+    report(
+      "A7",
+      "policy.allow_implicit_invocation is false, so SKILL.md must set disable-model-invocation: true",
+    );
 }
 
 // Prose paragraphs outside fences, headings, list items, tables, and indented continuations.
@@ -340,6 +370,8 @@ export function lintSkills() {
     checkDescription(scalar(frontmatter[1], "description"), report);
     const body = skillText.slice(frontmatter[0].length);
     checkPortability(dir, frontmatter[1], body, tracked, report);
+    const trackedSet = new Set(tracked);
+    checkInvocation(dir, frontmatter[1], trackedSet, report);
     const bodyLines = lineCount(body);
     if (bodyLines > BODY_MAX_LINES)
       report(
@@ -354,7 +386,6 @@ export function lintSkills() {
     checkLinks(dir, linked, files, report);
     checkSkillCalls(dir, linked, texts, report);
     checkEvalCases(skillPath, evalPrompts, report);
-    const trackedSet = new Set(tracked);
     for (const [path, text] of texts) {
       checkFile(path, text, reportFor(path));
       checkLinkTargets(dir, path, text, trackedSet, reportFor(path));
