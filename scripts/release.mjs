@@ -18,7 +18,7 @@ const URL = `https://github.com/${REPO}`;
 const PLUGIN = ".claude-plugin/plugin.json";
 const CURSOR_PLUGIN = ".cursor-plugin/plugin.json";
 const MANIFESTS = [PLUGIN, ".claude-plugin/marketplace.json", CURSOR_PLUGIN];
-const VERSION_FILES = ["package.json", "package-lock.json", PLUGIN, CURSOR_PLUGIN];
+const VERSION_FILES = ["package.json", PLUGIN, CURSOR_PLUGIN];
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const run = (command, args) =>
   execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -152,8 +152,6 @@ function consistent() {
   for (const path of VERSION_FILES) {
     const value = JSON.parse(readFileSync(path, "utf8"));
     if (value.version !== version) fail(`${path}: version differs from ${PLUGIN}.`);
-    if (path === "package-lock.json" && value.packages[""].version !== version)
-      fail("Lockfile root package version differs.");
   }
   return version;
 }
@@ -219,7 +217,6 @@ export function prepare(level, baseRef) {
   for (const path of VERSION_FILES) {
     const value = JSON.parse(readFileSync(path, "utf8"));
     value.version = version;
-    if (path === "package-lock.json") value.packages[""].version = version;
     writeFileSync(path, JSON.stringify(value, null, 2) + "\n");
   }
   writeFileSync("CHANGELOG.md", changelog);

@@ -31,7 +31,7 @@ A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` 
 | Plugin metadata  | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json` | Claude Code plugin and marketplace manifests, and the Cursor plugin manifest.                                                                                                                                  |
 | Catalog and site | `README.md`, `scripts/catalog.mjs`, `scripts/build-site.mjs`, `docs/`                         | Generated README catalog, static site, and maintainer docs.                                                                                                                                                    |
 | Installation     | `INSTALL.md`, `scripts/install-grok-bot.sh`                                                   | Install and update steps for people and agents, and the Grok Bot copy installer.                                                                                                                               |
-| Tooling          | `scripts/`, `tests/`, `.github/workflows/`                                                    | Linting, shared-copy sync, releases, script tests, and CI.                                                                                                                                                     |
+| Tooling          | `scripts/`, `tests/`, `tools/`, `.github/workflows/`                                          | Linting, shared-copy sync, releases, script tests, CI, and the pinned development tools in `tools/` (markdownlint-cli2, oxfmt, oxlint).                                                                        |
 | Evals            | `evals/`, `scripts/eval.mjs`, `scripts/eval-verdict.mjs`, `scripts/eval-handoff.mjs`          | Behavior cases for `claude plugin eval`, the `npm run eval` wrapper, the verdict script, and the `npm run eval:handoff` handoff eval. Run on demand, never in CI. Results land in gitignored `evals/results/`. |
 | Releases         | `CHANGELOG.md`, `.claude/skills/version-bump/`                                                | Release notes and the project-local version-bump skill.                                                                                                                                                        |
 
@@ -62,6 +62,8 @@ A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` 
 13. Every PR updates the documentation its change makes stale before it merges: this file, `INSTALL.md`, `docs/`, the skill's own `SKILL.md` and references, eval graders that cite changed lines, and `CHANGELOG.md` per rule 7. Regenerated files (`README.md` catalog, shared copies) count only after their regeneration command runs. Every PR body, including one passed with `gh pr create --body-file`, carries the pre-merge section of `.github/pull_request_template.md`; check its documentation box only once the docs match, or note why none were needed.
 
 ## Verification
+
+Install the development tools once per checkout with `npm ci --prefix tools`.
 
 Run only the checks relevant to the change, and report the exact commands and results:
 

@@ -1,6 +1,8 @@
 // Fails when the Claude Code plugin manifest stops shipping exactly the tracked skills and agents, when its
 // version drifts from package.json, when the marketplace stops pointing at this plugin from the
 // repository root, or when the Cursor plugin manifest ships a different plugin than the Claude Code one. Skills are enumerated with `git ls-files`, so untracked directories never count.
+// Also fails when root package.json declares a dependency or the root tracks a lockfile, because a
+// plugin install of the repository root installs those packages for every user.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -42,6 +44,24 @@ test("the plugin agents array lists every tracked agent once and nothing else", 
 
 test("the plugin version equals the package.json version", () => {
   assert.equal(readJson(PLUGIN).version, readJson("package.json").version);
+});
+
+test("the plugin root declares no npm dependencies and tracks no lockfile", () => {
+  const manifest = readJson("package.json");
+  const declared = [
+    "dependencies",
+    "devDependencies",
+    "optionalDependencies",
+    "peerDependencies",
+  ].filter((key) => key in manifest);
+  const lockfiles = execFileSync(
+    "git",
+    ["ls-files", "-z", "--", "package-lock.json", "npm-shrinkwrap.json", "bun.lock", "bun.lockb"],
+    { encoding: "utf8" },
+  )
+    .split("\0")
+    .filter(Boolean);
+  assert.deepEqual({ declared, lockfiles }, { declared: [], lockfiles: [] });
 });
 
 test("the marketplace lists the plugin by its name with source ./", () => {
