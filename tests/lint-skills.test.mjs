@@ -1,8 +1,8 @@
 // Exercises scripts/lint-skills.mjs against temporary fixture repositories: a compliant skill
-// passes, and each mechanical rule from docs/skill-authoring.md reports its own ID. Two real-tree
-// tests also fail when the IDs the script reports differ from the docs/skill-authoring.md rows
-// marked **lint**, or when an EVALS_PENDING entry names a skill that now has its trigger, guard,
-// and core cases or is not an active skill.
+// passes, and each mechanical rule from docs/skill-authoring.md reports its own ID, in skills and
+// in agents/*.md subagents. Two real-tree tests also fail when the IDs the script reports differ
+// from the docs/skill-authoring.md rows marked **lint**, or when an EVALS_PENDING entry names a
+// skill that now has its trigger, guard, and core cases or is not an active skill.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
@@ -729,4 +729,110 @@ test("A7 accepts a matching pair and reads disable-model-invocation: false as mo
     const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: withInvocation("false") }));
     assert.deepEqual(run, { status: 0, output: "" });
   });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Subagents: A3 to A5 on descriptions, S1 model alias, S2 readonly beside tools, S3 role noun
+
+const AGENT_DESCRIPTION =
+  "Reviews a diff for defects. Use when the main agent wants a second opinion on a change.";
+
+function agentFile({
+  name = "reviewer",
+  description = AGENT_DESCRIPTION,
+  fields = "tools: Read, Grep\nreadonly: true\nmodel: sonnet\n",
+} = {}) {
+  return `---\nname: ${name}\ndescription: ${description}\n${fields}---\n\n# Reviewer\n\nReview the diff.\n`;
+}
+
+test("S1, S2, and S3 report a dated model, a readonly mismatch, and a gerund name in agents/*.md", async (t) => {
+  await t.test("a dated model", (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        "agents/reviewer.md": agentFile({
+          fields: "tools: Read, Grep\nreadonly: true\nmodel: claude-sonnet-4-5-20250929\n",
+        }),
+      }),
+      'agents/reviewer.md: S1 model "claude-sonnet-4-5-20250929" must be a tier alias: opus, sonnet, or haiku',
+    );
+  });
+
+  await t.test("read-only tools with no readonly", (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        "agents/reviewer.md": agentFile({ fields: "tools: Read, Grep\nmodel: sonnet\n" }),
+      }),
+      "agents/reviewer.md: S2 tools holds no write tool, so set readonly: true",
+    );
+  });
+
+  await t.test("readonly: true with Edit in tools", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        "agents/reviewer.md": agentFile({
+          fields: "tools: Read, Edit\nreadonly: true\nmodel: sonnet\n",
+        }),
+      }),
+      /^agents\/reviewer\.md: S2 [^\n]*Edit/m,
+    );
+  });
+
+  await t.test("a block-list tools with no write tool and no readonly", (t) => {
+    assertReportsLine(
+      t,
+      compliant({
+        "agents/reviewer.md": agentFile({
+          fields: "tools:\n  - Read\n  - Grep\nmodel: sonnet\n",
+        }),
+      }),
+      "agents/reviewer.md: S2 tools holds no write tool, so set readonly: true",
+    );
+  });
+
+  await t.test("a gerund name", (t) => {
+    assertReportsLine(
+      t,
+      compliant({ "agents/reviewer.md": agentFile({ name: "reviewing-agent" }) }),
+      'agents/reviewer.md: S3 name "reviewing-agent" reads as a gerund; name a subagent with a role noun, as in "oracle"',
+    );
+  });
+
+  await t.test("no frontmatter", (t) => {
+    const run = runLint(t, compliant({ "agents/reviewer.md": "# Reviewer\n\nReview the diff.\n" }));
+    assert.equal(run.status, 1, run.output);
+    assert.ok(run.output.split("\n").includes("agents/reviewer.md: A3 no frontmatter"), run.output);
+    assert.ok(run.output.split("\n").includes("agents/reviewer.md: S1 no model"), run.output);
+  });
+});
+
+test("A3, A4, and A5 apply to subagent descriptions", async (t) => {
+  await t.test('a description that opens with "You"', (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        "agents/reviewer.md": agentFile({
+          description: "You review diffs. Use when the main agent wants a second opinion.",
+        }),
+      }),
+      /^agents\/reviewer\.md: A4 [^\n]*opens with "You"$/m,
+    );
+  });
+
+  await t.test("a description with no Use when clause", (t) => {
+    assertReportsMatch(
+      t,
+      compliant({
+        "agents/reviewer.md": agentFile({ description: "Reviews a diff for defects." }),
+      }),
+      /^agents\/reviewer\.md: A5 [^\n]*"Use when \.\.\." clause$/m,
+    );
+  });
+});
+
+test("a subagent with an alias model, read-only tools, readonly: true, and a role-noun name passes", (t) => {
+  const run = runLint(t, compliant({ "agents/reviewer.md": agentFile() }));
+  assert.deepEqual(run, { status: 0, output: "" });
 });

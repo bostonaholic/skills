@@ -27,6 +27,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Before and after a skill edit
     - Traces and the G3 review
     - Handoff eval
+- Subagents
 - Checks
 
 ## Core rules
@@ -692,6 +693,18 @@ A Sonnet command at `--runs 3` makes 18 claude runs, which outlasts the
 600-second foreground limit of an agent session. An agent session starts it
 as a background task and reports the two summary lines and the results path.
 
+## Subagents
+
+Subagents in `agents/` ship only with the Claude Code and Cursor plugins.
+They follow the description form rows (A3 to A6), concision (B1), and output
+templates (E3), plus the rows below.
+
+| ID  | Rule                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------- |
+| S1  | Pin `model` by tier alias (`opus`, `sonnet`, `haiku`), never a dated ID. **lint**                          |
+| S2  | A read-only subagent sets `readonly: true` beside its `tools` list, since Cursor ignores `tools`. **lint** |
+| S3  | Names are role nouns, since the gerund rule (A2) names skills. **lint** (not a gerund)                     |
+
 ## Checks
 
 ```sh
@@ -701,4 +714,4 @@ npm test
 ```
 
 `validate-skills.py` checks the Agent Skills specification. `lint:skills`
-checks the rules marked **lint** above.
+checks skills and subagents against the rules marked **lint** above.

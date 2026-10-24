@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Checks every tracked active skill against the mechanical rules in docs/skill-authoring.md and
-// prints one `path: ID message` line per violation.
+// Checks every tracked active skill and every tracked agents/*.md subagent against the mechanical
+// rules in docs/skill-authoring.md and prints one `path: ID message` line per violation.
 //   node scripts/lint-skills.mjs  exit 1 when any skill breaks a rule, 0 when all pass
 // Rules: A1 name, A2 gerund name, A3 description limits, A4 third-person description, A5 "Use
 // when" clause, A7 agents/openai.yaml present and agreeing on invocation, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, B5 a
@@ -9,7 +9,8 @@
 // of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
 // 50 words, C7 links and <skill-dir>/ paths that name tracked files in the skill, C8 -dir and -root
 // placeholders that name only the skill's own directory, G1 a trigger, guard, and core eval case
-// per skill. Acts on the git repository at the working directory; skills come from `git ls-files`,
+// per skill. Subagents get A3 to A5 on their description, S1 a tier-alias model, S2 readonly: true
+// beside a tools list with no write tool, and S3 a name that is not a gerund. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
@@ -37,6 +38,9 @@ export const LINT_IDS = Object.freeze([
   "C7",
   "C8",
   "G1",
+  "S1",
+  "S2",
+  "S3",
 ]);
 
 // Skills that ship without their eval cases, each with why. The lint only skips these skills;
@@ -93,6 +97,12 @@ const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 // The fallback for harnesses with no Skill tool, which every skill that calls another links.
 const SKILL_CALL_RULES = "shared/skill-calls.md";
+// Subagents pin a tier alias, so a model update reaches them without an edit (rule 12).
+const MODEL_ALIASES = new Set(["opus", "sonnet", "haiku"]);
+// Claude Code tools that change files. Cursor ignores `tools`, so a subagent with none of these
+// must also set readonly: true; S2's message lists them so a new write tool is easy to spot.
+const WRITE_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+const AGENT_FILE = /^agents\/[^/]+\.md$/;
 // An eval case is a directory with a prompt.md, per the Layout section of docs/skill-authoring.md.
 const EVAL_PROMPT = /^evals\/(engineering|productivity)\/[^/]+\/[^/]+\/prompt\.md$/;
 // The cases every skill needs, per the same Layout section.
@@ -347,9 +357,62 @@ function checkEvalCases(skillPath, evalPrompts, report) {
     );
 }
 
+// A frontmatter list written as `key: a, b` or as `key:` followed by `  - item` lines.
+function listField(frontmatter, key) {
+  const inline = scalar(frontmatter, key);
+  if (inline) return inline.split(",").map((item) => item.trim());
+  const lines = frontmatter.split(/\r?\n/);
+  const start = lines.findIndex((line) => new RegExp(`^${key}:\\s*$`).test(line));
+  if (start === -1) return undefined;
+  const items = [];
+  for (const line of lines.slice(start + 1)) {
+    const item = line.match(/^\s+-\s+(.+)$/);
+    if (!item) break;
+    items.push(item[1].trim());
+  }
+  return items;
+}
+
+// A3 to A5 on the description, then S1 to S3.
+function lintAgent(text, report) {
+  const frontmatter = text.match(FRONTMATTER)?.[1];
+  if (frontmatter === undefined) {
+    report("A3", "no frontmatter");
+    return report("S1", "no model");
+  }
+  checkDescription(scalar(frontmatter, "description"), report);
+  const model = scalar(frontmatter, "model");
+  if (!model) report("S1", "no model");
+  else if (!MODEL_ALIASES.has(model))
+    report("S1", `model "${model}" must be a tier alias: opus, sonnet, or haiku`);
+  const tools = listField(frontmatter, "tools");
+  const writes = (tools ?? []).filter((tool) => WRITE_TOOLS.has(tool));
+  const readonly = scalar(frontmatter, "readonly") === "true";
+  if (tools && !writes.length && !readonly)
+    report("S2", "tools holds no write tool, so set readonly: true");
+  if (readonly && !tools)
+    report("S2", "readonly: true needs a tools list beside it, since Cursor ignores tools");
+  if (readonly && writes.length)
+    report(
+      "S2",
+      `readonly: true, but tools holds ${writes.join(", ")}; drop the write tools (${[...WRITE_TOOLS].join(", ")}) or readonly`,
+    );
+  const name = scalar(frontmatter, "name");
+  if (name && GERUND.test(name))
+    report(
+      "S3",
+      `name "${name}" reads as a gerund; name a subagent with a role noun, as in "oracle"`,
+    );
+}
+
 // Returns every violation as "path: ID message", sorted by path.
 export function lintSkills() {
   const problems = [];
+  const reportFor = (path) => (id, message) => problems.push(`${path}: ${id} ${message}`);
+  for (const path of lsFiles("agents")
+    .filter((file) => AGENT_FILE.test(file))
+    .sort())
+    lintAgent(readFileSync(path, "utf8"), reportFor(path));
   const skills = lsFiles("skills/*/*/SKILL.md")
     .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
     .sort();
@@ -359,7 +422,6 @@ export function lintSkills() {
     const tracked = lsFiles(dir);
     const files = tracked.filter((path) => path.endsWith(".md"));
     const skillText = readFileSync(skillPath, "utf8");
-    const reportFor = (path) => (id, message) => problems.push(`${path}: ${id} ${message}`);
     const report = reportFor(skillPath);
     const frontmatter = skillText.match(FRONTMATTER);
     if (!frontmatter) {
