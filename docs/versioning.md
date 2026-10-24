@@ -103,6 +103,9 @@ This allows development-only merges and repairs a tag-pushed/release-failed run
 without replacing a tag. Tag collisions, unsigned tags, missing notes, stale
 shared copies, and inconsistent versions fail the job.
 
+Once the plugin is listed, the [Claude plugin directory](directory.md) scans
+each commit on `main`.
+
 ## Signing
 
 `RELEASE_SIGNING_KEY` is a repository Actions secret containing a dedicated SSH
