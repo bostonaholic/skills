@@ -3,8 +3,10 @@
 // file: a missing or duplicated pointer, a pointer before the script's last line, a
 // logical `..` resolved through a symlinked scripts directory, an unquoted path broken by
 // a space, a shared copy that names another skill's doc, or a target that does not exist.
+// Also fails when a tracked skill script has no ROWS entry and no UNCOVERED reason, or when an
+// UNCOVERED key names a file that is not tracked.
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -895,6 +897,43 @@ const ROWS = [
     target: "skills/productivity/summarizing-shipped-work/SKILL.md",
   },
 ];
+
+// Tracked skill scripts with no ROWS entry, each with why it never ends a failure on its own.
+// Only the real-tree coverage test below reads these entries; no synthetic fixture depends on
+// them, and that test fails on a key that is not tracked.
+const UNCOVERED = Object.freeze({
+  "skills/engineering/watching-reviewed-prs/scripts/github.mjs":
+    "a helper module the skill's CLI scripts import; it has no command line of its own",
+  "skills/engineering/merging-dependabot-prs/scripts/lib.mjs":
+    "a helper module the skill's CLI scripts import; it has no command line of its own",
+});
+
+test("every tracked skill script has a ROWS entry or an UNCOVERED reason", () => {
+  const scripts = execFileSync("git", ["ls-files", "-z", "--", "shared/scripts", "skills"], {
+    cwd: REPO,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(
+      (path) =>
+        /^shared\/scripts\/[^/]+$/.test(path) ||
+        /^skills\/(engineering|productivity)\/[^/]+\/(scripts|shared\/scripts)\/[^/]+$/.test(path),
+    )
+    .filter((path) => !path.endsWith(".d.mts"));
+  const covered = new Set(ROWS.map((row) => row.script));
+  const uncovered = scripts
+    .filter((path) => !covered.has(path) && !(path in UNCOVERED))
+    .map(
+      (path) =>
+        `F8: no ROWS entry for ${path}. Add one, or record in UNCOVERED why it never fails on its own`,
+    );
+  const untracked = Object.keys(UNCOVERED)
+    .filter((path) => !scripts.includes(path))
+    .map(
+      (path) => `UNCOVERED names ${path}, which is not a tracked skill script. Delete its entry.`,
+    );
+  assert.deepEqual([...uncovered, ...untracked], []);
+});
 
 for (const row of ROWS) {
   test(`${row.label} ends its own failure with one see line that names its target's real path`, (t) => {
