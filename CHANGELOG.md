@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Stop installing development npm packages with the plugin: a Claude Code plugin install no longer installs about 90 packages into its cache. [#144](https://github.com/bostonaholic/skills/pull/144)
+- Pin the mermaid-cli version that `drawing-mermaid-diagrams` renders with to 12.0.0. [#144](https://github.com/bostonaholic/skills/pull/144)
+- Install Chromium in `capturing-screenshots` with the cached Playwright binary, so a failed install can no longer fetch an unpinned Playwright. [#144](https://github.com/bostonaholic/skills/pull/144)
+- Point `watching-authored-prs` and `updating-bostonaholic-skills` at INSTALL.md's "One skill" section instead of running `npx skills@latest`. [#144](https://github.com/bostonaholic/skills/pull/144)
+
 ## [0.63.1] - 2026-10-24
 
 ### Fixed
