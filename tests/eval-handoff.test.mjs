@@ -1,7 +1,8 @@
 // Fails when scripts/eval-handoff.mjs misreports a stage-2 metric, spends past a stop rule, leaks a
 // plugin or skill into a run, passes a hidden test that never ran, or reads anything but the
-// committed tree. Every runHandoff case drives a fake claude executable on a synthetic fixture, and
-// the CLI cases put a stub claude first on PATH, so no case calls a model.
+// committed tree, or starts claude outside npm run eval:handoff. Every runHandoff case drives a
+// fake claude executable on a synthetic fixture, and the CLI cases put a stub claude first on PATH,
+// so no case calls a model.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -1479,6 +1480,59 @@ describe("slice 5: explain the command and fail before spending", () => {
       const run = cli([], tempDir(t));
       assert.equal(run.status, 2);
       assert.match(run.stderr, /run from the repository root/);
+    });
+  });
+
+  test("eval-handoff.mjs starts claude only under npm run eval:handoff", async (t) => {
+    // `lifecycle` sets npm_lifecycle_event; undefined removes it.
+    const cli = (t, lifecycle) => {
+      const { env, calls } = cliEnv(t);
+      delete env.npm_lifecycle_event;
+      if (lifecycle !== undefined) env.npm_lifecycle_event = lifecycle;
+      const before = listing(RESULTS);
+      const run = spawnSync(process.execPath, [CLI], { cwd: REPO, env, encoding: "utf8" });
+      return { run, calls, before };
+    };
+
+    await t.test("npm_lifecycle_event removed", (t) => {
+      const { run, calls, before } = cli(t, undefined);
+      assert.equal(run.status, 2, run.stderr);
+      assert.match(
+        run.stderr,
+        /^eval-handoff\.mjs: start claude only through npm run eval:handoff, /,
+      );
+      assert.equal(existsSync(calls), false, "the run reached claude");
+      assert.deepEqual(listing(RESULTS), before);
+    });
+
+    await t.test("under npm test", (t) => {
+      const { run, calls, before } = cli(t, "test");
+      assert.equal(run.status, 2, run.stderr);
+      assert.match(
+        run.stderr,
+        /^eval-handoff\.mjs: start claude only through npm run eval:handoff, /,
+      );
+      assert.equal(existsSync(calls), false, "the run reached claude");
+      assert.deepEqual(listing(RESULTS), before);
+    });
+
+    await t.test("under npm run eval", (t) => {
+      const { run, calls, before } = cli(t, "eval");
+      assert.equal(run.status, 2, run.stderr);
+      assert.match(
+        run.stderr,
+        /^eval-handoff\.mjs: start claude only through npm run eval:handoff, /,
+      );
+      assert.equal(existsSync(calls), false, "the run reached claude");
+      assert.deepEqual(listing(RESULTS), before);
+    });
+
+    await t.test("under npm run eval:handoff the run reaches preflight", (t) => {
+      const { run, calls, before } = cli(t, "eval:handoff");
+      assert.ok(existsSync(calls), `the run never reached claude:\n${run.stderr}`);
+      assert.match(readFileSync(calls, "utf8"), /--version/);
+      assert.equal(run.status, 1, run.stderr);
+      assert.deepEqual(listing(RESULTS), before);
     });
   });
 

@@ -9,8 +9,9 @@
 // per case; a selected case with no line prints as incomplete.
 // --check runs the free load check ($0 cap) and compiles every grader regex. It starts no run.
 // --dry-run prints the commands and runs nothing. Arguments after -- go to every claude command.
+// A run or --check starts claude only under `npm run eval`; anywhere else it exits 2 first.
 // Exit 0 when every case passes (or the check is clean), 1 on any failing or incomplete case, a
-// load error, or a bad regex, and 2 on a bad argument.
+// load error, or a bad regex, and 2 on a bad argument or a start outside `npm run eval`.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
@@ -30,6 +31,9 @@ const USAGE = `usage: npm run eval -- [<skill>|<case>] [options] [-- <claude fla
   --check              free load check and grader regex compile; starts no run
   --dry-run            print the claude commands and run nothing`;
 const EVALS_DIR = "evals";
+// npm sets npm_lifecycle_event to the script it runs, so only `npm run eval` passes. npm test, a
+// test's spawn, CI, and a direct `node scripts/eval.mjs` fail closed before claude starts.
+const NPM_SCRIPT = "eval";
 const TAGS = ["readonly", "bash"];
 const DEFAULTS = {
   model: "sonnet",
@@ -268,6 +272,10 @@ function main(args) {
       console.log(["claude", ...commandArgs].map(shellQuote).join(" "));
     return 0;
   }
+  if (process.env.npm_lifecycle_event !== NPM_SCRIPT)
+    throw new UsageError(
+      `start claude only through npm run ${NPM_SCRIPT}, never from npm test or CI (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
+    );
   const ok = options.check ? runCheck(commands, selected) : runEvals(commands, options.runs);
   return ok ? 0 : 1;
 }

@@ -1,9 +1,19 @@
 // Fails when scripts/eval.mjs drops a flag the eval docs require, grants Bash or Edit to readonly
-// cases, picks the wrong cases or cap, or misses a bad grader regex. Each case uses a synthetic
-// evals tree or --dry-run, so no case calls a model.
+// cases, picks the wrong cases or cap, misses a bad grader regex, or starts claude outside
+// npm run eval. Each case uses a synthetic evals tree, --dry-run, or a claude stub first on PATH,
+// so no case calls a model.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -244,4 +254,77 @@ test("a bad argument exits 2 with one stderr line", () => {
   assert.equal(run.status, 2);
   assert.equal(run.stdout, "");
   assert.match(run.stderr, /^eval\.mjs: --runs must be 1 or 3\n$/);
+});
+
+// A claude stub first on PATH that logs each call, so a guard that lets a run through reaches the
+// stub, never the real claude. `lifecycle` sets npm_lifecycle_event; undefined removes it.
+function guardedRun(t, args, lifecycle) {
+  const bin = tempDir(t);
+  const calls = join(bin, "claude-calls.log");
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\necho "$@" >>'${calls}'\nexit 1\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+  delete env.npm_lifecycle_event;
+  if (lifecycle !== undefined) env.npm_lifecycle_event = lifecycle;
+  const run = spawnSync(process.execPath, [CLI, ...args], { env, encoding: "utf8" });
+  return { run, calls };
+}
+
+test("eval.mjs starts claude only under npm run eval", async (t) => {
+  const refusal =
+    "eval.mjs: start claude only through npm run eval, never from npm test or CI (AGENTS.md rule 11). --dry-run and --help run anywhere.\n";
+
+  await t.test("reviewing-code with npm_lifecycle_event removed", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code"], undefined);
+    assert.equal(run.status, 2, run.stderr);
+    assert.equal(run.stdout, "");
+    assert.equal(run.stderr, refusal);
+    assert.equal(existsSync(calls), false, "the run reached claude");
+  });
+
+  await t.test("reviewing-code under npm test", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code"], "test");
+    assert.equal(run.status, 2, run.stderr);
+    assert.equal(run.stdout, "");
+    assert.equal(run.stderr, refusal);
+    assert.equal(existsSync(calls), false, "the run reached claude");
+  });
+
+  await t.test("reviewing-code under npm run eval:handoff", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code"], "eval:handoff");
+    assert.equal(run.status, 2, run.stderr);
+    assert.equal(run.stdout, "");
+    assert.equal(run.stderr, refusal);
+    assert.equal(existsSync(calls), false, "the run reached claude");
+  });
+
+  await t.test("reviewing-code --check with npm_lifecycle_event removed", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code", "--check"], undefined);
+    assert.equal(run.status, 2, run.stderr);
+    assert.equal(run.stdout, "");
+    assert.equal(run.stderr, refusal);
+    assert.equal(existsSync(calls), false, "the run reached claude");
+  });
+
+  await t.test("reviewing-code --check under npm test", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code", "--check"], "test");
+    assert.equal(run.status, 2, run.stderr);
+    assert.equal(run.stdout, "");
+    assert.equal(run.stderr, refusal);
+    assert.equal(existsSync(calls), false, "the run reached claude");
+  });
+
+  await t.test("reviewing-code --check under npm run eval:handoff", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code", "--check"], "eval:handoff");
+    assert.equal(run.status, 2, run.stderr);
+    assert.equal(run.stdout, "");
+    assert.equal(run.stderr, refusal);
+    assert.equal(existsSync(calls), false, "the run reached claude");
+  });
+
+  await t.test("reviewing-code --check under npm run eval reaches claude", (t) => {
+    const { run, calls } = guardedRun(t, ["reviewing-code", "--check"], "eval");
+    assert.ok(existsSync(calls), `the run never reached claude:\n${run.stderr}`);
+    assert.match(readFileSync(calls, "utf8"), /plugin eval/);
+  });
 });

@@ -149,7 +149,10 @@ difference between them.
 `npm run eval` wraps the commands on this page with their required flags.
 It runs the `readonly` and `bash` tags as separate commands, writes each
 to `evals/results/<timestamp>-<model>-<tag>/`, and runs the verdict script
-on each result. It exits 1 if any case fails or is incomplete.
+on each result. It exits 1 if any case fails or is incomplete. A live run
+or `--check` starts only through `npm run eval`. Started from
+`node scripts/eval.mjs`, `npm test`, or CI, it exits 2 before `claude`
+starts. `--dry-run` and `--help` run anywhere.
 
 ```sh
 npm run eval -- --check                   # free load check plus grader regex compile
@@ -463,7 +466,10 @@ The handoff eval tests the central claim of `making-code-agent-friendly`:
 code that its Refactor mode changes is cheaper for the next agent to change.
 `claude plugin eval` cannot start one run from another run's workspace, so
 `scripts/eval-handoff.mjs` drives `claude -p` itself. It costs money, so it
-never joins `npm test` or CI.
+never joins `npm test` or CI. A live run starts only through
+`npm run eval:handoff`. Started from `node scripts/eval-handoff.mjs`,
+`npm test`, or CI, it exits 2 before `claude` starts. `--dry-run` and
+`--help` run anywhere.
 
 ```sh
 npm run eval:handoff                                 # Sonnet, 3 runs per arm, $36 cap
