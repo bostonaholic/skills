@@ -8,7 +8,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
 
 ## Contents
 
-- Two rules
+- Core rules
 - Description form
 - A. Metadata
 - B. Concision and freedom
@@ -29,9 +29,9 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Handoff eval
 - Checks
 
-## Two rules
+## Core rules
 
-Every rule below serves one of these two. They apply to every skill, and every
+Every rule below serves one of these. They apply to every skill, and every
 skill that creates or edits a skill applies them to its output.
 
 - **Agent-agnostic.** A skill is a `SKILL.md` and its scripts, plus
