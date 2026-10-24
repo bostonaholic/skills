@@ -8,7 +8,8 @@
 // 100 lines, C3 every references/ and shared/ file linked from SKILL.md, C4 a `## Contents` table
 // of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
 // 50 words, C7 links and <skill-dir>/ paths that name tracked files in the skill, C8 -dir and -root
-// placeholders that name only the skill's own directory. Acts on the git repository at the working directory; skills come from `git ls-files`,
+// placeholders that name only the skill's own directory, G1 a trigger, guard, and core eval case
+// per skill. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
@@ -34,7 +35,17 @@ export const LINT_IDS = Object.freeze([
   "C6",
   "C7",
   "C8",
+  "G1",
 ]);
+
+// Skills that ship without their eval cases, each with why. The lint only skips these skills;
+// only the real-tree test in tests/lint-skills.test.mjs checks an entry, so a fixture repository
+// without these skills still passes, and that test fails once an entry goes stale.
+export const EVALS_PENDING = Object.freeze({
+  "fixing-root-causes": "no eval cases yet; writing them is deferred",
+  "updating-bostonaholic-skills": "no eval cases yet; writing them is deferred",
+  "writing-no-tests": "no eval cases yet; writing them is deferred",
+});
 
 // Limits from the Agent Skills frontmatter specification and Anthropic's authoring guide.
 const NAME_MAX = 64;
@@ -81,6 +92,10 @@ const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 // The fallback for harnesses with no Skill tool, which every skill that calls another links.
 const SKILL_CALL_RULES = "shared/skill-calls.md";
+// An eval case is a directory with a prompt.md, per the Layout section of docs/skill-authoring.md.
+const EVAL_PROMPT = /^evals\/(engineering|productivity)\/[^/]+\/[^/]+\/prompt\.md$/;
+// The cases every skill needs, per the same Layout section.
+const EVAL_CASES = ["trigger", "guard", "core"];
 // A path from the skill directory. Skill script and reference names use only these characters, so
 // the path ends at the first quote, backtick, comma, `<`, or space around it.
 const SKILL_DIR_PATH = /<((?:[a-z0-9-]+-)?skill-dir)>\/([A-Za-z0-9._/-]*)/g;
@@ -281,12 +296,34 @@ function checkPlaceholders(dir, text, report) {
   }
 }
 
+// Returns the trigger, guard, and core case names of skills/<category>/<name>/SKILL.md that have no
+// prompt.md in `tracked`, a Set of eval prompt paths.
+export function missingEvalCases(skillPath, tracked) {
+  const [, category, name] = skillPath.split("/");
+  return EVAL_CASES.map((kind) => `${name}-${kind}`).filter(
+    (evalCase) => !tracked.has(`evals/${category}/${name}/${evalCase}/prompt.md`),
+  );
+}
+
+// G1
+function checkEvalCases(skillPath, evalPrompts, report) {
+  const [, category, name] = skillPath.split("/");
+  if (Object.hasOwn(EVALS_PENDING, name)) return;
+  const missing = missingEvalCases(skillPath, evalPrompts);
+  if (missing.length)
+    report(
+      "G1",
+      `evals/${category}/${name}/ lacks ${new Intl.ListFormat("en").format(missing)}, each a directory with a prompt.md`,
+    );
+}
+
 // Returns every violation as "path: ID message", sorted by path.
 export function lintSkills() {
   const problems = [];
   const skills = lsFiles("skills/*/*/SKILL.md")
     .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
     .sort();
+  const evalPrompts = new Set(lsFiles("evals").filter((path) => EVAL_PROMPT.test(path)));
   for (const skillPath of skills) {
     const dir = dirname(skillPath);
     const tracked = lsFiles(dir);
@@ -316,6 +353,7 @@ export function lintSkills() {
     const linked = linkTargets(skillText);
     checkLinks(dir, linked, files, report);
     checkSkillCalls(dir, linked, texts, report);
+    checkEvalCases(skillPath, evalPrompts, report);
     const trackedSet = new Set(tracked);
     for (const [path, text] of texts) {
       checkFile(path, text, reportFor(path));

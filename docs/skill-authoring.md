@@ -127,12 +127,12 @@ only what a frontier model would otherwise get wrong.
 
 ## G. Evaluation and iteration
 
-| ID  | Rule                                                                                                                                                                                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). |
-| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                             |
-| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.         |
-| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                              |
+| ID  | Rule                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). **lint** (trigger, guard, and core cases) |
+| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                                                                       |
+| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.                                                   |
+| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                                                                        |
 
 ### Running the evals
 

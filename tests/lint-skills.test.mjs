@@ -1,9 +1,10 @@
 // Exercises scripts/lint-skills.mjs against temporary fixture repositories: a compliant skill
-// passes, and each mechanical rule from docs/skill-authoring.md reports its own ID. A real-tree
-// test also fails when the IDs the script reports differ from the docs/skill-authoring.md rows
-// marked **lint**.
+// passes, and each mechanical rule from docs/skill-authoring.md reports its own ID. Two real-tree
+// tests also fail when the IDs the script reports differ from the docs/skill-authoring.md rows
+// marked **lint**, or when an EVALS_PENDING entry names a skill that now has its trigger, guard,
+// and core cases or is not an active skill.
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -31,6 +32,11 @@ function compliant(overrides = {}) {
     [`${SKILL}/SKILL.md`]: skillFile(),
     [`${SKILL}/references/guide.md`]: LONG_GUIDE,
     [`${SKILL}/shared/rule.md`]: "# Rule\n\nKeep it short.\n",
+    "evals/engineering/reviewing-widgets/reviewing-widgets-trigger/prompt.md":
+      "Review this widget.\n",
+    "evals/engineering/reviewing-widgets/reviewing-widgets-guard/prompt.md":
+      "Explain this widget.\n",
+    "evals/engineering/reviewing-widgets/reviewing-widgets-core/prompt.md": "Find the defect.\n",
     ...overrides,
   };
 }
@@ -44,7 +50,7 @@ function runLint(t, files, ...args) {
   }
   for (const gitArgs of [
     ["init", "-q"],
-    ["add", "--", "skills"],
+    ["add", "-A"],
   ]) {
     const run = spawnSync("git", gitArgs, { cwd: root, env: GIT_ENV, encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
@@ -73,6 +79,12 @@ function assertReportsMatch(t, files, pattern) {
   const run = runLint(t, files);
   assert.equal(run.status, 1, run.output);
   assert.match(run.output, pattern, run.output);
+}
+
+function gitFiles(...pathspecs) {
+  return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
 }
 
 test("a compliant skill passes with no output", (t) => {
@@ -561,4 +573,69 @@ test("C8 reports a -dir or -root placeholder that does not name the skill's own 
     const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }));
     assert.deepEqual(run, { status: 0, output: "" });
   });
+});
+
+// ---------------------------------------------------------------------------------------------
+// G1: each skill has its trigger, guard, and core eval cases
+
+test("G1 reports a skill missing its trigger, guard, or core case", (t) => {
+  const files = compliant();
+  delete files["evals/engineering/reviewing-widgets/reviewing-widgets-core/prompt.md"];
+  const run = runLint(t, files);
+  assert.equal(run.status, 1, run.output);
+  assert.match(
+    run.output,
+    /^skills\/engineering\/reviewing-widgets\/SKILL\.md: G1 evals\/engineering\/reviewing-widgets\/ lacks reviewing-widgets-core\b/m,
+  );
+  assert.doesNotMatch(run.output, /reviewing-widgets-(trigger|guard)/);
+});
+
+test("G1 skips a skill named in EVALS_PENDING", (t) => {
+  assert.ok(
+    lint.EVALS_PENDING && typeof lint.EVALS_PENDING === "object",
+    "scripts/lint-skills.mjs exports no EVALS_PENDING map",
+  );
+  const name = Object.keys(lint.EVALS_PENDING)[0];
+  if (!name) return t.skip("EVALS_PENDING is empty");
+  const dir = `skills/engineering/${name}`;
+  const run = runLint(t, {
+    [`${dir}/SKILL.md`]: skillFile({ name }),
+    [`${dir}/references/guide.md`]: LONG_GUIDE,
+    [`${dir}/shared/rule.md`]: "# Rule\n\nKeep it short.\n",
+    [`${dir}/agents/openai.yaml`]: OPENAI_YAML,
+  });
+  assert.deepEqual(run, { status: 0, output: "" });
+});
+
+test("every EVALS_PENDING entry names an active skill that still lacks a case", () => {
+  assert.ok(
+    lint.EVALS_PENDING && typeof lint.EVALS_PENDING === "object",
+    "scripts/lint-skills.mjs exports no EVALS_PENDING map",
+  );
+  assert.equal(
+    typeof lint.missingEvalCases,
+    "function",
+    "scripts/lint-skills.mjs exports no missingEvalCases function",
+  );
+  const skills = gitFiles("skills/*/*/SKILL.md").filter((path) =>
+    /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path),
+  );
+  const prompts = new Set(
+    gitFiles("evals").filter((path) =>
+      /^evals\/(engineering|productivity)\/[^/]+\/[^/]+\/prompt\.md$/.test(path),
+    ),
+  );
+  const problems = Object.keys(lint.EVALS_PENDING).flatMap((name) => {
+    const skillPath = skills.find((path) => path.split("/")[2] === name);
+    if (!skillPath)
+      return [
+        `EVALS_PENDING in scripts/lint-skills.mjs: ${name} is not an active skill. Delete its entry.`,
+      ];
+    if (lint.missingEvalCases(skillPath, prompts).length === 0)
+      return [
+        `EVALS_PENDING in scripts/lint-skills.mjs: ${name} now has its trigger, guard, and core cases. Delete its entry.`,
+      ];
+    return [];
+  });
+  assert.deepEqual(problems, []);
 });
