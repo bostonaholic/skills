@@ -39,7 +39,7 @@ into a cache, never into the project:
 ```bash
 export PAPARAZZI_TOOLS="${XDG_CACHE_HOME:-$HOME/.cache}/paparazzi"
 npm install --prefix "$PAPARAZZI_TOOLS" --no-audit --no-fund playwright@1
-npx --prefix "$PAPARAZZI_TOOLS" playwright install chromium
+"$PAPARAZZI_TOOLS/node_modules/.bin/playwright" install chromium
 ```
 
 - Start the app on `127.0.0.1` with a free port and its build output (such as
