@@ -3,17 +3,35 @@
 // prints one `path: ID message` line per violation.
 //   node scripts/lint-skills.mjs  exit 1 when any skill breaks a rule, 0 when all pass
 // Rules: A1 name, A2 gerund name, A3 description limits, A4 third-person description, A5 "Use
-// when" clause, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, C1
-// SKILL.md body of at most 100 lines, C3 every references/ and shared/ file linked from SKILL.md,
-// C4 a `## Contents` table of contents in files over 100 lines, C5 forward-slash paths, C6 no
-// SKILL.md prose paragraph over 50 words. Acts on the git repository at the working directory; skills come from `git ls-files`,
+// when" clause, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, B5 a
+// skill call only with a shared/skill-calls.md link from SKILL.md, C1 SKILL.md body of at most
+// 100 lines, C3 every references/ and shared/ file linked from SKILL.md, C4 a `## Contents` table
+// of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
+// 50 words. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
-import { FRONTMATTER, scalar } from "./catalog.mjs";
+import { FRONTMATTER, SKILL_CALL, scalar } from "./catalog.mjs";
 import { references } from "./sync-shared.mjs";
+
+// Every ID this script reports. tests/lint-skills.test.mjs compares it with the
+// docs/skill-authoring.md rows marked **lint**, so a new check and its row land together.
+export const LINT_IDS = Object.freeze([
+  "A1",
+  "A2",
+  "A3",
+  "A4",
+  "A5",
+  "B3",
+  "B5",
+  "C1",
+  "C3",
+  "C4",
+  "C5",
+  "C6",
+]);
 
 // Limits from the Agent Skills frontmatter specification and Anthropic's authoring guide.
 const NAME_MAX = 64;
@@ -58,6 +76,8 @@ const NOT_A_VERB = new Set(["This", "Its"]);
 const FIRST_OR_SECOND_PERSON = /(?<![\w-])(?:I|I'm|I'll|me|my|you|you're|your)(?![\w-])/i;
 const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
+// The fallback for harnesses with no Skill tool, which every skill that calls another links.
+const SKILL_CALL_RULES = "shared/skill-calls.md";
 
 function lsFiles(...pathspecs) {
   return execFileSync("git", ["ls-files", "-z", "--", ...pathspecs], { encoding: "utf8" })
@@ -147,10 +167,15 @@ function checkChecklistShape(body, report) {
   flush();
 }
 
-function checkLinks(dir, skillText, files, report) {
+// SKILL.md link targets without their #anchor or leading ./.
+function linkTargets(skillText) {
   const linked = new Set();
   for (const { target } of references(skillText, { spans: false }))
     linked.add(target.split("#")[0].replace(/^\.\//, ""));
+  return linked;
+}
+
+function checkLinks(dir, linked, files, report) {
   for (const path of files) {
     const relative = path.slice(dir.length + 1);
     if (BUNDLED_MARKDOWN.test(relative) && !linked.has(relative)) {
@@ -159,6 +184,20 @@ function checkLinks(dir, skillText, files, report) {
         `${relative} is not linked from SKILL.md; link it as [..](${relative}) with when to read it`,
       );
     }
+  }
+}
+
+// matchAll on the whole text, because a call can break across lines and a global regex keeps
+// state between .test() calls.
+function checkSkillCalls(dir, linked, texts, report) {
+  if (linked.has(SKILL_CALL_RULES)) return;
+  for (const [path, text] of texts) {
+    const call = text.matchAll(SKILL_CALL).next().value;
+    if (!call) continue;
+    return report(
+      "B5",
+      `${path.slice(dir.length + 1)} calls ${call[1]} with the Skill tool; link [skill call rules](${SKILL_CALL_RULES}) from SKILL.md`,
+    );
   }
 }
 
@@ -206,9 +245,13 @@ export function lintSkills() {
         `body is ${bodyLines} lines; keep it to ${BODY_MAX_LINES} by moving detail into references/`,
       );
     checkChecklistShape(body, report);
-    checkLinks(dir, skillText, files, report);
-    for (const path of files)
-      checkFile(path, path === skillPath ? skillText : readFileSync(path, "utf8"), reportFor(path));
+    const texts = new Map(
+      files.map((path) => [path, path === skillPath ? skillText : readFileSync(path, "utf8")]),
+    );
+    const linked = linkTargets(skillText);
+    checkLinks(dir, linked, files, report);
+    checkSkillCalls(dir, linked, texts, report);
+    for (const [path, text] of texts) checkFile(path, text, reportFor(path));
   }
   return problems;
 }

@@ -1,11 +1,15 @@
 // Exercises scripts/lint-skills.mjs against temporary fixture repositories: a compliant skill
-// passes, and each mechanical rule from docs/skill-authoring.md reports its own ID.
+// passes, and each mechanical rule from docs/skill-authoring.md reports its own ID. A real-tree
+// test also fails when the IDs the script reports differ from the docs/skill-authoring.md rows
+// marked **lint**.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
+// A namespace import, so a missing export fails its test's assertion instead of the whole file.
+import * as lint from "../scripts/lint-skills.mjs";
 
 const LINT = resolve("scripts/lint-skills.mjs");
 const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
@@ -18,6 +22,9 @@ const LONG_GUIDE = `# Guide\n\n## Contents\n\n- Steps\n\n## Steps\n\n${"Step.\n"
 function skillFile({ name = "reviewing-widgets", description = DESCRIPTION, body = LINKS } = {}) {
   return `---\nname: ${name}\ndescription: ${description}\n---\n\n# Reviewing widgets\n\n${body}`;
 }
+
+const OPENAI_YAML =
+  'interface:\n  display_name: "Reviewing Widgets"\n  short_description: "Review widgets for defects"\n';
 
 function compliant(overrides = {}) {
   return {
@@ -54,6 +61,12 @@ function assertReports(t, files, id, pattern) {
   const run = runLint(t, files);
   assert.equal(run.status, 1, run.output);
   assert.match(run.output, new RegExp(`: ${id} .*${pattern.source}`), run.output);
+}
+
+function assertReportsMatch(t, files, pattern) {
+  const run = runLint(t, files);
+  assert.equal(run.status, 1, run.output);
+  assert.match(run.output, pattern, run.output);
 }
 
 test("a compliant skill passes with no output", (t) => {
@@ -268,4 +281,93 @@ test("an argument exits 1 with a usage line", (t) => {
   const run = runLint(t, compliant(), "--fix");
   assert.equal(run.status, 1);
   assert.match(run.output, /^usage: node scripts\/lint-skills\.mjs/);
+});
+
+// ---------------------------------------------------------------------------------------------
+// B5: a skill that calls another links shared/skill-calls.md
+
+test("B5 reports a skill call that SKILL.md does not pair with a shared/skill-calls.md link", async (t) => {
+  await t.test("a call in SKILL.md", (t) => {
+    const body = `${LINKS}Then call the Skill tool with \`explaining-widgets\`.\n`;
+    assertReportsMatch(
+      t,
+      compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: B5 \S*SKILL\.md calls explaining-widgets with the Skill tool; link \[skill call rules\]\(shared\/skill-calls\.md\) from SKILL\.md$/m,
+    );
+  });
+
+  await t.test("a call that breaks across two lines in references/", (t) => {
+    const guide = `${LONG_GUIDE}When done, call the\nSkill tool with \`explaining-widgets\`.\n`;
+    assertReportsMatch(
+      t,
+      compliant({ [`${SKILL}/references/guide.md`]: guide }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: B5 \S*references\/guide\.md calls explaining-widgets with the Skill tool; link \[skill call rules\]\(shared\/skill-calls\.md\) from SKILL\.md$/m,
+    );
+  });
+
+  await t.test("a call inside a shared/ copy", (t) => {
+    const body = `${LINKS}Read [the handoff](shared/handoff.md).\n`;
+    assertReportsMatch(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({ body }),
+        [`${SKILL}/shared/handoff.md`]:
+          "# Handoff\n\nCall the Skill tool with `explaining-widgets`.\n",
+      }),
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: B5 \S*shared\/handoff\.md calls explaining-widgets with the Skill tool; link \[skill call rules\]\(shared\/skill-calls\.md\) from SKILL\.md$/m,
+    );
+  });
+
+  // The first skill's call sits later in its text than the second skill's call, so a global
+  // regex reused with .test() starts the second search past the second call and misses it.
+  await t.test("two skills that each hold a call both report", (t) => {
+    const run = runLint(
+      t,
+      compliant({
+        [`${SKILL}/SKILL.md`]: skillFile({
+          body: `${LINKS}Then call the Skill tool with \`explaining-widgets\`.\n`,
+        }),
+        "skills/productivity/reviewing-gadgets/SKILL.md": skillFile({
+          name: "reviewing-gadgets",
+          body: "Call the Skill tool with `explaining-gadgets`.\n",
+        }),
+        "skills/productivity/reviewing-gadgets/agents/openai.yaml": OPENAI_YAML,
+        "evals/productivity/reviewing-gadgets/reviewing-gadgets-trigger/prompt.md": "Review it.\n",
+        "evals/productivity/reviewing-gadgets/reviewing-gadgets-guard/prompt.md": "Explain it.\n",
+        "evals/productivity/reviewing-gadgets/reviewing-gadgets-core/prompt.md": "Fix it.\n",
+      }),
+    );
+    assert.equal(run.status, 1, run.output);
+    assert.match(
+      run.output,
+      /^skills\/engineering\/reviewing-widgets\/SKILL\.md: B5 [^\n]*calls explaining-widgets with the Skill tool/m,
+    );
+    assert.match(
+      run.output,
+      /^skills\/productivity\/reviewing-gadgets\/SKILL\.md: B5 [^\n]*calls explaining-gadgets with the Skill tool/m,
+    );
+  });
+});
+
+test("B5 accepts a skill call when SKILL.md links shared/skill-calls.md", (t) => {
+  const body = `${LINKS}Then call the Skill tool with \`explaining-widgets\`, as the [skill call rules](shared/skill-calls.md) say.\n`;
+  const run = runLint(
+    t,
+    compliant({
+      [`${SKILL}/SKILL.md`]: skillFile({ body }),
+      [`${SKILL}/shared/skill-calls.md`]: "# Skill calls\n\nState a fallback.\n",
+    }),
+  );
+  assert.deepEqual(run, { status: 0, output: "" });
+});
+
+test("the lint IDs equal the skill-authoring rows marked lint", () => {
+  assert.ok(Array.isArray(lint.LINT_IDS), "scripts/lint-skills.mjs exports no LINT_IDS array");
+  const marked = readFileSync("docs/skill-authoring.md", "utf8")
+    .split("\n")
+    .filter((line) => line.includes("**lint**"))
+    .map((line) => line.match(/^\|\s*([A-GS][0-9]+)\s*\|/)?.[1])
+    .filter(Boolean)
+    .sort();
+  assert.deepEqual([...lint.LINT_IDS].sort(), marked);
 });

@@ -24,7 +24,7 @@ export const README_START = "<!-- generated:start -->";
 export const README_END = "<!-- generated:end -->";
 
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
-const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
+export const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
 const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
 
 // A problem with the repository's input files. The CLIs report its message and exit 1.
