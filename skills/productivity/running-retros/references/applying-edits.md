@@ -78,7 +78,7 @@ node "<skill-dir>/scripts/write-target.mjs" "$(git rev-parse --show-toplevel)" -
 A non-skill file follows its own existing structure and the repository's
 writing guidance; the rules below apply to `SKILL.md` targets only.
 
-Every created or edited `SKILL.md` meets the two skill rules, whichever
+Every created or edited `SKILL.md` meets the skill rules, whichever
 guidance below applies:
 
 - **Agent-agnostic.** The skill is a `SKILL.md` plus scripts, with detail in

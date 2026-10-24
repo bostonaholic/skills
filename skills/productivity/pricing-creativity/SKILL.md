@@ -30,8 +30,8 @@ Price before designing the work, in this order: Client, Value, Price, Cost, Solu
 ## The six rules
 
 1. **Price the client, not the job.** Never answer a request for the price of a
-   service with a number. Instead, ask the client for the four deal facts
-   above, and give no figure for this deal until all four are in: no
+   service with a number. Instead, ask the client for the deal facts
+   above, and give no figure for this deal until all of them are in: no
    placeholder, example price, typical range, or guess. Publish guidance only,
    such as a minimum level of engagement (MLOE, set from the annual AGI
    target with `mloe` in [Figures](#figures)), never per-service prices,

@@ -29,12 +29,12 @@ entry, unless its rows need different marks; then give each row its own
 entry, with the row label appended to the name. Judge a test by what its
 assertions observe, never by its name.
 
-| Mark | Meaning                                 | Required fields                               |
-| ---- | --------------------------------------- | --------------------------------------------- |
-| `R`  | Retain                                  | `contract`, `catches`                         |
-| `F`  | Keep the contract, repair the assertion | `contract`, `junkClass`, `action`             |
-| `C`  | Consolidate into a stronger owner       | `junkClass`, `absorbedBy`                     |
-| `D`  | Delete                                  | `junkClass`, `evidence` with all seven fields |
+| Mark | Meaning                                 | Required fields                          |
+| ---- | --------------------------------------- | ---------------------------------------- |
+| `R`  | Retain                                  | `contract`, `catches`                    |
+| `F`  | Keep the contract, repair the assertion | `contract`, `junkClass`, `action`        |
+| `C`  | Consolidate into a stronger owner       | `junkClass`, `absorbedBy`                |
+| `D`  | Delete                                  | `junkClass`, `evidence` with every field |
 
 - `junkClass` is one of `cannot-fail`, `restates-source`,
   `duplicates-stronger-proof`, `keeps-test-only-code`,

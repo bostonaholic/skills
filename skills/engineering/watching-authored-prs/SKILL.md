@@ -28,9 +28,9 @@ argument-hint: "[<pr-number-or-url>]"
   installed, stop before arming and tell the user to install it from
   `bostonaholic/skills` with the `skills` CLI, as INSTALL.md's "One skill" section shows.
   Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
-- The arming instruction sets two grants for the life of the watch: feedback and
-  CI. Read [grants](references/grants.md) to resolve its phrasing. A merge, land,
-  or ship clause is not a grant.
+- The arming instruction sets the feedback and CI grants for the life of the
+  watch. Read [grants](references/grants.md) to resolve its phrasing. A merge,
+  land, or ship clause is not a grant.
 - Every report names both as `feedback <grant>, CI <grant>`. A soft-cap re-arm
   keeps both grants; any other re-arm starts at the defaults unless the user
   restates them.

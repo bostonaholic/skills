@@ -5,6 +5,7 @@
 ### Changed
 
 - `writing-prose` names a changing set's members instead of stating how many there are. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- Skill instructions name or link the lists they mean instead of counting them. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
 
 ## [0.64.0] - 2026-10-24
 

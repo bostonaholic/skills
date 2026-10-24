@@ -21,7 +21,7 @@ comment text. Its header documents the JSON it prints.
   it.
 - **Exit 127:** `gh` is not installed. Stop and say so.
 
-The output holds three disjoint shapes:
+The output holds these disjoint shapes:
 
 - `conversationComments`: top-level comments on the PR conversation. They have
   no resolve state.

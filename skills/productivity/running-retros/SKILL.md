@@ -26,7 +26,7 @@ disable-model-invocation: true
 ## The prompt
 
 - A bare `/running-retros` mines this session.
-- The request may set the question (replacing the three lenses with one
+- The request may set the question (replacing the lenses with one
   prompt pass), the sources (default: this session's transcript), and the
   targets (default: any repository file the findings call for).
 - A prompt that is one bare skill name means "this session, learnings about

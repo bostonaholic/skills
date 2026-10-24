@@ -2,7 +2,7 @@
 
 Read this when a verdict leads to a rebuttal or a reaction.
 
-- **Rebut** with three things and nothing else: which claim the branch does
+- **Rebut** with only these things: which claim the branch does
   not bear out, the specific evidence (file, line, symbol), and what would
   settle it, as an `issue` in the [finding format](shared/findings.md) with the
   decoration the original comment carried. Carry the automated-attribution

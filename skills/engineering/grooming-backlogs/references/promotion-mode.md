@@ -20,7 +20,7 @@ An issue listed in `unloaded-threads.txt` has more comments to read.
 `links unavailable` follows the [hard rules](references/hard-rules.md) edge
 case.
 
-## Four moves, in order
+## Moves, in order
 
 1. **Verify** per [verifying claims](references/verifying-claims.md), and fold
    in whatever the thread decided that the body never absorbed. Premise

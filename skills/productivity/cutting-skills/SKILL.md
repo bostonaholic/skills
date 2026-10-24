@@ -12,7 +12,7 @@ way. It holds only what a capable frontier model would otherwise get wrong:
 - non-obvious gotchas, domain facts, and safety or authorization boundaries
 - fragile or parsed commands and formats
 
-Every cut leaves the skill meeting [the two skill rules](references/skill-rules.md):
+Every cut leaves the skill meeting [the skill rules](references/skill-rules.md):
 agent-agnostic, and a short, checklist-shaped `SKILL.md` with detail in
 `references/`.
 
@@ -88,7 +88,7 @@ Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
   `CONTRIBUTING.md`, or the package manifest, or `skills-ref validate
   <target-skill>` if installed). Never invent a command.
 - With none, confirm the frontmatter parses, every relative path resolves, and
-  both rules hold.
+  the skill rules hold.
 - Fix failures inside the skill and re-run until clean; report failures
   outside it.
 - Finally, read the diff for removed behavior that no class justifies.
@@ -100,5 +100,5 @@ Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 - The behavior the skill still provides, and each material keep, move, or
   deletion with its class.
 - The trigger change, validation and eval results (pooled runs per case), and
-  whether both rules hold.
+  whether the skill rules hold.
 - Anything left untouched because you were unsure.

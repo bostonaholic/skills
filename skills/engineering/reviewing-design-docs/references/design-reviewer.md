@@ -76,7 +76,7 @@ deferral. A non-consequential unsupported claim is a suggestion.
   `## Interface`, `## Surfaces`, `## Experiments`) are required only when
   their trigger applies. Read the task, requirements, or research files the
   document links when they exist.
-- **Decisions.** For each decision, formal ADR or not, apply four checks
+- **Decisions.** For each decision, formal ADR or not, apply these checks
   and cite the one it fails: a **named alternative** (not a single-option
   "decision"); a **stated trade-off** (what was given up, not only the
   benefit); a **reconstructable reason** (a future reader can see why, not

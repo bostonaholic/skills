@@ -63,7 +63,7 @@ Give these items:
 - With coverage: combined and average CRAP, the top 5 functions by CRAP, and
   one count per `Not scored` reason kind (all `no coverable line in <range>`
   reasons are one kind).
-- The three output paths.
+- Every output path.
 - Each exclusion with its reason.
 - One count per gap reason and per `Not measured` status.
 - One line per `skipped` record and skipped check.

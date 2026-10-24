@@ -2,11 +2,11 @@
 
 Read this when resolving the arming instruction into grants, or when re-arming.
 
-The arming instruction sets two grants for the life of the watch, by the
-object of its fix verb. An unclear object, such as "everything", gives both
-defaults, and the arm report says `watch and fix comments and CI` grants both.
-A bare "handle the comments" is a one-shot `addressing-pr-comments` triage, not
-a watch. A merge, land, or ship clause is not a grant.
+The arming instruction sets the feedback and CI grants for the life of the
+watch, by the object of its fix verb. An unclear object, such as "everything",
+gives both defaults, and the arm report says `watch and fix comments and CI`
+grants both. A bare "handle the comments" is a one-shot `addressing-pr-comments`
+triage, not a watch. A merge, land, or ship clause is not a grant.
 
 - `watch the PR`: feedback present-then-stop, CI report.
 - `watch and fix`, `fix comments`: feedback authorized, CI report.

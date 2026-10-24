@@ -1,6 +1,6 @@
 # Critique mode
 
-Critique through three lenses, each in a fresh-context, read-only subagent
+Critique through these lenses, each in a fresh-context, read-only subagent
 given the explanation, the relevant paths, and its lens, so it judges the
 code rather than your explanation. Where subagents are unavailable, run the
 lenses yourself and say so.

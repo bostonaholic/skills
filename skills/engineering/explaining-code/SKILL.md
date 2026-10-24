@@ -6,8 +6,8 @@ argument-hint: "[elie] <PR, file, function, branch, or concept>"
 
 # Explaining code
 
-Explain a specific change or piece of code to a reader new to it, at one of
-two depths.
+Explain a specific change or piece of code to a reader new to it, at the Brief
+or Full depth.
 
 When the question is how a whole subsystem works (its architecture, data flow,
 and file map), call the Skill tool with `explaining-architecture` instead. If

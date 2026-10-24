@@ -1,7 +1,7 @@
 # Report schema
 
 The skill writes `report.json`, `scripts/inventory.mjs` writes
-`inventory.json`, and `scripts/render-report.mjs` checks the two against each
+`inventory.json`, and `scripts/render-report.mjs` checks one against the
 other and writes `report.md`. On any broken rule the renderer names each one
 and writes nothing, so its errors are the full rule list.
 
