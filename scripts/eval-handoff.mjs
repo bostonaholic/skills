@@ -25,9 +25,10 @@
 // Preflight needs claude, git 2.38 or later, and Node 22.14 or later, and runs before the
 // scaffold, so a broken setup spends nothing. --dry-run validates the arguments, the repository
 // root, and the fixture, prints each claude command, and creates and spawns nothing.
+// A run starts claude only under `npm run eval:handoff`; anywhere else it exits 2 first.
 // Exit 0 when every arm-run is complete, 1 when any is not, on a stop rule, or on a preflight or
-// scaffold failure, and 2 on a bad argument, an incomplete fixture, or a run outside the
-// repository root.
+// scaffold failure, and 2 on a bad argument, an incomplete fixture, a run outside the repository
+// root, or a start outside `npm run eval:handoff`.
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
@@ -86,6 +87,10 @@ const SKILL_NAME = "making-code-agent-friendly";
 const FIXTURE_DIR = "evals/engineering/making-code-agent-friendly/handoff";
 const SKILL_DIR = "skills/engineering/making-code-agent-friendly";
 const RESULTS_ROOT = "evals/results";
+// npm sets npm_lifecycle_event to the script it runs, so only `npm run eval:handoff` passes. npm
+// test, a test's spawn, CI, and a direct `node scripts/eval-handoff.mjs` fail closed before claude
+// starts. runHandoff stays unguarded: its callers pass the claude path, and tests pass a fake.
+const NPM_SCRIPT = "eval:handoff";
 const RESULTS_FILE = "handoff-result.json";
 const HIDDEN_DIR = "eval-hidden";
 const HIDDEN_SUFFIX = ".test.mjs";
@@ -977,6 +982,10 @@ async function main(args) {
     for (const line of lines) console.log(line);
     return 0;
   }
+  if (process.env.npm_lifecycle_event !== NPM_SCRIPT)
+    throw new UsageError(
+      `start claude only through npm run ${NPM_SCRIPT}, never from npm test or CI (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
+    );
   return runHandoff({
     options,
     fixtureDir: FIXTURE_DIR,

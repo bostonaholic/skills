@@ -30,7 +30,7 @@ node <skill-dir>/scripts/contention.mjs [--max-commits <n>] [--top <n>] [-- <pat
 | `commitsScanned`              | commits counted; `commitsIgnored` is the bulk commits skipped     |           |
 
 Every row is a lead, not a finding. Open the file and apply the flag's "Not a
-flag when" in the [red flags](red-flags.md) before reporting it.
+flag when" in the [red flags](references/red-flags.md) before reporting it.
 
 ## Exits
 

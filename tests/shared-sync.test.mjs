@@ -1,7 +1,9 @@
 // Exercises scripts/sync-shared.mjs against the repository and temporary fixtures.
-// Checks synchronization, missing inputs, drift detection, and stale-copy removal.
+// Checks synchronization, missing inputs, drift detection, and stale-copy removal. Also fails when
+// a root shared/ file has exactly one active-skill reader and SINGLE_READER does not name it, or
+// when a SINGLE_READER entry no longer has exactly one reader (AGENTS.md rule 6).
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -78,6 +80,41 @@ test("sync-shared --check passes: every copy equals its canonical bytes and the 
   const run = runSync(REPO, "--check");
   assert.equal(run.status, 0, run.output);
   assert.equal(run.output, "");
+});
+
+// Root shared/ files that exactly one active skill copies, each with why it is not yet in that
+// skill's references/. Only the real-tree test below reads these entries; no synthetic fixture
+// depends on them, and that test fails on an entry that no longer has exactly one reader.
+const SINGLE_READER = Object.freeze({
+  "shared/human-control.md":
+    "read only by grooming-backlogs; moving it into that skill's references/ is deferred",
+});
+
+test("every root shared/ file has more than one reader unless SINGLE_READER names it", () => {
+  const tracked = (pathspec) =>
+    execFileSync("git", ["ls-files", "-z", "--", pathspec], { cwd: REPO, encoding: "utf8" })
+      .split("\0")
+      .filter(Boolean);
+  const readers = Object.groupBy(
+    tracked("skills")
+      .map((path) => path.match(/^skills\/(?:engineering|productivity)\/([^/]+)\/(shared\/.+)$/))
+      .filter(Boolean),
+    ([, , copy]) => copy,
+  );
+  const readerNames = (path) => (readers[path] ?? []).map(([, skill]) => skill);
+  const singles = tracked("shared")
+    .filter((path) => readerNames(path).length === 1 && !(path in SINGLE_READER))
+    .map(
+      (path) =>
+        `AGENTS.md rule 6: ${path} has one reader (${readerNames(path)[0]}). Move it to that skill's references/, or add it to SINGLE_READER with a reason`,
+    );
+  const stale = Object.keys(SINGLE_READER)
+    .filter((path) => readerNames(path).length !== 1)
+    .map(
+      (path) =>
+        `AGENTS.md rule 6: SINGLE_READER names ${path}, which has ${readerNames(path).length} readers. Delete its entry.`,
+    );
+  assert.deepEqual([...singles, ...stale], []);
 });
 
 // ---------------------------------------------------------------------------------------------

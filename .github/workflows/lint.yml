@@ -34,6 +34,8 @@ jobs:
           git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- 'skills/**/*.md' | xargs -0 -r tools/node_modules/.bin/markdownlint-cli2
       - name: Check skill authoring rules
         run: npm run lint:skills
+      - name: Check repository rules
+        run: npm run lint:repo
 
   javascript:
     name: Format and JS lint (oxfmt, oxlint)

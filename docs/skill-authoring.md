@@ -4,7 +4,8 @@ Every active skill follows Anthropic's
 [skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
 This page catalogs those practices with stable IDs for commits, reviews, and
 lint output. Rules marked **lint** are enforced by `npm run lint:skills`
-(`scripts/lint-skills.mjs`), which runs in CI. The rest are review criteria.
+(`scripts/lint-skills.mjs`), which runs in CI. Rules marked **test** name a
+test in `npm test`. The rest are review criteria.
 
 ## Contents
 
@@ -27,6 +28,7 @@ lint output. Rules marked **lint** are enforced by `npm run lint:skills`
     - Before and after a skill edit
     - Traces and the G3 review
     - Handoff eval
+- Subagents
 - Checks
 
 ## Core rules
@@ -56,14 +58,15 @@ with it.
 
 ## A. Metadata
 
-| ID  | Rule                                                                                                                 |
-| --- | -------------------------------------------------------------------------------------------------------------------- |
-| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint** |
-| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. **lint**   |
-| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                     |
-| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**              |
-| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                        |
-| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                              |
+| ID  | Rule                                                                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint**                                                                       |
+| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. **lint**                                                                         |
+| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                                                                                           |
+| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**                                                                                    |
+| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                                                                                              |
+| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                                                                                                    |
+| A7  | Each skill has `agents/openai.yaml`. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`. **lint** |
 
 ## B. Concision and freedom
 
@@ -76,17 +79,20 @@ only what a frontier model would otherwise get wrong.
 | B2  | Match freedom to fragility: heuristics for open tasks, exact commands for fragile or ordered operations.                                                                                                                                                                                                                                                                                                                          |
 | B3  | Agent-agnostic: no `hooks` or other frontmatter outside the specification's fields and ignorable invocation metadata (`argument-hint`, `effort`, `disable-model-invocation`, `user-invocable`); no files beyond `SKILL.md`, `agents/openai.yaml`, `references/`, `scripts/`, and `shared/`; and no `$ARGUMENTS`, `$N`, `${CLAUDE_*}`, or `` !`command` `` in `SKILL.md`. Say what an argument stands for in plain words. **lint** |
 | B4  | Keep verbatim any exact format, value, or edge case the user cares about. A model drops a loose summary of one: in [#81](https://github.com/bostonaholic/skills/pull/81), three such cuts each failed their eval until restored.                                                                                                                                                                                                  |
+| B5  | A skill reaches another skill only with "call the Skill tool with `<name>`" and a stated fallback for when it is missing. A skill that calls one links `shared/skill-calls.md`, which lets a harness with no Skill tool read the called skill's `SKILL.md` instead. **lint**                                                                                                                                                      |
 
 ## C. Structure and progressive disclosure
 
-| ID  | Rule                                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | The SKILL.md body is at most 100 lines. Move detail into references before reaching it. **lint**                                            |
-| C2  | SKILL.md is an overview that routes to references, each with a clause saying when to read it.                                               |
-| C3  | Every file in the skill's `references/` and `shared/` is linked from SKILL.md as a markdown link, so no file sits two levels deep. **lint** |
-| C4  | A file over 100 lines opens with a `## Contents` section listing its sections. **lint**                                                     |
-| C5  | File names describe their content; directories group by domain; paths use forward slashes. **lint** (slashes)                               |
-| C6  | SKILL.md is checklist-shaped: steps and rules are list items, and no prose paragraph runs over 50 words. **lint**                           |
+| ID  | Rule                                                                                                                                                                                                                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | The SKILL.md body is at most 100 lines. Move detail into references before reaching it. **lint**                                                                                                                                                                                         |
+| C2  | SKILL.md is an overview that routes to references, each with a clause saying when to read it.                                                                                                                                                                                            |
+| C3  | Every file in the skill's `references/` and `shared/` is linked from SKILL.md as a markdown link, so no file sits two levels deep. **lint**                                                                                                                                              |
+| C4  | A file over 100 lines opens with a `## Contents` section listing its sections. **lint**                                                                                                                                                                                                  |
+| C5  | File names describe their content; directories group by domain; paths use forward slashes. **lint** (slashes)                                                                                                                                                                            |
+| C6  | SKILL.md is checklist-shaped: steps and rules are list items, and no prose paragraph runs over 50 words. **lint**                                                                                                                                                                        |
+| C7  | Every link, code-span path, and script path resolves inside the skill directory, from one base per file: a file in a skill's `shared/` links its siblings; every other file links from the skill directory (`shared/X.md`, `references/X.md`). **lint** (links and `<skill-dir>/` paths) |
+| C8  | `<skill-dir>`, or `<x-skill-dir>` where `x` is the skill's own name, names the skill's own directory; a placeholder for any other location must not end in `-dir` or `-root` (for example `<out>`). **lint** (Markdown)                                                                  |
 
 ## D. Workflows and feedback loops
 
@@ -111,25 +117,25 @@ only what a frontier model would otherwise get wrong.
 
 ## F. Scripts and tools
 
-| ID  | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1  | Scripts handle error conditions and report them by name instead of leaving them to the agent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| F2  | No unexplained constants: every limit, timeout, and count says why it has that value.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| F3  | Deterministic operations live in scripts with documented usage, output, and exit codes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| F4  | Instructions say whether to run a script ("Run `scripts/x.mjs`") or read it ("See `scripts/x.mjs`").                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| F5  | Required tools and packages are listed with a check command. Never assume one is installed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| F6  | MCP tools are named in full as `ServerName:tool_name`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| F7  | Inputs that render as images are checked visually.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| F8  | A script's own failure ends stderr with `see <absolute path>`, naming the `SKILL.md` or `references/` file that says what to do. A failed wrapped tool's stderr reaches the script's stderr unaltered, on its own lines, before the script's line. Only presence probes, platform fallbacks, capability probes, expected-absence probes, and result exits discard it. A spawn error is the script's own failure: its line names Node's error, and nothing is forwarded. An in-process library such as Playwright has no stderr, so its error message is the failure text, and a script that shortens it also writes the full message to stderr. |
+| ID  | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | Scripts handle error conditions and report them by name instead of leaving them to the agent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| F2  | No unexplained constants: every limit, timeout, and count says why it has that value.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| F3  | Deterministic operations live in scripts with documented usage, output, and exit codes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| F4  | Instructions say whether to run a script ("Run `scripts/x.mjs`") or read it ("See `scripts/x.mjs`").                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| F5  | Required tools and packages are listed with a check command. Never assume one is installed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| F6  | MCP tools are named in full as `ServerName:tool_name`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| F7  | Inputs that render as images are checked visually.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| F8  | A script's own failure ends stderr with `see <absolute path>`, naming the `SKILL.md` or `references/` file that says what to do. A failed wrapped tool's stderr reaches the script's stderr unaltered, on its own lines, before the script's line. Only presence probes, platform fallbacks, capability probes, expected-absence probes, and result exits discard it. A spawn error is the script's own failure: its line names Node's error, and nothing is forwarded. An in-process library such as Playwright has no stderr, so its error message is the failure text, and a script that shortens it also writes the full message to stderr. **test** (`tests/script-doc-pointer.test.mjs`) |
 
 ## G. Evaluation and iteration
 
-| ID  | Rule                                                                                                                                                                                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). |
-| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                             |
-| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.         |
-| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                              |
+| ID  | Rule                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). **lint** (trigger, guard, and core cases) |
+| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                                                                       |
+| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.                                                   |
+| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                                                                        |
 
 ### Running the evals
 
@@ -145,7 +151,10 @@ difference between them.
 `npm run eval` wraps the commands on this page with their required flags.
 It runs the `readonly` and `bash` tags as separate commands, writes each
 to `evals/results/<timestamp>-<model>-<tag>/`, and runs the verdict script
-on each result. It exits 1 if any case fails or is incomplete.
+on each result. It exits 1 if any case fails or is incomplete. A live run
+or `--check` starts only through `npm run eval`. Started from
+`node scripts/eval.mjs`, `npm test`, or CI, it exits 2 before `claude`
+starts. `--dry-run` and `--help` run anywhere.
 
 ```sh
 npm run eval -- --check                   # free load check plus grader regex compile
@@ -459,7 +468,10 @@ The handoff eval tests the central claim of `making-code-agent-friendly`:
 code that its Refactor mode changes is cheaper for the next agent to change.
 `claude plugin eval` cannot start one run from another run's workspace, so
 `scripts/eval-handoff.mjs` drives `claude -p` itself. It costs money, so it
-never joins `npm test` or CI.
+never joins `npm test` or CI. A live run starts only through
+`npm run eval:handoff`. Started from `node scripts/eval-handoff.mjs`,
+`npm test`, or CI, it exits 2 before `claude` starts. `--dry-run` and
+`--help` run anywhere.
 
 ```sh
 npm run eval:handoff                                 # Sonnet, 3 runs per arm, $36 cap
@@ -682,6 +694,18 @@ A Sonnet command at `--runs 3` makes 18 claude runs, which outlasts the
 600-second foreground limit of an agent session. An agent session starts it
 as a background task and reports the two summary lines and the results path.
 
+## Subagents
+
+Subagents in `agents/` ship only with the Claude Code and Cursor plugins.
+They follow the description form rows (A3 to A6), concision (B1), and output
+templates (E3), plus the rows below.
+
+| ID  | Rule                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------- |
+| S1  | Pin `model` by tier alias (`opus`, `sonnet`, `haiku`), never a dated ID. **lint**                          |
+| S2  | A read-only subagent sets `readonly: true` beside its `tools` list, since Cursor ignores `tools`. **lint** |
+| S3  | Names are role nouns, since the gerund rule (A2) names skills. **lint** (not a gerund)                     |
+
 ## Checks
 
 ```sh
@@ -691,4 +715,4 @@ npm test
 ```
 
 `validate-skills.py` checks the Agent Skills specification. `lint:skills`
-checks the rules marked **lint** above.
+checks skills and subagents against the rules marked **lint** above.

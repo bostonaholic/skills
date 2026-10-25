@@ -1,6 +1,6 @@
 # Red flags
 
-Each flag names a code shape that breaks when many agents change one codebase in parallel. Detect it with the signal, confirm it is not a false positive, then cite the fix principle. Contention signals come from `scripts/contention.mjs`; the rest come from search and reading. Examples of each fix live in [principles.md](principles.md); a flag shows its own only when no principle does.
+Each flag names a code shape that breaks when many agents change one codebase in parallel. Detect it with the signal, confirm it is not a false positive, then cite the fix principle. Contention signals come from `scripts/contention.mjs`; the rest come from search and reading. Examples of each fix live in [principles.md](references/principles.md); a flag shows its own only when no principle does.
 
 ## Contents
 
@@ -21,7 +21,7 @@ Each flag names a code shape that breaks when many agents change one codebase in
 
 **Fix:** P1. A new feature is a new file that names itself; one loader, written once, discovers it. For a changelog, each change adds its own fragment file, assembled at release, and the version is set at release time.
 
-Example: [P1](principles.md#p1-additive-change).
+Example: [P1](references/principles.md#p1-additive-change).
 
 **Not a flag when:** the file changes a few times a year, or one writer owns it. Lockfiles and generated files also top `hotFiles`; they are not findings unless edited by hand (the file changes without its source). Exclude them with a pathspec such as `-- . ':!<lockfile>'` and rerun.
 
@@ -126,7 +126,7 @@ An invoice change and a login change now touch different files.
 
 **Fix:** P3. Give the module one public entry, import only from it, and enforce the rule with an import-boundary lint.
 
-Example: [P3](principles.md#p3-narrow-explicit-interface).
+Example: [P3](references/principles.md#p3-narrow-explicit-interface).
 
 **Not a flag when:** the import stays inside one module, or the target is a deliberately exported test helper.
 
@@ -138,7 +138,7 @@ Example: [P3](principles.md#p3-narrow-explicit-interface).
 
 **Fix:** P7. Pass the state in as a parameter; move import-time effects into an explicit start function.
 
-Example: [P7](principles.md#p7-isolated-state).
+Example: [P7](references/principles.md#p7-isolated-state).
 
 **Not a flag when:** the value is set once at startup and never written again.
 
@@ -150,7 +150,7 @@ Example: [P7](principles.md#p7-isolated-state).
 
 **Fix:** P9 (expand/contract) and P3. Add the new form beside the old, migrate callers in small separate changes, then remove the old form.
 
-Example: [P9](principles.md#p9-mergeable-change-size).
+Example: [P9](references/principles.md#p9-mergeable-change-size).
 
 **Not a flag when:** the contract has few callers, all in one module. A test file paired with its source in `coupledPairs` is expected.
 
@@ -164,7 +164,7 @@ Example: [P9](principles.md#p9-mergeable-change-size).
 
 **Fix:** P4. Type the boundary: closed unions for status, named fields instead of boolean flags, validation at the edge.
 
-Example: [P4](principles.md#p4-explicit-contracts-at-boundaries).
+Example: [P4](references/principles.md#p4-explicit-contracts-at-boundaries).
 
 **Not a flag when:** the function is private to one file and its callers sit beside it.
 
@@ -176,7 +176,7 @@ Example: [P4](principles.md#p4-explicit-contracts-at-boundaries).
 
 **Fix:** P6. Throw with the cause; let the caller decide whether a fallback is correct.
 
-Example: [P6](principles.md#p6-fail-loud-and-early).
+Example: [P6](references/principles.md#p6-fail-loud-and-early).
 
 **Not a flag when:** the fallback is a documented edge behavior (a cache miss) that is logged and tested.
 
@@ -243,7 +243,7 @@ A search for the concept now finds one definition, so agents reuse it instead of
 
 **Fix:** P2. Group by feature (vertical slice), not by layer.
 
-Example: [P2](principles.md#p2-locality).
+Example: [P2](references/principles.md#p2-locality).
 
 **Not a flag when:** the layers are genuinely shared infrastructure that features rarely change. A test file paired with its source in `coupledPairs` is expected.
 
@@ -255,7 +255,7 @@ Example: [P2](principles.md#p2-locality).
 
 **Fix:** P10. Put a short guide beside the code and keep it true in the same change that alters behavior.
 
-Example: [P10](principles.md#p10-knowledge-beside-the-code).
+Example: [P10](references/principles.md#p10-knowledge-beside-the-code).
 
 **Not a flag when:** the module is trivial and its tests state its contract.
 
@@ -300,7 +300,7 @@ Each agent verifies its own module in seconds without touching shared resources.
 
 **Fix:** P8. Inject the clock, the seed, and the state; give each test its own fixtures.
 
-Example: [P8](principles.md#p8-fast-hermetic-deterministic-checks).
+Example: [P8](references/principles.md#p8-fast-hermetic-deterministic-checks).
 
 **Not a flag when:** the test is a deliberately randomized property test with a logged, replayable seed.
 
@@ -312,7 +312,7 @@ Example: [P8](principles.md#p8-fast-hermetic-deterministic-checks).
 
 **Fix:** P11. Run the formatter, linter, and generator in one check that fails on drift; mark generated files.
 
-Example: [P11](principles.md#p11-mechanical-consistency).
+Example: [P11](references/principles.md#p11-mechanical-consistency).
 
 **Not a flag when:** the project is a single-writer prototype with no shared branches.
 

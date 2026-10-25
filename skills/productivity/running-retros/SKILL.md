@@ -49,7 +49,7 @@ disable-model-invocation: true
 
 ## Apply turn
 
-1. Apply only the approved edits: [applying edits](references/applying-edits.md).
+1. Apply only the approved edits: [applying edits](references/applying-edits.md). Its skill call obeys the [skill call rules](shared/skill-calls.md).
 2. Run the check command the repository names (`AGENTS.md`,
    `CONTRIBUTING.md`, manifest scripts, or CI); never invent one. Report the
    verdict. Do not fix a failure or revert the write; name the failing test and

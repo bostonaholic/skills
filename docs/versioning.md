@@ -34,6 +34,8 @@ choose the level.
   for the user. Split unrelated changes into separate bullets.
 - End every bullet with `[#NNN](https://github.com/bostonaholic/skills/pull/NNN)`.
   Use the actual PR number in both the label and URL, with nothing after the link.
+  `npm run lint:repo` enforces this form, so add the bullet once the PR has a
+  number.
 - Multiple changes from one PR each get their own bullet and repeat that PR link.
 - Omit implementation narratives, commit lists, and review history. The linked
   PR contains those details.

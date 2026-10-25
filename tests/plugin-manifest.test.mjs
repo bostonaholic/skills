@@ -3,6 +3,8 @@
 // repository root, or when the Cursor plugin manifest ships a different plugin than the Claude Code one. Skills are enumerated with `git ls-files`, so untracked directories never count.
 // Also fails when root package.json declares a dependency or the root tracks a lockfile, because a
 // plugin install of the repository root installs those packages for every user.
+// Also fails when a tracked skill entrypoint sits outside the layouts in AGENTS.md rules 1 and 6:
+// an unknown category, a nested SKILL.md, or an archived entrypoint not named SKILL.md.disabled.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -77,4 +79,20 @@ test("the marketplace lists the plugin by its name with source ./", () => {
 test("the Cursor plugin ships the same name, version, skills, and agents as the Claude Code plugin", () => {
   const pick = ({ name, version, skills, agents }) => ({ name, version, skills, agents });
   assert.deepEqual(pick(readJson(CURSOR_PLUGIN)), pick(readJson(PLUGIN)));
+});
+
+test("every tracked skill entrypoint sits in an active category or is an archived SKILL.md.disabled", () => {
+  const strays = execFileSync("git", ["ls-files", "-z", "--", "skills"], { encoding: "utf8" })
+    .split("\0")
+    .filter((path) => /(?:^|\/)SKILL\.md(?:\.disabled)?$/.test(path))
+    .filter(
+      (path) =>
+        !/^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path) &&
+        !/^skills\/deprecated\/[^/]+\/SKILL\.md\.disabled$/.test(path),
+    );
+  assert.deepEqual(
+    strays,
+    [],
+    `AGENTS.md rules 1 and 6: a skill entrypoint is skills/engineering/<name>/SKILL.md, skills/productivity/<name>/SKILL.md, or skills/deprecated/<name>/SKILL.md.disabled; found ${strays.join(", ")}`,
+  );
 });
