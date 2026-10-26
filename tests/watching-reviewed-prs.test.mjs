@@ -1,7 +1,8 @@
 // Fails when watching-reviewed-prs's scripts misjudge the tracked set, the gate, a re-review
 // trigger, the third-party check, approval readiness, or a merge-safety check; let another
 // author's body or any thread body reach the arm output; read a body during a poll; render an
-// approval body that breaks a rendering rule; or report an approval that is not at the head.
+// approval body that breaks a rendering rule; or report an approval its read cannot confirm at
+// the head.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -512,18 +513,25 @@ test("renderApproval refuses a poll that is not approval-ready or is malformed",
 // ---------- CLIs with a fake gh ----------
 
 const FAKE_GH_SOURCE = `
-const { appendFileSync, readFileSync } = require("node:fs");
+const { appendFileSync, existsSync, readFileSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 const dir = process.env.FAKE_GH_STATE;
 const args = process.argv.slice(2);
 appendFileSync(join(dir, "calls.jsonl"), JSON.stringify(args) + "\\n");
 const responses = JSON.parse(readFileSync(join(dir, "responses.json"), "utf8"));
 let kind;
-if (args[0] === "pr" && args.includes("latestReviews")) kind = "latestReviews";
-else if (args[0] === "pr") kind = "prView";
+if (args[0] === "pr") kind = "prView";
 else if (args.includes("graphql")) kind = "graphql";
 else kind = "commit";
-const response = responses[kind];
+let response = responses[kind];
+// An array answers its kind's calls in order, so an extra page read fails loudly.
+if (Array.isArray(response)) {
+  const counterPath = join(dir, "count-" + kind);
+  const index = existsSync(counterPath) ? Number(readFileSync(counterPath, "utf8")) : 0;
+  writeFileSync(counterPath, String(index + 1));
+  response = response[index];
+  if (response === undefined) { process.stderr.write("unexpected gh call " + kind + " #" + (index + 1) + "\\n"); process.exit(99); }
+}
 if (response === undefined) { process.stderr.write("unexpected gh call " + kind + "\\n"); process.exit(99); }
 process.stdout.write(response.stdout ?? "");
 process.stderr.write(response.stderr ?? "");
@@ -566,6 +574,28 @@ function cli(t, script, args, responses = {}, files = {}) {
 }
 
 const emptyPage = (nodes = []) => ({ pageInfo: { hasNextPage: false, endCursor: null }, nodes });
+
+// ---------- review builders (the GraphQL envelope verify-approval.mjs reads) ----------
+
+const SUBMITTED_EARLIER = "2026-01-01T00:01:00Z";
+const SUBMITTED_LATER = "2026-01-01T00:02:00Z";
+
+const reviewNode = (login, reviewState, oid, submittedAt, reviewNumber) => ({
+  author: { login },
+  state: reviewState,
+  url: `${PR_URL}#pullrequestreview-${reviewNumber}`,
+  submittedAt,
+  commit: { oid },
+});
+
+const reviewsEnvelope = (reviews) => ({
+  stdout: JSON.stringify({ data: { repository: { pullRequest: { reviews } } } }),
+});
+
+const reviewsPage = (nodes, endCursor = null) =>
+  reviewsEnvelope({ pageInfo: { hasNextPage: endCursor !== null, endCursor }, nodes });
+
+const queryArg = (call) => call.find((arg) => arg.startsWith("query="));
 
 function graphqlResponse({
   threads = [],
@@ -761,48 +791,92 @@ test("render-approval.mjs prints the body, and exits 2 on a poll not ready", asy
   });
 });
 
-test("verify-approval.mjs exits 0 only for the viewer's APPROVED review at the head", async (t) => {
-  const reviews = (nodes) => ({ latestReviews: { stdout: JSON.stringify(nodes) } });
-  const review = (login, reviewState, oid) => ({
-    author: { login },
-    state: reviewState,
-    url: `${PR_URL}#r`,
-    commit: { oid },
-  });
-  const cases = [
+test("verify-approval.mjs exits 0 only for the viewer's latest submitted APPROVED review at the head", async (t) => {
+  const approvedCases = [
     [
       "approved at the head",
-      [review("lee", "COMMENTED", ARM_HEAD), review("me", "APPROVED", ARM_HEAD)],
-      0,
+      [
+        reviewNode("lee", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, 1),
+        reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 2),
+      ],
+      `${PR_URL}#pullrequestreview-2`,
     ],
-    ["approved at another head", [review("me", "APPROVED", NEW_HEAD)], 3],
-    ["commented at the head", [review("me", "COMMENTED", ARM_HEAD)], 3],
-    ["no viewer review", [review("lee", "APPROVED", ARM_HEAD)], 3],
+    [
+      "a later-submitted approval that comes earlier in list order",
+      [
+        reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 1),
+        reviewNode("me", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, 2),
+      ],
+      `${PR_URL}#pullrequestreview-1`,
+    ],
+    [
+      "a PENDING viewer draft after the approval",
+      [
+        reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_EARLIER, 1),
+        reviewNode("me", "PENDING", ARM_HEAD, null, 2),
+      ],
+      `${PR_URL}#pullrequestreview-1`,
+    ],
   ];
-  for (const [name, nodes, status] of cases) {
+  for (const [name, nodes, url] of approvedCases) {
     await t.test(name, (st) => {
-      const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], reviews(nodes));
-      assert.equal(result.status, status, result.stderr);
-      assert.deepEqual(result.calls[0].slice(0, 5), [
-        "pr",
-        "view",
-        PR_URL,
-        "--json",
-        "latestReviews",
-      ]);
-      const out = JSON.parse(result.stdout);
-      assert.equal(out.state, name === "no viewer review" ? null : nodes.at(-1).state);
-      const notApproved = `verify-approval.mjs: not approved at ${ARM_HEAD}\nsee ${resolve(SCRIPTS, "../references/approve.md")}\n`;
-      assert.equal(result.stderr, status === 0 ? "" : notApproved);
+      const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], {
+        graphql: reviewsPage(nodes),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(JSON.parse(result.stdout), { state: "APPROVED", url, commit: ARM_HEAD });
+      assert.equal(result.stderr, "");
     });
   }
-  await t.test("a failed read exits 1", (st) => {
-    const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], {
-      latestReviews: { stderr: "HTTP 502\n", exitCode: 1 },
+  const notApproved = `verify-approval.mjs: not approved at ${ARM_HEAD}\nsee ${resolve(SCRIPTS, "../references/approve.md")}\n`;
+  const notApprovedCases = [
+    [
+      "approved at another commit",
+      [reviewNode("me", "APPROVED", NEW_HEAD, SUBMITTED_EARLIER, 1)],
+      { state: "APPROVED", url: `${PR_URL}#pullrequestreview-1`, commit: NEW_HEAD },
+    ],
+    [
+      "a later COMMENTED review",
+      [
+        reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_EARLIER, 1),
+        reviewNode("me", "COMMENTED", ARM_HEAD, SUBMITTED_LATER, 2),
+      ],
+      { state: "COMMENTED", url: `${PR_URL}#pullrequestreview-2`, commit: ARM_HEAD },
+    ],
+    [
+      "a DISMISSED latest review",
+      [
+        reviewNode("lee", "APPROVED", ARM_HEAD, SUBMITTED_EARLIER, 1),
+        reviewNode("me", "DISMISSED", ARM_HEAD, SUBMITTED_LATER, 2),
+      ],
+      { state: "DISMISSED", url: `${PR_URL}#pullrequestreview-2`, commit: ARM_HEAD },
+    ],
+    ["zero reviews", [], { state: null, url: null, commit: null }],
+    [
+      "no viewer review beside an author: null node",
+      [
+        {
+          author: null,
+          state: "APPROVED",
+          url: `${PR_URL}#pullrequestreview-1`,
+          submittedAt: SUBMITTED_EARLIER,
+          commit: { oid: ARM_HEAD },
+        },
+        reviewNode("lee", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 2),
+      ],
+      { state: null, url: null, commit: null },
+    ],
+  ];
+  for (const [name, nodes, found] of notApprovedCases) {
+    await t.test(name, (st) => {
+      const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], {
+        graphql: reviewsPage(nodes),
+      });
+      assert.equal(result.status, 3, result.stderr);
+      assert.deepEqual(JSON.parse(result.stdout), found);
+      assert.equal(result.stderr, notApproved);
     });
-    assert.equal(result.status, 1);
-    assert.equal(result.stdout, "");
-  });
+  }
   await t.test("bad arguments exit 2 before any gh call", (st) => {
     for (const args of [
       [PR_URL, "me"],
@@ -815,6 +889,252 @@ test("verify-approval.mjs exits 0 only for the viewer's APPROVED review at the h
       assert.deepEqual(result.calls, []);
     }
   });
+});
+
+test("verify-approval.mjs exits 1 with empty stdout when a field is missing or the read is incomplete", async (t) => {
+  const docLine = `see ${resolve(SCRIPTS, "../references/approve.md")}\n`;
+  const earlierApproval = reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_EARLIER, 1);
+  const cases = [
+    [
+      "APPROVED without url",
+      {
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              pullRequest: {
+                reviews: {
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                  nodes: [
+                    {
+                      author: { login: "me" },
+                      state: "APPROVED",
+                      submittedAt: SUBMITTED_EARLIER,
+                      commit: { oid: ARM_HEAD },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        }),
+      },
+      1,
+    ],
+    [
+      "APPROVED with commit: null",
+      reviewsPage([
+        { ...reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_EARLIER, 1), commit: null },
+      ]),
+      1,
+    ],
+    [
+      'APPROVED with commit.oid: "" as gh pr view prints it',
+      reviewsPage([reviewNode("me", "APPROVED", "", SUBMITTED_EARLIER, 1)]),
+      1,
+    ],
+    [
+      "a viewer node whose state is not a string",
+      reviewsPage([
+        earlierApproval,
+        { ...reviewNode("me", "COMMENTED", ARM_HEAD, SUBMITTED_LATER, 2), state: null },
+      ]),
+      1,
+    ],
+    [
+      "a viewer node without submittedAt",
+      reviewsPage([
+        {
+          author: { login: "me" },
+          state: "APPROVED",
+          url: `${PR_URL}#pullrequestreview-1`,
+          commit: { oid: ARM_HEAD },
+        },
+      ]),
+      1,
+    ],
+    ["no reviews", { stdout: JSON.stringify({ data: { repository: { pullRequest: {} } } }) }, 1],
+    [
+      "pullRequest: null",
+      { stdout: JSON.stringify({ data: { repository: { pullRequest: null } } }) },
+      1,
+    ],
+    [
+      "an errors key beside an approval at the head",
+      {
+        stdout: JSON.stringify({
+          errors: [{ message: "Field 'commit' doesn't exist on type 'PullRequestReview'" }],
+          data: {
+            repository: {
+              pullRequest: {
+                reviews: {
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                  nodes: [earlierApproval],
+                },
+              },
+            },
+          },
+        }),
+      },
+      1,
+    ],
+    ["non-JSON output", { stdout: "not json\n" }, 1],
+    [
+      "a page without a nodes array",
+      reviewsEnvelope({ pageInfo: { hasNextPage: false, endCursor: null } }),
+      1,
+    ],
+    [
+      "a page without a boolean hasNextPage",
+      reviewsEnvelope({
+        pageInfo: { hasNextPage: null, endCursor: null },
+        nodes: [earlierApproval],
+      }),
+      1,
+    ],
+    ["a non-object node", reviewsPage([earlierApproval, null]), 1],
+    [
+      "a node with no author key after a viewer approval at the head",
+      reviewsPage([
+        earlierApproval,
+        {
+          state: "COMMENTED",
+          url: `${PR_URL}#pullrequestreview-2`,
+          submittedAt: SUBMITTED_LATER,
+          commit: { oid: ARM_HEAD },
+        },
+      ]),
+      1,
+    ],
+    [
+      'a node with author: "me" after a viewer approval at the head',
+      reviewsPage([
+        earlierApproval,
+        { ...reviewNode("me", "COMMENTED", ARM_HEAD, SUBMITTED_LATER, 2), author: "me" },
+      ]),
+      1,
+    ],
+    [
+      "a node with author: { login: null } after a viewer approval at the head",
+      reviewsPage([
+        earlierApproval,
+        { ...reviewNode("me", "COMMENTED", ARM_HEAD, SUBMITTED_LATER, 2), author: { login: null } },
+      ]),
+      1,
+    ],
+    [
+      "a failed page 2 after a viewer approval at the head",
+      [reviewsPage([earlierApproval], "c1"), { stderr: "HTTP 502\n", exitCode: 1 }],
+      2,
+    ],
+    [
+      "hasNextPage: true without an endCursor",
+      [
+        reviewsEnvelope({
+          pageInfo: { hasNextPage: true, endCursor: null },
+          nodes: [reviewNode("lee", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, 1)],
+        }),
+        reviewsPage([reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 2)]),
+      ],
+      1,
+    ],
+  ];
+  for (const [name, graphql, callCount] of cases) {
+    await t.test(name, (st) => {
+      const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], { graphql });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, "");
+      assert.ok(result.stderr.endsWith(docLine), result.stderr);
+      assert.equal(result.calls.length, callCount, result.stderr);
+      assert.deepEqual(result.calls.at(-1).slice(0, 2), ["api", "graphql"]);
+    });
+  }
+  await t.test("a gh failure forwards gh's stderr first and the doc pointer last", (st) => {
+    const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], {
+      graphql: { stderr: "HTTP 502\n", exitCode: 1 },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(result.stdout, "");
+    assert.ok(result.stderr.startsWith("HTTP 502\n"), result.stderr);
+    assert.ok(result.stderr.endsWith(docLine), result.stderr);
+  });
+});
+
+const HUNDRED_NODES_ONE_PAGE = [
+  ...Array.from({ length: 99 }, (_, index) =>
+    reviewNode("lee", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, index + 1),
+  ),
+  reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 100),
+];
+const TEN_PAGES_ENDING = [
+  ...Array.from({ length: 9 }, (_, index) =>
+    reviewsPage(
+      [reviewNode("lee", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, index + 1)],
+      `c${index + 1}`,
+    ),
+  ),
+  reviewsPage([reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 10)]),
+];
+const TEN_PAGES_CONTINUING = [
+  reviewsPage([reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 1)], "c1"),
+  ...Array.from({ length: 9 }, (_, index) =>
+    reviewsPage(
+      [reviewNode("lee", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, index + 2)],
+      `c${index + 2}`,
+    ),
+  ),
+];
+
+test("verify-approval.mjs reads every reviews page through gh api graphql --hostname with a body-free selection", async (t) => {
+  await t.test("an approval on page 2 is read with the page-1 cursor", (st) => {
+    const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], {
+      graphql: [
+        reviewsPage([reviewNode("lee", "COMMENTED", ARM_HEAD, SUBMITTED_EARLIER, 1)], "c1"),
+        reviewsPage([reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_LATER, 2)]),
+      ],
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.calls.length, 2);
+    // cli() sets GH_HOST to another host, so only --hostname can reach HOST.
+    assert.deepEqual(result.calls[0].slice(0, 4), ["api", "graphql", "--hostname", HOST]);
+    assert.deepEqual(result.calls[1].slice(0, 4), ["api", "graphql", "--hostname", HOST]);
+    assert.ok(result.calls[0].includes("owner=o"), result.calls[0].join(" "));
+    assert.ok(result.calls[0].includes("repo=r"), result.calls[0].join(" "));
+    assert.equal(result.calls[0][result.calls[0].indexOf("number=7") - 1], "-F");
+    assert.equal(result.calls[0].filter((arg) => arg.startsWith("after=")).length, 0);
+    assert.ok(result.calls[1].includes("after=c1"), result.calls[1].join(" "));
+    assert.equal(queryArg(result.calls[1]), queryArg(result.calls[0]));
+    const query = queryArg(result.calls[0]);
+    assert.doesNotMatch(query, /\bbody\b/);
+    assert.doesNotMatch(query, /\bmutation\b/);
+    assert.match(query, /author\s*\{\s*login\s*\}/);
+    assert.match(query, /\bstate\b/);
+    assert.match(query, /\burl\b/);
+    assert.match(query, /\bsubmittedAt\b/);
+    assert.match(query, /commit\s*\{\s*oid\s*\}/);
+    assert.match(query, /pageInfo\s*\{[^}]*\bhasNextPage\b/);
+    assert.match(query, /pageInfo\s*\{[^}]*\bendCursor\b/);
+  });
+  const cases = [
+    ["one page of exactly 100 nodes reads once", [reviewsPage(HUNDRED_NODES_ONE_PAGE)], 0, 1],
+    [
+      "a later non-approval on page 2",
+      [
+        reviewsPage([reviewNode("me", "APPROVED", ARM_HEAD, SUBMITTED_EARLIER, 1)], "c1"),
+        reviewsPage([reviewNode("me", "COMMENTED", ARM_HEAD, SUBMITTED_LATER, 2)]),
+      ],
+      3,
+      2,
+    ],
+    ["ten pages that end on the tenth", TEN_PAGES_ENDING, 0, 10],
+    ["ten pages still continuing fail closed after ten calls", TEN_PAGES_CONTINUING, 1, 10],
+  ];
+  for (const [name, graphql, status, callCount] of cases) {
+    await t.test(name, (st) => {
+      const result = cli(st, "verify-approval.mjs", [PR_URL, "me", ARM_HEAD], { graphql });
+      assert.equal(result.status, status, result.stderr);
+      assert.equal(result.calls.length, callCount, result.stderr);
+    });
+  }
 });
 
 test("every CLI exits 127 when gh is not on PATH", async (t) => {
