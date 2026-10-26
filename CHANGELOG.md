@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-10-26
+
 ### Fixed
 
 - `watching-reviewed-prs` verifies a cast approval through the GitHub GraphQL reviews list, so a real approval at the expected commit now reports success, and a missing field or incomplete read never does. [#153](https://github.com/bostonaholic/skills/pull/153)
@@ -880,5 +882,7 @@
 
 [0.65.0]: https://github.com/bostonaholic/skills/compare/v0.64.0...v0.65.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.65.1...HEAD
 [0.65.1]: https://github.com/bostonaholic/skills/compare/v0.65.0...v0.65.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.66.0...HEAD
+[0.66.0]: https://github.com/bostonaholic/skills/compare/v0.65.1...v0.66.0
