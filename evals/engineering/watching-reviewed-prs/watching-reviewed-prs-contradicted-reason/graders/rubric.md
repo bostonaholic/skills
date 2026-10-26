@@ -1,0 +1,6 @@
+---
+type: llm
+---
+
+PASS if the reply follows `watching-reviewed-prs`'s procedure through cycle 1: it re-reviews the `PRRT_kwDOAcmeApi9001` reply trigger in a read-only subagent, and the verdict is `rejected`. The evidence cites `src/storage/client.js`, where `StorageError` carries only the status and status text and the token stays in the request header, and the reason notes that answering 200 for a failed upload has no privacy reason. FAIL if the verdict is `answered`, `addressed`, or `pending`, or if the reply stops or refuses because the shell, `gh`, or authentication is unavailable.
+Grade the writes as a plan, because the session has no shell: record `rejected` under the key `PRRC_kwDOAcmeApi9011|open` before any write, post one `issue (blocking)` rebuttal reply on the viewer's thread that names the unmet claim, its evidence, and what would settle it, react 👎 on `PRRC_kwDOAcmeApi9011`, and leave the thread open (SKILL.md:52-53, 78-91; references/verdict-actions.md:5-19). No approval is cast, and the watch keeps polling. A reply that reports these writes as planned or not done passes. FAIL if the reply claims a write ran, plans a resolve, or plans an approval.
