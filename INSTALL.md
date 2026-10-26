@@ -6,6 +6,14 @@ To update every install on a machine at once, run the `updating-bostonaholic-ski
 
 ## Claude Code
 
+In a Claude Code 2.1.275 or later session, install in one step:
+
+```text
+/plugin install bostonaholic --marketplace bostonaholic/skills
+```
+
+From a terminal, or in an older Claude Code, add the marketplace, then install the plugin:
+
 ```sh
 claude plugin marketplace add bostonaholic/skills
 claude plugin install bostonaholic@skills
@@ -86,7 +94,7 @@ A skill that calls another skill names it, and stops or falls back when that ski
 
 An agent installing on a user's behalf:
 
-1. In Claude Code, run the Claude Code install commands above. In Cursor, run the Cursor clone command above. In Grok Bot, run the Grok Bot install commands above on the bot's computer, adding `--set strategy` when the bot does not write code; add the plugin instead only when the account's team marketplace offers it.
+1. In Claude Code, run the `claude plugin` install commands in the `sh` block above. In Cursor, run the Cursor clone command above. In Grok Bot, run the Grok Bot install commands above on the bot's computer, adding `--set strategy` when the bot does not write code; add the plugin instead only when the account's team marketplace offers it.
 2. Elsewhere, install without prompts: `npx skills@latest add bostonaholic/skills --skill '*' --agent <agent> --yes`. Pass `--agent '*'` to install on every agent. Add `--global` for a user-level install; ask the user which scope they want if they did not say.
 3. Install one way per agent, never two. The subagents in `agents/` come only with the Claude Code or Cursor plugin.
 4. Confirm the install: `claude plugin list` shows `bostonaholic@skills`, `~/.cursor/plugins/local/bostonaholic/.cursor-plugin/plugin.json` exists, `ls ~/agent-data/workflows` lists the skills on a Grok Bot computer, or `npx skills@latest list` shows the skills.

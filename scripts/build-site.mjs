@@ -17,6 +17,8 @@ import {
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+  CLAUDE_CODE_INSTALL_COMMAND,
+  CLAUDE_CODE_INSTALL_LABEL,
   CatalogError,
   INSTALL_DOC,
   INSTALL_PROMPT,
@@ -61,6 +63,8 @@ function page(title, stylesheet, body) {
 function installHtml() {
   return [
     '<h2 id="install">Install</h2>',
+    `<p>${escapeHtml(CLAUDE_CODE_INSTALL_LABEL)}</p>`,
+    `<pre><code>${escapeHtml(CLAUDE_CODE_INSTALL_COMMAND)}</code></pre>`,
     `<p>${escapeHtml(INSTALL_PROMPT_LABEL)}</p>`,
     `<pre><code>${escapeHtml(INSTALL_PROMPT)}</code></pre>`,
     `<p>Or follow the <a href="${REPO_URL}/blob/main/${INSTALL_DOC}">installation instructions</a>.</p>`,

@@ -6,6 +6,12 @@ The skills I use to build software with coding agents.
 
 ## Install
 
+In Claude Code 2.1.275 or later, run:
+
+```text
+/plugin install bostonaholic --marketplace bostonaholic/skills
+```
+
 Copy/paste into your CLI prompt:
 
 ```text
