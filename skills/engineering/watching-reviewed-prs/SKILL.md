@@ -13,8 +13,9 @@ disable-model-invocation: true
 - A **PR-level** item is a review summary or conversation comment, with no
   resolved bit.
 - Read [arm](references/arm.md) to arm, [re-review](references/re-review.md) for
-  how each settlement is judged, and [approve](references/approve.md) when the
-  approval condition holds.
+  how each settlement is judged and each result is checked before its verdict
+  is recorded, and [approve](references/approve.md) when the approval condition
+  holds.
 - The [watch loop](shared/watch-loop.md) owns pacing, the 3-cycle soft cap, and
   its own stops; bind its poll command to the poll below, its cycle-0 subject to
   the immediate path in arm, and its handoff state to the poll's `snapshot` and

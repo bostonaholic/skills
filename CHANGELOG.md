@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-10-26
+
+### Fixed
+
+- `watching-reviewed-prs` verifies a cast approval through the GitHub GraphQL reviews list, so a real approval at the expected commit now reports success, and a missing field or incomplete read never does. [#153](https://github.com/bostonaholic/skills/pull/153)
+- `watching-reviewed-prs` can settle a reply that declines a suggestion with a reason the code supports as `answered`, while an unsupported deferral stays `pending`. [#153](https://github.com/bostonaholic/skills/pull/153)
+
+### Changed
+
+- `watching-reviewed-prs` re-reviews return the original ask, the author's argument, the code evidence, and the reason for the verdict, and the watch checks for a weighed argument before it accepts the result. [#153](https://github.com/bostonaholic/skills/pull/153)
+
 ## [0.65.1] - 2026-10-25
 
 ### Fixed
@@ -871,5 +882,7 @@
 
 [0.65.0]: https://github.com/bostonaholic/skills/compare/v0.64.0...v0.65.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.65.1...HEAD
 [0.65.1]: https://github.com/bostonaholic/skills/compare/v0.65.0...v0.65.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.66.0...HEAD
+[0.66.0]: https://github.com/bostonaholic/skills/compare/v0.65.1...v0.66.0

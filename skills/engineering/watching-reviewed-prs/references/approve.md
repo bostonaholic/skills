@@ -54,5 +54,8 @@ pending review, then re-arm; report anything else verbatim.
 An exit code proves only that the call was accepted. Run
 `node <skill-dir>/scripts/verify-approval.mjs "$PR_URL" <viewer> <pr.head>`
 with the final poll's values. Exit 0 reports `Approval cast` with the
-printed `url`. Any other exit stops as `Approval failed` with what the
-script printed.
+printed `url`. Exit 3 means the viewer's latest submitted review is not an
+approval at that head; exit 1 means the read could not tell. Either, or any
+other exit, stops as `Approval failed` with what the script printed. Never
+cast again after a nonzero exit: the approval may have landed, so tell the
+user to check the PR's reviews.
