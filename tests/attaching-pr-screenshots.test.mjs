@@ -768,40 +768,43 @@ test("upload.sh passes jq's and file's own error text through", async (t) => {
     assert.equal(ghCalls, "");
   });
 
-  await t.test("a failed file call shows file's text and still records not an image", (st) => {
-    const dir = scratch(st);
-    const runDir = join(dir, "run");
-    const root = join(dir, "shots");
-    mkdirSync(runDir);
-    mkdirSync(root);
-    writeFileSync(join(root, "a.png"), "not really a png\n");
-    const entriesFile = join(dir, "entries.json");
-    writeFileSync(
-      entriesFile,
-      JSON.stringify({ root, entries: [{ path: join(root, "a.png"), caption: "a" }] }),
-    );
-    writeFileSync(join(runDir, "pr-host"), "github.com\n");
-    writeFileSync(join(runDir, "number"), "7\n");
-    writeFileSync(join(runDir, "repo-spec"), "github.com/o/r\n");
-    writeFileSync(join(runDir, "entries-file"), `${entriesFile}\n`);
-    writeFileSync(join(runDir, "pre-image.md"), "Body.\n");
-    const { bin } = fakeBin(dir, {
-      tools: UPLOAD_TOOLS,
-      cases: `  "pr edit --help") echo "  --attach file" ;;`,
-    });
-    writeFileSync(
-      join(bin, "file"),
-      `#!${BASH}\necho "file-sentinel: could not find any valid magic files" >&2\nexit 1\n`,
-    );
-    chmodSync(join(bin, "file"), 0o755);
+  await t.test(
+    "a failed file call shows file's text and still records not an image or a supported video",
+    (st) => {
+      const dir = scratch(st);
+      const runDir = join(dir, "run");
+      const root = join(dir, "shots");
+      mkdirSync(runDir);
+      mkdirSync(root);
+      writeFileSync(join(root, "a.png"), "not really a png\n");
+      const entriesFile = join(dir, "entries.json");
+      writeFileSync(
+        entriesFile,
+        JSON.stringify({ root, entries: [{ path: join(root, "a.png"), caption: "a" }] }),
+      );
+      writeFileSync(join(runDir, "pr-host"), "github.com\n");
+      writeFileSync(join(runDir, "number"), "7\n");
+      writeFileSync(join(runDir, "repo-spec"), "github.com/o/r\n");
+      writeFileSync(join(runDir, "entries-file"), `${entriesFile}\n`);
+      writeFileSync(join(runDir, "pre-image.md"), "Body.\n");
+      const { bin } = fakeBin(dir, {
+        tools: UPLOAD_TOOLS,
+        cases: `  "pr edit --help") echo "  --attach file" ;;`,
+      });
+      writeFileSync(
+        join(bin, "file"),
+        `#!${BASH}\necho "file-sentinel: could not find any valid magic files" >&2\nexit 1\n`,
+      );
+      chmodSync(join(bin, "file"), 0o755);
 
-    const result = run("upload.sh", [runDir], bin);
+      const result = run("upload.sh", [runDir], bin);
 
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stderr, /^file-sentinel: could not find any valid magic files$/m);
-    assert.equal(
-      readFileSync(join(runDir, "failures.tsv"), "utf8"),
-      `not an image\t${join(root, "a.png")}\n`,
-    );
-  });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stderr, /^file-sentinel: could not find any valid magic files$/m);
+      assert.equal(
+        readFileSync(join(runDir, "failures.tsv"), "utf8"),
+        `not an image or a supported video\t${join(root, "a.png")}\n`,
+      );
+    },
+  );
 });

@@ -116,14 +116,43 @@ export function verifySection(html, paired, prHost, extraHost) {
   const section = screenshotsSection(html);
   if (section === null) return "the rendered body has no Screenshots heading";
   const images = [...section.matchAll(/<img\b[^>]*>/gi)].map((match) => attributes(match[0]));
-  const landed = paired.filter((item) => item.status === "landed").length;
-  for (let index = 1; index <= landed; index++) {
+  const videos = [...section.matchAll(/<video\b[^>]*>/gi)].map((match) => attributes(match[0]));
+  const landedItems = paired.filter((item) => item.status === "landed");
+  const landed = landedItems.length;
+  const imageCount = landedItems.filter((item) => item.kind !== "video").length;
+  for (let index = 1; index <= imageCount; index++) {
     const alt = `screenshot-${String(index).padStart(2, "0")}`;
     if (!images.some((image) => image.alt === alt)) return `${alt} has no rendered image`;
+  }
+  // A video has no alt, so each one is matched by its asset URL: the host
+  // renders `src` as the asset URL (public) or a signed proxy URL that keeps
+  // the asset URL in `data-canonical-src`. Positional fallback, never a
+  // guess past the count: with no URL match, the Nth video element must exist.
+  const videoItems = landedItems.filter((item) => item.kind === "video");
+  for (const [index, item] of videoItems.entries()) {
+    // Private repos serve `src` from the proxy host as `/<user>/<n>-<asset-id>.mp4?jwt=…`,
+    // so the asset id (the URL's last segment) is matched in the proxy path too.
+    const assetId = item.url.split("/").pop();
+    const byUrl = videos.some(
+      (video) =>
+        video.src === item.url ||
+        video["data-canonical-src"] === item.url ||
+        (typeof video.src === "string" &&
+          video.src
+            .split("?")[0]
+            .endsWith(`-${assetId}.${video.src.split("?")[0].split(".").pop()}`)),
+    );
+    if (!byUrl && videos[index] === undefined)
+      return `video ${index + 1} has no rendered video element`;
   }
   const offOrigin = images.findIndex((image) => !isAttachmentUrl(image.src, prHost, extraHost));
   if (offOrigin >= 0)
     return `image ${offOrigin + 1} in the section is not on the attachment origin`;
+  const offOriginVideo = videos.findIndex(
+    (video) => !isAttachmentUrl(video.src, prHost, extraHost),
+  );
+  if (offOriginVideo >= 0)
+    return `video ${offOriginVideo + 1} in the section is not on the attachment origin`;
   if (landed === 0) {
     const text = plainText(section);
     if (!text.includes(DEGRADED_WORDING)) return "the degraded wording does not appear as text";
@@ -182,7 +211,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   if (uploadExit === "0" || uploadExit === "3" || uploadExit === "4") {
     try {
       const entriesDoc = JSON.parse(readFile(required("entries-file").trim(), "the entries file"));
-      paired = pairEntries(entriesDoc.entries, required("assets.tsv"), required("failures.tsv"));
+      paired = pairEntries(
+        entriesDoc.entries,
+        required("assets.tsv"),
+        required("failures.tsv"),
+        optional("kinds.tsv") ?? "",
+      );
     } catch (error) {
       fault(error.message);
     }
