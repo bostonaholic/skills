@@ -86,15 +86,18 @@ Author's argument: <the argument the reply makes, or none>
 Code evidence: <file:line and what the code there shows, or none>
 Reason: <why the verdict follows, weighing the argument against the code>
 Settling comment: <comment id> viewerHasReacted <true|false>, or none
-Unmet claim: <the part left unmet or unconfirmed, or none>
+Unmet claim: <the part still open, or none>
 ```
 
 - Write every field in the subagent's own words, with no quoted body or
   diff text.
 - `Settling comment` names the comment that claimed the settlement.
-- `Unmet claim` names the part of the ask that the change and the reply
-  leave unmet or unconfirmed. For rejected, it also says what would settle
-  the item.
+- `Unmet claim` names each part of the ask still open: no change you can
+  confirm meets it, and no reply argument that holds against the code
+  answers it. A part the reply declines with a reason the code bears out is
+  settled, not open. A caveat that leaves the verdict standing goes in
+  `Reason`. For rejected, `Unmet claim` also says what would settle the
+  item.
 - On a resolved thread, an accepted outcome is answered when the author's
   reply carries the argument it rests on, else addressed. Its `Reason` says
   the resolved-thread default accepted it.
@@ -122,8 +125,8 @@ Unmet claim: <the part left unmet or unconfirmed, or none>
   2. The verdict is rejected, and `Unmet claim` or `Code evidence` is
      `none`.
   3. On an unresolved thread or a PR-level item, an addressed or answered
-     result has `Code evidence: none` or an `Unmet claim` other than
-     `none`, or an answered result has `Author's argument: none` or
+     result has `Code evidence: none` or an `Unmet claim` that names a part
+     still open, or an answered result has `Author's argument: none` or
      `Settling comment: none`.
   4. The verdict is pending or rejected, `Author's argument` states an
      argument, and `Reason` never weighs that argument against the code.
