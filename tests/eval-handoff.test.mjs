@@ -1389,13 +1389,17 @@ describe("slice 4: pass a test run only when every hidden test ran, and kill hun
 
   test("runHandoff kills a test run that ignores SIGTERM", async (t) => {
     // The test runner exits on SIGTERM by default, so the agent test drops its listener first.
+    // A run that outlives its timeout writes a marker, so the check needs no wall-clock bound.
     const hang =
+      'import { writeFileSync } from "node:fs";\n' +
       'import test from "node:test";\n\n' +
       'process.removeAllListeners("SIGTERM");\n' +
       'process.on("SIGTERM", () => {});\n\n' +
-      'test("waits ten seconds", () => new Promise((done) => setTimeout(done, 10_000)));\n';
-    const started = performance.now();
-    const { code, lines, claudeRuns } = await runScenario(t, {
+      'test("waits ten seconds", async () => {\n' +
+      "  await new Promise((done) => setTimeout(done, 10_000));\n" +
+      '  writeFileSync("hang-finished", "");\n' +
+      "});\n";
+    const { code, lines, results, claudeRuns } = await runScenario(t, {
       options: { model: "sonnet", runs: 1, capUsd: 12, runBudgetUsd: 2, dryRun: false },
       scenario: [
         { write: { "test/hang.test.js": hang } },
@@ -1403,11 +1407,13 @@ describe("slice 4: pass a test run only when every hidden test ran, and kill hun
       ],
       testTimeoutSeconds: 1,
     });
-    const elapsedMs = performance.now() - started;
 
+    const finished = readdirSync(results.runRoot, { recursive: true }).filter((path) =>
+      path.endsWith("hang-finished"),
+    );
+    assert.deepEqual(finished, [], "a test run outlived its timeout; SIGTERM alone cannot stop it");
     assert.match(runLines(lines)[0], /^with 1: stage1 fail /);
     assert.match(runLines(lines)[1], /^without 1: stage1 fail /);
-    assert.ok(elapsedMs < 10_000, `took ${Math.round(elapsedMs)} ms; SIGTERM alone takes 20 s`);
     assert.equal(code, 1);
     assert.equal(claudeRuns, 2);
   });
