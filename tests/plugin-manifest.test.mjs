@@ -81,18 +81,18 @@ test("the Cursor plugin ships the same name, version, skills, and agents as the 
   assert.deepEqual(pick(readJson(CURSOR_PLUGIN)), pick(readJson(PLUGIN)));
 });
 
-test("every tracked skill entrypoint sits in an active category or is an archived SKILL.md.disabled", () => {
+test("every tracked skill entrypoint sits in an active or incubating category or is an archived SKILL.md.disabled", () => {
   const strays = execFileSync("git", ["ls-files", "-z", "--", "skills"], { encoding: "utf8" })
     .split("\0")
     .filter((path) => /(?:^|\/)SKILL\.md(?:\.disabled)?$/.test(path))
     .filter(
       (path) =>
-        !/^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path) &&
+        !/^skills\/(engineering|productivity|incubating)\/[^/]+\/SKILL\.md$/.test(path) &&
         !/^skills\/deprecated\/[^/]+\/SKILL\.md\.disabled$/.test(path),
     );
   assert.deepEqual(
     strays,
     [],
-    `AGENTS.md rules 1 and 6: a skill entrypoint is skills/engineering/<name>/SKILL.md, skills/productivity/<name>/SKILL.md, or skills/deprecated/<name>/SKILL.md.disabled; found ${strays.join(", ")}`,
+    `AGENTS.md rules 1 and 6: a skill entrypoint is skills/engineering/<name>/SKILL.md, skills/productivity/<name>/SKILL.md, skills/incubating/<name>/SKILL.md, or skills/deprecated/<name>/SKILL.md.disabled; found ${strays.join(", ")}`,
   );
 });

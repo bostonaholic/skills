@@ -732,6 +732,56 @@ test("A7 accepts a matching pair and reads disable-model-invocation: false as mo
 });
 
 // ---------------------------------------------------------------------------------------------
+// Incubating skills: linted, no eval cases, explicit-only, and internal
+
+const INCUBATING = "skills/incubating/sorting-widgets";
+const INCUBATING_YAML =
+  'interface:\n  display_name: "Sorting Widgets"\n  short_description: "Sort widgets"\npolicy:\n  allow_implicit_invocation: false\n';
+
+function incubatingSkill({ name = "sorting-widgets", invocation = true, internal = true } = {}) {
+  const frontmatter = [
+    `name: ${name}`,
+    "description: Sorts widgets by size. Use when the user asks to sort widgets.",
+    invocation ? "disable-model-invocation: true" : null,
+    internal ? "metadata:\n  internal: true" : null,
+  ].filter(Boolean);
+  return {
+    [`${INCUBATING}/SKILL.md`]: `---\n${frontmatter.join("\n")}\n---\n\n# Sorting widgets\n\nSort them.\n`,
+    [`${INCUBATING}/agents/openai.yaml`]: INCUBATING_YAML,
+  };
+}
+
+test("an explicit-only, internal incubating skill passes without eval cases", (t) => {
+  const run = runLint(t, compliant(incubatingSkill()));
+  assert.deepEqual(run, { status: 0, output: "" });
+});
+
+test("incubating skills are linted like active ones", (t) => {
+  assertReports(t, compliant(incubatingSkill({ name: "widget-sorter" })), "A2", /gerund/);
+});
+
+test("A7 reports an incubating skill that is model-invoked or not internal", async (t) => {
+  await t.test("model-invoked", (t) => {
+    const files = compliant(incubatingSkill({ invocation: false }));
+    files[`${INCUBATING}/agents/openai.yaml`] =
+      'interface:\n  display_name: "Sorting Widgets"\n  short_description: "Sort widgets"\n';
+    assertReportsLine(
+      t,
+      files,
+      `${INCUBATING}/SKILL.md: A7 an incubating skill must set disable-model-invocation: true`,
+    );
+  });
+
+  await t.test("not internal", (t) => {
+    assertReportsLine(
+      t,
+      compliant(incubatingSkill({ internal: false })),
+      `${INCUBATING}/SKILL.md: A7 an incubating skill must set metadata.internal: true`,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
 // Subagents: A3 to A5 on descriptions, S1 model alias, S2 readonly beside tools, S3 role noun
 
 const AGENT_DESCRIPTION =

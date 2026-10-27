@@ -52,18 +52,19 @@ const RULE_ONE =
 const OLD_RULE =
   "<!-- Canonical file: shared/old-rule.md at the repository root. Edit it there, then run npm run sync-shared. -->\n# Old rule\n\nKeep it old.\n";
 
-test("sync writes both active categories and preserves frozen archived copies", (t) => {
+test("sync writes active and incubating skills and preserves frozen archived copies", (t) => {
   const entry = "Read [rule one](shared/rule-one.md).\n";
   const root = fixtureRepo(t, {
     "shared/rule-one.md": RULE_ONE,
     "skills/engineering/widget/SKILL.md": entry,
     "skills/productivity/gadget/SKILL.md": entry,
+    "skills/incubating/sprocket/SKILL.md": entry,
     "skills/deprecated/old/SKILL.md.disabled": entry,
     "skills/deprecated/old/shared/rule-one.md": OLD_RULE,
   });
   const run = runSync(root);
   assert.equal(run.status, 0, run.output);
-  for (const dir of ["engineering/widget", "productivity/gadget"]) {
+  for (const dir of ["engineering/widget", "productivity/gadget", "incubating/sprocket"]) {
     assert.equal(readFileSync(join(root, "skills", dir, "shared/rule-one.md"), "utf8"), RULE_ONE);
   }
   assert.equal(

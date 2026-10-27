@@ -58,15 +58,15 @@ with it.
 
 ## A. Metadata
 
-| ID  | Rule                                                                                                                                                                                       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint**                                                                       |
-| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. **lint**                                                                         |
-| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                                                                                           |
-| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**                                                                                    |
-| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                                                                                              |
-| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                                                                                                    |
-| A7  | Each skill has `agents/openai.yaml`. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`. **lint** |
+| ID  | Rule                                                                                                                                                                                                                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint**                                                                                                                                                                     |
+| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. **lint**                                                                                                                                                                       |
+| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                                                                                                                                                                                         |
+| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**                                                                                                                                                                                  |
+| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                                                                                                                                                                                            |
+| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                                                                                                                                                                                                  |
+| A7  | Each skill has `agents/openai.yaml`. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`. An incubating skill also sets `disable-model-invocation: true` and `metadata.internal: true`. **lint** |
 
 ## B. Concision and freedom
 
@@ -130,12 +130,12 @@ only what a frontier model would otherwise get wrong.
 
 ## G. Evaluation and iteration
 
-| ID  | Rule                                                                                                                                                                                                                           |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| G1  | Each skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). **lint** (trigger, guard, and core cases) |
-| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                                                                       |
-| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.                                                   |
-| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                                                                        |
+| ID  | Rule                                                                                                                                                                                                                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | Each active skill has at least three evaluations, built before large edits and scored against a run without the skill. Cases live in `evals/`. See [Running the evals](#running-the-evals). **lint** (trigger, guard, and core cases) |
+| G2  | Evaluations run on Haiku, Sonnet, and Opus. See [Running the evals](#running-the-evals).                                                                                                                                              |
+| G3  | Skills improve from observed use: watch which files the agent reads, misses, or rereads, then revise. Read kept traces as [Running the evals](#running-the-evals) describes.                                                          |
+| G4  | Team feedback, where a team uses the skill. Not applicable to this personal collection.                                                                                                                                               |
 
 ### Running the evals
 
