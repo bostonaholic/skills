@@ -17,7 +17,7 @@ rather than mechanics, call the Skill tool with
 so and answer the mechanics only. Without a Skill tool, follow the
 [skill call rules](shared/skill-calls.md).
 
-The skill is read-only: it writes no files and changes no state.
+The skill is read-only: it writes no files and changes no state. Describe what the code does, not what its docs claim, and report any disagreement per the [docs and code rules](shared/docs-vs-code.md).
 
 ## Input
 

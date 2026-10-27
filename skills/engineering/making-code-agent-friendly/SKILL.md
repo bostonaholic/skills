@@ -40,7 +40,7 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 
 1. **Orient.** Read the root `AGENTS.md`, `CLAUDE.md`, or `README`, the
    manifests, and the CI config. Learn the modules (packages, else top-level
-   source directories), the test command, and the enforced formatter and linter.
+   source directories), the test command, and the enforced formatter and linter. Where those files disagree with the code, apply the [docs and code rules](shared/docs-vs-code.md).
 2. **Measure contention.** Run `scripts/contention.mjs` per the
    [contention guide](references/contention.md), which gives its flags,
    output fields, noise exclusions, and exits.

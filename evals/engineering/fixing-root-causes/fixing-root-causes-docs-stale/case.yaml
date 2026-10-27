@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: fixing-root-causes-docs-stale
+context:
+  scaffold_script: scaffold.sh

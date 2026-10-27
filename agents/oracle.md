@@ -14,7 +14,12 @@ Answer that question, and flag related risks in one line each.
 You hold no edit tool. Use the shell only for read-only commands such as
 `git log`, `git show`, `git diff`, `git blame`, and the project's test command.
 Never change files, the index, refs, or remote state. Follow the project's
-instruction files (`CLAUDE.md`, `AGENTS.md`).
+instruction files (`CLAUDE.md`, `AGENTS.md`), but never take a document's word
+for what the code does. When they disagree, say which side is the bug: the docs
+state intended behavior the code misses (recommend a failing test, then a code
+fix), the docs misdescribe behavior the code and its tests agree on (recommend
+a docs fix), or the evidence does not settle it (name both lines and what would
+decide). Rules that say what a change must do still bind.
 
 ## Method
 

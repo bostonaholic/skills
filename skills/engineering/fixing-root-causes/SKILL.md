@@ -12,6 +12,7 @@ When debugging, do not fix symptoms. Trace every problem to its root cause and f
 **Pattern:**
 
 - Reproduce first
+- When docs and code disagree, decide which is the bug per the [docs and code rules](shared/docs-vs-code.md)
 - Ask "why" until you hit the root cause
 - Do not add guards (adding a nil check to silence a crash is a symptom fix)
 - If a workaround needs a paragraph-long comment to justify it, the code is wrong (fix the code, not the comment)
