@@ -76,14 +76,8 @@ test("the marketplace lists the plugin by its name with source ./", () => {
   assert.deepEqual(entries, [{ name: plugin.name, source: "./" }]);
 });
 
-test("the Cursor plugin ships the same name, version, skills, agents, and commands key as the Claude Code plugin", () => {
-  const pick = ({ name, version, skills, agents, commands }) => ({
-    name,
-    version,
-    skills,
-    agents,
-    commands,
-  });
+test("the Cursor plugin ships the same name, version, skills, and agents as the Claude Code plugin", () => {
+  const pick = ({ name, version, skills, agents }) => ({ name, version, skills, agents });
   assert.deepEqual(pick(readJson(CURSOR_PLUGIN)), pick(readJson(PLUGIN)));
 });
 

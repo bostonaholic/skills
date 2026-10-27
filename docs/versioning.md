@@ -8,7 +8,7 @@ separate version PRs, or npm package publications.
 
 ## What releases
 
-Changes under `skills/engineering/`, `skills/productivity/`, `agents/`, and `commands/`, plus functional
+Changes under `skills/engineering/`, `skills/productivity/`, and `agents/`, plus functional
 changes in the Claude Code and Cursor plugin manifests and the marketplace
 manifest, require a release.
 Renames and removals count. Shared source edits reach users through regenerated

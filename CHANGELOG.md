@@ -4,7 +4,7 @@
 
 ### Added
 
-- `/cr` starts a `reviewing-code` review with the same optional diff target. [#158](https://github.com/bostonaholic/skills/pull/158)
+- `cr` starts a `reviewing-code` review with the same optional diff target in every harness: `/cr` in Claude Code, Cursor, and Grok Bot, `$cr` in Codex. [#158](https://github.com/bostonaholic/skills/pull/158)
 
 ## [0.70.0] - 2026-10-28
 

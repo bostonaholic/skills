@@ -215,7 +215,6 @@ test("runtime classification excludes archives and tooling and ignores manifest 
   );
   assert.equal(runtimeChanged(["skills/productivity/widget/file"], before, after), true);
   assert.equal(runtimeChanged(["agents/widget.md"], before, after), true);
-  assert.equal(runtimeChanged(["commands/widget.md"], before, after), true);
 });
 
 test("manifest descriptions can be added, edited, or removed without a release", () => {
