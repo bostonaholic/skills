@@ -4,7 +4,7 @@
 
 ### Added
 
-- `/cr` starts a `reviewing-code` review with the same optional diff target. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- `/cr` starts a `reviewing-code` review with the same optional diff target. [#158](https://github.com/bostonaholic/skills/pull/158)
 
 ## [0.70.0] - 2026-10-28
 
