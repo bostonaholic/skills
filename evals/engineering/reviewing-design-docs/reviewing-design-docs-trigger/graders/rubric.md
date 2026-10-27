@@ -2,4 +2,4 @@
 type: llm
 ---
 
-PASS if the reply serves the request by following `reviewing-design-docs`'s procedure: it relays the review report of design.md, and that report's first line is exactly one of `**Verdict: APPROVE**`, `**Verdict: REQUEST CHANGES**`, or `**Verdict: COMMENT**`; or, when the report still fails that check after one new reviewer, it prints that report and names the failed verdict contract (SKILL.md:26-28). FAIL if it answers without that procedure, refuses, or stops because a tool is unavailable.
+PASS if the reply serves the request by following `reviewing-design-docs`'s procedure: it relays the merged report of design.md, and that report's first line is exactly one of `**Verdict: APPROVE**`, `**Verdict: REQUEST CHANGES**`, or `**Verdict: COMMENT**`; or, when a report still fails the verdict line check after one new subagent, it prints the latest attempt of each report, each labeled with its lens or as merged, names the failed check, and says no verdict was reached (SKILL.md:27-36). FAIL if it answers without that procedure, refuses, or stops because a tool is unavailable.
