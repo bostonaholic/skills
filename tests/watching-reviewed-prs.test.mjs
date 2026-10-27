@@ -513,7 +513,7 @@ test("renderApproval refuses a poll that is not approval-ready or is malformed",
 // ---------- CLIs with a fake gh ----------
 
 const FAKE_GH_SOURCE = `
-const { appendFileSync, existsSync, readFileSync, writeFileSync } = require("node:fs");
+const { appendFileSync, existsSync, readFileSync, writeFileSync, writeSync } = require("node:fs");
 const { join } = require("node:path");
 const dir = process.env.FAKE_GH_STATE;
 const args = process.argv.slice(2);
@@ -533,8 +533,10 @@ if (Array.isArray(response)) {
   if (response === undefined) { process.stderr.write("unexpected gh call " + kind + " #" + (index + 1) + "\\n"); process.exit(99); }
 }
 if (response === undefined) { process.stderr.write("unexpected gh call " + kind + "\\n"); process.exit(99); }
-process.stdout.write(response.stdout ?? "");
-process.stderr.write(response.stderr ?? "");
+// Synchronous writes: process.exit drops async pipe writes still queued, and
+// stdout pipes are async on macOS, so a large page would arrive truncated.
+writeSync(1, response.stdout ?? "");
+writeSync(2, response.stderr ?? "");
 process.exit(response.exitCode ?? 0);
 `;
 
