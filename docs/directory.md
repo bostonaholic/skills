@@ -84,9 +84,9 @@ git ls-files -z | xargs -0 file --mime-encoding | grep -c binary
 # No MCP, LSP, or hook files, and no package-manager configuration: prints nothing.
 git ls-files .mcp.json .lsp.json hooks .npmrc bunfig.toml uv.toml
 # Launchers in loaded files: prints the three pinned lines of the pinned-launcher hold.
-git grep -n -w -E 'npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run' -- skills/engineering skills/productivity agents
+git grep -n -w -E 'npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run' -- skills/engineering skills/productivity agents commands
 # No token read from the environment: prints nothing.
-rg -n 'GITHUB_TOKEN|GH_TOKEN' skills agents
+rg -n 'GITHUB_TOKEN|GH_TOKEN' skills agents commands
 # No root lockfile: prints nothing. tests/plugin-manifest.test.mjs fails if one comes back.
 git ls-files package-lock.json npm-shrinkwrap.json bun.lock bun.lockb
 # Manifests and component front matter: each prints "Validation passed".
@@ -167,11 +167,12 @@ facts becomes true:
 ## Launchers outside the loaded files
 
 The plugin loads the skill directories that `.claude-plugin/plugin.json` lists
-under `skills/engineering/` and `skills/productivity/`, and `agents/oracle.md`.
+under `skills/engineering/` and `skills/productivity/`, `agents/oracle.md`, and
+the command files in `commands/`.
 Launchers in other files stay as they are. To list them, run:
 
 ```sh
-git grep -n -w -E 'npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run' -- ':!skills/engineering/' ':!skills/productivity/' ':!agents/'
+git grep -n -w -E 'npx|bunx|uvx|pnpm dlx|yarn dlx|pipx run|uv run' -- ':!skills/engineering/' ':!skills/productivity/' ':!agents/' ':!commands/'
 ```
 
 If Validate flags a line in one of these groups, make its fallback edit with the
@@ -187,8 +188,9 @@ development-only procedure below.
 
 ## Fix a new finding
 
-A file outside `skills/engineering/`, `skills/productivity/`, and `agents/`
-that is not a manifest is development-only. For a finding in such a file:
+A file outside `skills/engineering/`, `skills/productivity/`, `agents/`, and
+`commands/` that is not a manifest is development-only. For a finding in such a
+file:
 
 1. Open one PR with the edits and no changelog bullet.
 2. At land, the version-bump skill reports `runtime: false`. No version

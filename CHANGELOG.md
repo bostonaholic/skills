@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `/cr` starts a `reviewing-code` review with the same optional diff target. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.70.0] - 2026-10-28
 
 ### Fixed

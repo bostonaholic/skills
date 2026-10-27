@@ -27,11 +27,11 @@ jobs:
           cache: npm
           cache-dependency-path: tools/package-lock.json
       - run: npm ci --prefix tools
-      - name: Check changed skill Markdown
+      - name: Check changed skill and command Markdown
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- 'skills/**/*.md' | xargs -0 -r tools/node_modules/.bin/markdownlint-cli2
+          git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- 'skills/**/*.md' 'commands/*.md' | xargs -0 -r tools/node_modules/.bin/markdownlint-cli2
       - name: Check skill authoring rules
         run: npm run lint:skills
       - name: Check repository rules
