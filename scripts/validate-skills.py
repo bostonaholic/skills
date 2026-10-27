@@ -24,10 +24,10 @@ for path in sys.argv[1:]:
     if (
         skill_file.name != "SKILL.md"
         or skill.parent.parent != skills_dir
-        or skill.parent.name not in {"engineering", "productivity"}
+        or skill.parent.name not in {"engineering", "productivity", "incubating"}
         or not skill_file.is_file()
     ):
-        sys.exit(f"invalid active skill path: {path}")
+        sys.exit(f"invalid skill path: {path}")
     for error in validator.validate(skill):
         print(f"{skill.relative_to(skills_dir.parent)}: {error}")
         failed = True
