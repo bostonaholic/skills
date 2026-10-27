@@ -101,6 +101,7 @@ CANDIDATES_FILE="$RUN_DIR/candidates.txt"
 ALLOWED_FILE="$RUN_DIR/allowed.txt"
 : >"$ASSETS_FILE"
 : >"$FAILURES_FILE"
+: >"$RUN_DIR/kinds.tsv"
 # A previous attempt's marker is this attempt's stale verdict: `pre-image.sh`
 # clears it, and `upload.sh` runs again against the same directory without it.
 rm -f "$RUN_DIR/read-failed"
@@ -327,11 +328,14 @@ while IFS= read -r ENTRY_PATH; do
   esac
   # By content type, never by extension, and no type fails: unverified is not
   # an image. That keeps a .env or an id_ed25519 off a public URL.
+  # Video is a closed list of the three containers the host embeds as a
+  # player; every other video/* (and everything else) is still refused.
   MIME="$(file -b --mime-type -- "$RESOLVED" || true)"
   case "$MIME" in
-    image/*) : ;;
+    image/*) KIND=image ;;
+    video/mp4 | video/quicktime | video/webm) KIND=video ;;
     *)
-      REASON="not an image"
+      REASON="not an image or a supported video"
       fail_entry
       continue
       ;;
@@ -389,6 +393,7 @@ while IFS= read -r ENTRY_PATH; do
   harvest "$SUFFIX"
   if [ -n "$ASSET_URL" ]; then
     printf '%s\t%s\n' "$ASSET_URL" "$ENTRY_PATH" >>"$ASSETS_FILE"
+    printf '%s\t%s\n' "$KIND" "$ENTRY_PATH" >>"$RUN_DIR/kinds.tsv"
   else
     REASON="${REASON:-no attachment URL}"
     fail_entry
@@ -436,6 +441,8 @@ if [ -z "$PRE_IMAGE" ]; then
     esac
     case "$LINE" in
       '!['*']('*')') : ;;
+      # A video attach appends its asset URL bare, on its own line.
+      'https://'*/user-attachments/assets/*) : ;;
       *)
         FOREIGN="$LINE"
         break

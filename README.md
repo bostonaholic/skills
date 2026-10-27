@@ -23,7 +23,7 @@ Or follow the [installation instructions](INSTALL.md).
 ### Engineering
 
 - **[addressing-pr-comments](./skills/engineering/addressing-pr-comments/SKILL.md)**: Triage and address open PR feedback. Calls: `attaching-pr-screenshots`.
-- **[attaching-pr-screenshots](./skills/engineering/attaching-pr-screenshots/SKILL.md)**: Attach local images to a PR body.
+- **[attaching-pr-screenshots](./skills/engineering/attaching-pr-screenshots/SKILL.md)**: Attach local images and short videos to a PR body.
 - **[auditing-agent-token-usage](./skills/engineering/auditing-agent-token-usage/SKILL.md)**: Audit Claude Code and Codex token and context costs.
 - **[auditing-complexity](./skills/engineering/auditing-complexity/SKILL.md)**: Rank code complexity hotspots and CRAP change risk.
 - **[auditing-rails-tech-debt](./skills/engineering/auditing-rails-tech-debt/SKILL.md)**: Audit a Rails app for cited tech debt findings. Calls: `simplifying-ruby-code`.
@@ -95,7 +95,7 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 
 ### Uploads
 
-- `attaching-pr-screenshots` uploads local image files to GitHub and puts their URLs in the pull request body. Anyone who can read the pull request can open them.
+- `attaching-pr-screenshots` uploads local image files and short videos (mp4, mov, webm) to GitHub and puts their URLs in the pull request body. Anyone who can read the pull request can open them.
 - `running-retros` files a GitHub issue with text it wrote, only for an item you approve.
 
 ### Local files outside the working repository

@@ -41,10 +41,10 @@ const ATTACHMENT_PATH = "/user-attachments/assets/";
 
 /**
  * The private-repo proxy rewrite is /<user-id>/<asset-id>-<uuid>.<ext>?jwt=…,
- * so on the proxy host a path is one or two segments naming an image file.
+ * so on the proxy host a path is one or two segments naming an image or video file.
  * Lowercase only, matching the extensions the host emits.
  */
-const PROXY_IMAGE = /^[^/]+(?:\/[^/]+)?\.(?:png|jpg|jpeg|gif|webp|avif)$/;
+const PROXY_IMAGE = /^[^/]+(?:\/[^/]+)?\.(?:png|jpg|jpeg|gif|webp|avif|mp4|mov|webm)$/;
 
 /**
  * The proxy host for `prHost`. Never a wildcard: `*.githubusercontent.com` is

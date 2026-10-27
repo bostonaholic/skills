@@ -1,6 +1,6 @@
 ---
 name: attaching-pr-screenshots
-description: Uploads local images through GitHub's attachment pipeline and writes one verified Screenshots section into a PR body. Use when the user explicitly asks to add or attach screenshots to a PR. Never infer from local images. Not for capturing screenshots; use capturing-screenshots.
+description: Uploads local images and short videos (mp4, mov, webm) through GitHub's attachment pipeline and writes one verified Screenshots section into a PR body. Use when the user explicitly asks to add or attach screenshots to a PR. Never infer from local images. Not for capturing screenshots; use capturing-screenshots.
 effort: medium
 argument-hint: "[<pr-number-or-url>] [--entries <path>]"
 ---
@@ -51,7 +51,13 @@ exit codes. Exit 2 from any script is a fault: report it and stop (in step 5, go
      "notes": ["2 states skipped"] }
    ```
 
-   `path` and `caption` are required. With no caption named, use the
+   `path` and `caption` are required. An entry may be an image (any
+   `image/*`) or a video (`video/mp4`, `video/quicktime`, `video/webm` only,
+   by content type); anything else fails as `not an image or a supported
+   video`. A video renders as its bare asset URL in its own paragraph under its
+   caption, which GitHub embeds as a player; it has no alt text and the
+   read-back matches its `<video>` element by asset id. `upload.sh` records
+   each landed asset's kind in `$RUN_DIR/kinds.tsv`. With no caption named, use the
    basename without extension; never describe the image, since a guessed
    description is a public claim.
 

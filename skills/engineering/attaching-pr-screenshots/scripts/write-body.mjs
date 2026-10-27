@@ -10,7 +10,8 @@
  *
  * <run-dir> is the directory `upload.sh` finished in. This reads `pr-host`,
  * `number`, `repo-spec`, `entries-file` (and the entries JSON it names),
- * `pre-image.md`, `assets.tsv`, `failures.tsv`, and `upload-exit`, and writes:
+ * `pre-image.md`, `assets.tsv`, `failures.tsv`, `kinds.tsv` when present, and
+ * `upload-exit`, and writes:
  *
  *   section.md    the rendered section, rewritten on every run
  *   new-body.md   the spliced body, only when the splice allows the write
@@ -36,7 +37,8 @@
  *
  * `splice.mjs` tells its own earlier output from text someone else typed by
  * the exact vocabulary rendered here, so this renderer emits nothing else. A
- * caption sits directly above its image, notes are `> _note:_` lines split by
+ * caption sits directly above its image (or, for a video, above its bare
+ * asset URL), notes are `> _note:_` lines split by
  * a bare `>`, and nothing landed means the degraded form: one
  * `captured, not yet uploaded: <basename>` caption line per entry and no
  * failure lines. Every caller string goes through `normalize`, a path renders
@@ -49,7 +51,7 @@ import { spawnSync } from "node:child_process";
 import { delimiter, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isAttachmentUrl } from "./asset-url.mjs";
-import { splice } from "./splice.mjs";
+import { splice, VIDEO_URL } from "./splice.mjs";
 
 // The skill file that explains each exit code.
 const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
@@ -88,18 +90,38 @@ function tsvLines(text) {
 
 /**
  * Each entry in entries order, joined to its line in `assets.tsv` or
- * `failures.tsv`: `{entry, status, url, reason}`, `status` one of `landed`,
+ * `failures.tsv`: `{entry, status, url, reason, kind}`, `status` one of `landed`,
  * `failed`, or `not-attempted`. `upload.sh` writes exactly one line per entry,
  * in entries order, so both files are walked in step. Both empty means no
  * attach ran (the capability gap), and every entry is `not-attempted`.
  * Anything else that does not line up throws: a guessed pairing would put a
  * caption over the wrong image in a public body.
  */
-export function pairEntries(entries, assetsText, failuresText) {
+export function pairEntries(entries, assetsText, failuresText, kindsText = "") {
   const assets = tsvLines(assetsText);
+  // `kinds.tsv` holds one `<image|video>\t<path>` line per landed asset, in
+  // the same order as `assets.tsv`. Absent or empty (a run from before video
+  // support) means every landed asset is an image.
+  const kinds = tsvLines(kindsText ?? "");
+  if (kinds.length > 0 && kinds.length !== assets.length) {
+    throw new Error("kinds.tsv does not hold one line per landed asset");
+  }
+  kinds.forEach((kind, index) => {
+    if (kind.path !== assets[index].path)
+      throw new Error(`kinds.tsv line ${index + 1} names another path`);
+    if (kind.value !== "image" && kind.value !== "video") {
+      throw new Error(`kinds.tsv line ${index + 1} holds an unknown kind`);
+    }
+  });
   const failures = tsvLines(failuresText);
   if (assets.length === 0 && failures.length === 0) {
-    return entries.map((entry) => ({ entry, status: "not-attempted", url: null, reason: null }));
+    return entries.map((entry) => ({
+      entry,
+      status: "not-attempted",
+      url: null,
+      reason: null,
+      kind: null,
+    }));
   }
   let a = 0;
   let f = 0;
@@ -109,8 +131,12 @@ export function pairEntries(entries, assetsText, failuresText) {
     if (asset && failure) {
       throw new Error(`entry ${index} repeats a path that both landed and failed`);
     }
-    if (asset) return { entry, status: "landed", url: assets[a++].value, reason: null };
-    if (failure) return { entry, status: "failed", url: null, reason: failures[f++].value };
+    if (asset) {
+      const kind = kinds[a]?.value ?? "image";
+      return { entry, status: "landed", url: assets[a++].value, reason: null, kind };
+    }
+    if (failure)
+      return { entry, status: "failed", url: null, reason: failures[f++].value, kind: null };
     throw new Error(`assets.tsv and failures.tsv do not account for entry ${index}`);
   });
   if (a !== assets.length || f !== failures.length) {
@@ -137,10 +163,22 @@ export function renderSection(paired, notes = []) {
   const landed = paired.filter((item) => item.status === "landed");
   const blocks = ["## Screenshots"];
   if (landed.length > 0) {
-    landed.forEach((item, index) => {
-      const alt = `screenshot-${String(index + 1).padStart(2, "0")}`;
-      blocks.push(`${captionLine(item.entry)}\n![${alt}](${item.url})`);
-    });
+    // Images are numbered among images only; a video has no alt. GitHub
+    // embeds a video only when its bare asset URL is its own paragraph, so a
+    // video renders as that URL one blank line under its caption — and only an
+    // attachment-path URL may, since `splice.mjs` owns nothing else bare.
+    let image = 0;
+    for (const item of landed) {
+      if (item.kind === "video") {
+        if (!VIDEO_URL.test(item.url))
+          throw new Error("a video asset URL is not a bare attachment URL");
+        blocks.push(`${captionLine(item.entry)}\n\n${item.url}`);
+      } else {
+        image += 1;
+        const alt = `screenshot-${String(image).padStart(2, "0")}`;
+        blocks.push(`${captionLine(item.entry)}\n![${alt}](${item.url})`);
+      }
+    }
   } else {
     for (const item of paired) {
       blocks.push(
@@ -194,6 +232,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     }
   };
 
+  const readOptional = (name) => {
+    try {
+      return readFileSync(join(runDir, name), "utf8");
+    } catch (error) {
+      if (error.code === "ENOENT") return "";
+      return fault(`cannot read ${name} in the run directory: ${error.message}`);
+    }
+  };
+
   const uploadExit = read("upload-exit").trim();
   if (uploadExit !== "0" && uploadExit !== "3") {
     fault(`upload.sh ended with exit ${uploadExit}, after which no body is written`);
@@ -214,7 +261,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   let section;
   let landed;
   try {
-    const paired = pairEntries(entriesDoc.entries, read("assets.tsv"), read("failures.tsv"));
+    const paired = pairEntries(
+      entriesDoc.entries,
+      read("assets.tsv"),
+      read("failures.tsv"),
+      readOptional("kinds.tsv"),
+    );
     const extraHost = process.env.PR_SCREENSHOTS_ASSET_HOST;
     const offOrigin = paired.find(
       (item) => item.status === "landed" && !isAttachmentUrl(item.url, prHost, extraHost),

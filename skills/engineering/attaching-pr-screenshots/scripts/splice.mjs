@@ -265,6 +265,32 @@ const ANY_IMAGE = /!\[[^\]]*\]\([^)]*\)/g;
 const OWN_IMAGE = /^!\[screenshot-\d+\]\(\s*https?:\/\/[^\s)]+\s*\)$/;
 
 /**
+ * A video this skill writes: its bare attachment asset URL as its own
+ * paragraph, which is the one form GitHub embeds as a player (directly under
+ * the caption, in the same paragraph, it renders as a plain link). Owned only
+ * as `OWN_CAPTION`, one blank line, then the URL (see `ownVideoLine`);
+ * anywhere else a bare attachment URL stays the unmodeled `BARE_IMAGE_URL` it
+ * always was.
+ */
+export const VIDEO_URL = /^https:\/\/[A-Za-z0-9.-]+\/user-attachments\/assets\/[A-Za-z0-9-]+$/;
+
+/** True when `lines[index]` is a video line in the position the renderer emits it. */
+function ownVideoLine(lines, index) {
+  return (
+    VIDEO_URL.test((lines[index] ?? "").trim()) &&
+    index > 1 &&
+    (lines[index - 1] ?? "").trim() === "" &&
+    OWN_CAPTION.test((lines[index - 2] ?? "").trim())
+  );
+}
+
+/** The count of renderer-shaped video lines in `text`. */
+function countVideos(text) {
+  const lines = text.split("\n");
+  return lines.filter((_, index) => ownVideoLine(lines, index)).length;
+}
+
+/**
  * The `(<state>)` parenthetical the renderer emits beside a caption, and
  * nothing else. One level of nesting is allowed as a backstop: `state` is
  * caller text whose normalization removes parentheses
@@ -349,7 +375,11 @@ function ownSectionLine(lines, index) {
   )
     return true;
   if (OWN_DEGRADED_CAPTION.test(text)) return true;
-  return OWN_CAPTION.test(text) && OWN_IMAGE.test((lines[index + 1] ?? "").trim());
+  if (ownVideoLine(lines, index)) return true;
+  return (
+    OWN_CAPTION.test(text) &&
+    (OWN_IMAGE.test((lines[index + 1] ?? "").trim()) || ownVideoLine(lines, index + 2))
+  );
 }
 
 /**
@@ -494,7 +524,7 @@ function scan(lines) {
       if (comment) commentAt = index;
       continue;
     }
-    if (fault === null) {
+    if (fault === null && !ownVideoLine(lines, index)) {
       const found = unmodeled(line);
       if (found) fault = at(index, found.match, found.reason);
     }
@@ -811,7 +841,7 @@ export function splice(body, section, options = {}) {
   }
 
   const landed = Number.isFinite(options?.landed) ? options.landed : 0;
-  const referenced = count(sectionText, NEW_SECTION_IMAGE);
+  const referenced = count(sectionText, NEW_SECTION_IMAGE) + countVideos(sectionText);
   if (referenced > landed) {
     return refuse(
       `the section carries more screenshot references (${referenced}) than the run landed (${landed})`,
@@ -853,7 +883,7 @@ export function splice(body, section, options = {}) {
         : [...blankTerminated(lines.slice(0, contentCount)), ...sectionLines];
   }
 
-  const held = count(existing, ANY_IMAGE);
+  const held = count(existing, ANY_IMAGE) + countVideos(existing);
   if (referenced < held) {
     return refuse(
       `the new section carries ${referenced} screenshot references and the one it replaces holds ${held}`,

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-10-27
+
+### Added
+
+- Accept mp4, mov, and webm in `attaching-pr-screenshots` and render each video as its bare attachment URL so GitHub embeds a player. [#152](https://github.com/bostonaholic/skills/pull/152)
+
 ## [0.67.0] - 2026-10-27
 
 ### Added
@@ -893,5 +899,7 @@
 
 [0.66.0]: https://github.com/bostonaholic/skills/compare/v0.65.1...v0.66.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.67.0...HEAD
 [0.67.0]: https://github.com/bostonaholic/skills/compare/v0.66.0...v0.67.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.68.0...HEAD
+[0.68.0]: https://github.com/bostonaholic/skills/compare/v0.67.0...v0.68.0
