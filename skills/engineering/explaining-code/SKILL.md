@@ -21,7 +21,7 @@ The request holds an optional depth token followed by the subject: a PR number o
 URL, a file path, a function or class name, a branch name, or a concept.
 
 **STOP** when the request names no subject and the conversation makes none
-clear. Ask once what to explain, and do no work until the user answers.
+clear. Ask once what to explain, and do no work until the user answers. Explain what the code does, not what its docs claim, and report any disagreement per the [docs and code rules](shared/docs-vs-code.md).
 
 ## Depth
 

@@ -31,7 +31,7 @@ description; if that is ambiguous, ask one question before emitting.
 - **Pointers, not restatements.** Find the target repo's own instructions
   (`AGENTS.md`, `CONTRIBUTING.md`, testing docs) and the commands it already
   uses. The prompt tells the agent to read them and reuse those commands; it
-  never restates their rules, which drift.
+  never restates their rules, which drift. Where a document disagrees with the code, the ledger records both and the case from the [docs and code rules](shared/docs-vs-code.md).
 - **One job.** Scope the prompt to one bounded result, and name the adjacent
   work it must not absorb.
 - **The template.** Use [the prompt template](references/prompt-template.md),

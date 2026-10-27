@@ -21,7 +21,7 @@ recommendation. Asked only for recommendations, or under a
 User direction never weakens these.
 
 1. **Verify before rating.** Rate confidence only after the item has a verdict
-   with cited evidence.
+   with cited evidence. Judge a claim by the code, not by docs or the PR body; when they disagree, apply the [docs and code rules](shared/docs-vs-code.md).
 2. **The apply bar.** All must hold, or the item pauses on the punch list,
    whose block names the first that failed:
    - no exclusion;

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- `addressing-pr-comments`, `composing-agent-prompts`, `explaining-architecture`, `explaining-code`, `fixing-root-causes`, `making-code-agent-friendly`, and `reviewing-code` decide whether docs or code is wrong when they disagree: a failing test and a code fix when the docs state intended behavior, a docs fix when they misdescribe tested behavior. [#151](https://github.com/bostonaholic/skills/pull/151)
+- The `oracle` subagent says whether docs or code is wrong when they disagree, instead of trusting the docs. [#151](https://github.com/bostonaholic/skills/pull/151)
+
 ## [0.66.0] - 2026-10-26
 
 ### Fixed
