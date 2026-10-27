@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `reviewing-design-docs` reviews a design doc with one fresh-context reviewer per lens, including a naive reader that sees only the doc, and returns one merged report with one verdict. [#157](https://github.com/bostonaholic/skills/pull/157)
+- `writing-technical-design-docs` writes every fact from the conversation into the doc, and returns the review output as-is instead of revising the draft. [#157](https://github.com/bostonaholic/skills/pull/157)
+- The independent-review rules name who drafts the work, who reviews it with fresh context, and who decides. [#157](https://github.com/bostonaholic/skills/pull/157)
+
 ## [0.68.0] - 2026-10-27
 
 ### Added
