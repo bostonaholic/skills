@@ -2,6 +2,8 @@
 
 # Independent review
 
+The producer (the elephant) holds the conversation, requirements, and earlier decisions. It writes every fact a reviewer needs into the work or into a file the work links. Each reviewer (a goldfish) starts with fresh context. The user resolves trade-offs and approves the work. A finding authorizes no change beyond what the user's request already allows.
+
 Producers never judge their own work. A fresh-context reviewer reports defects and changes nothing. Give it the artifact and the specification written before the work, without producer discussion or narration.
 
 - Give investigators neutral questions and evidence sources. Withhold the desired answer, your verdict, severity, and reasoning. Treat intent leakage into a neutral brief as a critical defect.

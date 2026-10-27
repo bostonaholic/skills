@@ -33,6 +33,10 @@ description: Drafts technical design docs that are directionally correct, not pe
 - **Concrete but incomplete.** Write the load-bearing scenario end to end
   with its key edge cases, and mark the rest "follows the same pattern" or
   "TBD in implementation".
+- **Write down what only you know.** Reviewers and later readers see the
+  doc and the files it links, never this conversation. So each requirement,
+  constraint, and decision from the conversation goes into the doc, or into
+  a file the doc links.
 
 ## Shape
 
@@ -54,12 +58,20 @@ A default to adapt; fold it into the team's own template where one exists.
 5. **Close with a Reversibility table:** each major decision rated one-way
    or two-way. No section follows it.
 
+## Review
+
+- This session is the producer: it holds the conversation, so it never
+  judges its own draft. Follow the
+  [independent review rules](shared/independent-review.md).
 - Before returning the draft, call the Skill tool with `reviewing-design-docs`
   on it for an adversarial review.
 - If it is not installed or cannot run here (for example, it cannot save the
   draft to a file), then below a separator after the doc, say that no
   independent review was done, why, and the next step: save the draft to a
   file, then run `/reviewing-design-docs <path>`.
+- Return the draft, then the review output verbatim below a separator,
+  including the prompt-only line when present. Do not revise the draft to
+  answer findings. The user decides which to act on.
 - Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 
 ## When not to use this skill

@@ -96,14 +96,14 @@ only what a frontier model would otherwise get wrong.
 
 ## D. Workflows and feedback loops
 
-| ID  | Rule                                                                                                                                                                           |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D1  | Number steps only where order or a gate matters.                                                                                                                               |
-| D2  | (retired)                                                                                                                                                                      |
-| D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.                                                                   |
-| D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                                                                                  |
-| D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact.                                                      |
-| D6  | Use subagents only where independence or context isolation is the point (for example an independent reviewer), and say so in one sentence; never prescribe dispatch mechanics. |
+| ID  | Rule                                                                                                                                                                                                                                                                                                      |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Number steps only where order or a gate matters.                                                                                                                                                                                                                                                          |
+| D2  | (retired)                                                                                                                                                                                                                                                                                                 |
+| D3  | Quality-critical output has a feedback loop: validate, fix, repeat, and proceed only when validation passes.                                                                                                                                                                                              |
+| D4  | Decision points are explicit. Large branches live in separate files read only on that branch.                                                                                                                                                                                                             |
+| D5  | Batch, destructive, or outward-facing operations follow plan, validate, execute, with a verifiable intermediate artifact.                                                                                                                                                                                 |
+| D6  | Use subagents only where independence or context isolation is the point (for example an independent reviewer), and say so in one sentence; never prescribe dispatch mechanics. A skill that drafts a document and then calls a reviewing skill on it follows the roles in `shared/independent-review.md`. |
 
 ## E. Content
 
