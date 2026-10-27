@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-10-27
+
 ### Added
 
 - `addressing-pr-comments`, `composing-agent-prompts`, `explaining-architecture`, `explaining-code`, `fixing-root-causes`, `making-code-agent-friendly`, and `reviewing-code` decide whether docs or code is wrong when they disagree: a failing test and a code fix when the docs state intended behavior, a docs fix when they misdescribe tested behavior. [#151](https://github.com/bostonaholic/skills/pull/151)
@@ -889,5 +891,7 @@
 
 [0.65.1]: https://github.com/bostonaholic/skills/compare/v0.65.0...v0.65.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.66.0...HEAD
 [0.66.0]: https://github.com/bostonaholic/skills/compare/v0.65.1...v0.66.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.67.0...HEAD
+[0.67.0]: https://github.com/bostonaholic/skills/compare/v0.66.0...v0.67.0
