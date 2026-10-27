@@ -160,20 +160,13 @@ test("the committed README generated block equals renderReadme(loadCatalog())", 
   assert.equal(generatedBlock(readme), renderReadme(await loadCatalog()));
 });
 
-test("the README Install section shows the Claude Code install command in a text fence under its label", async () => {
-  const { CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_INSTALL_LABEL, loadCatalog, renderReadme } =
-    await catalogModule();
+test("the README Install section shows the Claude Code install command in a text fence", async () => {
+  const { CLAUDE_CODE_INSTALL_COMMAND, loadCatalog, renderReadme } = await catalogModule();
   const block = renderReadme(await loadCatalog());
-  const expected = [
-    CLAUDE_CODE_INSTALL_LABEL,
-    "",
-    "```text",
-    CLAUDE_CODE_INSTALL_COMMAND,
-    "```",
-  ].join("\n");
+  const expected = ["```text", CLAUDE_CODE_INSTALL_COMMAND, "```"].join("\n");
   assert.ok(
     block.includes(expected),
-    `README Install section lacks the Claude Code install command in a text fence under its label:\n${expected}`,
+    `README Install section lacks the Claude Code install command in a text fence:\n${expected}`,
   );
 });
 
@@ -189,17 +182,11 @@ test("the site has one section per tracked skill, keyed by the skill name", (t) 
 });
 
 test("the site shows the Claude Code install command, the install prompt, and links an installation doc that exists", async (t) => {
-  const {
-    CLAUDE_CODE_INSTALL_COMMAND,
-    CLAUDE_CODE_INSTALL_LABEL,
-    INSTALL_DOC,
-    INSTALL_PROMPT,
-    INSTALL_PROMPT_LABEL,
-  } = await catalogModule();
+  const { CLAUDE_CODE_INSTALL_COMMAND, INSTALL_DOC, INSTALL_PROMPT, INSTALL_PROMPT_LABEL } =
+    await catalogModule();
   assert.ok(existsSync(join(REPO, INSTALL_DOC)), `missing ${INSTALL_DOC}`);
   const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
   for (const text of [
-    CLAUDE_CODE_INSTALL_LABEL,
     CLAUDE_CODE_INSTALL_COMMAND,
     INSTALL_PROMPT_LABEL,
     INSTALL_PROMPT,
