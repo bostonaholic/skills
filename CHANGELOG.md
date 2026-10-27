@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.69.0] - 2026-10-27
+
+### Changed
+
+- `reviewing-design-docs` reviews a design doc with one fresh-context reviewer per lens, including a naive reader that sees only the doc, and returns one merged report with one verdict. [#157](https://github.com/bostonaholic/skills/pull/157)
+- `writing-technical-design-docs` writes every fact from the conversation into the doc, and returns the review output as-is instead of revising the draft. [#157](https://github.com/bostonaholic/skills/pull/157)
+- The independent-review rules name who drafts the work, who reviews it with fresh context, and who decides. [#157](https://github.com/bostonaholic/skills/pull/157)
+
 ## [0.68.0] - 2026-10-27
 
 ### Added
@@ -901,5 +909,7 @@
 
 [0.67.0]: https://github.com/bostonaholic/skills/compare/v0.66.0...v0.67.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.68.0...HEAD
 [0.68.0]: https://github.com/bostonaholic/skills/compare/v0.67.0...v0.68.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.69.0...HEAD
+[0.69.0]: https://github.com/bostonaholic/skills/compare/v0.68.0...v0.69.0
