@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Copies each canonical shared/<f>.md into every tracked skill that links it, plus the files
+// Copies each canonical shared/<f>.md into every tracked active or incubating skill that links it, plus the files
 // those canonical files link, so a skill installed alone resolves its shared rules. A canonical
 // file names a shared script as `scripts/<f>.mjs`, relative to shared/; a skill file may name one
 // as `shared/scripts/<f>.mjs`. Either copies shared/scripts/<f>.mjs to the skill's
@@ -133,7 +133,9 @@ function containmentError(root, path, { entries }) {
 
 function plan() {
   const skills = lsFiles("skills/*/*/SKILL.md")
-    .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
+    .filter((path) =>
+      /^skills\/(engineering|productivity|incubating)\/[^/]+\/SKILL\.md$/.test(path),
+    )
     .map(dirname)
     .sort();
   const root = realpathSync(".");

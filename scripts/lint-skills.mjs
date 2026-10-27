@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks every tracked active skill and every tracked agents/*.md subagent against the mechanical
+// Checks every tracked active and incubating skill and every tracked agents/*.md subagent against the mechanical
 // rules in docs/skill-authoring.md and prints one `path: ID message` line per violation.
 //   node scripts/lint-skills.mjs  exit 1 when any skill breaks a rule, 0 when all pass
 // Rules: A1 name, A2 gerund name, A3 description limits, A4 third-person description, A5 "Use
@@ -9,7 +9,8 @@
 // of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
 // 50 words, C7 links and <skill-dir>/ paths that name tracked files in the skill, C8 -dir and -root
 // placeholders that name only the skill's own directory, G1 a trigger, guard, and core eval case
-// per skill. Subagents get A3 to A5 on their description, S1 a tier-alias model, S2 readonly: true
+// per active skill, and for an incubating skill, A7 disable-model-invocation: true and
+// metadata.internal: true. Subagents get A3 to A5 on their description, S1 a tier-alias model, S2 readonly: true
 // beside a tools list with no write tool, and S3 a name that is not a gerund. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
@@ -204,6 +205,14 @@ function checkInvocation(dir, frontmatter, tracked, report) {
       "A7",
       "policy.allow_implicit_invocation is false, so SKILL.md must set disable-model-invocation: true",
     );
+  if (!dir.startsWith("skills/incubating/")) return;
+  // Incubating skills ship nowhere: only the user invokes them, and `npx skills` skips internal ones.
+  if (disable !== "true")
+    report("A7", "an incubating skill must set disable-model-invocation: true");
+  if (
+    !/^metadata:[ \t]*\r?\n(?:[ \t]+.*\r?\n)*?[ \t]+internal:[ \t]*true[ \t]*$/m.test(frontmatter)
+  )
+    report("A7", "an incubating skill must set metadata.internal: true");
 }
 
 // Prose paragraphs outside fences, headings, list items, tables, and indented continuations.
@@ -348,7 +357,7 @@ export function missingEvalCases(skillPath, tracked) {
 // G1
 function checkEvalCases(skillPath, evalPrompts, report) {
   const [, category, name] = skillPath.split("/");
-  if (Object.hasOwn(EVALS_PENDING, name)) return;
+  if (category === "incubating" || Object.hasOwn(EVALS_PENDING, name)) return;
   const missing = missingEvalCases(skillPath, evalPrompts);
   if (missing.length)
     report(
@@ -414,7 +423,9 @@ export function lintSkills() {
     .sort())
     lintAgent(readFileSync(path, "utf8"), reportFor(path));
   const skills = lsFiles("skills/*/*/SKILL.md")
-    .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
+    .filter((path) =>
+      /^skills\/(engineering|productivity|incubating)\/[^/]+\/SKILL\.md$/.test(path),
+    )
     .sort();
   const evalPrompts = new Set(lsFiles("evals").filter((path) => EVAL_PROMPT.test(path)));
   for (const skillPath of skills) {

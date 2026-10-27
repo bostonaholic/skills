@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reconciling Documentation"
+  short_description: "Fix docs or code where they disagree"
+  default_prompt: "Use $reconciling-documentation to reconcile this repository's docs with its code."
+policy:
+  allow_implicit_invocation: false
