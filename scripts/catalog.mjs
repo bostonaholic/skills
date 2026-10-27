@@ -15,13 +15,11 @@ export const LEDE = "The skills I use to build software with coding agents.";
 export const REPO_URL = "https://github.com/bostonaholic/skills";
 export const NPX_ADD_SKILL = "npx skills@latest add bostonaholic/skills --skill <name>";
 
-// Two install paths. Claude Code 2.1.275 or later installs with one slash command, which fails in a
-// shell or an older version, so the label names the version. Other agents get the pasted prompt,
-// which sends them to AGENTS.md, which links INSTALL.md.
-export const CLAUDE_CODE_INSTALL_LABEL = "In Claude Code 2.1.275 or later, run:";
+// Two install paths. Claude Code installs with one slash command. Other agents get the pasted
+// prompt, which sends them to AGENTS.md, which links INSTALL.md.
 export const CLAUDE_CODE_INSTALL_COMMAND =
   "/plugin install bostonaholic --marketplace bostonaholic/skills";
-export const INSTALL_PROMPT_LABEL = "Copy/paste into your CLI prompt:";
+export const INSTALL_PROMPT_LABEL = "Ask your agent:";
 export const INSTALL_PROMPT = `Install the skills from ${REPO_URL}, refer to the repo's AGENTS.md for instructions.`;
 export const INSTALL_DOC = "INSTALL.md";
 
@@ -137,8 +135,6 @@ export function renderReadme(catalog) {
     LEDE,
     "",
     "## Install",
-    "",
-    CLAUDE_CODE_INSTALL_LABEL,
     "",
     "```text",
     CLAUDE_CODE_INSTALL_COMMAND,
