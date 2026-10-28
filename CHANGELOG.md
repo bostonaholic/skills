@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-10-28
+
 ### Fixed
 
 - `addressing-pr-comments` counts the user's own PR comments as feedback, held to the same bar as any reviewer's, instead of pausing them when other reviewers also commented. [#159](https://github.com/bostonaholic/skills/pull/159)
@@ -915,5 +917,7 @@
 
 [0.68.0]: https://github.com/bostonaholic/skills/compare/v0.67.0...v0.68.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.69.0...HEAD
 [0.69.0]: https://github.com/bostonaholic/skills/compare/v0.68.0...v0.69.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.70.0...HEAD
+[0.70.0]: https://github.com/bostonaholic/skills/compare/v0.69.0...v0.70.0
