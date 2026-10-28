@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-10-28
+
+### Added
+
+- `cr` starts a `reviewing-code` review with the same optional diff target in every harness: `/cr` in Claude Code, Cursor, and Grok Bot, `$cr` in Codex. [#158](https://github.com/bostonaholic/skills/pull/158)
+
 ## [0.70.0] - 2026-10-28
 
 ### Fixed
@@ -919,5 +925,7 @@
 
 [0.69.0]: https://github.com/bostonaholic/skills/compare/v0.68.0...v0.69.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.70.0...HEAD
 [0.70.0]: https://github.com/bostonaholic/skills/compare/v0.69.0...v0.70.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.71.0...HEAD
+[0.71.0]: https://github.com/bostonaholic/skills/compare/v0.70.0...v0.71.0

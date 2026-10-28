@@ -32,6 +32,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[capturing-screenshots](./skills/engineering/capturing-screenshots/SKILL.md)**: Capture verified screenshots of an app.
 - **[choosing-determinism](./skills/engineering/choosing-determinism/SKILL.md)**: Move a skill's deterministic steps into scripts it runs.
 - **[configuring-zsh](./skills/engineering/configuring-zsh/SKILL.md)**: Place zsh config in the right startup file.
+- **[cr](./skills/engineering/cr/SKILL.md)**: Start a reviewing-code review with a short name. Explicit invocation only. Calls: `reviewing-code`.
 - **[diagnosing-react-code](./skills/engineering/diagnosing-react-code/SKILL.md)**: Scan a React package and fix its errors.
 - **[drawing-mermaid-diagrams](./skills/engineering/drawing-mermaid-diagrams/SKILL.md)**: Write, render, and debug Mermaid diagrams.
 - **[explaining-architecture](./skills/engineering/explaining-architecture/SKILL.md)**: Explain how a subsystem or runtime flow works. Calls: `investigating-design-rationale`.

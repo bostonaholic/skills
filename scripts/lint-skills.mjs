@@ -48,9 +48,16 @@ export const LINT_IDS = Object.freeze([
 // only the real-tree test in tests/lint-skills.test.mjs checks an entry, so a fixture repository
 // without these skills still passes, and that test fails once an entry goes stale.
 export const EVALS_PENDING = Object.freeze({
+  cr: "alias that only calls reviewing-code, whose eval cases cover the review",
   "fixing-root-causes": "no eval cases yet; writing them is deferred",
   "updating-bostonaholic-skills": "no eval cases yet; writing them is deferred",
   "writing-no-tests": "no eval cases yet; writing them is deferred",
+});
+
+// Skills whose name may skip the gerund rule (A2), each with why. Keep this to aliases whose short
+// name is the point; the real-tree test in tests/lint-skills.test.mjs fails once an entry goes stale.
+export const GERUND_EXEMPT = Object.freeze({
+  cr: "short alias for reviewing-code; a two-letter name is faster to type",
 });
 
 // Limits from the Agent Skills frontmatter specification and Anthropic's authoring guide.
@@ -136,7 +143,7 @@ function checkName(name, report) {
     report("A1", `name "${name}" must be lowercase letters, digits, and single hyphens`);
   if (RESERVED_WORDS.test(name))
     report("A1", `name "${name}" contains a reserved word (anthropic, claude)`);
-  if (!GERUND.test(name))
+  if (!GERUND.test(name) && !Object.hasOwn(GERUND_EXEMPT, name))
     report("A2", `name "${name}" must start with a gerund (verb + -ing), as in "reviewing-code"`);
 }
 
