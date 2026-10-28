@@ -7,10 +7,10 @@ Each punch-list item offers 2 to 4 of these, tailored to the item.
   leave the description alone ([skill call rules](shared/skill-calls.md)).
 - **B. Apply a variation** that meets the concern differently.
 - **C. Reply with the answer.**
-- **D. Decline**, with a one-line rationale.
+- **D. Decline**, with a one-line rationale. The thread stays open.
 - **E. Defer**: file a follow-up, then resolve with its link.
 - **F. Resolve as-is**, citing the commit or line.
-- **G. Needs clarification**: ask the reviewer, or the user for a one-way door.
+- **G. Needs clarification**: ask the reviewer.
 
 ## Reactions
 
