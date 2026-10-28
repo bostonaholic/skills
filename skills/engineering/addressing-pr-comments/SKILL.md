@@ -73,9 +73,9 @@ User direction never weakens these.
    `STALE`, or `INACCURATE` (read it before rating any item).
 5. **Classify:** code change, question, suggestion, praise/FYI, blocking, or
    outdated. Ambiguous means `NEEDS CLARIFICATION`.
-6. **Apply** items that clear the bar, per [applying](#applying). When the
-   set mixes the viewer's own items with others', the viewer's own pause
-   until the user says whether they count.
+6. **Apply** items that clear the bar, per [applying](#applying). The
+   viewer's own items count as feedback, held to the same bar as any
+   reviewer's.
 7. **Report** per [report format](references/report-format.md): applied
    items one line each, then one block per paused item with its
    [options](references/options.md) (A to G; A's image ask calls the Skill tool
