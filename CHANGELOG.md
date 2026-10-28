@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `addressing-pr-comments` posts declines and clarifying questions to the reviewer during the pass instead of pausing for the user; a decline leaves its thread open. [#160](https://github.com/bostonaholic/skills/pull/160)
+
 ## [0.71.0] - 2026-10-28
 
 ### Added
