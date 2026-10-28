@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `addressing-pr-comments` links its options A to G from the skill's opening paragraph, before the rules that name them. [#161](https://github.com/bostonaholic/skills/pull/161)
+
 ## [0.72.0] - 2026-10-28
 
 ### Changed

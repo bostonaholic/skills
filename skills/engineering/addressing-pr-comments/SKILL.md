@@ -11,10 +11,10 @@ An **item** is an unresolved inline review **thread** (anchored to file and
 lines; only threads resolve), a **review summary** with a body, or a
 **conversation comment**; summaries and conversation comments are **PR-level**.
 
-By default, carry out each item's recommendation without asking; items that
-fail the apply bar pause. Named items or options ("decline 4") replace their
-recommendation. Asked only for recommendations, or under a
-`watching-authored-prs` present-then-stop grant, add the recommend-only checks.
+By default, carry out each item's recommended [option](references/options.md)
+(A to G) without asking; items that fail the apply bar pause. Named items or
+options ("decline 4") replace their recommendation. Asked only for recommendations,
+or under a `watching-authored-prs` present-then-stop grant, add the recommend-only checks.
 
 ## Hard rules
 
