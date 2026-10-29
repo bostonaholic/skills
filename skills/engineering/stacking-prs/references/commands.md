@@ -136,6 +136,9 @@ from inside the repository. Its header lists every exit code.
   the refs of branches deleted there. It fast-forwards a layer that is behind
   its remote copy, and stops on a layer whose remote copy has commits the local
   layer lacks. It writes the record.
+- `check --remote <remote> --restructure <layer>...` gates `unstack`. It
+  exits 3 on a PR the GitHub stack holds and no layer does, and lets a closed
+  PR on each named layer pass, because the plan moves that layer to a new name.
 - `check --remote <remote> --trunk <trunk> <branch>...` is named mode, for
   branches no stack holds yet. It runs the same tests on the named branches and
   every unmerged PR on each one's GitHub stack, with no `gh stack` call.

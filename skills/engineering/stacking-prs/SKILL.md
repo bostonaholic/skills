@@ -97,7 +97,7 @@ Give the trunk, then each layer bottom to top with its branch, its PR or "not pu
 
 `stack-guard.mjs` lives in `<skill-dir>/scripts/` and documents its usage, output, and exit codes in its header. Run it from inside the repository as `node "<skill-dir>/scripts/stack-guard.mjs" <subcommand> > <out-file>`.
 
-- Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish and before `unstack`, `compare` right before each push, `after-sync` after each `sync`, and `after-submit` after each `submit`.
+- Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish, `check --restructure` before `unstack`, `compare` right before each push, `after-sync` after each `sync`, and `after-submit` after each `submit`.
 - Read [commands](references/commands.md) before the first rewrite or push of a stack with remote layers, before a command this file does not show, or when one misbehaves.
 - Read [existing work](references/existing-work.md) when the change already exists or new work overlaps the same author's open PR.
 - Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script, on `Sync aborted`, or to restructure a stack.

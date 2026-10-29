@@ -2483,3 +2483,93 @@ test("a remote branch deleted behind a stale tracking ref counts as absent", asy
     assert.match(result.stderr, /invoices\/ui/);
   });
 });
+
+const RESTRUCTURE = ["check", "--remote", "origin", "--restructure"];
+
+// pushedStackWorld with PR #102 on invoices/api closed.
+function closedApiWorld(t) {
+  const { w } = pushedStackWorld(t);
+  setScenario(w, {
+    pulls: [
+      pull(101, "invoices/schema"),
+      pull(102, "invoices/api", { state: "CLOSED" }),
+      pull(103, "invoices/ui"),
+    ],
+  });
+  return w;
+}
+
+test("check --restructure gates unstack on every layer and GitHub stack PR", async (t) => {
+  await t.test("a PR the local stack lacks exits 3 naming it", (t) => {
+    const w = remoteOnlyWorld(t);
+
+    const result = run(w, RESTRUCTURE);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#104\b/);
+  });
+
+  await t.test("a closed PR on a named layer passes with a record", (t) => {
+    const w = closedApiWorld(t);
+
+    const result = run(w, [...RESTRUCTURE, "invoices/api"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(outputKeys(result.stdout).RECORD, `check printed no RECORD:\n${result.stdout}`);
+  });
+
+  await t.test("a closed PR on a layer it does not name exits 3 naming it", (t) => {
+    const w = closedApiWorld(t);
+
+    const result = run(w, [...RESTRUCTURE, "invoices/ui"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#102\b/);
+  });
+
+  await t.test("a named closed layer beside a PR the local stack lacks exits 3 on that PR", (t) => {
+    const w = remoteOnlyWorld(t);
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api", { state: "CLOSED" }),
+        pull(103, "invoices/ui"),
+        pull(104, "invoices/csv"),
+      ],
+    });
+
+    const result = run(w, [...RESTRUCTURE, "invoices/api"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#104\b/);
+    assert.doesNotMatch(result.stderr, /#102\b/);
+  });
+
+  await t.test("a named closed layer with remote-only commits exits 4 naming it", (t) => {
+    const w = closedApiWorld(t);
+    commitOn(w, "invoices/api", "api-local.txt");
+    advanceRemote(w, "invoices/api", "api-remote.txt");
+
+    const result = run(w, [...RESTRUCTURE, "invoices/api"]);
+
+    assert.equal(result.status, 4, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+  });
+
+  await t.test("a closed GitHub stack PR on no layer exits 3 even when named", (t) => {
+    const w = remoteOnlyWorld(t);
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api"),
+        pull(103, "invoices/ui"),
+        pull(104, "invoices/csv", { state: "CLOSED" }),
+      ],
+    });
+
+    const result = run(w, [...RESTRUCTURE, "invoices/csv"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /closed/);
+  });
+});

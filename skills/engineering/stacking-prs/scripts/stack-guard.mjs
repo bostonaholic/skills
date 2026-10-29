@@ -7,6 +7,7 @@
  *     node "<skill-dir>/scripts/stack-guard.mjs" repo > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> --trunk <trunk> <branch>... > <out-file>
+ *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> --restructure [<layer>...] > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" compare <record> > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" after-sync <record> > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" after-submit <record> > <out-file>
@@ -29,6 +30,7 @@
  *
  * check --remote <remote>                              (stack mode)
  * check --remote <remote> --trunk <trunk> <branch>...  (named mode)
+ * check --remote <remote> --restructure [<layer>...]   (stack mode)
  *   Runs repo's repository test against <remote>. Stack mode reads
  *   `gh stack view --json`, one GraphQL query for the viewer and every
  *   layer's PRs, the GitHub stack (Stacks REST API), and one GraphQL query
@@ -56,6 +58,10 @@
  *     NO_PR         stack mode: active layers with no open PR
  *     STACKED       named mode: named branches whose open PR is already in
  *                   a GitHub stack
+ *
+ *   --restructure gates `gh stack unstack`: a non-empty REMOTE_ONLY exits 3,
+ *   because the rebuilt stack would lack those PRs, and a closed PR on a
+ *   named <layer>, one the plan moves to a new branch name, does not stop.
  *
  * compare <record>
  *   Fetches the record's remote, then reads `view --json`, the layer PRs,
@@ -88,7 +94,8 @@
  *      missing locally, no <remote>/<trunk> in named mode, or an unreadable
  *      record
  *   3  check: another worktree holds a tested branch, or a PR by another
- *      author (or none), a closed or queued PR, or a branch with two open PRs
+ *      author (or none), a closed or queued PR, or a branch with two open PRs;
+ *      with --restructure, also a PR on the GitHub stack that no layer holds
  *   4  check: a diverged layer's remote copy has commits with no local copy
  *      (by patch ID) that are not on <remote>/<trunk>
  *   5  compare: a recorded tip, PR, PR state, merged layer's local tip, or
@@ -117,6 +124,7 @@ const USAGE = [
   `usage: node ${SCRIPT} repo > <out-file>`,
   `       node ${SCRIPT} check --remote <remote> > <out-file>`,
   `       node ${SCRIPT} check --remote <remote> --trunk <trunk> <branch>... > <out-file>`,
+  `       node ${SCRIPT} check --remote <remote> --restructure [<layer>...] > <out-file>`,
   `       node ${SCRIPT} compare <record> > <out-file>`,
   `       node ${SCRIPT} after-sync <record> > <out-file>`,
   `       node ${SCRIPT} after-submit <record> > <out-file>`,
@@ -430,7 +438,7 @@ function unmergedStackNumbers(stack) {
 
 function ownershipStops(publishable, layers, viewer) {
   const reasons = [];
-  for (const { pull, branch } of publishable) {
+  for (const { pull, branch, renamed } of publishable) {
     if (pull.author === null)
       reasons.push(
         `PR #${pull.number} (\`${branch}\`) has no author, as from a deleted account. ` +
@@ -441,7 +449,7 @@ function ownershipStops(publishable, layers, viewer) {
         `PR #${pull.number} (\`${branch}\`) is by \`${pull.author}\`. ` +
           "This skill changes and publishes only your own PRs.",
       );
-    if (pull.state === "CLOSED")
+    if (pull.state === "CLOSED" && !renamed)
       reasons.push(
         `PR #${pull.number} on \`${branch}\` is closed. Reopen it, or put the work on a new ` +
           "branch name (for a stack layer, through restructuring).",
@@ -803,7 +811,8 @@ function surveyNamed(repository, branches) {
   return { viewer, layers, stacks };
 }
 
-function checkCommand({ remote, trunk, branches }) {
+// renamed: the layers restructuring moves to new names, or undefined outside restructuring.
+function checkCommand({ remote, trunk, branches, renamed }) {
   const named = branches !== undefined;
   requireAllowedName(remote, "Remote name");
   if (named) {
@@ -839,10 +848,20 @@ function checkCommand({ remote, trunk, branches }) {
   const publishable = [
     ...layers
       .filter((layer) => !layer.merged && layer.pull !== null)
-      .map((layer) => ({ pull: layer.pull, branch: layer.name })),
+      .map((layer) => ({
+        pull: layer.pull,
+        branch: layer.name,
+        renamed: renamed?.includes(layer.name) === true,
+      })),
     ...outside,
   ];
   const stops = ownershipStops(publishable, layers, viewer);
+  if (renamed !== undefined && outside.length > 0)
+    stops.push(
+      `The GitHub stack has PRs the local stack lacks: ` +
+        `${numberList(outside.map(({ pull }) => pull.number))}. \`gh stack unstack\` would ` +
+        "leave them out of the rebuilt stack. Update the stack first, then rerun the restructuring.",
+    );
   const active = layers.filter((layer) => layer.active);
   for (const { path, branch } of otherWorktreeHolders(active.map((layer) => layer.name)))
     stops.push(
@@ -1026,6 +1045,13 @@ function main(args) {
     return checkCommand({ remote: rest[1] });
   if (subcommand === "check" && rest.length >= 5 && rest[0] === "--remote" && rest[2] === "--trunk")
     return checkCommand({ remote: rest[1], trunk: rest[3], branches: rest.slice(4) });
+  if (
+    subcommand === "check" &&
+    rest.length >= 3 &&
+    rest[0] === "--remote" &&
+    rest[2] === "--restructure"
+  )
+    return checkCommand({ remote: rest[1], renamed: rest.slice(3) });
   if (subcommand === "compare" && rest.length === 1) return compareCommand(rest[0]);
   if (subcommand === "after-sync" && rest.length === 1) return afterSyncCommand(rest[0]);
   if (subcommand === "after-submit" && rest.length === 1) return afterSubmitCommand(rest[0]);
