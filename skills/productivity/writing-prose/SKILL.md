@@ -1,6 +1,8 @@
 ---
 name: writing-prose
 description: Writes and edits prose for people in a plain, conversational, short house style with no em dashes. Use when drafting or revising documentation, READMEs, explanations, blog posts, or other human-facing prose. Not for prompts written for agents; use writing-system-prompts or composing-agent-prompts.
+metadata:
+  say: "write this up"
 ---
 
 # Writing Prose

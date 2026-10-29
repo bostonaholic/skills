@@ -3,6 +3,8 @@ name: explaining-architecture
 description: Explains how a subsystem, feature flow, or runtime path works (architecture, data flow, file map, gotchas), with an optional critique by fresh-context critics. Read-only. Use when asked how a subsystem or flow works or where logic belongs. Not for why code is shaped as it is; use investigating-design-rationale. Not for explaining a PR or diff; use explaining-code.
 effort: medium
 argument-hint: "[<subsystem, feature, or question>]"
+metadata:
+  say: "how does this work?"
 ---
 
 # Explaining architecture

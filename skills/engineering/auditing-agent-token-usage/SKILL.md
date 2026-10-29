@@ -2,6 +2,8 @@
 name: auditing-agent-token-usage
 description: "Audits recent Claude Code and Codex session logs for token and context cost: model routing, inherited subagent models, long sessions, compactions, oversized tool results, and unused MCP servers. Use when asked about agent token usage, context costs, session length, model routing, or cost efficiency."
 argument-hint: "[<days>]"
+metadata:
+  say: "audit my token usage"
 ---
 
 # Auditing agent token usage

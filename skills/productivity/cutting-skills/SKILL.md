@@ -1,6 +1,8 @@
 ---
 name: cutting-skills
 description: Audits or trims an existing agent skill to its behavioral core and narrows over-broad trigger metadata. Use when the user asks to cut, simplify, shorten, de-slop, or reduce the context cost or trigger aggressiveness of a SKILL.md or skill folder. Never infer from a skill being long or edited for another purpose.
+metadata:
+  say: "cut this skill"
 ---
 
 # Skill Cutter

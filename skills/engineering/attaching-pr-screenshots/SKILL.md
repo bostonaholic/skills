@@ -3,6 +3,8 @@ name: attaching-pr-screenshots
 description: Uploads local images and short videos (mp4, mov, webm) through GitHub's attachment pipeline and writes one verified Screenshots section into a PR body. Use when the user explicitly asks to add or attach screenshots to a PR. Never infer from local images. Not for capturing screenshots; use capturing-screenshots.
 effort: medium
 argument-hint: "[<pr-number-or-url>] [--entries <path>]"
+metadata:
+  say: "attach screenshots to the PR"
 ---
 
 # Attaching PR screenshots

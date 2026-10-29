@@ -2,6 +2,8 @@
 name: summarizing-shipped-work
 description: Summarizes the user's merged GitHub PRs for a timeframe into a grouped, linked shipped-work report with highlights, and offers to update a brag document. Use when asked what the user shipped (this week, last month, a quarter, since a date), for a status update, or to update a brag doc.
 argument-hint: "[timeframe] [owner...]"
+metadata:
+  say: "what did I ship?"
 ---
 
 # Summarizing shipped work

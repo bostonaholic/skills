@@ -1,6 +1,8 @@
 ---
 name: choosing-determinism
 description: Moves each step of an agent skill whose correct result is fixed by its inputs into a script the skill runs, leaving the model only judgment. Use when creating a skill, or adding or changing its steps, commands, or parsing. Not for trimming a skill; use cutting-skills.
+metadata:
+  say: "script the deterministic steps"
 ---
 
 # Choosing Determinism

@@ -1,6 +1,8 @@
 ---
 name: auditing-rails-tech-debt
 description: Audits a Rails app for tech debt, citing each finding to PoEAA, SOLID, or the Rails guides with file:line evidence and before/after code. Use when auditing Rails for anti-patterns, fat models or controllers, callback abuse, or N+1 queries. Not for over-engineering; use simplifying-ruby-code.
+metadata:
+  say: "audit Rails tech debt"
 ---
 
 # Rails tech debt audit

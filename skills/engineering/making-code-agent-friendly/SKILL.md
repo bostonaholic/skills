@@ -3,6 +3,8 @@ name: making-code-agent-friendly
 description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Use when asked to make code agent-friendly or find where parallel agents will collide. Not for general code review; use reviewing-code.'
 effort: high
 argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding>]"
+metadata:
+  say: "make this agent-friendly"
 ---
 
 # Making code agent-friendly

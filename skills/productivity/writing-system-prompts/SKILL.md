@@ -1,6 +1,8 @@
 ---
 name: writing-system-prompts
 description: Writes and reviews system prompts for AI tools, agents, chatbots, and LLM products using a fixed section order and a quality checklist. Use when drafting a system prompt or auditing one for missing stop criteria, tool rules, constraints, or examples. Not for compressing an existing prompt; use improving-prompts.
+metadata:
+  say: "write a system prompt"
 ---
 
 # System Prompt Engineering

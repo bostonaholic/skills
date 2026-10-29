@@ -2,6 +2,8 @@
 name: improving-prompts
 argument-hint: "<prompt text or file path containing the prompt to improve>"
 description: Compresses and clarifies an existing LLM prompt through concept elevation, verifying that no original instruction is lost. Use when the user supplies a prompt or prompt file and asks to improve, tighten, optimize, or refine it. Not for writing a new prompt; use writing-system-prompts.
+metadata:
+  say: "improve this prompt"
 ---
 
 # Improve Prompt Using Concept Elevation

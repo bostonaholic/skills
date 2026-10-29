@@ -2,6 +2,7 @@
 name: configuring-zsh
 description: Chooses the zsh startup file (.zshenv, .zprofile, .zshrc, .zlogin, or a custom plugin under ZSH_CUSTOM) for a configuration change and edits the dotfiles repo source behind the symlink. Use when adding or moving environment variables, PATH entries, aliases, functions, setopt or zstyle options, or completions in zsh config.
 metadata:
+  say: "add this to my zsh config"
   filePattern:
     - "zsh/*"
     - "**/zshrc"

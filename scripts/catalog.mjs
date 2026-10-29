@@ -28,7 +28,7 @@ export const README_END = "<!-- generated:end -->";
 
 const TABLE_HEADER = ["Skill", "Say", "What it does"];
 const SAY_LEGEND =
-  "Skills marked (automatic) load when your request matches them. Start the others with the command in the Say column, written in [the form your harness uses](AGENTS.md#what-the-skills-are).";
+  "Say a quoted phrase, or ask in your own words, and the matching skill loads. A skill shown as a command starts only when you run it, written in [the form your harness uses](AGENTS.md#what-the-skills-are).";
 const CALLS_LEAD = "Some skills call others. Install the skills they call too.";
 
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
@@ -81,7 +81,11 @@ function loadSkill(path, skillNames, errors) {
   else if (name !== directoryName)
     errors.push(`${path}: name "${name}" differs from its directory "${directoryName}"`);
   if (!description) errors.push(`${path}: no description`);
-  if (name !== directoryName || !description) return null;
+  const userInvoked = scalar(frontmatter, "disable-model-invocation") === "true";
+  const say = scalar(frontmatter, "say");
+  if (!userInvoked && !say)
+    errors.push(`${path}: no metadata.say phrase for the README Say column`);
+  if (name !== directoryName || !description || (!userInvoked && !say)) return null;
 
   const yamlPath = `${dir}/agents/openai.yaml`;
   const yaml = existsSync(yamlPath) ? readFileSync(yamlPath, "utf8") : "";
@@ -95,7 +99,8 @@ function loadSkill(path, skillNames, errors) {
     summary: shortDescription.replace(/\.$/, ""),
     description,
     argumentHint: scalar(frontmatter, "argument-hint") ?? "",
-    userInvoked: scalar(frontmatter, "disable-model-invocation") === "true",
+    userInvoked,
+    say,
     calls: calls(dir, skillNames),
   };
 }
@@ -131,7 +136,7 @@ export function skillGroups(catalog) {
 function tableRow(skill) {
   return [
     `[\`${skill.name}\`](./${skill.directory}/SKILL.md)`,
-    skill.userInvoked ? `\`/${skill.name}\`` : "(automatic)",
+    skill.userInvoked ? `\`/${skill.name}\`` : `"${skill.say}"`,
     `${skill.summary}.`,
   ];
 }

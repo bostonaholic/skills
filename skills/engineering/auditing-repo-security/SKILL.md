@@ -1,6 +1,8 @@
 ---
 name: auditing-repo-security
 description: Audits a third-party or freshly cloned repo before install or run for install hooks, auto-run files, CVEs, typosquats, and malicious code, graded A-F with a safe-to-run verdict. Use when asked whether a clone is safe to run, or to audit or scan a third-party repo. Not for security review of a diff or PR; use reviewing-security.
+metadata:
+  say: "is this repo safe to run?"
 ---
 
 # Auditing repo security

@@ -126,9 +126,10 @@ test("categorized inputs retain names, source paths, calls, and invocation label
     "docs/copy-code.js": "",
     "skills/engineering/alpha/SKILL.md":
       "---\nname: alpha\ndescription: Fixture reader.\ndisable-model-invocation: true\n---\nCall the Skill tool with `beta`.\n",
-    "skills/productivity/beta/SKILL.md": "---\nname: beta\ndescription: Fixture writer.\n---\n",
+    "skills/productivity/beta/SKILL.md":
+      "---\nname: beta\ndescription: Fixture writer.\nmetadata:\n  say: run beta\n---\n",
     "skills/deprecated/old/SKILL.md.disabled":
-      "---\nname: old\ndescription: Archived fixture.\n---\n",
+      "---\nname: old\ndescription: Archived fixture.\nmetadata:\n  say: run old\n---\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
@@ -137,7 +138,7 @@ test("categorized inputs retain names, source paths, calls, and invocation label
   assert.match(readme, /### Productivity\n\n\| Skill +\| Say +\| What it does +\|/);
   assert.ok(readme.includes("./skills/productivity/beta/SKILL.md"));
   assert.equal(rowCells(readmeRow(root, "engineering", "alpha"))[1], "`/alpha`");
-  assert.equal(rowCells(readmeRow(root, "productivity", "beta"))[1], "(automatic)");
+  assert.equal(rowCells(readmeRow(root, "productivity", "beta"))[1], '"run beta"');
   assert.match(readme, /^- `alpha` calls `beta`\.$/m);
   assert.ok(!readme.includes("Explicit invocation only"), readme);
   assert.ok(!readme.includes("Archived fixture"));
@@ -154,7 +155,8 @@ test("categorized inputs retain names, source paths, calls, and invocation label
 });
 
 test("catalog rejects ambiguous command names across categories", (t) => {
-  const entry = "---\nname: widget\ndescription: Fixture command.\n---\n";
+  const entry =
+    "---\nname: widget\ndescription: Fixture command.\nmetadata:\n  say: run widget\n---\n";
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/widget/SKILL.md": entry,
@@ -234,7 +236,7 @@ test("the site HTML-escapes argument hints from its input", (t) => {
     "docs/CNAME": "example.test\n",
     "docs/style.css": "body { margin: 0; }\n",
     "docs/copy-code.js": "",
-    "skills/engineering/widget/SKILL.md": `---\nname: widget\ndescription: Use for fixture checks.\nargument-hint: '${hint}'\n---\n\n# widget\n`,
+    "skills/engineering/widget/SKILL.md": `---\nname: widget\ndescription: Use for fixture checks.\nargument-hint: '${hint}'\nmetadata:\n  say: run widget\n---\n\n# widget\n`,
   });
   const html = readFileSync(join(buildSite(t, root), "index.html"), "utf8");
   assert.ok(html.includes(escaped(hint)), "hint missing in escaped form");
@@ -248,9 +250,9 @@ test("a Skill tool call wrapped across a line break still yields a Skill calls e
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/alpha/SKILL.md":
-      "---\nname: alpha\ndescription: 'Use for fixture checks.'\n---\n\n# alpha\n\nWhen the report is ready, call the Skill tool\nwith `beta` to publish it.\n",
+      "---\nname: alpha\ndescription: 'Use for fixture checks.'\nmetadata:\n  say: run alpha\n---\n\n# alpha\n\nWhen the report is ready, call the Skill tool\nwith `beta` to publish it.\n",
     "skills/engineering/beta/SKILL.md":
-      "---\nname: beta\ndescription: 'Use for fixture publishing.'\n---\n\n# beta\n",
+      "---\nname: beta\ndescription: 'Use for fixture publishing.'\nmetadata:\n  say: run beta\n---\n\n# beta\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
@@ -262,7 +264,7 @@ test("a skill without agents/openai.yaml is listed with the first sentence of it
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/gamma/SKILL.md":
-      "---\nname: gamma\ndescription: 'Use for fixture checks. Produces a fixture report.'\n---\n\n# gamma\n",
+      "---\nname: gamma\ndescription: 'Use for fixture checks. Produces a fixture report.'\nmetadata:\n  say: run gamma\n---\n\n# gamma\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
@@ -270,7 +272,7 @@ test("a skill without agents/openai.yaml is listed with the first sentence of it
   const table = [
     "| Skill                                          | Say         | What it does            |",
     "| ---------------------------------------------- | ----------- | ----------------------- |",
-    "| [`gamma`](./skills/engineering/gamma/SKILL.md) | (automatic) | Use for fixture checks. |",
+    '| [`gamma`](./skills/engineering/gamma/SKILL.md) | "run gamma" | Use for fixture checks. |',
   ].join("\n");
   assert.ok(readme.includes(table), `README.md lacks the padded gamma table:\n${readme}`);
   assert.ok(!readme.includes("### Skill calls"), readme);
@@ -281,18 +283,18 @@ test("a column header wider than every body cell sets that column's width", (t) 
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/delta/SKILL.md":
-      "---\nname: delta\ndescription: 'Use it.'\n---\n\n# delta\n",
+      "---\nname: delta\ndescription: 'Use it.'\nmetadata:\n  say: run delta\n---\n\n# delta\n",
     "skills/engineering/epsilon/SKILL.md":
-      "---\nname: epsilon\ndescription: 'Use for a.'\n---\n\n# epsilon\n",
+      "---\nname: epsilon\ndescription: 'Use for a.'\nmetadata:\n  say: run epsilon\n---\n\n# epsilon\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const table = [
-    "| Skill                                              | Say         | What it does |",
-    "| -------------------------------------------------- | ----------- | ------------ |",
-    "| [`delta`](./skills/engineering/delta/SKILL.md)     | (automatic) | Use it.      |",
-    "| [`epsilon`](./skills/engineering/epsilon/SKILL.md) | (automatic) | Use for a.   |",
+    "| Skill                                              | Say           | What it does |",
+    "| -------------------------------------------------- | ------------- | ------------ |",
+    '| [`delta`](./skills/engineering/delta/SKILL.md)     | "run delta"   | Use it.      |',
+    '| [`epsilon`](./skills/engineering/epsilon/SKILL.md) | "run epsilon" | Use for a.   |',
   ].join("\n");
   assert.ok(readme.includes(table), `README.md lacks the header-widest table:\n${readme}`);
 });
@@ -310,7 +312,7 @@ for (const { label, value, cell } of CELL_ESCAPE_CASES) {
     const root = fixtureRepo(t, {
       "README.md": FIXTURE_README,
       "skills/engineering/pipe/SKILL.md":
-        "---\nname: pipe\ndescription: 'Use for fixture checks.'\n---\n\n# pipe\n",
+        "---\nname: pipe\ndescription: 'Use for fixture checks.'\nmetadata:\n  say: run pipe\n---\n\n# pipe\n",
       "skills/engineering/pipe/agents/openai.yaml": `interface:\n  short_description: ${value}\n`,
     });
     const run = runCli(CATALOG, root, "--write");
@@ -318,7 +320,7 @@ for (const { label, value, cell } of CELL_ESCAPE_CASES) {
     const row = readmeRow(root, "engineering", "pipe");
     assert.deepEqual(rowCells(row), [
       "[`pipe`](./skills/engineering/pipe/SKILL.md)",
-      "(automatic)",
+      '"run pipe"',
       cell,
     ]);
     const header = readFileSync(join(root, "README.md"), "utf8")
@@ -332,7 +334,7 @@ test("--write exits 1 naming the missing generated-block marker", (t) => {
   const root = fixtureRepo(t, {
     "README.md": `# Fixture\n\n${END}\n`,
     "skills/engineering/gamma/SKILL.md":
-      "---\nname: gamma\ndescription: 'Use for fixture checks.'\n---\n\n# gamma\n",
+      "---\nname: gamma\ndescription: 'Use for fixture checks.'\nmetadata:\n  say: run gamma\n---\n\n# gamma\n",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 1, run.output);
@@ -343,18 +345,30 @@ test("catalog --check exits 1 naming a SKILL.md whose name differs from its dire
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/delta/SKILL.md":
-      "---\nname: epsilon\ndescription: 'Use for fixture checks.'\n---\n\n# delta\n",
+      "---\nname: epsilon\ndescription: 'Use for fixture checks.'\nmetadata:\n  say: run epsilon\n---\n\n# delta\n",
   });
   const run = runCli(CATALOG, root, "--check");
   assert.equal(run.status, 1, run.output);
   assert.ok(run.output.includes("skills/engineering/delta/SKILL.md"), run.output);
 });
 
-test("catalog --check exits 1 naming a stale block after a description changes", (t) => {
+test("catalog --check exits 1 naming a model-invoked SKILL.md without metadata.say", (t) => {
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/gamma/SKILL.md":
       "---\nname: gamma\ndescription: 'Use for fixture checks.'\n---\n\n# gamma\n",
+  });
+  const run = runCli(CATALOG, root, "--check");
+  assert.equal(run.status, 1, run.output);
+  assert.ok(run.output.includes("skills/engineering/gamma/SKILL.md"), run.output);
+  assert.ok(run.output.includes("metadata.say"), run.output);
+});
+
+test("catalog --check exits 1 naming a stale block after a description changes", (t) => {
+  const root = fixtureRepo(t, {
+    "README.md": FIXTURE_README,
+    "skills/engineering/gamma/SKILL.md":
+      "---\nname: gamma\ndescription: 'Use for fixture checks.'\nmetadata:\n  say: run gamma\n---\n\n# gamma\n",
   });
   const write = runCli(CATALOG, root, "--write");
   assert.equal(write.status, 0, write.output);
@@ -362,7 +376,7 @@ test("catalog --check exits 1 naming a stale block after a description changes",
   assert.equal(fresh.status, 0, fresh.output);
   writeFileSync(
     join(root, "skills/engineering/gamma/SKILL.md"),
-    "---\nname: gamma\ndescription: 'Use for changed checks.'\n---\n\n# gamma\n",
+    "---\nname: gamma\ndescription: 'Use for changed checks.'\nmetadata:\n  say: run gamma\n---\n\n# gamma\n",
   );
   const stale = runCli(CATALOG, root, "--check");
   assert.equal(stale.status, 1, stale.output);
@@ -375,7 +389,7 @@ test("build-site exits 1 naming a SKILL.md whose name differs from its directory
     "docs/style.css": "body { margin: 0; }\n",
     "docs/copy-code.js": "",
     "skills/engineering/delta/SKILL.md":
-      "---\nname: epsilon\ndescription: 'Use for fixture checks.'\n---\n\n# delta\n",
+      "---\nname: epsilon\ndescription: 'Use for fixture checks.'\nmetadata:\n  say: run epsilon\n---\n\n# delta\n",
   });
   const run = runCli(BUILD_SITE, root, join(root, "site"));
   assert.equal(run.status, 1, run.output);

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Every model-invoked skill sets a `metadata.say` trigger phrase, such as "code review" or "ship it", listed in the README's Say column. [#162](https://github.com/bostonaholic/skills/pull/162)
+
 ## [0.74.0] - 2026-10-29
 
 ### Added
