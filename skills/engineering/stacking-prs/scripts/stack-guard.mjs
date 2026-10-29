@@ -37,7 +37,8 @@
  *   worktree holds a tested branch. Then fetches <remote> once and tests each
  *   active layer (not merged, not queued) against its remote copy: absent
  *   or ahead passes, behind fast-forwards (`git merge --ff-only` on the
- *   current branch, `git fetch .` on another). Writes the record that
+ *   current branch, `git fetch .` on another), and diverged passes only when
+ *   every remote commit has a local copy. Writes the record that
  *   compare and after-submit read, in a new directory under the system temp
  *   directory. On exit 0 prints, lists comma-separated:
  *
@@ -45,6 +46,8 @@
  *     TRUNK         the stack's trunk, or --trunk
  *     RECORD        the record's path
  *     FORWARDED     layers check fast-forwarded
+ *     DIVERGED      diverged layers that passed, because every remote commit
+ *                   has a local copy or is on <remote>/<trunk>
  *     REMOTE_ONLY   stack mode: PR numbers on the GitHub stack whose
  *                   branches no layer has, each the viewer's own and open
  *     NO_PR         stack mode: active layers with no open PR
@@ -78,7 +81,8 @@
  *      record
  *   3  check: another worktree holds a tested branch, or a PR by another
  *      author (or none), a closed or queued PR, or a branch with two open PRs
- *   4  check: a layer's remote copy has commits the local layer lacks
+ *   4  check: a diverged layer's remote copy has commits with no local copy
+ *      (by patch ID) that are not on <remote>/<trunk>
  *   5  compare: a recorded tip, PR, PR state, merged layer's local tip, or
  *      the GitHub stack's PRs changed, or a new layer appeared on the remote
  *   6  after-submit: an active layer has no open PR
@@ -718,10 +722,29 @@ function fastForward(remote, branch, currentBranch) {
   else runGit(["fetch", "--quiet", ".", `${remoteRef(remote, branch)}:refs/heads/${branch}`]);
 }
 
-// The remote-tip test: absent and ahead pass, behind fast-forwards, anything else stops.
-function testRemoteTips(remote, layers) {
+// The remote commits of a diverged layer that have no local copy and are not on the trunk.
+// --cherry-pick matches a rebased copy by patch ID, and --not <remote>/<trunk> drops the
+// commits of a lower layer that merged, so GitHub's post-merge rebase lists nothing.
+function remoteCommitsWithoutCopy(remote, trunk, branch) {
+  return runGit([
+    "log",
+    "--format=%H",
+    "--cherry-pick",
+    "--right-only",
+    `refs/heads/${branch}...${remoteRef(remote, branch)}`,
+    "--not",
+    remoteRef(remote, trunk),
+  ])
+    .stdout.split("\n")
+    .filter(Boolean);
+}
+
+// The remote-tip test: absent and ahead pass, behind fast-forwards, diverged passes only when
+// every remote commit has a local copy.
+function testRemoteTips(remote, trunk, layers) {
   const currentBranch = runGit(["branch", "--show-current"]).stdout.trim();
   const forwarded = [];
+  const diverged = [];
   const lacking = [];
   for (const layer of layers) {
     const remoteCopy = remoteRef(remote, layer.name);
@@ -732,10 +755,17 @@ function testRemoteTips(remote, layers) {
       forwarded.push(layer.name);
       continue;
     }
-    lacking.push(`\`${layer.name}\` has commits on \`${remote}\` that the local layer lacks.`);
+    const commits = remoteCommitsWithoutCopy(remote, trunk, layer.name);
+    if (commits.length === 0) {
+      diverged.push(layer.name);
+      continue;
+    }
+    lacking.push(
+      `\`${layer.name}\` has commits on \`${remote}\` with no local copy: ${commits.join(", ")}.`,
+    );
   }
   if (lacking.length > 0) stop(EXIT_REMOTE_COMMITS, lacking);
-  return { forwarded };
+  return { forwarded, diverged };
 }
 
 function surveyNamed(repository, branches) {
@@ -805,7 +835,7 @@ function checkCommand({ remote, trunk, branches }) {
     stop(named ? EXIT_USAGE : EXIT_FAILED, [
       `\`${remote}/${survey.trunk}\` does not exist after the fetch.`,
     ]);
-  const { forwarded } = testRemoteTips(remote, active);
+  const { forwarded, diverged } = testRemoteTips(remote, survey.trunk, active);
 
   const record = writeRecord({
     remote,
@@ -828,6 +858,7 @@ function checkCommand({ remote, trunk, branches }) {
     `TRUNK=${survey.trunk}`,
     `RECORD=${record}`,
     `FORWARDED=${forwarded.join(",")}`,
+    `DIVERGED=${diverged.join(",")}`,
   ];
   if (named)
     return [...common, `STACKED=${survey.stacks.map(({ layer }) => layer.name).join(",")}`];

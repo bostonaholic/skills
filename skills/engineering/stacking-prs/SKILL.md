@@ -60,6 +60,18 @@ Publish only when the request asks to open, push, or update PRs, or the reposito
 5. Rewrite each new PR's title and body, which `--auto` fills from templates and commits. Write both with the file-writing tool, then run `gh pr edit <n> --repo <repo> --title "$(cat <title-file>)" --body-file <body-file>`.
 6. Never `gh pr create` a layer, and never `gh pr edit --base` a stacked PR.
 
+## Update a pushed stack
+
+A request to change a layer takes the change path. Run the prerequisites, `repo`, `gh stack view --json` (exit 2 or 6: recovery), and `check --remote <remote>`, keeping its `RECORD`. Any non-zero `check` exit: recovery.
+
+1. A non-empty `REMOTE_ONLY` stops the run before any edit: "The GitHub stack has PRs the local stack lacks: #`<m>`. Ask to update the stack first, then rerun the change."
+2. A non-empty `DIVERGED` runs `gh stack rebase --remote <remote>` before the edit. Every active layer then counts as rewritten.
+3. The owning layer must show `isMerged` false, else stop: "PR #`<n>` is merged. Put the change in a new PR." Move with `gh stack bottom`, `down`, `up`, or `checkout <layer>`. Edit, `git add -- <paths>`, `git commit -F <message-file>`, and run its checks.
+4. Cascade: run `view --json`. Above the lowest active layer, take the lowest active layer with `needsRebase` true and run `gh stack rebase --upstack --no-trunk <that-layer>`. Then check each layer committed on or rewritten.
+5. A failed check gets one fix on its layer, then step 4 repeats. A second failure there, or a fix that belongs lower, stops the run.
+6. Run `compare <record>`, then `gh stack push --remote <remote>` when publishing is covered. Else report `compare` and `push` as next.
+7. When the lowest active layer shows `needsRebase`, the report names `gh stack sync --remote <remote>`.
+
 ## Report
 
 Give the trunk, then each layer bottom to top with its branch, its PR or "not pushed", its concern, and the checks run. Then name any stop and the next command. When publishing is not covered, name `check`, `compare`, `submit`, and `after-submit` as next.

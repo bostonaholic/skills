@@ -761,6 +761,21 @@ function replaceRemote(w, branch, file) {
   return oid;
 }
 
+// Merges invoices/schema into main on the remote, then rebases invoices/api and
+// invoices/ui onto the result and force-pushes them, as GitHub does after a stacked merge.
+function mergeBottomOnRemote(w) {
+  const clone = otherClone(w);
+  git(clone, "merge", "-q", "--no-ff", "-m", "Merge invoices/schema", "origin/invoices/schema");
+  git(clone, "push", "-q", "origin", "main");
+  const oldApi = git(clone, "rev-parse", "origin/invoices/api");
+  git(clone, "switch", "-q", "-c", "invoices/api", "origin/invoices/api");
+  git(clone, "rebase", "-q", "main");
+  git(clone, "push", "-q", "-f", "origin", "invoices/api");
+  git(clone, "switch", "-q", "-c", "invoices/ui", "origin/invoices/ui");
+  git(clone, "rebase", "-q", "--onto", "invoices/api", oldApi);
+  git(clone, "push", "-q", "-f", "origin", "invoices/ui");
+}
+
 // Adds a worktree for <branch> at <dir>/<name>, recorded under a path through the symlink
 // <dir>/link, so `git worktree list` prints a path that differs as a string from the real one.
 function addWorktreeThroughLink(w, name, branch) {
@@ -2129,5 +2144,96 @@ test("check fast-forwards a behind layer unless another worktree holds it", asyn
     const result = run(w, ["check", "--remote", "origin"], { cwd: linkedTree });
 
     assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+// Slice 5
+
+test("check passes a rebased layer only when every remote commit has a local copy", async (t) => {
+  await t.test("stack mode: layers GitHub rebased after a merge pass in DIVERGED", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    mergeBottomOnRemote(w);
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema", { state: "MERGED" }),
+        pull(102, "invoices/api"),
+        pull(103, "invoices/ui"),
+      ],
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "DIVERGED"), ["invoices/api", "invoices/ui"]);
+  });
+
+  await t.test(
+    "stack mode: layers rebased locally over their old remote copies pass in DIVERGED",
+    (t) => {
+      const { w } = pushedStackWorld(t);
+      commitOn(w, "invoices/schema", "schema-fix.txt");
+      git(w.work, "switch", "-q", "invoices/api");
+      git(w.work, "rebase", "-q", "invoices/schema");
+      git(w.work, "switch", "-q", "invoices/ui");
+      git(w.work, "rebase", "-q", "invoices/api");
+
+      const result = run(w, ["check", "--remote", "origin"]);
+
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(listKey(result.stdout, "DIVERGED"), ["invoices/api", "invoices/ui"]);
+    },
+  );
+
+  await t.test("stack mode: a remote commit with no local copy exits 4 naming it", (t) => {
+    const { w } = pushedStackWorld(t);
+    commitOn(w, "invoices/api", "api-local.txt");
+    const remoteOnly = advanceRemote(w, "invoices/api", "api-remote.txt");
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 4, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+    assert.ok(
+      result.stderr.includes(remoteOnly.slice(0, 7)),
+      `stderr does not name ${remoteOnly}:\n${result.stderr}`,
+    );
+  });
+
+  await t.test(
+    "named mode: a branch rebased locally over its old remote copy passes in DIVERGED",
+    (t) => {
+      const w = exportWorld(t);
+      advanceRemote(w, "main", "main-next.txt");
+      git(w.work, "fetch", "-q", "origin");
+      git(w.work, "rebase", "-q", "origin/main");
+
+      const result = run(w, NAMED_EXPORT);
+
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(listKey(result.stdout, "DIVERGED"), ["invoices/export"]);
+    },
+  );
+
+  await t.test("named mode: a remote commit with no local copy exits 4 naming it", (t) => {
+    const w = exportWorld(t);
+    commit(w.work, "export-local.txt");
+    const remoteOnly = advanceRemote(w, "invoices/export", "export-remote.txt");
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 4, result.stderr);
+    assert.match(result.stderr, /invoices\/export/);
+    assert.ok(
+      result.stderr.includes(remoteOnly.slice(0, 7)),
+      `stderr does not name ${remoteOnly}:\n${result.stderr}`,
+    );
   });
 });
