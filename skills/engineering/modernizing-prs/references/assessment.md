@@ -86,15 +86,15 @@ The evidence bar, exact:
 
 The first matching row decides:
 
-| Observed fact                                                                                                          | Disposition                    |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| The code at the base tip holds every PR change, or the branch's commits after the merge-base together change nothing   | `CLOSE`                        |
-| Base tip code delivers the PR's outcome, read in code                                                                  | `CLOSE`                        |
-| The base deleted the target, the base tip holds none of the code the PR changes, and nothing else carries the behavior | `CLOSE`                        |
-| Base history holds a PR change that the base tip lacks, such as one a later base commit reverted                       | `REWORK`, naming the PR commit |
-| The base moved the target as a rename git detects, and the goal still applies there                                    | `MODERNIZE`                    |
-| The base split, rewrote, or replaced the target, and the goal still applies in the new place                           | `REWORK`, naming the new place |
-| None of the rows above                                                                                                 | `MODERNIZE`                    |
+| Observed fact                                                                                                               | Disposition                    |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| The code at the base tip holds every PR change, or the branch has commits after the merge-base that together change nothing | `CLOSE`                        |
+| Base tip code delivers the PR's outcome, read in code                                                                       | `CLOSE`                        |
+| The base deleted the target, the base tip holds none of the code the PR changes, and nothing else carries the behavior      | `CLOSE`                        |
+| Base history holds a PR change that the base tip lacks, such as one a later base commit reverted                            | `REWORK`, naming the PR commit |
+| The base moved the target as a rename git detects, and the goal still applies there                                         | `MODERNIZE`                    |
+| The base split, rewrote, or replaced the target, and the goal still applies in the new place                                | `REWORK`, naming the new place |
+| None of the rows above                                                                                                      | `MODERNIZE`                    |
 
 Moved code is a change of place, not of need, so it is never `CLOSE`
 evidence. "Directionally wrong" or "no longer worth its cost" is not an
