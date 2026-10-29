@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- Removed `pricing-creativity`: the plugins, `npx skills`, and the Grok Bot strategy set no longer install it. [#163](https://github.com/bostonaholic/skills/pull/163)
+
 ## [0.72.1] - 2026-10-28
 
 ### Changed
