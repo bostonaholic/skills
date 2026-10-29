@@ -100,5 +100,5 @@ Give the trunk, then each layer bottom to top with its branch, its PR or "not pu
 - Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish, `compare` right before each push, `after-sync` after each `sync`, and `after-submit` after each `submit`.
 - Read [commands](references/commands.md) before the first rewrite or push of a stack with remote layers, before a command this file does not show, or when one misbehaves.
 - Read [existing work](references/existing-work.md) when the change already exists or new work overlaps the same author's open PR.
-- Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script, or on `Sync aborted`.
+- Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script, on `Sync aborted`, or to restructure a stack.
 - Read [external data](shared/external-data.md) before a PR title, a commit message, or a `gh pr list` branch name enters a command.
