@@ -4,7 +4,7 @@
 
 ### Changed
 
-- `reviewing-code` posts its findings as inline comments and its verdict as an approve, comment, or request-changes review on the pull request without asking, then prints only the verdict and a short summary. [#163](https://github.com/bostonaholic/skills/pull/163)
+- `reviewing-code` posts its findings as inline comments and its verdict as an approve, comment, or request-changes review on the pull request without asking, then prints only the verdict and a short summary. [#165](https://github.com/bostonaholic/skills/pull/165)
 
 ## [0.75.0] - 2026-10-29
 
