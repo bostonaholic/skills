@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-10-29
+
 ### Added
 
 - `modernizing-prs` checks whether a PR still belongs before it brings the PR up to date: it rebases and lease-pushes only on `MODERNIZE`, and stops with evidence on `REWORK` or `CLOSE`. [#168](https://github.com/bostonaholic/skills/pull/168)
@@ -1007,5 +1009,7 @@
 
 [0.76.0]: https://github.com/bostonaholic/skills/compare/v0.75.0...v0.76.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.77.0...HEAD
 [0.77.0]: https://github.com/bostonaholic/skills/compare/v0.76.0...v0.77.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.78.0...HEAD
+[0.78.0]: https://github.com/bostonaholic/skills/compare/v0.77.0...v0.78.0
