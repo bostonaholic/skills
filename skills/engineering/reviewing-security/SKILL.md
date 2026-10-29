@@ -40,7 +40,7 @@ Then:
 
 ## Reviewer
 
-- Under the [independent review rules](shared/independent-review.md), run the [security reviewer brief](references/security-reviewer.md) in a fresh-context subagent that holds no file-editing tool.
+- Under the [independent review rules](shared/independent-review.md), run the [security reviewer brief](references/security-reviewer.md) in a fresh-context subagent, never a fork of this conversation, that holds no file-editing tool.
 - Pass no author discussion.
 - Give it only:
   - the target and the command that prints its diff. With no shell, or for a text target, pass the diff text verbatim instead, because the subagent cannot see saved output in this session.

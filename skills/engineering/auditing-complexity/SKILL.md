@@ -44,7 +44,7 @@ directory. Parse arguments per [input](references/input.md).
    (module, package, or feature, never a file-name prefix), at most 25 files
    and 4,000 lines per lane; a larger file gets its own lane.
 5. **Measure each lane** per the [lane analyst brief](references/lane-analyst.md),
-   with one fresh-context, read-only subagent per lane where available,
+   with one fresh-context, read-only subagent per lane, never a fork of this conversation, where available,
    otherwise inline. Keep each `skipped` record as returned.
 6. **Assemble.** Put a fresh `git rev-parse HEAD` in `scope.commit`, never
    a copy of `inventory.json`'s `commit`. Add `lanes` and `gaps`.
