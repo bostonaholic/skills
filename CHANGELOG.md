@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-10-29
+
+### Added
+
+- Add `writing-no-comments`, a skill that loads before an agent writes or edits code and keeps out every comment a short keep list does not cover. [#164](https://github.com/bostonaholic/skills/pull/164)
+
+### Changed
+
+- `making-code-agent-friendly` adds no comment the shared keep list rejects when it writes code, and its P10 puts a constraint the code cannot show in a test, a type, or the module's README before a comment. [#164](https://github.com/bostonaholic/skills/pull/164)
+- The `oracle` subagent suggests a comment only for a constraint from outside the project that the code cannot show. [#164](https://github.com/bostonaholic/skills/pull/164)
+- `removing-comments` removes every comment outside the shared keep list, including one it is unsure about, instead of keeping comments that explain a current reason. [#164](https://github.com/bostonaholic/skills/pull/164)
+- `reviewing-code` reports every code comment finding as a non-blocking suggestion that shows the code to replace the comment, so comments alone no longer block a review. [#164](https://github.com/bostonaholic/skills/pull/164)
+
 ## [0.73.0] - 2026-10-29
 
 ### Removed
@@ -951,5 +964,7 @@
 
 [0.72.1]: https://github.com/bostonaholic/skills/compare/v0.72.0...v0.72.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.73.0...HEAD
 [0.73.0]: https://github.com/bostonaholic/skills/compare/v0.72.1...v0.73.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.74.0...HEAD
+[0.74.0]: https://github.com/bostonaholic/skills/compare/v0.73.0...v0.74.0

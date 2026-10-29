@@ -50,7 +50,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[rebasing-open-prs](./skills/engineering/rebasing-open-prs/SKILL.md)**: Rebase all open pull requests onto their bases after confirmation. Explicit invocation only.
 - **[redesigning-from-first-principles](./skills/engineering/redesigning-from-first-principles/SKILL.md)**: Redesign as if a new requirement was always there. Explicit invocation only.
 - **[redoing-implementations](./skills/engineering/redoing-implementations/SKILL.md)**: Rebuild the current work as a simpler design. Explicit invocation only.
-- **[removing-comments](./skills/engineering/removing-comments/SKILL.md)**: Remove low-value source comments, encoding constraints with approval. Explicit invocation only.
+- **[removing-comments](./skills/engineering/removing-comments/SKILL.md)**: Remove every source comment outside a short keep list, fixing root causes with approval. Explicit invocation only.
 - **[reviewing-code](./skills/engineering/reviewing-code/SKILL.md)**: Review a diff in a fresh-context read-only subagent.
 - **[reviewing-design-docs](./skills/engineering/reviewing-design-docs/SKILL.md)**: Adversarially review a technical design document.
 - **[reviewing-security](./skills/engineering/reviewing-security/SKILL.md)**: Security-review a diff in a fresh-context read-only subagent.
@@ -60,6 +60,7 @@ Or follow the [installation instructions](INSTALL.md).
 - **[verifying-production-changes](./skills/engineering/verifying-production-changes/SKILL.md)**: Confirm a merged change took effect in production.
 - **[watching-authored-prs](./skills/engineering/watching-authored-prs/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `addressing-pr-comments`, `rebasing-branches`.
 - **[watching-reviewed-prs](./skills/engineering/watching-reviewed-prs/SKILL.md)**: Watch a PR you reviewed and approve once feedback settles. Explicit invocation only.
+- **[writing-no-comments](./skills/engineering/writing-no-comments/SKILL.md)**: Write code with no comments outside a short keep list.
 - **[writing-no-tests](./skills/engineering/writing-no-tests/SKILL.md)**: Write no tests. I dare you.
 - **[writing-technical-design-docs](./skills/engineering/writing-technical-design-docs/SKILL.md)**: Draft a directionally correct technical design doc. Calls: `reviewing-design-docs`.
 

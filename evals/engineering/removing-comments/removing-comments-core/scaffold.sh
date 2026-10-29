@@ -34,6 +34,7 @@ class ResponseCache
   private
 
   def normalize_key(path)
+    # Some clients send mixed-case paths.
     path.downcase
   end
 

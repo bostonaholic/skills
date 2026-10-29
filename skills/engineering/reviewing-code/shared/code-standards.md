@@ -20,17 +20,7 @@ Add no validator, guard, option, or parallel mechanism that the design, plan, or
 
 ## Code comments
 
-Comments never explain WHAT code does. Permit only a non-obvious WHY (a constraint, workaround, or surprising requirement) that names, structure, and tests cannot carry. Review findings use the [finding format](findings.md).
-
-- **No ticket/issue IDs, plan/slice/phase markers, or doc-section references.** A public upstream-issue URL that is itself the why is allowed; internal trackers and pipeline artifacts are not.
-- **No process narration.** State current constraints. Never mention dates, corrections, edit history, users or prompts, review feedback, ticket discussion, or agent instructions. "Previously," "Originally," "As of," and "This was changed because" are detection hints, not the rule.
-- **No incidentals.** A comment carries its constraint, not the background or discovered asides that led to it.
-- **Document deliberate constraints.** Name the consequence of removing odd code: API limits, compatibility, security, ordering, concurrency, or framework behavior.
-- **Be precise.** Refer to symbols and stable identifiers, not line numbers or layout.
-- No commented-out code. No TODO/FIXME in delivered code; deferred work goes in the report.
-- Doc comments on public interfaces must add contract facts absent from the signature; one that restates the signature is a WHAT comment.
-
-Decision test: Does this explain why? Can code or tests carry it? Is it true now without process context?
+Comments obey the [code comments rules](code-comments.md). Review findings use the [finding format](findings.md).
 
 ## Reviewing
 
