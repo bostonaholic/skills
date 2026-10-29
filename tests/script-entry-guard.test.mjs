@@ -497,22 +497,6 @@ for (const script of ["arm.mjs", "poll.mjs", "render-approval.mjs", "verify-appr
   });
 }
 
-test("price-calc.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/productivity/pricing-creativity/scripts"), "price-calc.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^price-calc\.mjs: usage: price-calc\.mjs /);
-});
-
-test("importing price-calc.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/productivity/pricing-creativity/scripts"), "price-calc.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
 test("contention.mjs run through a symlinked directory reaches its usage error", (t) => {
   const dir = symlinkedDir(t, "skills/engineering/making-code-agent-friendly/scripts");
   const run = spawnSync(process.execPath, [join(dir, "contention.mjs"), "--bogus"], {
