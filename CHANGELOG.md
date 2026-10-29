@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-10-29
+
 ### Added
 
 - Add `writing-no-comments`, a skill that loads before an agent writes or edits code and keeps out every comment a short keep list does not cover. [#164](https://github.com/bostonaholic/skills/pull/164)
@@ -962,5 +964,7 @@
 
 [0.72.1]: https://github.com/bostonaholic/skills/compare/v0.72.0...v0.72.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.73.0...HEAD
 [0.73.0]: https://github.com/bostonaholic/skills/compare/v0.72.1...v0.73.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.74.0...HEAD
+[0.74.0]: https://github.com/bostonaholic/skills/compare/v0.73.0...v0.74.0
