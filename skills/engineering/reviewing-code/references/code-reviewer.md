@@ -22,8 +22,8 @@ cannot support with evidence.
 
 ## Report format
 
-This template is exact. The caller parses the verdict line and relays the
-report in full.
+This template is exact. The caller parses the verdict line and posts the
+findings to the pull request, one inline comment per `file:line`.
 
 ```markdown
 **Verdict: <✅ APPROVE | ❌ REQUEST CHANGES | 💬 COMMENT>**
