@@ -80,6 +80,15 @@ Update path:
 2. Output with `Sync aborted` means nothing changed: stop and report as recovery says. Else run `after-sync <record>`. Exit 6 or 9: recovery. On a pass, run `view --json` and stop. The report says local checks did not run, after a merge or a trunk move alike.
 3. A `sync` conflict moves the run to the change path: reproduce it with `gh stack rebase --remote <remote>`, resolve it, count every active layer rewritten, and continue at the change path's step 4.
 
+## Merge a stack
+
+Never run `gh stack merge`, or `gh pr merge` on a stacked PR. Report how to merge instead.
+
+- Read the prerequisites, `repo`, `view --json`, and `gh api --hostname <host> "repos/<owner>/<repo>/stacks?pull_request=<n>"` with any layer's `pr.number`. With no layer PR, nothing can merge.
+- The target is the PR the request names, else the top unmerged PR. The method is the one the request or the instructions name, else each one `gh repo view <repo> --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed` allows. Name `gh stack merge <pr-number> --yes --<method>` for each.
+- The first unmerged draft or closed PR at or below the target blocks the merge. For a draft, `gh pr ready <n> --repo <repo>` is the user's call.
+- A merge queue on the trunk queues the PRs and ignores the method flag. Next is `gh stack sync --remote <remote>`, run only on a request to update.
+
 ## Report
 
 Give the trunk, then each layer bottom to top with its branch, its PR or "not pushed", its concern, and the checks run. Then name any stop and the next command. When publishing is not covered, name `check`, `compare`, `submit`, and `after-submit` as next.
