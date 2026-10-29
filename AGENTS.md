@@ -5,7 +5,7 @@ This file is the map for agents working with [bostonaholic/skills](https://githu
 ## Start here
 
 1. To install the skills for a user, follow [INSTALL.md](INSTALL.md).
-2. To pick a skill, read the catalog in [README.md](README.md): a table per category with one row per skill, then a list of the skills each one calls.
+2. To pick a skill, read the catalog in [README.md](README.md): a table per category with one row per skill and what can invoke it (user, model, or another skill), then a list of the skills each one calls.
 3. To use a skill, read its `skills/<category>/<name>/SKILL.md` and the files it links.
 4. To change the repository, read the [rules](#rules-for-changes) below, then [skill authoring](docs/skill-authoring.md) and [versioning](docs/versioning.md).
 

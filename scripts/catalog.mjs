@@ -26,9 +26,9 @@ export const INSTALL_DOC = "INSTALL.md";
 export const README_START = "<!-- generated:start -->";
 export const README_END = "<!-- generated:end -->";
 
-const TABLE_HEADER = ["Skill", "Say", "What it does"];
+const TABLE_HEADER = ["Skill", "Say", "Invoked by", "What it does"];
 const SAY_LEGEND =
-  "Say a quoted phrase, or ask in your own words, and the matching skill loads. A skill shown as a command starts only when you run it, written in [the form your harness uses](AGENTS.md#what-the-skills-are).";
+  "Say a quoted phrase, or ask in your own words, and the matching skill loads. A skill shown as a command starts only when you run it, written in [the form your harness uses](AGENTS.md#what-the-skills-are). Invoked by lists what can start a skill: you (user), the agent on its own (model), or another skill (skill).";
 const CALLS_LEAD = "Some skills call others. Install the skills they call too.";
 
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
@@ -104,6 +104,7 @@ function loadSkill(path, skillNames, errors) {
     description,
     argumentHint: scalar(frontmatter, "argument-hint") ?? "",
     userInvoked,
+    modelOnly: scalar(frontmatter, "user-invocable") === "false",
     say,
     calls: calls(dir, skillNames),
   };
@@ -137,10 +138,21 @@ export function skillGroups(catalog) {
   ].filter((group) => group.skills.length);
 }
 
-function tableRow(skill) {
+function invokedBy(skill, called) {
+  return [
+    !skill.modelOnly && "user",
+    !skill.userInvoked && "model",
+    called.has(skill.name) && "skill",
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function tableRow(skill, called) {
   return [
     `[\`${skill.name}\`](./${skill.directory}/SKILL.md)`,
     skill.userInvoked ? `\`/${skill.name}\`` : `"${skill.say}"`,
+    invokedBy(skill, called),
     `${skill.summary}.`,
   ];
 }
@@ -169,6 +181,7 @@ function table(rawRows) {
 
 // Returns the text strictly between README_START and README_END.
 export function renderReadme(catalog) {
+  const called = new Set(catalog.flatMap((skill) => skill.calls));
   const lines = [
     LEDE,
     "",
@@ -191,7 +204,7 @@ export function renderReadme(catalog) {
     lines.push(
       `### ${group.heading}`,
       "",
-      ...table([TABLE_HEADER, ...group.skills.map(tableRow)]),
+      ...table([TABLE_HEADER, ...group.skills.map((skill) => tableRow(skill, called))]),
       "",
     );
   }

@@ -128,24 +128,29 @@ test("categorized inputs retain names, source paths, calls, and invocation label
       "---\nname: alpha\ndescription: Fixture reader.\ndisable-model-invocation: true\n---\nCall the Skill tool with `beta`.\n",
     "skills/productivity/beta/SKILL.md":
       '---\nname: beta\ndescription: Fixture writer. Use when the user says "run beta".\n---\n',
+    "skills/engineering/zeta/SKILL.md":
+      '---\nname: zeta\ndescription: Fixture helper. Use when the user says "run zeta".\nuser-invocable: false\n---\n',
     "skills/deprecated/old/SKILL.md.disabled":
       '---\nname: old\ndescription: Archived fixture. Use when the user says "run old".\n---\n',
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
   const readme = readFileSync(join(root, "README.md"), "utf8");
-  assert.match(readme, /### Engineering\n\n\| Skill +\| Say +\| What it does +\|/);
-  assert.match(readme, /### Productivity\n\n\| Skill +\| Say +\| What it does +\|/);
+  assert.match(readme, /### Engineering\n\n\| Skill +\| Say +\| Invoked by +\| What it does +\|/);
+  assert.match(readme, /### Productivity\n\n\| Skill +\| Say +\| Invoked by +\| What it does +\|/);
   assert.ok(readme.includes("./skills/productivity/beta/SKILL.md"));
   assert.equal(rowCells(readmeRow(root, "engineering", "alpha"))[1], "`/alpha`");
   assert.equal(rowCells(readmeRow(root, "productivity", "beta"))[1], '"run beta"');
+  assert.equal(rowCells(readmeRow(root, "engineering", "alpha"))[2], "user");
+  assert.equal(rowCells(readmeRow(root, "productivity", "beta"))[2], "user, model, skill");
+  assert.equal(rowCells(readmeRow(root, "engineering", "zeta"))[2], "model");
   assert.match(readme, /^- `alpha` calls `beta`\.$/m);
   assert.ok(!readme.includes("Explicit invocation only"), readme);
   assert.ok(!readme.includes("Archived fixture"));
   const html = readFileSync(join(buildSite(t, root), "index.html"), "utf8");
   assert.deepEqual(
     [...html.matchAll(/<section id="([^"]+)"/g)].map(([, id]) => id),
-    ["alpha", "beta"],
+    ["alpha", "zeta", "beta"],
   );
   for (const dir of ["engineering/alpha", "productivity/beta"]) {
     assert.ok(html.includes(`https://github.com/bostonaholic/skills/tree/main/skills/${dir}`));
@@ -270,9 +275,9 @@ test("a skill without agents/openai.yaml is listed with the first sentence of it
   assert.equal(run.status, 0, run.output);
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const table = [
-    "| Skill                                          | Say         | What it does            |",
-    "| ---------------------------------------------- | ----------- | ----------------------- |",
-    '| [`gamma`](./skills/engineering/gamma/SKILL.md) | "run gamma" | Use for fixture checks. |',
+    "| Skill                                          | Say         | Invoked by  | What it does            |",
+    "| ---------------------------------------------- | ----------- | ----------- | ----------------------- |",
+    '| [`gamma`](./skills/engineering/gamma/SKILL.md) | "run gamma" | user, model | Use for fixture checks. |',
   ].join("\n");
   assert.ok(readme.includes(table), `README.md lacks the padded gamma table:\n${readme}`);
   assert.ok(!readme.includes("### Skill calls"), readme);
@@ -291,10 +296,10 @@ test("a column header wider than every body cell sets that column's width", (t) 
   assert.equal(run.status, 0, run.output);
   const readme = readFileSync(join(root, "README.md"), "utf8");
   const table = [
-    "| Skill                                              | Say           | What it does |",
-    "| -------------------------------------------------- | ------------- | ------------ |",
-    '| [`delta`](./skills/engineering/delta/SKILL.md)     | "run delta"   | Use it.      |',
-    '| [`epsilon`](./skills/engineering/epsilon/SKILL.md) | "run epsilon" | Use for a.   |',
+    "| Skill                                              | Say           | Invoked by  | What it does |",
+    "| -------------------------------------------------- | ------------- | ----------- | ------------ |",
+    '| [`delta`](./skills/engineering/delta/SKILL.md)     | "run delta"   | user, model | Use it.      |',
+    '| [`epsilon`](./skills/engineering/epsilon/SKILL.md) | "run epsilon" | user, model | Use for a.   |',
   ].join("\n");
   assert.ok(readme.includes(table), `README.md lacks the header-widest table:\n${readme}`);
 });
@@ -321,6 +326,7 @@ for (const { label, value, cell } of CELL_ESCAPE_CASES) {
     assert.deepEqual(rowCells(row), [
       "[`pipe`](./skills/engineering/pipe/SKILL.md)",
       '"run pipe"',
+      "user, model",
       cell,
     ]);
     const header = readFileSync(join(root, "README.md"), "utf8")
