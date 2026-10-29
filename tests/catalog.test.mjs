@@ -107,10 +107,11 @@ function readmeRow(root, category, name) {
   return row;
 }
 
-// Splits a table row on the pipes that no backslash precedes and trims each cell.
+// Splits a table row where GFM does, on a pipe preceded by an even number of backslashes, and
+// trims each cell.
 function rowCells(row) {
   return row
-    .split(/(?<!\\)\|/)
+    .split(/(?<=(?:^|[^\\])(?:\\\\)*)\|/)
     .slice(1, -1)
     .map((cell) => cell.trim());
 }
@@ -301,6 +302,7 @@ test("a column header wider than every body cell sets that column's width", (t) 
 const CELL_ESCAPE_CASES = [
   { label: "pipe", value: '"Split a | b"', cell: "Split a \\| b." },
   { label: "newline", value: '"Line one\\nline two"', cell: "Line one line two." },
+  { label: "backslash pipe", value: '"Split a \\\\| b"', cell: "Split a \\\\\\| b." },
 ];
 
 for (const { label, value, cell } of CELL_ESCAPE_CASES) {

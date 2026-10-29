@@ -141,8 +141,9 @@ function callsLine(skill) {
 }
 
 // Keeps a cell on one table row: a newline would end the row and a bare pipe would split it.
+// Backslashes are escaped too, or a summary's own `\|` would become `\\|` and split the cell.
 function escapeCell(text) {
-  return text.replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+  return text.replace(/\r?\n/g, " ").replace(/[\\|]/g, "\\$&");
 }
 
 // Pads every cell to its column's widest cell, header included, because oxfmt pads tables that
