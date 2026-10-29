@@ -2384,3 +2384,55 @@ test("after-sync stops when sync skipped a pull or left a tip unpushed", async (
     assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
   });
 });
+
+// A --single-branch clone's fetch refspec maps only the trunk.
+const TRUNK_ONLY_REFSPEC = "+refs/heads/main:refs/remotes/origin/main";
+
+test("a single-branch clone still sees every layer's remote tip", async (t) => {
+  await t.test("check exits 4 on a layer with remote-only commits", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    git(w.work, "config", "remote.origin.fetch", TRUNK_ONLY_REFSPEC);
+    commitOn(w, "invoices/api", "api-local.txt");
+    advanceRemote(w, "invoices/api", "api-remote.txt");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api"), pull(103, "invoices/ui")],
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 4, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+  });
+
+  await t.test("compare exits 5 on a layer whose remote tip moved", (t) => {
+    const w = compareWorld(t);
+    git(w.work, "config", "remote.origin.fetch", TRUNK_ONLY_REFSPEC);
+    const record = checkRecord(w);
+    advanceRemote(w, "invoices/api", "api-fix.txt");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+  });
+
+  await t.test("after-sync exits 6 on a layer whose remote tip moved", (t) => {
+    const w = compareWorld(t);
+    git(w.work, "config", "remote.origin.fetch", TRUNK_ONLY_REFSPEC);
+    const record = checkRecord(w);
+    advanceRemote(w, "invoices/api", "api-fix.txt");
+
+    const result = run(w, ["after-sync", record]);
+
+    assert.equal(result.status, 6, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+  });
+});
