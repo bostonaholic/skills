@@ -28,9 +28,10 @@ These forms were written against gh-stack v0.3.0. On a newer release,
   each variable empty in sh, bash, and zsh.
 - Keep `view --json` stdout apart from stderr, where status lines and release
   notices go.
-- Pass `--repo <repo>` to every plain `gh` call, or `--hostname <host>` to
-  `gh api`. A plain `gh` call without it can resolve another remote's
-  repository.
+- Pass `--repo <repo>` to every plain `gh` call, `--hostname <host>` to
+  `gh api`, and `<repo>` as `gh repo view`'s argument, because it has no
+  `--repo` flag. A plain `gh` call without the repository can resolve another
+  remote's repository.
 - Pass `--base <trunk>` to every `init`. Without it, `init` reads only
   `refs/remotes/origin/HEAD`, then a local `main` or `master`.
 - `init`, `checkout`, and `trunk` take no `--remote` and push nothing.
@@ -51,7 +52,7 @@ These forms were written against gh-stack v0.3.0. On a newer release,
 | `gh stack unstack`, then `gh stack init --base <trunk> <branch>...`, only in restructuring the user approved                                          | `gh stack modify`, which needs a terminal. `gh stack modify --abort` is safe, with the user's approval.                                                        |
 | `gh stack checkout <target>`                                                                                                                          | bare `checkout`, which opens a picker                                                                                                                          |
 | `gh stack up`, `down`, `top`, `bottom`                                                                                                                | `gh stack switch`, a menu only                                                                                                                                 |
-| `gh pr list`, `gh pr edit`, `gh pr ready`, and `gh repo view` with `--repo <repo>`, and `gh api --hostname <host>`                                    | any plain `gh` call without the repository, which can resolve another remote's repository                                                                      |
+| `gh pr list`, `gh pr edit`, and `gh pr ready` with `--repo <repo>`, `gh repo view <repo>`, and `gh api --hostname <host>`                             | any plain `gh` call without the repository, which can resolve another remote's repository, and `gh repo view --repo`, an unknown flag                          |
 | `git commit -F <message-file>`                                                                                                                        | bare `git commit`, `git add -p`, `git add -i`, which open an editor or a prompt                                                                                |
 
 ## Command notes

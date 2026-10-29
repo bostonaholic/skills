@@ -36,7 +36,7 @@ Split a large change into an ordered stack of small PRs and run GitHub's `gh sta
 ## Run without prompts
 
 - Run every `gh stack` command as `GH_FORCE_TTY= GH_STACK_NO_ATOMIC= gh stack <args> > <out-file>`, and the script with stdout to a file, then read that command's own exit status. Never pipe either: a pipe reports the last command's status, not theirs.
-- Use only the forms in [commands](references/commands.md). Every plain `gh` call takes `--repo <repo>` or `--hostname <host>`.
+- Use only the forms in [commands](references/commands.md). Every plain `gh` call takes `--repo <repo>` or `--hostname <host>`, and `gh repo view` takes `<repo>` as its argument.
 - Commit with `git commit -F <message-file>`, never a bare `git commit`.
 
 ## Build a new stack
