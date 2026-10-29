@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-10-29
+
 ### Changed
 
 - Every skill that starts a subagent now says to start it with fresh context, never a fork of the conversation. [#167](https://github.com/bostonaholic/skills/pull/167)
@@ -990,5 +992,7 @@
 
 [0.75.0]: https://github.com/bostonaholic/skills/compare/v0.74.0...v0.75.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.76.0...HEAD
 [0.76.0]: https://github.com/bostonaholic/skills/compare/v0.75.0...v0.76.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.77.0...HEAD
+[0.77.0]: https://github.com/bostonaholic/skills/compare/v0.76.0...v0.77.0
