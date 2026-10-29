@@ -35,11 +35,12 @@
  *   for that stack's PRs on no layer. Named mode reads the named branches,
  *   which no stack holds yet, the same way, with no `gh stack` call. Takes
  *   each PR's state from GitHub, not from `view --json`. Stops when another
- *   worktree holds a tested branch. Then fetches <remote> once and tests each
- *   active layer (not merged, not queued) against its remote copy: absent
- *   or ahead passes, behind fast-forwards (`git merge --ff-only` on the
- *   current branch, `git fetch .` on another), and diverged passes only when
- *   every remote commit has a local copy. Writes the record that compare,
+ *   worktree holds a tested branch. Then fetches every branch of <remote>
+ *   once, whatever the clone's refspec, and tests each active layer (not
+ *   merged, not queued) against its remote copy: absent or ahead passes,
+ *   behind fast-forwards (`git merge --ff-only` on the current branch,
+ *   `git fetch .` on another), and diverged passes only when every remote
+ *   commit has a local copy. Writes the record that compare,
  *   after-sync, and after-submit read, in a new directory under the system
  *   temp directory. On exit 0 prints, lists comma-separated:
  *
@@ -509,8 +510,11 @@ function isAncestor(ancestor, descendant) {
   return result.status === 0;
 }
 
+// An explicit refspec, because a --single-branch or --depth clone's configured
+// refspec skips the layer branches and leaves their remote refs absent or stale.
+// gh stack push fetches each layer this way before its lease.
 function fetchRemote(remote) {
-  runGit(["fetch", "--quiet", remote]);
+  runGit(["fetch", "--quiet", remote, `+refs/heads/*:${remoteRef(remote, "*")}`]);
 }
 
 function remoteRef(remote, branch) {
