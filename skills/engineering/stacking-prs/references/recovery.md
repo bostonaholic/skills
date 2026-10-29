@@ -113,7 +113,8 @@ Restructuring splits, joins, or drops layers, or moves a closed PR's work to a n
 - A plan of one layer stops before `unstack`, with one PR from that branch as next, because `submit` forms no stack below two PRs.
 
 1. Read `trunk` from `gh stack view --json`. Run the new-name test on every new name.
-2. Run `GH_FORCE_TTY= GH_STACK_NO_ATOMIC= gh stack unstack > <out-file>`. It removes the stack from local tracking and unstacks it on GitHub. Branches and PRs stay, and merged or queued PRs stay stacked.
-3. Rebuild the layers bottom to top: `git rebase --onto <new-base> <old-base> <layer>` for a moved layer, and a new branch from the layer below for a new one. Each new or rewritten layer, and every layer above it, passes its checks.
-4. Run `gh stack init --base <trunk> <layer-1> ... <layer-n>`, bottom to top.
-5. Publish as `SKILL.md` says: `check --remote <remote>`, `compare <record>`, `gh stack submit --auto --remote <remote>`, `after-submit <record>`, then `gh pr edit` for each new PR's title and body.
+2. Run `check --remote <remote>` before `unstack`, which changes GitHub. Exit 0 continues. Exit 3 continues only when each message names a closed PR on a layer the plan moves to a new name. Then, after step 1's fetch, each other layer whose PR is not merged and that has a remote branch must pass `git merge-base --is-ancestor <remote>/<layer> <layer>`, else stop and ask as on exit 4. On any other non-zero exit, act as Script exits says, and run no `unstack` until this step passes.
+3. Run `GH_FORCE_TTY= GH_STACK_NO_ATOMIC= gh stack unstack > <out-file>`. It removes the stack from local tracking and unstacks it on GitHub. Branches and PRs stay, and merged or queued PRs stay stacked.
+4. Rebuild the layers bottom to top: `git rebase --onto <new-base> <old-base> <layer>` for a moved layer, and a new branch from the layer below for a new one. Each new or rewritten layer, and every layer above it, passes its checks.
+5. Run `gh stack init --base <trunk> <layer-1> ... <layer-n>`, bottom to top.
+6. Publish as `SKILL.md` says: `check --remote <remote>`, `compare <record>`, `gh stack submit --auto --remote <remote>`, `after-submit <record>`, then `gh pr edit` for each new PR's title and body.
