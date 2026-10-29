@@ -6,6 +6,7 @@
 - [Rules for every command](#rules-for-every-command)
 - [Safe forms](#safe-forms)
 - [Command notes](#command-notes)
+- [PR text](#pr-text)
 - [The script](#the-script)
 - [Limits](#limits)
 
@@ -37,14 +38,16 @@ These forms were written against gh-stack v0.3.0. On a newer release,
 
 ## Safe forms
 
-| Run                                                                                              | Never run                                                                                             |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `gh stack view --json`, `gh stack view --short`                                                  | bare `view`, a full-screen view under a terminal                                                      |
-| `gh stack init --base <trunk> <branch>`. Several names only when all but the last exist locally. | bare `init`, which prompts or exits 5, or `init` without `--base`                                     |
-| `gh stack add <branch>`                                                                          | bare `add`, which prompts for a name, or `add` with `-m`, `-A`, or `-u`, which commit or stage for it |
-| `gh stack checkout <target>`                                                                     | bare `checkout`, which opens a picker                                                                 |
-| `gh stack up`, `down`, `top`, `bottom`                                                           | `gh stack switch`, a menu only                                                                        |
-| `git commit -F <message-file>`                                                                   | bare `git commit`, `git add -p`, `git add -i`, which open an editor or a prompt                       |
+| Run                                                                                                                | Never run                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `gh stack view --json`, `gh stack view --short`                                                                    | bare `view`, a full-screen view under a terminal                                                                           |
+| `gh stack init --base <trunk> <branch>`. Several names only when all but the last exist locally.                   | bare `init`, which prompts or exits 5, or `init` without `--base`                                                          |
+| `gh stack add <branch>`                                                                                            | bare `add`, which prompts for a name, or `add` with `-m`, `-A`, or `-u`, which commit or stage for it                      |
+| `gh stack submit --auto --remote <remote>`                                                                         | bare `submit`, which opens a full-screen editor, or `submit` without `--remote`, which takes the remote from branch config |
+| `gh stack checkout <target>`                                                                                       | bare `checkout`, which opens a picker                                                                                      |
+| `gh stack up`, `down`, `top`, `bottom`                                                                             | `gh stack switch`, a menu only                                                                                             |
+| `gh pr list`, `gh pr edit`, `gh pr ready`, and `gh repo view` with `--repo <repo>`, and `gh api --hostname <host>` | any plain `gh` call without the repository, which can resolve another remote's repository                                  |
+| `git commit -F <message-file>`                                                                                     | bare `git commit`, `git add -p`, `git add -i`, which open an editor or a prompt                                            |
 
 ## Command notes
 
@@ -61,20 +64,62 @@ These forms were written against gh-stack v0.3.0. On a newer release,
 - Without a terminal, `init` does not turn on `rerere.enabled`.
 - `checkout` and navigation exit 5 and name the owner when another worktree
   holds the target.
+- `submit` opens new PRs as drafts. `--open` also marks existing drafts ready,
+  so it runs only when the user asks for ready PRs. Mark one PR ready with
+  `gh pr ready <n> --repo <repo>`, only on the user's request.
+- `submit` exits 0 when GitHub refuses to create, update, or link the stack,
+  so `after-submit` reads GitHub's stack. A refused update keeps the old stack
+  number that `view --short` prints.
+- `submit` cannot change a stacked PR's base. Never `gh pr edit --base` one,
+  and never `gh pr create` a layer.
+
+## PR text
+
+`--auto` titles come from a single commit's subject, else the branch name.
+Bodies are the repository's PR template unfilled, else the commit body plus a
+gh-stack footer. Rewrite each new PR's title and body:
+
+- Write the title and body to temp files with the file-writing tool. The body
+  follows the repository's PR template.
+- Run `gh pr edit <n> --repo <repo> --title "$(cat <title-file>)" --body-file <body-file>`.
+  The shell does not reparse text that `$(cat ...)` substitutes, so a title
+  that holds `$(...)` stays text. A quoted title literal would run it.
 
 ## The script
 
-`node "<skill-dir>/scripts/stack-guard.mjs" repo > <out-file>` picks the one
-remote that hosts the PRs and stops unless every source names its repository.
-It reads `git remote`, each remote's `url` and `pushurl` before `insteadOf`
-rewriting, `remote.pushDefault`, each `remote.<name>.gh-resolved`,
-`GH_REPO`, and `gh repo view --json nameWithOwner,url,defaultBranchRef`.
+Run `node "<skill-dir>/scripts/stack-guard.mjs" <subcommand> > <out-file>`
+from inside the repository. Its header lists every exit code.
 
-| Key       | Value                                        |
-| --------- | -------------------------------------------- |
-| `REMOTE`  | the remote to pass as `--remote`             |
-| `REPO`    | `<host>/<owner>/<repo>`, to pass as `--repo` |
-| `DEFAULT` | the repository's default branch              |
+- `repo` picks the one remote that hosts the PRs and stops unless every source
+  names its repository. It reads `git remote`, each remote's `url` and
+  `pushurl` before `insteadOf` rewriting, `remote.pushDefault`, each
+  `remote.<name>.gh-resolved`, `GH_REPO`, and
+  `gh repo view --json nameWithOwner,url,defaultBranchRef`.
+- `check --remote <remote>` runs the repository test, reads
+  `gh stack view --json`, every layer's PRs, and the GitHub stack, and takes
+  each PR's state from GitHub, because `view --json` can drop a closed PR and
+  miss a queued one. It stops on another author's PR, a closed or queued PR, or
+  a branch with two open PRs. Then it fetches `<remote>` and stops on a layer
+  whose remote copy has commits the local layer lacks. It writes the record.
+- `compare <record>` fetches again and exits 5 when any recorded remote tip,
+  PR, PR state, merged layer's local tip, or the GitHub stack's PRs changed, or
+  a new layer has a PR or a remote branch. It prints nothing on a pass.
+- `after-submit <record>` passes when every active layer has an open PR and
+  GitHub's stack holds the active layers' PRs bottom to top.
+
+An active layer is one whose PR is neither merged nor queued, the set
+`gh stack` pushes.
+
+| Key           | Printed by      | Value                                                                             |
+| ------------- | --------------- | --------------------------------------------------------------------------------- |
+| `REMOTE`      | `repo`, `check` | the remote to pass as `--remote`                                                  |
+| `REPO`        | `repo`, `check` | `<host>/<owner>/<repo>`, to pass as `--repo`                                      |
+| `DEFAULT`     | `repo`          | the repository's default branch                                                   |
+| `TRUNK`       | `check`         | the stack's trunk                                                                 |
+| `RECORD`      | `check`         | the record's path, for `compare` and `after-submit`                               |
+| `REMOTE_ONLY` | `check`         | PRs on the GitHub stack whose branches the local stack lacks, each yours and open |
+| `NO_PR`       | `check`         | active layers with no open PR                                                     |
+| `STACK`       | `after-submit`  | GitHub's stack number                                                             |
 
 ## Limits
 

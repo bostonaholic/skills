@@ -19,7 +19,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import test from "node:test";
 
 const SCRIPT = resolve("skills/engineering/stacking-prs/scripts/stack-guard.mjs");
@@ -592,6 +592,17 @@ function ghCalls(w) {
     .map((line) => JSON.parse(line));
 }
 
+function gitCalls(w) {
+  return readFileSync(w.gitLog, "utf8")
+    .split("\x1e")
+    .filter(Boolean)
+    .map((record) => record.split("\x1f").slice(1));
+}
+
+function gitSubcommand(argv) {
+  return argv.find((arg, index) => !arg.startsWith("-") && !["-C", "-c"].includes(argv[index - 1]));
+}
+
 // The distinct D6 environments the fake gh saw.
 function childEnvironments(w) {
   return [...new Set(ghCalls(w).map((call) => JSON.stringify(call.env)))].map((text) =>
@@ -617,11 +628,137 @@ function outputKeys(stdout) {
   );
 }
 
+// A list key's members, sorted, whether the script separates them with commas or spaces.
+function listKey(stdout, key) {
+  const value = outputKeys(stdout)[key];
+  if (value === undefined) return undefined;
+  return value
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((item) => item.replace(/^#/, ""))
+    .sort();
+}
+
 function withoutSeeLine(stderr) {
   return stderr
     .split("\n")
     .filter((line) => !line.startsWith("see "))
     .join("\n");
+}
+
+// Every string and number in a JSON record, as strings.
+function recordLeaves(path) {
+  const leaves = [];
+  const visit = (value) => {
+    if (value !== null && typeof value === "object") Object.values(value).forEach(visit);
+    else leaves.push(String(value));
+  };
+  visit(JSON.parse(readFileSync(path, "utf8")));
+  return leaves;
+}
+
+function pull(number, branch, fields = {}) {
+  return {
+    number,
+    branch,
+    state: "OPEN",
+    author: "octo",
+    crossRepository: false,
+    queued: false,
+    ...fields,
+  };
+}
+
+function layer(name, { pr, merged = false, queued = false } = {}) {
+  const prState = merged ? "MERGED" : queued ? "QUEUED" : "OPEN";
+  return {
+    name,
+    isMerged: merged,
+    isQueued: queued,
+    needsRebase: false,
+    ...(pr === undefined
+      ? {}
+      : { pr: { number: pr, url: `https://${HOST}/acme/invoices/pull/${pr}`, state: prState } }),
+  };
+}
+
+// gh stack view --json output for these layers, bottom to top.
+function stackView(currentBranch, layers, trunk = "main") {
+  return {
+    trunk,
+    currentBranch,
+    branches: layers.map((entry, index) => ({
+      base: index === 0 ? trunk : layers[index - 1].name,
+      isCurrent: entry.name === currentBranch,
+      ...entry,
+    })),
+  };
+}
+
+// invoices/schema, invoices/api, and invoices/ui, each one commit on the one below, from
+// main, with invoices/ui checked out.
+function buildLayers(w) {
+  git(w.work, "switch", "-q", "-c", "invoices/schema", "main");
+  const schema = commit(w.work, "schema.txt");
+  git(w.work, "switch", "-q", "-c", "invoices/api");
+  const api = commit(w.work, "api.txt");
+  git(w.work, "switch", "-q", "-c", "invoices/ui");
+  const ui = commit(w.work, "ui.txt");
+  return { schema, api, ui };
+}
+
+function push(w, ...branches) {
+  git(w.work, "push", "-q", "origin", ...branches);
+}
+
+function commitOn(w, branch, file) {
+  const current = git(w.work, "branch", "--show-current");
+  git(w.work, "switch", "-q", branch);
+  const oid = commit(w.work, file);
+  git(w.work, "switch", "-q", current);
+  return oid;
+}
+
+function otherClone(w) {
+  const clone = mkdtempSync(join(w.dir, "clone-"));
+  git(w.dir, "clone", "-q", w.remote, clone);
+  return clone;
+}
+
+// Pushes one new commit on <branch> from another clone, as a collaborator or CI would.
+function advanceRemote(w, branch, file) {
+  const clone = otherClone(w);
+  git(clone, "switch", "-q", branch);
+  const oid = commit(clone, file);
+  git(clone, "push", "-q", "origin", branch);
+  return oid;
+}
+
+// Pushes <branch>, one commit on <base>, from another clone: a PR opened elsewhere.
+function pushRemoteOnly(w, branch, base, file) {
+  const clone = otherClone(w);
+  git(clone, "switch", "-q", "-c", branch, `origin/${base}`);
+  const oid = commit(clone, file);
+  git(clone, "push", "-q", "origin", branch);
+  return oid;
+}
+
+// Force-pushes <branch> as one new commit on main, so it shares no commit with the layer.
+function replaceRemote(w, branch, file) {
+  const clone = otherClone(w);
+  git(clone, "switch", "-q", "-C", branch, "origin/main");
+  const oid = commit(clone, file);
+  git(clone, "push", "-q", "-f", "origin", branch);
+  return oid;
+}
+
+// Runs stack-mode check and returns its record path.
+function checkRecord(w) {
+  const result = run(w, ["check", "--remote", "origin"]);
+  assert.equal(result.status, 0, `check before the change: ${result.stderr}`);
+  const record = outputKeys(result.stdout).RECORD;
+  assert.ok(record, `check printed no RECORD:\n${result.stdout}`);
+  return record;
 }
 
 const D6_CHILD_ENV = { GH_FORCE_TTY: "", GH_STACK_NO_ATOMIC: "", GH_REPO: REPO };
@@ -819,6 +956,903 @@ test("repo stops unless every source names the remote's repository", async (t) =
     const w = world(t);
 
     const result = run(w, ["repo"], { env: D6_PARENT_ENV });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
+  });
+});
+
+// Slice 3
+
+test("check stack mode passes only layers the user owns and can publish", async (t) => {
+  await t.test("every layer absent passes and each is listed in NO_PR", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    setScenario(w, {
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema"),
+        layer("invoices/api"),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "NO_PR"), [
+      "invoices/api",
+      "invoices/schema",
+      "invoices/ui",
+    ]);
+  });
+
+  await t.test("equal tips after a partial submit pass", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    setScenario(w, {
+      pulls: [pull(102, "invoices/api"), pull(103, "invoices/ui")],
+      stacks: [{ number: 7, pulls: [102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema"),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "NO_PR"), ["invoices/schema"]);
+  });
+
+  await t.test("a merged layer skips the remote-tip test", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    replaceRemote(w, "invoices/schema", "schema-elsewhere.txt");
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema", { state: "MERGED" }),
+        pull(102, "invoices/api"),
+        pull(103, "invoices/ui"),
+      ],
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  await t.test("the record holds every field the script rules list", (t) => {
+    const w = world(t);
+    const tips = buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    const csvTip = pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema", { state: "MERGED" }),
+        pull(102, "invoices/api"),
+        pull(104, "invoices/csv"),
+      ],
+      stacks: [{ number: 7, pulls: [101, 102, 104] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    const record = outputKeys(result.stdout).RECORD;
+    assert.equal(dirname(dirname(realpathSync(record))), join(w.dir, "tmp"));
+    const leaves = recordLeaves(record);
+    const expected = ["origin", "main", tips.api, "absent", csvTip, tips.schema, "102", "104"];
+    assert.deepEqual(
+      expected.filter((value) => !leaves.includes(value)),
+      [],
+      `the record lacks these values: ${JSON.stringify(leaves)}`,
+    );
+    assert.ok(
+      leaves.some((value) => /acme\/invoices/i.test(value)),
+      "the record names no repository",
+    );
+    assert.ok(
+      leaves.some((value) => /^open$/i.test(value)),
+      "the record holds no PR state",
+    );
+  });
+
+  await t.test("a bad --remote name exits 1 before any git call", (t) => {
+    const w = world(t);
+
+    const result = run(w, ["check", "--remote", "or;gin"]);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /or;gin/);
+    assert.deepEqual(gitCalls(w), []);
+  });
+
+  await t.test("a missing <remote>/<trunk> exits 1 naming the trunk", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    setScenario(w, {
+      stackView: stackView(
+        "invoices/ui",
+        [layer("invoices/schema"), layer("invoices/api"), layer("invoices/ui")],
+        "release/2026",
+      ),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /release\/2026/);
+  });
+
+  await t.test("a full query page exits 1 naming the branch", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    setScenario(w, {
+      pulls: Array.from({ length: 101 }, (_, index) =>
+        pull(index + 1, "invoices/schema", { state: "MERGED" }),
+      ),
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema"),
+        layer("invoices/api"),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /invoices\/schema/);
+  });
+
+  await t.test("a view --json that disagrees with GitHub on a merge exits 1", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api", { state: "MERGED" })],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /invoices\/api|#?102\b/);
+  });
+
+  await t.test("a Stacks REST API 404 exits 1 saying stacked PRs are off", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema");
+    setScenario(w, {
+      stacksEnabled: false,
+      pulls: [pull(101, "invoices/schema")],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api"),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /stacked (PRs|pull requests)/i);
+  });
+
+  await t.test("a --remote that names no remote exits 2", (t) => {
+    const w = world(t);
+
+    const result = run(w, ["check", "--remote", "upstream"]);
+
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /upstream/);
+  });
+
+  await t.test("another author's PR exits 3 naming the PR and author", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api", { author: "mallory" })],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#102\b/);
+    assert.match(result.stderr, /mallory/);
+  });
+
+  await t.test("another author's GitHub-only PR exits 3 naming the PR and author", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api"),
+        pull(104, "invoices/csv", { author: "mallory" }),
+      ],
+      stacks: [{ number: 7, pulls: [101, 102, 104] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#104\b/);
+    assert.match(result.stderr, /mallory/);
+  });
+
+  await t.test("a PR with a null author exits 3 naming the PR", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api", { author: null })],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#102\b/);
+  });
+
+  await t.test("a closed PR that view --json dropped, with no stack ID, exits 3", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api", { state: "CLOSED" })],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api"),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#102\b/);
+    assert.match(result.stderr, /closed/i);
+  });
+
+  await t.test("a closed PR that view --json shows open, with a stack ID, exits 3", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api", { state: "CLOSED" }),
+        pull(103, "invoices/ui"),
+      ],
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#102\b/);
+    assert.match(result.stderr, /closed/i);
+  });
+
+  await t.test("a queued PR that view --json shows unqueued exits 3", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema", { queued: true }), pull(102, "invoices/api")],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#101\b/);
+    assert.match(result.stderr, /merge queue/i);
+  });
+
+  await t.test("two open PRs on one branch exit 3 naming both", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api"), pull(105, "invoices/api")],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#102\b/);
+    assert.match(result.stderr, /#105\b/);
+  });
+
+  await t.test("a layer with a remote-only commit exits 4 naming the layer", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    commitOn(w, "invoices/api", "api-local.txt");
+    advanceRemote(w, "invoices/api", "api-remote.txt");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api"), pull(103, "invoices/ui")],
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 4, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+  });
+
+  await t.test("another remote naming another repository exits 8 naming both", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    git(w.work, "remote", "add", "upstream", "https://github.acme.invalid/parent/invoices");
+    setScenario(w, {
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema"),
+        layer("invoices/api"),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 8, result.stderr);
+    assert.match(result.stderr, /acme\/invoices/);
+    assert.match(result.stderr, /parent\/invoices/);
+  });
+
+  await t.test("a same-name cross-repository PR is ignored", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api"),
+        pull(150, "invoices/api", { author: "mallory", crossRepository: true }),
+      ],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  await t.test("an untracked merged PR on a reused branch name counts as none", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [
+        pull(90, "invoices/ui", { state: "MERGED" }),
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api"),
+      ],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "NO_PR"), ["invoices/ui"]);
+  });
+
+  await t.test("the stack read uses the lowest active layer with an open PR", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+    setScenario(w, {
+      pulls: [pull(102, "invoices/api"), pull(103, "invoices/ui"), pull(104, "invoices/csv")],
+      // A refused stack update left #103 out of GitHub's stack.
+      stacks: [{ number: 7, pulls: [102, 104] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema"),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "REMOTE_ONLY"), ["104"]);
+  });
+
+  await t.test("with no open active PR, the top merged layer's PR picks the stack", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+    setScenario(w, {
+      pulls: [
+        pull(100, "invoices/prep", { state: "MERGED" }),
+        pull(101, "invoices/schema", { state: "MERGED" }),
+        pull(102, "invoices/api", { state: "MERGED" }),
+        pull(104, "invoices/csv"),
+      ],
+      stacks: [
+        { number: 5, pulls: [100, 101] },
+        { number: 7, pulls: [102, 104] },
+      ],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102, merged: true }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "REMOTE_ONLY"), ["104"]);
+  });
+
+  await t.test("REMOTE_ONLY names only the user's open GitHub-only PRs", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+    setScenario(w, {
+      pulls: [
+        pull(100, "invoices/prep", { state: "MERGED" }),
+        pull(101, "invoices/schema"),
+        pull(102, "invoices/api"),
+        pull(104, "invoices/csv"),
+      ],
+      stacks: [{ number: 7, pulls: [100, 101, 102, 104] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "REMOTE_ONLY"), ["104"]);
+  });
+
+  await t.test(
+    "one run makes one fetch, view --json, layer read, stack read, and head.ref query",
+    (t) => {
+      const w = world(t);
+      buildLayers(w);
+      push(w, "invoices/schema", "invoices/api");
+      pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+      setScenario(w, {
+        pulls: [
+          pull(100, "invoices/prep", { state: "MERGED" }),
+          pull(101, "invoices/schema"),
+          pull(102, "invoices/api"),
+          pull(104, "invoices/csv"),
+        ],
+        stacks: [{ number: 7, pulls: [100, 101, 102, 104] }],
+        stackView: stackView("invoices/ui", [
+          layer("invoices/schema", { pr: 101 }),
+          layer("invoices/api", { pr: 102 }),
+          layer("invoices/ui"),
+        ]),
+      });
+
+      const result = run(w, ["check", "--remote", "origin"]);
+
+      assert.equal(result.status, 0, result.stderr);
+      const gh = ghCalls(w).map((call) => call.argv);
+      assert.deepEqual(
+        {
+          fetch: gitCalls(w).filter((argv) => gitSubcommand(argv) === "fetch").length,
+          viewJson: gh.filter((argv) => argv[0] === "stack" && argv[1] === "view").length,
+          graphql: gh.filter((argv) => argv[0] === "api" && argv.includes("graphql")).length,
+          stackRead: gh.filter(
+            (argv) => argv[0] === "api" && argv.some((arg) => /\/stacks\b/.test(arg)),
+          ).length,
+        },
+        { fetch: 1, viewJson: 1, graphql: 2, stackRead: 1 },
+      );
+    },
+  );
+
+  await t.test("gh runs without GH_FORCE_TTY or GH_STACK_NO_ATOMIC and with GH_REPO", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api", "invoices/ui");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api"), pull(103, "invoices/ui")],
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["check", "--remote", "origin"], { env: D6_PARENT_ENV });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
+  });
+});
+
+// The base for most compare rows: invoices/schema #101 and invoices/api #102 pushed and
+// open, invoices/ui not pushed with no PR, and GitHub stack #7 holding #101 and #102.
+const COMPARE_PULLS = [pull(101, "invoices/schema"), pull(102, "invoices/api")];
+const COMPARE_VIEW = stackView("invoices/ui", [
+  layer("invoices/schema", { pr: 101 }),
+  layer("invoices/api", { pr: 102 }),
+  layer("invoices/ui"),
+]);
+
+function compareWorld(t) {
+  const w = world(t);
+  buildLayers(w);
+  push(w, "invoices/schema", "invoices/api");
+  setScenario(w, {
+    pulls: COMPARE_PULLS,
+    stacks: [{ number: 7, pulls: [101, 102] }],
+    stackView: COMPARE_VIEW,
+  });
+  return w;
+}
+
+test("compare stops when any recorded tip, PR, or stack changed", async (t) => {
+  await t.test("passes when nothing moved, absent tips included", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("a moved tip exits 5 and lists the new commits", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    advanceRemote(w, "invoices/api", "api-fix.txt");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+    assert.match(result.stderr, /api-fix\.txt/);
+  });
+
+  await t.test("an absent branch now on the remote exits 5", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    push(w, "invoices/ui");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/ui/);
+  });
+
+  await t.test("a PR number that changed exits 5", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    setScenario(w, {
+      pulls: [...COMPARE_PULLS, pull(103, "invoices/ui")],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+      ]),
+    });
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /invoices\/ui|#?103\b/);
+  });
+
+  await t.test("a PR state that changed exits 5", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api", { state: "CLOSED" })],
+    });
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /invoices\/api|#?102\b/);
+  });
+
+  await t.test("a moved local tip of a merged layer exits 5", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema", { state: "MERGED" }), pull(102, "invoices/api")],
+      stacks: [{ number: 7, pulls: [101, 102] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+    const record = checkRecord(w);
+    commitOn(w, "invoices/schema", "schema-late.txt");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/schema/);
+  });
+
+  await t.test("a changed GitHub stack PR set exits 5", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    setScenario(w, {
+      pulls: [...COMPARE_PULLS, pull(104, "invoices/csv")],
+      stacks: [{ number: 7, pulls: [101, 102, 104] }],
+    });
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /#?104\b/);
+  });
+
+  await t.test("an unrecorded layer with a remote branch exits 5", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    git(w.work, "branch", "invoices/docs", "invoices/ui");
+    pushRemoteOnly(w, "invoices/docs", "main", "docs.txt");
+    setScenario(w, {
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+        layer("invoices/docs"),
+      ]),
+    });
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/docs/);
+  });
+
+  await t.test("an unrecorded layer with a PR exits 5", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    git(w.work, "branch", "invoices/docs", "invoices/ui");
+    setScenario(w, {
+      pulls: [...COMPARE_PULLS, pull(106, "invoices/docs")],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+        layer("invoices/docs", { pr: 106 }),
+      ]),
+    });
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /invoices\/docs|#?106\b/);
+  });
+
+  await t.test("a record path that does not exist exits 2", (t) => {
+    const w = compareWorld(t);
+
+    const result = run(w, ["compare", join(w.dir, "missing-record.json")]);
+
+    assert.equal(result.status, 2, result.stderr);
+  });
+
+  await t.test("a record that is not JSON exits 2", (t) => {
+    const w = compareWorld(t);
+    writeFileSync(join(w.dir, "broken-record.json"), "not json\n");
+
+    const result = run(w, ["compare", join(w.dir, "broken-record.json")]);
+
+    assert.equal(result.status, 2, result.stderr);
+  });
+
+  await t.test("gh runs without GH_FORCE_TTY or GH_STACK_NO_ATOMIC and with GH_REPO", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    clearCalls(w);
+
+    const result = run(w, ["compare", record], { env: D6_PARENT_ENV });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
+  });
+});
+
+// The state after a submit for most after-submit rows: invoices/schema #101 merged, and
+// invoices/api #102 and invoices/ui #103 open.
+const SUBMITTED_PULLS = [
+  pull(101, "invoices/schema", { state: "MERGED" }),
+  pull(102, "invoices/api"),
+  pull(103, "invoices/ui"),
+];
+const SUBMITTED_VIEW = stackView("invoices/ui", [
+  layer("invoices/schema", { pr: 101, merged: true }),
+  layer("invoices/api", { pr: 102 }),
+  layer("invoices/ui", { pr: 103 }),
+]);
+
+// Records the stack before submit: invoices/schema #101 merged, invoices/api and
+// invoices/ui not pushed, then pushes them as submit does.
+function recordBeforeSubmit(t) {
+  const w = world(t);
+  buildLayers(w);
+  push(w, "invoices/schema");
+  setScenario(w, {
+    pulls: [pull(101, "invoices/schema", { state: "MERGED" })],
+    stackView: stackView("invoices/ui", [
+      layer("invoices/schema", { pr: 101, merged: true }),
+      layer("invoices/api"),
+      layer("invoices/ui"),
+    ]),
+  });
+  const record = checkRecord(w);
+  push(w, "invoices/api", "invoices/ui");
+  return { w, record };
+}
+
+test("after-submit stops when GitHub's stack differs from the local stack", async (t) => {
+  await t.test("prints STACK when the unmerged PRs match bottom to top, merged ignored", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, {
+      pulls: SUBMITTED_PULLS,
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: SUBMITTED_VIEW,
+    });
+
+    const result = run(w, ["after-submit", record]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(outputKeys(result.stdout).STACK, "7");
+  });
+
+  await t.test("an active layer with no open PR exits 6 naming it", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema", { state: "MERGED" }), pull(102, "invoices/api")],
+      stacks: [{ number: 7, pulls: [101, 102] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+
+    const result = run(w, ["after-submit", record]);
+
+    assert.equal(result.status, 6, result.stderr);
+    assert.match(result.stderr, /invoices\/ui/);
+  });
+
+  await t.test("a top PR in no stack exits 9", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, { pulls: SUBMITTED_PULLS, stacks: [], stackView: SUBMITTED_VIEW });
+
+    const result = run(w, ["after-submit", record]);
+
+    assert.equal(result.status, 9, result.stderr);
+  });
+
+  await t.test("a stack that lacks a PR exits 9", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, {
+      pulls: SUBMITTED_PULLS,
+      stacks: [{ number: 7, pulls: [101, 103] }],
+      stackView: SUBMITTED_VIEW,
+    });
+
+    const result = run(w, ["after-submit", record]);
+
+    assert.equal(result.status, 9, result.stderr);
+  });
+
+  await t.test("a stack that adds a PR exits 9", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, {
+      pulls: [...SUBMITTED_PULLS, pull(104, "invoices/csv")],
+      stacks: [{ number: 7, pulls: [101, 102, 103, 104] }],
+      stackView: SUBMITTED_VIEW,
+    });
+
+    const result = run(w, ["after-submit", record]);
+
+    assert.equal(result.status, 9, result.stderr);
+  });
+
+  await t.test("a stack that reorders PRs exits 9", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, {
+      pulls: SUBMITTED_PULLS,
+      stacks: [{ number: 7, pulls: [101, 103, 102] }],
+      stackView: SUBMITTED_VIEW,
+    });
+
+    const result = run(w, ["after-submit", record]);
+
+    assert.equal(result.status, 9, result.stderr);
+  });
+
+  await t.test("gh runs without GH_FORCE_TTY or GH_STACK_NO_ATOMIC and with GH_REPO", (t) => {
+    const { w, record } = recordBeforeSubmit(t);
+    setScenario(w, {
+      pulls: SUBMITTED_PULLS,
+      stacks: [{ number: 7, pulls: [101, 102, 103] }],
+      stackView: SUBMITTED_VIEW,
+    });
+    clearCalls(w);
+
+    const result = run(w, ["after-submit", record], { env: D6_PARENT_ENV });
 
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
