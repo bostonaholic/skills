@@ -1,6 +1,6 @@
 ---
 name: removing-comments
-description: 'Removes low-value source comments flagged by a fresh-context reviewer and, with approval, encodes enforceable constraints in types, tests, or lint. Use when the user explicitly asks to remove or clean up code comments. Never infer from a diff containing comments.'
+description: 'Removes every source comment outside a short keep list, flagged by a fresh-context reviewer, and, with approval, fixes root causes and encodes enforceable constraints in types, tests, or lint. Use when the user explicitly asks to remove or clean up code comments. Never infer from a diff containing comments.'
 effort: high
 argument-hint: "[<files-or-diff>]"
 disable-model-invocation: true
@@ -8,10 +8,9 @@ disable-model-invocation: true
 
 # No Comments
 
-- Remove comments that fail the code comments rules in the
-  [code standards](shared/code-standards.md) (findings use the
+- Remove every comment the [code comments rules](shared/code-comments.md)
+  do not keep (findings use the
   [finding format](shared/findings.md)).
-- Preserve comments that carry current facts code cannot express.
 - Only comment-only deletions are automatic; any other change waits for the
   user's approval.
 - This command authorizes tracked source edits, so never infer it from a diff
