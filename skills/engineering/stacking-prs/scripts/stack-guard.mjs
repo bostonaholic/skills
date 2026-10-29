@@ -6,6 +6,7 @@
  *
  *     node "<skill-dir>/scripts/stack-guard.mjs" repo > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> > <out-file>
+ *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> --trunk <trunk> <branch>... > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" compare <record> > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" after-submit <record> > <out-file>
  *
@@ -25,22 +26,30 @@
  *     REPO     <host>/<owner>/<repo>, to pass as --repo (host from gh's url)
  *     DEFAULT  the repository's default branch
  *
- * check --remote <remote>
- *   Runs repo's repository test against <remote>, then reads
+ * check --remote <remote>                              (stack mode)
+ * check --remote <remote> --trunk <trunk> <branch>...  (named mode)
+ *   Runs repo's repository test against <remote>. Stack mode reads
  *   `gh stack view --json`, one GraphQL query for the viewer and every
  *   layer's PRs, the GitHub stack (Stacks REST API), and one GraphQL query
- *   for that stack's PRs on no layer. Takes each PR's state from GitHub, not
- *   from `view --json`. Then fetches <remote> once and tests each active
- *   layer (not merged, not queued) against its remote copy. Writes the record
- *   that compare and after-submit read, in a new directory under the system
- *   temp directory. On exit 0 prints:
+ *   for that stack's PRs on no layer. Named mode reads the named branches,
+ *   which no stack holds yet, the same way, with no `gh stack` call. Takes
+ *   each PR's state from GitHub, not from `view --json`. Stops when another
+ *   worktree holds a tested branch. Then fetches <remote> once and tests each
+ *   active layer (not merged, not queued) against its remote copy: absent
+ *   or ahead passes, behind fast-forwards (`git merge --ff-only` on the
+ *   current branch, `git fetch .` on another). Writes the record that
+ *   compare and after-submit read, in a new directory under the system temp
+ *   directory. On exit 0 prints, lists comma-separated:
  *
  *     REMOTE, REPO  as repo prints them
- *     TRUNK         the stack's trunk
+ *     TRUNK         the stack's trunk, or --trunk
  *     RECORD        the record's path
- *     REMOTE_ONLY   PR numbers on the GitHub stack whose branches no layer
- *                   has, each the viewer's own and open, comma-separated
- *     NO_PR         active layers with no open PR, comma-separated
+ *     FORWARDED     layers check fast-forwarded
+ *     REMOTE_ONLY   stack mode: PR numbers on the GitHub stack whose
+ *                   branches no layer has, each the viewer's own and open
+ *     NO_PR         stack mode: active layers with no open PR
+ *     STACKED       named mode: named branches whose open PR is already in
+ *                   a GitHub stack
  *
  * compare <record>
  *   Fetches the record's remote, then reads `view --json`, the layer PRs,
@@ -59,14 +68,16 @@
  * command's stderr, then a last line `see <recovery.md>`:
  *
  *   0  pass
- *   1  a git or gh command failed, gh printed no JSON, a name failed the
- *      allowlist ^[A-Za-z0-9._/-]+$ (no leading -), a query page filled,
- *      `view --json` disagrees with GitHub, <remote>/<trunk> is missing, or
+ *   1  a git or gh command failed (a refused `git merge --ff-only`
+ *      included), gh printed no JSON, a name failed the allowlist
+ *      ^[A-Za-z0-9._/-]+$ (no leading -), a query page filled, `view --json`
+ *      disagrees with GitHub, <remote>/<trunk> is missing in stack mode, or
  *      the Stacks REST API answered 404 (stacked PRs are off)
- *   2  wrong arguments, a --remote that names no remote, or an unreadable
+ *   2  wrong arguments, a --remote that names no remote, a named branch
+ *      missing locally, no <remote>/<trunk> in named mode, or an unreadable
  *      record
- *   3  check: a PR by another author (or none), a closed or queued PR, or a
- *      branch with two open PRs
+ *   3  check: another worktree holds a tested branch, or a PR by another
+ *      author (or none), a closed or queued PR, or a branch with two open PRs
  *   4  check: a layer's remote copy has commits the local layer lacks
  *   5  compare: a recorded tip, PR, PR state, merged layer's local tip, or
  *      the GitHub stack's PRs changed, or a new layer appeared on the remote
@@ -80,7 +91,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -90,6 +101,7 @@ const DOC_PATH = fileURLToPath(new URL("../references/recovery.md", import.meta.
 const USAGE = [
   `usage: node ${SCRIPT} repo > <out-file>`,
   `       node ${SCRIPT} check --remote <remote> > <out-file>`,
+  `       node ${SCRIPT} check --remote <remote> --trunk <trunk> <branch>... > <out-file>`,
   `       node ${SCRIPT} compare <record> > <out-file>`,
   `       node ${SCRIPT} after-submit <record> > <out-file>`,
 ];
@@ -675,16 +687,103 @@ function pullEntry(branch, pull, remote) {
 
 // The subcommands.
 
-function checkCommand(remote) {
+// /tmp and /private/tmp name one directory on macOS, so worktree paths compare as real paths.
+function realPath(path) {
+  try {
+    return realpathSync(path);
+  } catch (error) {
+    if (error.code === "ENOENT") return path;
+    throw error;
+  }
+}
+
+function otherWorktreeHolders(branchNames) {
+  const current = realPath(runGit(["rev-parse", "--show-toplevel"]).stdout.trim());
+  const holders = [];
+  for (const block of runGit(["worktree", "list", "--porcelain"]).stdout.split("\n\n")) {
+    const lines = block.split("\n");
+    const path = lines.find((line) => line.startsWith("worktree "))?.slice("worktree ".length);
+    const branch = lines
+      .find((line) => line.startsWith("branch refs/heads/"))
+      ?.slice("branch refs/heads/".length);
+    if (path === undefined || !branchNames.includes(branch)) continue;
+    if (realPath(path) !== current) holders.push({ path, branch });
+  }
+  return holders;
+}
+
+function fastForward(remote, branch, currentBranch) {
+  if (branch === currentBranch)
+    runGit(["merge", "--ff-only", "--quiet", remoteRef(remote, branch)]);
+  else runGit(["fetch", "--quiet", ".", `${remoteRef(remote, branch)}:refs/heads/${branch}`]);
+}
+
+// The remote-tip test: absent and ahead pass, behind fast-forwards, anything else stops.
+function testRemoteTips(remote, layers) {
+  const currentBranch = runGit(["branch", "--show-current"]).stdout.trim();
+  const forwarded = [];
+  const lacking = [];
+  for (const layer of layers) {
+    const remoteCopy = remoteRef(remote, layer.name);
+    const local = `refs/heads/${layer.name}`;
+    if (refTip(remoteCopy) === null || isAncestor(remoteCopy, local)) continue;
+    if (isAncestor(local, remoteCopy)) {
+      fastForward(remote, layer.name, currentBranch);
+      forwarded.push(layer.name);
+      continue;
+    }
+    lacking.push(`\`${layer.name}\` has commits on \`${remote}\` that the local layer lacks.`);
+  }
+  if (lacking.length > 0) stop(EXIT_REMOTE_COMMITS, lacking);
+  return { forwarded };
+}
+
+function surveyNamed(repository, branches) {
+  const { viewer, pullsByBranch } = readLayerPulls(repository, branches);
+  const layers = classifyLayers(
+    branches.map((name) => ({ name })),
+    pullsByBranch,
+  );
+  const stacks = layers
+    .filter((layer) => layer.pull?.state === "OPEN")
+    .map((layer) => ({ layer, stack: readGitHubStack(repository, layer.pull.number) }))
+    .filter(({ stack }) => stack !== null);
+  return { viewer, layers, stacks };
+}
+
+function checkCommand({ remote, trunk, branches }) {
+  const named = branches !== undefined;
   requireAllowedName(remote, "Remote name");
+  if (named) {
+    requireAllowedName(trunk, "Trunk");
+    for (const branch of branches) requireAllowedName(branch, "Branch");
+  }
   const remotes = readRemotes();
   if (!remotes.names.includes(remote))
     stop(EXIT_USAGE, [`--remote \`${remote}\` names no configured remote.`]);
   const repository = confirmRepository(remotes, remote);
-  const view = readStackView();
-  const { viewer, layers, stack } = surveyStack(repository, view);
-  const layerNames = layers.map((layer) => layer.name);
-  const outside = readOutsidePulls(repository, stack, layerNames);
+
+  let survey;
+  let disagreements = [];
+  if (named) {
+    const missing = branches.filter((branch) => refTip(`refs/heads/${branch}`) === null);
+    if (missing.length > 0)
+      stop(
+        EXIT_USAGE,
+        missing.map((branch) => `Branch \`${branch}\` does not exist locally.`),
+      );
+    const { viewer, layers, stacks } = surveyNamed(repository, branches);
+    const outside = stacks.flatMap(({ stack }) => readOutsidePulls(repository, stack, branches));
+    survey = { viewer, layers, outside, stacks, trunk, stack: stacks[0]?.stack ?? null };
+  } else {
+    const view = readStackView();
+    const { viewer, layers, stack } = surveyStack(repository, view);
+    const layerNames = layers.map((layer) => layer.name);
+    const outside = readOutsidePulls(repository, stack, layerNames);
+    survey = { viewer, layers, outside, stack, trunk: view.trunk };
+    disagreements = viewDisagreements(layers);
+  }
+  const { viewer, layers, outside, stack } = survey;
   const publishable = [
     ...layers
       .filter((layer) => !layer.merged && layer.pull !== null)
@@ -692,30 +791,26 @@ function checkCommand(remote) {
     ...outside,
   ];
   const stops = ownershipStops(publishable, layers, viewer);
+  const active = layers.filter((layer) => layer.active);
+  for (const { path, branch } of otherWorktreeHolders(active.map((layer) => layer.name)))
+    stops.push(
+      `\`${branch}\` is checked out in \`${path}\`, which another session can use. ` +
+        "Switch that worktree to another branch, then rerun.",
+    );
   if (stops.length > 0) stop(EXIT_NOT_PUBLISHABLE, stops);
-  const disagreements = viewDisagreements(layers);
   if (disagreements.length > 0) stop(EXIT_FAILED, [...disagreements, "Rerun check once."]);
 
   fetchRemote(remote);
-  if (refTip(remoteRef(remote, view.trunk)) === null)
-    stop(EXIT_FAILED, [`\`${remote}/${view.trunk}\` does not exist after the fetch.`]);
-  const active = layers.filter((layer) => layer.active);
-  const behindRemote = active.filter((layer) => {
-    const tip = refTip(remoteRef(remote, layer.name));
-    return tip !== null && !isAncestor(remoteRef(remote, layer.name), `refs/heads/${layer.name}`);
-  });
-  if (behindRemote.length > 0)
-    stop(
-      EXIT_REMOTE_COMMITS,
-      behindRemote.map(
-        (layer) => `\`${layer.name}\` has commits on \`${remote}\` that the local layer lacks.`,
-      ),
-    );
+  if (refTip(remoteRef(remote, survey.trunk)) === null)
+    stop(named ? EXIT_USAGE : EXIT_FAILED, [
+      `\`${remote}/${survey.trunk}\` does not exist after the fetch.`,
+    ]);
+  const { forwarded } = testRemoteTips(remote, active);
 
   const record = writeRecord({
     remote,
     repository: `${repository.host}/${fullName(repository)}`,
-    trunk: view.trunk,
+    trunk: survey.trunk,
     layers: active.map((layer) => pullEntry(layer.name, layer.pull, remote)),
     remoteOnly: outside.map(({ pull, branch }) => pullEntry(branch, pull, remote)),
     merged: layers
@@ -727,11 +822,17 @@ function checkCommand(remote) {
       })),
     stack: stack === null ? null : { number: stack.number, pulls: unmergedStackNumbers(stack) },
   });
-  return [
+  const common = [
     `REMOTE=${remote}`,
     `REPO=${repository.host}/${fullName(repository)}`,
-    `TRUNK=${view.trunk}`,
+    `TRUNK=${survey.trunk}`,
     `RECORD=${record}`,
+    `FORWARDED=${forwarded.join(",")}`,
+  ];
+  if (named)
+    return [...common, `STACKED=${survey.stacks.map(({ layer }) => layer.name).join(",")}`];
+  return [
+    ...common,
     `REMOTE_ONLY=${outside.map(({ pull }) => pull.number).join(",")}`,
     `NO_PR=${active
       .filter((layer) => layer.pull === null)
@@ -833,7 +934,9 @@ function main(args) {
   const [subcommand, ...rest] = args;
   if (subcommand === "repo" && rest.length === 0) return repoCommand();
   if (subcommand === "check" && rest.length === 2 && rest[0] === "--remote")
-    return checkCommand(rest[1]);
+    return checkCommand({ remote: rest[1] });
+  if (subcommand === "check" && rest.length >= 5 && rest[0] === "--remote" && rest[2] === "--trunk")
+    return checkCommand({ remote: rest[1], trunk: rest[3], branches: rest.slice(4) });
   if (subcommand === "compare" && rest.length === 1) return compareCommand(rest[0]);
   if (subcommand === "after-submit" && rest.length === 1) return afterSubmitCommand(rest[0]);
   return stop(EXIT_USAGE, USAGE);

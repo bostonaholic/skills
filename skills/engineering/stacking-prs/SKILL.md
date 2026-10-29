@@ -18,6 +18,7 @@ Split a large change into an ordered stack of small PRs and run GitHub's `gh sta
   2. Overlap: the new work changes a path one of those PRs also changes. Build it on that PR's branch at any size, locally, and never publish it. Rule 3 alone decides the part that does not overlap or depend on that PR.
   3. Dependent parts: two or more concerns, a later one needs an earlier one, and each part builds and passes the checks alone. Also, the whole runs over about 400 changed lines, or a lower part is ready for review first. Stack it.
   4. Otherwise open one PR: one concern, parts that cannot each pass the checks, or a small change whose parts are ready together.
+- Splitting a change that already exists: the overlap test skips the PR on the branch being split. Overlap with any other open PR stops the split: "This change and your open PR #`<n>` both change `<path>`. Split it after #`<n>` merges or closes."
 
 ## Plan the layers
 
@@ -40,9 +41,9 @@ Split a large change into an ordered stack of small PRs and run GitHub's `gh sta
 
 ## Build a new stack
 
-New work that overlaps the same author's open PR follows [existing work](references/existing-work.md) instead.
+A change that already exists, or new work that overlaps the same author's open PR, follows [existing work](references/existing-work.md) instead.
 
-1. `<trunk>` is the base the request or the repository's instructions name, else `DEFAULT`. It matches `^[A-Za-z0-9._/-]+$` and starts with no `-`.
+1. `<trunk>` is the base the request or the repository's instructions name, else, when splitting a branch with an open PR, that PR's `baseRefName` from Decide's list, else `DEFAULT`. It matches `^[A-Za-z0-9._/-]+$` and starts with no `-`.
 2. `git branch --no-track <layer-1> <remote>/<trunk>`, then `gh stack init --base <trunk> <layer-1>`.
 3. Per layer, bottom to top: edit, run its checks, `git add -- <paths>`, and `git commit -F <message-file>`. `git rev-list --count <below>..<layer>` prints above 0, with `<remote>/<trunk>` below layer 1.
 4. Below the top, `gh stack add <next>`. Tip test: `git branch --show-current` prints `<next>`, and `git rev-parse HEAD` equals the tip of the layer `add` ran from. Else stop and report.
@@ -69,6 +70,6 @@ Give the trunk, then each layer bottom to top with its branch, its PR or "not pu
 
 - Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish, `compare` right before each push, and `after-submit` after each `submit`.
 - Read [commands](references/commands.md) before the first rewrite or push of a stack with remote layers, before a command this file does not show, or when one misbehaves.
-- Read [existing work](references/existing-work.md) when new work overlaps the same author's open PR.
+- Read [existing work](references/existing-work.md) when the change already exists or new work overlaps the same author's open PR.
 - Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script.
 - Read [external data](shared/external-data.md) before a PR title, a commit message, or a `gh pr list` branch name enters a command.

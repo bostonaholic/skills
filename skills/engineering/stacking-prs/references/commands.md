@@ -99,8 +99,13 @@ from inside the repository. Its header lists every exit code.
   `gh stack view --json`, every layer's PRs, and the GitHub stack, and takes
   each PR's state from GitHub, because `view --json` can drop a closed PR and
   miss a queued one. It stops on another author's PR, a closed or queued PR, or
-  a branch with two open PRs. Then it fetches `<remote>` and stops on a layer
-  whose remote copy has commits the local layer lacks. It writes the record.
+  a branch with two open PRs, and when another worktree holds a layer. Then it
+  fetches `<remote>`, fast-forwards a layer that is behind its remote copy,
+  and stops on a layer whose remote copy has commits the local layer lacks.
+  It writes the record.
+- `check --remote <remote> --trunk <trunk> <branch>...` is named mode, for
+  branches no stack holds yet. It runs the same tests on the named branches and
+  every unmerged PR on each one's GitHub stack, with no `gh stack` call.
 - `compare <record>` fetches again and exits 5 when any recorded remote tip,
   PR, PR state, merged layer's local tip, or the GitHub stack's PRs changed, or
   a new layer has a PR or a remote branch. It prints nothing on a pass.
@@ -110,16 +115,18 @@ from inside the repository. Its header lists every exit code.
 An active layer is one whose PR is neither merged nor queued, the set
 `gh stack` pushes.
 
-| Key           | Printed by      | Value                                                                             |
-| ------------- | --------------- | --------------------------------------------------------------------------------- |
-| `REMOTE`      | `repo`, `check` | the remote to pass as `--remote`                                                  |
-| `REPO`        | `repo`, `check` | `<host>/<owner>/<repo>`, to pass as `--repo`                                      |
-| `DEFAULT`     | `repo`          | the repository's default branch                                                   |
-| `TRUNK`       | `check`         | the stack's trunk                                                                 |
-| `RECORD`      | `check`         | the record's path, for `compare` and `after-submit`                               |
-| `REMOTE_ONLY` | `check`         | PRs on the GitHub stack whose branches the local stack lacks, each yours and open |
-| `NO_PR`       | `check`         | active layers with no open PR                                                     |
-| `STACK`       | `after-submit`  | GitHub's stack number                                                             |
+| Key           | Printed by         | Value                                                                             |
+| ------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `REMOTE`      | `repo`, `check`    | the remote to pass as `--remote`                                                  |
+| `REPO`        | `repo`, `check`    | `<host>/<owner>/<repo>`, to pass as `--repo`                                      |
+| `DEFAULT`     | `repo`             | the repository's default branch                                                   |
+| `TRUNK`       | `check`            | the stack's trunk                                                                 |
+| `RECORD`      | `check`            | the record's path, for `compare` and `after-submit`                               |
+| `FORWARDED`   | `check`            | layers `check` fast-forwarded to their remote copy                                |
+| `STACKED`     | `check` named mode | named branches whose open PR is already in a GitHub stack                         |
+| `REMOTE_ONLY` | `check`            | PRs on the GitHub stack whose branches the local stack lacks, each yours and open |
+| `NO_PR`       | `check`            | active layers with no open PR                                                     |
+| `STACK`       | `after-submit`     | GitHub's stack number                                                             |
 
 ## Limits
 

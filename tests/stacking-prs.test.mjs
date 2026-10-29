@@ -16,6 +16,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -707,6 +708,14 @@ function buildLayers(w) {
   return { schema, api, ui };
 }
 
+// invoices/export, one commit on main, pushed and checked out.
+function buildExport(w) {
+  git(w.work, "switch", "-q", "-c", "invoices/export", "main");
+  const oid = commit(w.work, "export.txt");
+  git(w.work, "push", "-q", "origin", "invoices/export");
+  return oid;
+}
+
 function push(w, ...branches) {
   git(w.work, "push", "-q", "origin", ...branches);
 }
@@ -750,6 +759,20 @@ function replaceRemote(w, branch, file) {
   const oid = commit(clone, file);
   git(clone, "push", "-q", "-f", "origin", branch);
   return oid;
+}
+
+// Adds a worktree for <branch> at <dir>/<name>, recorded under a path through the symlink
+// <dir>/link, so `git worktree list` prints a path that differs as a string from the real one.
+function addWorktreeThroughLink(w, name, branch) {
+  const link = join(w.dir, "link");
+  symlinkSync(w.dir, link);
+  git(w.work, "worktree", "add", "-q", join(w.dir, name), branch);
+  writeFileSync(join(w.work, ".git", "worktrees", name, "gitdir"), `${join(link, name, ".git")}\n`);
+  return join(link, name);
+}
+
+function localTip(w, branch) {
+  return git(w.work, "rev-parse", `refs/heads/${branch}`);
 }
 
 // Runs stack-mode check and returns its record path.
@@ -1856,5 +1879,255 @@ test("after-submit stops when GitHub's stack differs from the local stack", asyn
 
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
+  });
+});
+
+// Slice 4
+
+// invoices/export #120, pushed and checked out, in no GitHub stack.
+function exportWorld(t) {
+  const w = world(t);
+  buildExport(w);
+  setScenario(w, { pulls: [pull(120, "invoices/export")] });
+  return w;
+}
+
+const NAMED_EXPORT = ["check", "--remote", "origin", "--trunk", "main", "invoices/export"];
+
+test("named-mode check vets the branch to split", async (t) => {
+  await t.test("passes with empty STACKED when the branch's PR is in no GitHub stack", (t) => {
+    const w = exportWorld(t);
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "STACKED"), []);
+  });
+
+  await t.test("STACKED names a branch whose open PR is in a GitHub stack", (t) => {
+    const w = exportWorld(t);
+    setScenario(w, {
+      pulls: [pull(120, "invoices/export"), pull(121, "invoices/export-ui")],
+      stacks: [{ number: 9, pulls: [120, 121] }],
+    });
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "STACKED"), ["invoices/export"]);
+  });
+
+  await t.test("a same-name cross-repository PR is ignored", (t) => {
+    const w = exportWorld(t);
+    setScenario(w, {
+      pulls: [
+        pull(120, "invoices/export"),
+        pull(150, "invoices/export", { author: "mallory", crossRepository: true }),
+      ],
+    });
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  await t.test("a closed PR exits 3", (t) => {
+    const w = exportWorld(t);
+    setScenario(w, { pulls: [pull(120, "invoices/export", { state: "CLOSED" })] });
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#120\b/);
+    assert.match(result.stderr, /closed/i);
+  });
+
+  await t.test("a queued PR exits 3", (t) => {
+    const w = exportWorld(t);
+    setScenario(w, { pulls: [pull(120, "invoices/export", { queued: true })] });
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /#120\b/);
+    assert.match(result.stderr, /merge queue/i);
+  });
+
+  await t.test("a named branch missing locally exits 2 naming it", (t) => {
+    const w = exportWorld(t);
+
+    const result = run(w, ["check", "--remote", "origin", "--trunk", "main", "invoices/missing"]);
+
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /invoices\/missing/);
+  });
+
+  await t.test("a missing <remote>/<trunk> exits 2 naming the trunk", (t) => {
+    const w = exportWorld(t);
+
+    const result = run(w, [
+      "check",
+      "--remote",
+      "origin",
+      "--trunk",
+      "release/2026",
+      "invoices/export",
+    ]);
+
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(withoutSeeLine(result.stderr), /release\/2026/);
+  });
+
+  await t.test("makes no gh stack call", (t) => {
+    const w = exportWorld(t);
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(
+      ghCalls(w).filter((call) => call.argv[0] === "stack"),
+      [],
+    );
+  });
+
+  await t.test("gh runs without GH_FORCE_TTY or GH_STACK_NO_ATOMIC and with GH_REPO", (t) => {
+    const w = exportWorld(t);
+
+    const result = run(w, NAMED_EXPORT, { env: D6_PARENT_ENV });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
+  });
+});
+
+// The three layers pushed with open PRs #101 to #103 in GitHub stack #7.
+function pushedStackWorld(t) {
+  const w = world(t);
+  const tips = buildLayers(w);
+  push(w, "invoices/schema", "invoices/api", "invoices/ui");
+  setScenario(w, {
+    pulls: [pull(101, "invoices/schema"), pull(102, "invoices/api"), pull(103, "invoices/ui")],
+    stacks: [{ number: 7, pulls: [101, 102, 103] }],
+    stackView: stackView("invoices/ui", [
+      layer("invoices/schema", { pr: 101 }),
+      layer("invoices/api", { pr: 102 }),
+      layer("invoices/ui", { pr: 103 }),
+    ]),
+  });
+  return { w, tips };
+}
+
+test("check fast-forwards a behind layer unless another worktree holds it", async (t) => {
+  await t.test("stack mode: a behind current branch moves with its worktree", (t) => {
+    const { w } = pushedStackWorld(t);
+    const remoteFix = advanceRemote(w, "invoices/ui", "ui-fix.txt");
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "FORWARDED"), ["invoices/ui"]);
+    assert.equal(localTip(w, "invoices/ui"), remoteFix);
+    assert.equal(git(w.work, "status", "--porcelain"), "");
+  });
+
+  await t.test("stack mode: a behind branch that is not current moves", (t) => {
+    const { w } = pushedStackWorld(t);
+    const remoteFix = advanceRemote(w, "invoices/api", "api-fix.txt");
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "FORWARDED"), ["invoices/api"]);
+    assert.equal(localTip(w, "invoices/api"), remoteFix);
+    assert.equal(git(w.work, "branch", "--show-current"), "invoices/ui");
+  });
+
+  await t.test("named mode: a behind current branch moves with its worktree", (t) => {
+    const w = exportWorld(t);
+    const remoteFix = advanceRemote(w, "invoices/export", "export-fix.txt");
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "FORWARDED"), ["invoices/export"]);
+    assert.equal(localTip(w, "invoices/export"), remoteFix);
+    assert.equal(git(w.work, "status", "--porcelain"), "");
+  });
+
+  await t.test("named mode: a behind branch that is not current moves", (t) => {
+    const w = exportWorld(t);
+    git(w.work, "switch", "-q", "main");
+    const remoteFix = advanceRemote(w, "invoices/export", "export-fix.txt");
+
+    const result = run(w, NAMED_EXPORT);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(listKey(result.stdout, "FORWARDED"), ["invoices/export"]);
+    assert.equal(localTip(w, "invoices/export"), remoteFix);
+  });
+
+  await t.test("stack mode: another worktree holding a behind layer exits 3, no ref moved", (t) => {
+    const { w, tips } = pushedStackWorld(t);
+    const otherTree = join(w.dir, "other-tree");
+    git(w.work, "worktree", "add", "-q", otherTree, "invoices/api");
+    advanceRemote(w, "invoices/api", "api-fix.txt");
+    advanceRemote(w, "invoices/ui", "ui-fix.txt");
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+    assert.ok(
+      result.stderr.includes(otherTree),
+      `stderr does not name ${otherTree}:\n${result.stderr}`,
+    );
+    assert.deepEqual(
+      [localTip(w, "invoices/api"), localTip(w, "invoices/ui")],
+      [tips.api, tips.ui],
+    );
+  });
+
+  await t.test(
+    "named mode: another worktree holding a behind branch exits 3, no ref moved",
+    (t) => {
+      const w = exportWorld(t);
+      const exportTip = localTip(w, "invoices/export");
+      git(w.work, "switch", "-q", "main");
+      const otherTree = join(w.dir, "other-tree");
+      git(w.work, "worktree", "add", "-q", otherTree, "invoices/export");
+      advanceRemote(w, "invoices/export", "export-fix.txt");
+
+      const result = run(w, NAMED_EXPORT);
+
+      assert.equal(result.status, 3, result.stderr);
+      assert.match(result.stderr, /invoices\/export/);
+      assert.ok(
+        result.stderr.includes(otherTree),
+        `stderr does not name ${otherTree}:\n${result.stderr}`,
+      );
+      assert.equal(localTip(w, "invoices/export"), exportTip);
+    },
+  );
+
+  await t.test("stack mode: another worktree recorded through a symlink exits 3", (t) => {
+    const { w, tips } = pushedStackWorld(t);
+    addWorktreeThroughLink(w, "other-tree", "invoices/api");
+    advanceRemote(w, "invoices/api", "api-fix.txt");
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 3, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+    assert.equal(localTip(w, "invoices/api"), tips.api);
+  });
+
+  await t.test("stack mode: the current worktree reached through a symlink passes", (t) => {
+    const { w } = pushedStackWorld(t);
+    git(w.work, "switch", "-q", "main");
+    const linkedTree = addWorktreeThroughLink(w, "second", "invoices/ui");
+
+    const result = run(w, ["check", "--remote", "origin"], { cwd: linkedTree });
+
+    assert.equal(result.status, 0, result.stderr);
   });
 });
