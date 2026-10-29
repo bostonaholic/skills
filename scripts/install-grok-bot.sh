@@ -9,7 +9,7 @@
 # the checkout or nothing was installed, 2 on a usage error.
 set -eu
 
-# Skills that need no repository, compiler, or test suite: writing, research, prompts, pricing,
+# Skills that need no repository, compiler, or test suite: writing, research, prompts,
 # and backlog grooming. Keep this list in step with the Grok Bot section of INSTALL.md.
 STRATEGY_SKILLS="
 being-extremely-fucking-brief
@@ -17,7 +17,6 @@ composing-agent-prompts
 conducting-deep-research
 grooming-backlogs
 improving-prompts
-pricing-creativity
 writing-prose
 writing-system-prompts
 "

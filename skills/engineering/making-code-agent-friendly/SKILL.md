@@ -1,6 +1,6 @@
 ---
 name: making-code-agent-friendly
-description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Use when asked to make code agent-friendly or find where parallel agents will collide. Not for general code review; use reviewing-code.'
+description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Use when the user says "make this agent-friendly", or when asked to make code agent-friendly or find where parallel agents will collide. Not for general code review; use reviewing-code.'
 effort: high
 argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding>]"
 ---
@@ -47,7 +47,7 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 3. **Inspect by module.** Check each module against every red flag.
    - When the scope spans more than one module and subagents are available,
      give each module, or a group of small ones, to a fresh-context, read-only
-     subagent, so each reads its code in full instead of a skim of all of it.
+     subagent, never a fork of this conversation, so each reads its code in full instead of a skim of all of it.
    - Keep a lane to about 40 files. For a larger module, inspect its public
      entry, its hot files, and its tests.
    - Hand each subagent its paths, every contention row naming one of its
@@ -61,7 +61,7 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 - Review what the diff adds or worsens, not what it leaves alone. Resolve the
   target as a PR, branch, commit range, or the working tree against the base.
 - When the diff is this session's own work, review it in a fresh-context,
-  read-only subagent ([independent review rules](shared/independent-review.md)).
+  read-only subagent, never a fork of this conversation ([independent review rules](shared/independent-review.md)).
 - Run `contention.mjs -- <changed paths>` to see how often each changed file
   already moves. When it cannot run, say so and continue.
 - Ask of each changed file:
@@ -101,6 +101,6 @@ Never mix the refactor with feature work. Commit or open a PR only when asked.
 
 ## Write
 
-- Before finishing new or changed code, run the [writing checklist](references/principles.md#writing-checklist).
+- Before finishing new or changed code, run the [writing checklist](references/principles.md#writing-checklist). Add no comment the [code comments rules](shared/code-comments.md) do not keep.
 - Fix a failing check in this change when the fix stays inside the files you
   touch; otherwise name it in the reply with its red flag ID.

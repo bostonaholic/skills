@@ -1,6 +1,6 @@
 ---
 name: reviewing-security
-description: 'Reviews a code diff for exploitable security vulnerabilities in a fresh-context read-only subagent, reporting only high-confidence findings with an exploit scenario and fix. Use when asked for a security review of code, a diff, a branch, or a PR. Not for general review; use reviewing-code. Not for a third-party clone; use auditing-repo-security.'
+description: 'Reviews a code diff for exploitable security vulnerabilities in a fresh-context read-only subagent, reporting only high-confidence findings with an exploit scenario and fix. Use when the user says "security review", or when asked for a security review of code, a diff, a branch, or a PR. Not for general review; use reviewing-code. Not for a third-party clone; use auditing-repo-security.'
 effort: high
 argument-hint: "[<diff target>]"
 ---
@@ -40,7 +40,7 @@ Then:
 
 ## Reviewer
 
-- Under the [independent review rules](shared/independent-review.md), run the [security reviewer brief](references/security-reviewer.md) in a fresh-context subagent that holds no file-editing tool.
+- Under the [independent review rules](shared/independent-review.md), run the [security reviewer brief](references/security-reviewer.md) in a fresh-context subagent, never a fork of this conversation, that holds no file-editing tool.
 - Pass no author discussion.
 - Give it only:
   - the target and the command that prints its diff. With no shell, or for a text target, pass the diff text verbatim instead, because the subagent cannot see saved output in this session.

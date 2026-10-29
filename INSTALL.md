@@ -51,14 +51,14 @@ git clone https://github.com/bostonaholic/skills ~/bostonaholic-skills
 sh ~/bostonaholic-skills/scripts/install-grok-bot.sh
 ```
 
-The script copies each active skill (its `SKILL.md`, `references/`, `scripts/`, and `shared/`) to `~/agent-data/workflows/<name>/`, the library every bot on the account reads. Archived skills under `skills/deprecated/` are skipped. Rerunning replaces each copy in place, so this updates:
+The script copies each active skill (its `SKILL.md`, `references/`, `scripts/`, and `shared/`) to `~/agent-data/workflows/<name>/`, the library every bot on the account reads. Archived skills under `skills/deprecated/` are skipped. It replaces any existing directory with the same name, including a workflow of your own named like a skill, such as the `cr` review shortcut at `~/agent-data/workflows/cr/`; rename yours first. Rerunning replaces each copy in place, so this updates:
 
 ```sh
 git -C ~/bostonaholic-skills pull
 sh ~/bostonaholic-skills/scripts/install-grok-bot.sh
 ```
 
-A bot that plans, writes, and researches rather than codes needs only the strategy set: `being-extremely-fucking-brief`, `composing-agent-prompts`, `conducting-deep-research`, `grooming-backlogs`, `improving-prompts`, `pricing-creativity`, `writing-prose`, and `writing-system-prompts`. Install only those with `--set strategy`:
+A bot that plans, writes, and researches rather than codes needs only the strategy set: `being-extremely-fucking-brief`, `composing-agent-prompts`, `conducting-deep-research`, `grooming-backlogs`, `improving-prompts`, `writing-prose`, and `writing-system-prompts`. Install only those with `--set strategy`:
 
 ```sh
 sh ~/bostonaholic-skills/scripts/install-grok-bot.sh --set strategy

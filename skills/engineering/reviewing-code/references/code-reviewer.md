@@ -22,8 +22,8 @@ cannot support with evidence.
 
 ## Report format
 
-This template is exact. The caller parses the verdict line and relays the
-report in full.
+This template is exact. The caller parses the verdict line and posts the
+findings to the pull request, one inline comment per `file:line`.
 
 ```markdown
 **Verdict: <✅ APPROVE | ❌ REQUEST CHANGES | 💬 COMMENT>**
@@ -113,22 +113,20 @@ Walk every changed test file against the [testing rules](shared/testing.md).
 
 ### Comments
 
-Check in-source comments in every changed file against the code comments
-rules in the [code standards](shared/code-standards.md), citing
-`Comment Discipline`.
+Check each comment the diff adds or changes against the
+[code comments rules](shared/code-comments.md), citing `Comment Discipline`.
 
-- **Blocking on first occurrence:** ticket or issue IDs, plan, slice, or
-  phase markers, doc-section references, and a TODO or FIXME the diff
-  introduces. These are mechanical, and the references rot.
-- **Any other comment rule** is `suggestion (non-blocking)` once and
-  `issue (blocking)` when repeated. A single WHAT comment never blocks.
-- **Not violations:** an upstream-bug link that is itself the why;
-  ticket-like tokens outside comment syntax (strings, log messages,
-  fixtures); doc comments on public interfaces; a pre-existing TODO the diff
-  does not touch. Never manufacture a finding.
-- **Missing why:** raise it only when you can name the constraint that
-  shaped new code and the consequence of removing it. It is
-  `suggestion (non-blocking)`, never escalated on repetition.
+- Every comment finding is `suggestion (non-blocking)`. It never blocks,
+  whatever the comment holds or how often it repeats.
+- Show the better code that replaces the comment: a rename, an extracted
+  function or constant, a type, an assertion, a test, or the line without
+  the comment. For a TODO or ticket ID, also say where the work goes: an
+  issue, the PR body, or the commit message.
+- **Missing why:** raise it only when a keep clause covers the comment that
+  new code lacks. Show the comment text that clause covers, not replacement
+  code. It is `suggestion (non-blocking)`.
+- Ticket-like tokens outside comment syntax (strings, log messages,
+  fixtures) are not comments. Never manufacture a finding.
 
 ## Re-review
 

@@ -29,6 +29,7 @@ the collection's extraction history.
 npm run readme
 npm run site
 node scripts/catalog.mjs --check
+npm run format:check
 node --test tests/catalog.test.mjs
 git diff --check
 ```

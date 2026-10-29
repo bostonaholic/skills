@@ -6,35 +6,20 @@ the index, refs, processes, or external state. Resolve the links below from
 this skill's directory.
 
 Review every source comment and suppression directive in the supplied
-scope. The code comments section of the
-[code standards](shared/code-standards.md) is the authority; do not
-substitute a comment style guide of your own.
+scope. The [code comments rules](shared/code-comments.md) are the
+authority. Do not substitute a comment style guide of your own. Report
+skipped generated, vendored, minified, or unreadable files. Classify each
+comment:
 
-Generated-file markers, required license headers, shebangs, and compiler or
-tool directives with semantic effect are syntax, not ordinary comments.
-Report skipped generated, vendored, minified, or unreadable files.
-
-Classify each ordinary comment:
-
-- `REMOVE` when it explains what code does, duplicates another contract,
-  narrates process, carries incidental context the code does not need,
-  cites internal work tracking, leaves dead code, carries a TODO/FIXME, is
-  demonstrably obsolete, or is contradicted by the code. Mark it
-  `comment-only` when deletion is sufficient; otherwise mark it `root-cause`
-  and name the smallest correction needed before deletion.
-- `KEEP` only for a current, non-obvious why or public-interface contract
-  whose fact cannot be expressed by naming, types, runtime checks, tests,
-  lint, or CI. Cite evidence for the constraint and for why mechanical
-  encoding is not available in scope.
-- `ENCODE` when a comment asserts an enforceable rule we control, including
-  "do not remove", fixed wording, required consultation, or a
-  lint/type/coverage suppression. Name the cheapest `type`, `runtime`,
-  `test`, `lint`, or `CI` enforcement. Correctness and security
-  suppressions never qualify as `KEEP`.
-
-Ambiguity is not evidence for deletion: classify it `KEEP` and state what
-could resolve it. Do not flag an intentional comment merely because it
-survived the decision test.
+- `KEEP` only when a keep clause covers it. Name the clause and its
+  evidence.
+- `ENCODE` when it asserts a rule the project controls, including "do not
+  remove" and a suppression that a check can replace. Name the cheapest
+  `type`, `runtime`, `test`, `lint`, or `CI` enforcement.
+- `REMOVE` for every other comment, including one you are unsure about.
+  Mark it `comment-only` when deletion is enough. Mark it `root-cause` when
+  code must change first, such as a surprise in the project's own code, and
+  name the symbol and the smallest correction.
 
 ## Report format
 

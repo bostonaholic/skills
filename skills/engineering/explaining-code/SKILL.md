@@ -1,6 +1,6 @@
 ---
 name: explaining-code
-description: Explains code or code changes in plain language, briefly by default or in full for a reviewer. Use when asked to explain, ELIE, summarize, or break down a PR, diff, branch, file, function, or concept for someone new to the code. Not for how a whole subsystem works; use explaining-architecture.
+description: Explains code or code changes in plain language, briefly by default or in full for a reviewer. Use when the user says "explain this PR", or when asked to explain, ELIE, summarize, or break down a PR, diff, branch, file, function, or concept for someone new to the code. Not for how a whole subsystem works; use explaining-architecture.
 argument-hint: "[elie] <PR, file, function, branch, or concept>"
 ---
 

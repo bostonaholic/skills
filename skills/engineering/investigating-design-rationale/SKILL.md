@@ -1,6 +1,6 @@
 ---
 name: investigating-design-rationale
-description: Answers why code is shaped as it is with an evidence-rated report, tagging each claim [Direct], [Supported], [Inferred], or [Speculative] and closing with a Sources Consulted list that covers git, PRs, tickets, docs, chat, and observability, naming the sources left unchecked. Read-only. Use when asked why code is shaped as it is, why a value or limit was chosen, what alternatives were rejected, or what forces shaped a decision, including when the asker offers a guess at the reason. Use it even when commits or PR text are already in context, since a plain answer from them omits the tiers and the unchecked sources. Not for how code works; use explaining-architecture.
+description: Answers why code is shaped as it is with an evidence-rated report, tagging each claim [Direct], [Supported], [Inferred], or [Speculative] and closing with a Sources Consulted list that covers git, PRs, tickets, docs, chat, and observability, naming the sources left unchecked. Read-only. Use when the user says "why is it built this way?", or when asked why code is shaped as it is, why a value or limit was chosen, what alternatives were rejected, or what forces shaped a decision, including when the asker offers a guess at the reason. Use it even when commits or PR text are already in context, since a plain answer from them omits the tiers and the unchecked sources. Not for how code works; use explaining-architecture.
 effort: high
 argument-hint: "[<question, file, symbol, or decision>]"
 ---
@@ -30,7 +30,7 @@ Search every category: **source control**, **issue/ticket tracker**, **long-form
 - Skip one only when it is provably irrelevant, never because it "probably has nothing".
 - A null result is a finding; a skipped search is a blind spot reported by name with its reason.
 
-A subagent searching a category gets the user's question verbatim, never your
+A fresh-context subagent searching a category, never a fork of this conversation, gets the user's question verbatim, never your
 hypothesis or the user's guess. Spot-check its citations before asserting
 them.
 

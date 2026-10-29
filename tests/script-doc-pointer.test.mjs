@@ -370,22 +370,22 @@ const ROWS = [
     exit: 1,
     target: "skills/engineering/summarizing-friction-logs/SKILL.md",
   },
-  // rebasing-branches, redoing-implementations
+  // modernizing-prs, redoing-implementations
   {
     label: "prepare-rebase.sh",
-    script: "skills/engineering/rebasing-branches/scripts/prepare-rebase.sh",
+    script: "skills/engineering/modernizing-prs/scripts/prepare-rebase.sh",
     interpreter: "bash",
     args: none,
     exit: 1,
-    target: "skills/engineering/rebasing-branches/SKILL.md",
+    target: "skills/engineering/modernizing-prs/SKILL.md",
   },
   {
     label: "publish.sh",
-    script: "skills/engineering/rebasing-branches/scripts/publish.sh",
+    script: "skills/engineering/modernizing-prs/scripts/publish.sh",
     interpreter: "bash",
     args: none,
     exit: 2,
-    target: "skills/engineering/rebasing-branches/SKILL.md",
+    target: "skills/engineering/modernizing-prs/SKILL.md",
   },
   {
     label: "save-and-reset-attempt.sh",
@@ -394,63 +394,6 @@ const ROWS = [
     args: none,
     exit: 3,
     target: "skills/engineering/redoing-implementations/SKILL.md",
-  },
-  // rebasing-open-prs
-  {
-    label: "list-prs.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/list-prs.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 127,
-    target: "skills/engineering/rebasing-open-prs/SKILL.md",
-  },
-  {
-    label: "init-run.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/init-run.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 127,
-    target: "skills/engineering/rebasing-open-prs/SKILL.md",
-  },
-  {
-    label: "reconcile.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/reconcile.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 127,
-    target: "skills/engineering/rebasing-open-prs/SKILL.md",
-  },
-  {
-    label: "prepare-worktree.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/prepare-worktree.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 2,
-    target: "skills/engineering/rebasing-open-prs/references/per-pr-procedure.md",
-  },
-  {
-    label: "check-range-diff.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/check-range-diff.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 2,
-    target: "skills/engineering/rebasing-open-prs/references/per-pr-procedure.md",
-  },
-  {
-    label: "write-result.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/write-result.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 127,
-    target: "skills/engineering/rebasing-open-prs/references/per-pr-procedure.md",
-  },
-  {
-    label: "cleanup-worktree.sh",
-    script: "skills/engineering/rebasing-open-prs/scripts/cleanup-worktree.sh",
-    interpreter: "bash",
-    args: none,
-    exit: 2,
-    target: "skills/engineering/rebasing-open-prs/references/per-pr-procedure.md",
   },
   // grooming-backlogs
   {
@@ -782,23 +725,6 @@ const ROWS = [
     args: () => ["claude", "project"],
     exit: 69,
     target: "skills/productivity/learning-from-mistakes/SKILL.md",
-  },
-  // pricing-creativity
-  {
-    label: "price-calc.mjs usage",
-    script: "skills/productivity/pricing-creativity/scripts/price-calc.mjs",
-    interpreter: "node",
-    args: none,
-    exit: 2,
-    target: "skills/productivity/pricing-creativity/SKILL.md",
-  },
-  {
-    label: "price-calc.mjs invalid input",
-    script: "skills/productivity/pricing-creativity/scripts/price-calc.mjs",
-    interpreter: "node",
-    args: () => ["ceiling", "$5"],
-    exit: 1,
-    target: "skills/productivity/pricing-creativity/SKILL.md",
   },
   // running-retros, summarizing-shipped-work
   {

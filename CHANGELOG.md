@@ -6,6 +6,86 @@
 
 - `stacking-prs` splits a large or overlapping change into stacked PRs with the `gh stack` extension, checking the remote and each layer before every push, and reports how to merge the stack instead of merging it. [#166](https://github.com/bostonaholic/skills/pull/166)
 
+## [0.78.0] - 2026-10-29
+
+### Added
+
+- `modernizing-prs` checks whether a PR still belongs before it brings the PR up to date: it rebases and lease-pushes only on `MODERNIZE`, and stops with evidence on `REWORK` or `CLOSE`. [#168](https://github.com/bostonaholic/skills/pull/168)
+
+### Changed
+
+- `landing-prs` and `watching-authored-prs` call `modernizing-prs` on a merge conflict, and stop without merging when it recommends `REWORK` or `CLOSE`. [#168](https://github.com/bostonaholic/skills/pull/168)
+
+### Removed
+
+- Retire `rebasing-branches`: `modernizing-prs` replaces it. [#168](https://github.com/bostonaholic/skills/pull/168)
+- Retire `rebasing-open-prs` with no replacement. [#168](https://github.com/bostonaholic/skills/pull/168)
+
+## [0.77.0] - 2026-10-29
+
+### Changed
+
+- Every skill that starts a subagent now says to start it with fresh context, never a fork of the conversation. [#167](https://github.com/bostonaholic/skills/pull/167)
+
+## [0.76.0] - 2026-10-29
+
+### Changed
+
+- `reviewing-code` posts its findings as inline comments and its verdict as an approve, comment, or request-changes review on the pull request without asking, then prints only the verdict and a short summary. [#165](https://github.com/bostonaholic/skills/pull/165)
+
+## [0.75.0] - 2026-10-29
+
+### Added
+
+- Every model-invoked skill's description names a short trigger phrase in its `Use when` clause, such as "code review" or "ship it", listed in the README's Say column. [#162](https://github.com/bostonaholic/skills/pull/162)
+
+### Changed
+
+- `running-retros` starts when the user says "retro" instead of only by name. [#162](https://github.com/bostonaholic/skills/pull/162)
+
+## [0.74.0] - 2026-10-29
+
+### Added
+
+- Add `writing-no-comments`, a skill that loads before an agent writes or edits code and keeps out every comment a short keep list does not cover. [#164](https://github.com/bostonaholic/skills/pull/164)
+
+### Changed
+
+- `making-code-agent-friendly` adds no comment the shared keep list rejects when it writes code, and its P10 puts a constraint the code cannot show in a test, a type, or the module's README before a comment. [#164](https://github.com/bostonaholic/skills/pull/164)
+- The `oracle` subagent suggests a comment only for a constraint from outside the project that the code cannot show. [#164](https://github.com/bostonaholic/skills/pull/164)
+- `removing-comments` removes every comment outside the shared keep list, including one it is unsure about, instead of keeping comments that explain a current reason. [#164](https://github.com/bostonaholic/skills/pull/164)
+- `reviewing-code` reports every code comment finding as a non-blocking suggestion that shows the code to replace the comment, so comments alone no longer block a review. [#164](https://github.com/bostonaholic/skills/pull/164)
+
+## [0.73.0] - 2026-10-29
+
+### Removed
+
+- Removed `pricing-creativity`: the plugins, `npx skills`, and the Grok Bot strategy set no longer install it. [#163](https://github.com/bostonaholic/skills/pull/163)
+
+## [0.72.1] - 2026-10-28
+
+### Changed
+
+- `addressing-pr-comments` links its options A to G from the skill's opening paragraph, before the rules that name them. [#161](https://github.com/bostonaholic/skills/pull/161)
+
+## [0.72.0] - 2026-10-28
+
+### Changed
+
+- `addressing-pr-comments` posts declines and clarifying questions to the reviewer during the pass instead of pausing for the user; a decline leaves its thread open. [#160](https://github.com/bostonaholic/skills/pull/160)
+
+## [0.71.0] - 2026-10-28
+
+### Added
+
+- `cr` starts a `reviewing-code` review with the same optional diff target in every harness: `/cr` in Claude Code, Cursor, and Grok Bot, `$cr` in Codex. [#158](https://github.com/bostonaholic/skills/pull/158)
+
+## [0.70.0] - 2026-10-28
+
+### Fixed
+
+- `addressing-pr-comments` counts the user's own PR comments as feedback, held to the same bar as any reviewer's, instead of pausing them when other reviewers also commented. [#159](https://github.com/bostonaholic/skills/pull/159)
+
 ## [0.69.0] - 2026-10-27
 
 ### Changed
@@ -915,5 +995,25 @@
 
 [0.68.0]: https://github.com/bostonaholic/skills/compare/v0.67.0...v0.68.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.69.0...HEAD
 [0.69.0]: https://github.com/bostonaholic/skills/compare/v0.68.0...v0.69.0
+
+[0.70.0]: https://github.com/bostonaholic/skills/compare/v0.69.0...v0.70.0
+
+[0.71.0]: https://github.com/bostonaholic/skills/compare/v0.70.0...v0.71.0
+
+[0.72.0]: https://github.com/bostonaholic/skills/compare/v0.71.0...v0.72.0
+
+[0.72.1]: https://github.com/bostonaholic/skills/compare/v0.72.0...v0.72.1
+
+[0.73.0]: https://github.com/bostonaholic/skills/compare/v0.72.1...v0.73.0
+
+[0.74.0]: https://github.com/bostonaholic/skills/compare/v0.73.0...v0.74.0
+
+[0.75.0]: https://github.com/bostonaholic/skills/compare/v0.74.0...v0.75.0
+
+[0.76.0]: https://github.com/bostonaholic/skills/compare/v0.75.0...v0.76.0
+
+[0.77.0]: https://github.com/bostonaholic/skills/compare/v0.76.0...v0.77.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.78.0...HEAD
+[0.78.0]: https://github.com/bostonaholic/skills/compare/v0.77.0...v0.78.0

@@ -1,6 +1,6 @@
 ---
 name: diagnosing-react-code
-description: Runs the react-doctor scanner on a React package, fixes its error diagnostics, and re-runs until none remain. Use when React components or hooks changed, when finishing a React feature or bug fix, or when asked to health-check React code.
+description: Runs the react-doctor scanner on a React package, fixes its error diagnostics, and re-runs until none remain. Use when the user says "health-check the React code", or when React components or hooks changed, when finishing a React feature or bug fix, or when asked to health-check React code.
 metadata:
   version: "1.0.0"
 ---

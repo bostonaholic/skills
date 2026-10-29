@@ -130,6 +130,36 @@ test("A2 reports a name that does not start with a gerund", (t) => {
   );
 });
 
+test("A2 skips a name in GERUND_EXEMPT", (t) => {
+  assert.ok(
+    lint.GERUND_EXEMPT && typeof lint.GERUND_EXEMPT === "object",
+    "scripts/lint-skills.mjs exports no GERUND_EXEMPT map",
+  );
+  const name = Object.keys(lint.GERUND_EXEMPT)[0];
+  if (!name) return t.skip("GERUND_EXEMPT is empty");
+  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ name }) }));
+  assert.doesNotMatch(run.output, / A2 /);
+});
+
+test("every GERUND_EXEMPT entry names an active skill", () => {
+  assert.ok(
+    lint.GERUND_EXEMPT && typeof lint.GERUND_EXEMPT === "object",
+    "scripts/lint-skills.mjs exports no GERUND_EXEMPT map",
+  );
+  const names = new Set(
+    gitFiles("skills/*/*/SKILL.md")
+      .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
+      .map((path) => path.split("/")[2]),
+  );
+  const problems = Object.keys(lint.GERUND_EXEMPT)
+    .filter((name) => !names.has(name))
+    .map(
+      (name) =>
+        `GERUND_EXEMPT in scripts/lint-skills.mjs: ${name} is not an active skill. Delete its entry.`,
+    );
+  assert.deepEqual(problems, []);
+});
+
 test("A3 reports an overlong description and one containing an XML tag", (t) => {
   const long = `${DESCRIPTION} ${"word ".repeat(220)}`;
   assertReports(

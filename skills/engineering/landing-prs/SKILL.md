@@ -1,6 +1,6 @@
 ---
 name: landing-prs
-description: Lands a reviewed pull request by rebasing onto the base when the branch is behind and resolving any conflicts, running the project's declared pre-merge steps, pushing, waiting for green CI, and squash-merging. Use when the user explicitly asks to land, ship, or merge a reviewed PR. Never infer from approval, green CI, or completion. Not for a watch that should merge on approval; use watching-authored-prs. Not for rebasing without landing; use rebasing-branches.
+description: Lands a reviewed pull request by rebasing onto the base when the branch is behind and resolving any conflicts, running the project's declared pre-merge steps, pushing, waiting for green CI, and squash-merging. Use when the user says "ship it", or when the user explicitly asks to land, ship, or merge a reviewed PR. Never infer from approval, green CI, or completion. Not for a watch that should merge on approval; use watching-authored-prs. Not for updating a PR without landing; use modernizing-prs.
 effort: medium
 argument-hint: "[<pr-number>]"
 ---
@@ -31,10 +31,10 @@ Rebase only when `BEHIND` is above `0`:
 1. `git rebase refs/remotes/<REMOTE>/<BASE_REF>`, adding `--rebase-merges`
    when `MERGES` is above `0`.
 2. On a conflict, `git rebase --abort` and call the Skill tool with
-   `rebasing-branches` and `<n>` (see [skill calls](shared/skill-calls.md)).
+   `modernizing-prs` and `<n>` (see [skill calls](shared/skill-calls.md)).
    When it finishes pushed, continue; when it stops, stop and relay its
    report. If it is not installed, name the conflicting paths and end with
-   `Next: /rebasing-branches <n>, then /landing-prs <n>`.
+   `Next: /modernizing-prs <n>, then /landing-prs <n>`.
 
 ### Pre-merge steps and push
 
@@ -43,7 +43,7 @@ example, a version bump), run it now. If it stops, stop.
 
 Then push. After a rebase this skill ran itself and has not pushed,
 `git push --force-with-lease=<HEAD_REF>:<LEASE> <REMOTE> HEAD:<HEAD_REF>`;
-otherwise, including after `rebasing-branches` pushed, `git push`. Never
+otherwise, including after `modernizing-prs` pushed, `git push`. Never
 a bare `--force`. If the push is rejected, report git's message verbatim
 and stop without retrying.
 
