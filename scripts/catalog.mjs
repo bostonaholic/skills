@@ -26,9 +26,16 @@ export const INSTALL_DOC = "INSTALL.md";
 export const README_START = "<!-- generated:start -->";
 export const README_END = "<!-- generated:end -->";
 
+const TABLE_HEADER = ["Skill", "Say", "Invoked by", "What it does"];
+const SAY_LEGEND =
+  "Say a quoted phrase, or ask in your own words, and the matching skill loads. A skill shown as a command starts only when you run it, written in [the form your harness uses](AGENTS.md#what-the-skills-are). Invoked by lists what can start a skill: you (user), the agent on its own (model), or another skill (skill).";
+const CALLS_LEAD = "Some skills call others. Install the skills they call too.";
+
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 export const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
 const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
+// The phrase a model-invoked skill's `Use when` clause quotes, shown in the README Say column.
+const SAY_PHRASE = /\bUse when the user says "([^"]+)"/;
 
 // A problem with the repository's input files. The CLIs report its message and exit 1.
 export class CatalogError extends Error {}
@@ -76,7 +83,13 @@ function loadSkill(path, skillNames, errors) {
   else if (name !== directoryName)
     errors.push(`${path}: name "${name}" differs from its directory "${directoryName}"`);
   if (!description) errors.push(`${path}: no description`);
-  if (name !== directoryName || !description) return null;
+  const userInvoked = scalar(frontmatter, "disable-model-invocation") === "true";
+  const say = description?.match(SAY_PHRASE)?.[1];
+  if (!userInvoked && !say)
+    errors.push(
+      `${path}: description has no 'Use when the user says "<phrase>"' for the Say column`,
+    );
+  if (name !== directoryName || !description || (!userInvoked && !say)) return null;
 
   const yamlPath = `${dir}/agents/openai.yaml`;
   const yaml = existsSync(yamlPath) ? readFileSync(yamlPath, "utf8") : "";
@@ -90,7 +103,9 @@ function loadSkill(path, skillNames, errors) {
     summary: shortDescription.replace(/\.$/, ""),
     description,
     argumentHint: scalar(frontmatter, "argument-hint") ?? "",
-    userInvoked: scalar(frontmatter, "disable-model-invocation") === "true",
+    userInvoked,
+    modelOnly: scalar(frontmatter, "user-invocable") === "false",
+    say,
     calls: calls(dir, skillNames),
   };
 }
@@ -123,14 +138,50 @@ export function skillGroups(catalog) {
   ].filter((group) => group.skills.length);
 }
 
-function readmeEntry(skill) {
-  const entry = `- **[${skill.name}](./${skill.directory}/SKILL.md)**: ${skill.summary}.${skill.userInvoked ? " Explicit invocation only." : ""}`;
-  if (!skill.calls.length) return entry;
-  return `${entry} Calls: ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
+function invokedBy(skill, called) {
+  return [
+    !skill.modelOnly && "user",
+    !skill.userInvoked && "model",
+    called.has(skill.name) && "skill",
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function tableRow(skill, called) {
+  return [
+    `[\`${skill.name}\`](./${skill.directory}/SKILL.md)`,
+    skill.userInvoked ? `\`/${skill.name}\`` : `"${skill.say}"`,
+    invokedBy(skill, called),
+    `${skill.summary}.`,
+  ];
+}
+
+function callsLine(skill) {
+  return `- \`${skill.name}\` calls ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
+}
+
+// Keeps a cell on one table row: a newline would end the row and a bare pipe would split it.
+// Backslashes are escaped too, or a summary's own `\|` would become `\\|` and split the cell.
+function escapeCell(text) {
+  return text.replace(/\r?\n/g, " ").replace(/[\\|]/g, "\\$&");
+}
+
+// Pads every cell to its column's widest cell, header included, because oxfmt pads tables that
+// way: unpadded output would make `npm run format:check` and `--check` disagree. Cells are
+// escaped first so the widths measure the bytes written.
+function table(rawRows) {
+  const rows = rawRows.map((row) => row.map(escapeCell));
+  const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)));
+  const line = (cells) =>
+    `| ${cells.map((cell, column) => cell.padEnd(widths[column])).join(" | ")} |`;
+  const [header, ...body] = rows;
+  return [line(header), line(widths.map((width) => "-".repeat(width))), ...body.map(line)];
 }
 
 // Returns the text strictly between README_START and README_END.
 export function renderReadme(catalog) {
+  const called = new Set(catalog.flatMap((skill) => skill.calls));
   const lines = [
     LEDE,
     "",
@@ -148,9 +199,18 @@ export function renderReadme(catalog) {
     "",
   ];
   lines.push(`Or follow the [installation instructions](${INSTALL_DOC}).`, "", "## Skills", "");
+  lines.push(SAY_LEGEND, "");
   for (const group of skillGroups(catalog)) {
-    lines.push(`### ${group.heading}`, "", ...group.skills.map(readmeEntry), "");
+    lines.push(
+      `### ${group.heading}`,
+      "",
+      ...table([TABLE_HEADER, ...group.skills.map((skill) => tableRow(skill, called))]),
+      "",
+    );
   }
+  const callers = catalog.filter((skill) => skill.calls.length);
+  if (callers.length)
+    lines.push("### Skill calls", "", CALLS_LEAD, "", ...callers.map(callsLine), "");
   return `\n\n${lines.join("\n")}\n`;
 }
 

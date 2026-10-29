@@ -1,6 +1,6 @@
 ---
 name: drawing-mermaid-diagrams
-description: Writes, edits, and debugs Mermaid diagrams (flowchart, sequence, class, state, ER, Gantt, pie, mindmap, timeline, quadrant, git graph, XY, Sankey, architecture, journey, kanban, block). Use when the user asks for a diagram, flowchart, ERD, or Mermaid code, or when a Mermaid diagram fails to parse or render.
+description: Writes, edits, and debugs Mermaid diagrams (flowchart, sequence, class, state, ER, Gantt, pie, mindmap, timeline, quadrant, git graph, XY, Sankey, architecture, journey, kanban, block). Use when the user says "draw a diagram", or when the user asks for a diagram, flowchart, ERD, or Mermaid code, or when a Mermaid diagram fails to parse or render.
 ---
 
 # Mermaid Diagrams

@@ -1,6 +1,6 @@
 ---
 name: grooming-backlogs
-description: 'Grooms a GitHub Projects backlog: verifies issues against the code, ranks and clusters them, and plans milestone, link, and closure changes, or promotes issues to Ready. Proposes tracker changes; each requires approval. Use when asked to groom, triage, or prioritize a backlog, or to promote issues to Ready.'
+description: 'Grooms a GitHub Projects backlog: verifies issues against the code, ranks and clusters them, and plans milestone, link, and closure changes, or promotes issues to Ready. Proposes tracker changes; each requires approval. Use when the user says "groom the backlog", or when asked to groom, triage, or prioritize a backlog, or to promote issues to Ready.'
 effort: high
 argument-hint: "[<project-number-or-url>] [--promote <issue-number> | --promote-top [<count>] [--focus <area>]]"
 ---

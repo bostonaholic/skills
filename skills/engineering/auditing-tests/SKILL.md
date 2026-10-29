@@ -1,6 +1,6 @@
 ---
 name: auditing-tests
-description: 'Audits a test suite, or a named part, for low-value tests and marks each retain, fix, consolidate, or delete with verified removal evidence. Read-only. Use when asked to audit tests for redundant, junk, or low-value tests. Not for code complexity; use auditing-complexity.'
+description: 'Audits a test suite, or a named part, for low-value tests and marks each retain, fix, consolidate, or delete with verified removal evidence. Read-only. Use when the user says "audit the tests", or when asked to audit tests for redundant, junk, or low-value tests. Not for code complexity; use auditing-complexity.'
 effort: high
 argument-hint: "[<path or subsystem> ...] [--out <dir>]"
 ---

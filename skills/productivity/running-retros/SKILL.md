@@ -1,9 +1,8 @@
 ---
 name: running-retros
-description: Mines a session transcript, past agent sessions, or named sources such as PR review comments for durable learnings, then proposes approval-gated edits to skills, AGENTS.md, or docs and tracker issues. Use when the user explicitly asks for a retrospective or retro. Never infer from session end or friction.
+description: Mines a session transcript, past agent sessions, or named sources such as PR review comments for durable learnings, then proposes approval-gated edits to skills, AGENTS.md, or docs and tracker issues. Use when the user says "retro", or when the user explicitly asks for a retrospective. Never infer from session end or friction.
 effort: high
 argument-hint: "[what to retro on]"
-disable-model-invocation: true
 ---
 
 # Running retros

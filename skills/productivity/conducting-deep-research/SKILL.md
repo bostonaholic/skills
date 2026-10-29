@@ -1,6 +1,6 @@
 ---
 name: conducting-deep-research
-description: Conducts source-backed, goal-directed research that combines a scholarly evidence review with an institution, company, or funding map. Use when a request needs both an evidence review and an organization or funding map. Not for quick lookups or general research write-ups.
+description: Conducts source-backed, goal-directed research that combines a scholarly evidence review with an institution, company, or funding map. Use when the user says "deep research", or when a request needs both an evidence review and an organization or funding map. Not for quick lookups or general research write-ups.
 ---
 
 # Conducting Deep Research

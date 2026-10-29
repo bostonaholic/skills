@@ -1,6 +1,6 @@
 ---
 name: reviewing-design-docs
-description: 'Reviews a technical design document or RFC adversarially in fresh-context read-only subagents, one per lens, (coverage, decisions, edge cases, consistency, risks, citations, scope) and returns one merged report with a verdict. Use when asked to review a design doc, RFC, or technical design. Not for code diffs; use reviewing-code.'
+description: 'Reviews a technical design document or RFC adversarially in fresh-context read-only subagents, one per lens, (coverage, decisions, edge cases, consistency, risks, citations, scope) and returns one merged report with a verdict. Use when the user says "review this design doc", or when asked to review a design doc, RFC, or technical design. Not for code diffs; use reviewing-code.'
 effort: high
 argument-hint: "[<design-doc-path-or-url>]"
 ---

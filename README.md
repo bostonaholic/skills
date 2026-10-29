@@ -20,62 +20,84 @@ Or follow the [installation instructions](INSTALL.md).
 
 ## Skills
 
+Say a quoted phrase, or ask in your own words, and the matching skill loads. A skill shown as a command starts only when you run it, written in [the form your harness uses](AGENTS.md#what-the-skills-are). Invoked by lists what can start a skill: you (user), the agent on its own (model), or another skill (skill).
+
 ### Engineering
 
-- **[addressing-pr-comments](./skills/engineering/addressing-pr-comments/SKILL.md)**: Triage and address open PR feedback. Calls: `attaching-pr-screenshots`.
-- **[attaching-pr-screenshots](./skills/engineering/attaching-pr-screenshots/SKILL.md)**: Attach local images and short videos to a PR body.
-- **[auditing-agent-token-usage](./skills/engineering/auditing-agent-token-usage/SKILL.md)**: Audit Claude Code and Codex token and context costs.
-- **[auditing-complexity](./skills/engineering/auditing-complexity/SKILL.md)**: Rank code complexity hotspots and CRAP change risk.
-- **[auditing-rails-tech-debt](./skills/engineering/auditing-rails-tech-debt/SKILL.md)**: Audit a Rails app for cited tech debt findings. Calls: `simplifying-ruby-code`.
-- **[auditing-repo-security](./skills/engineering/auditing-repo-security/SKILL.md)**: Audit a third-party repo before running it.
-- **[auditing-tests](./skills/engineering/auditing-tests/SKILL.md)**: Audit a test suite for low-value tests.
-- **[capturing-screenshots](./skills/engineering/capturing-screenshots/SKILL.md)**: Capture verified screenshots of an app.
-- **[choosing-determinism](./skills/engineering/choosing-determinism/SKILL.md)**: Move a skill's deterministic steps into scripts it runs.
-- **[configuring-zsh](./skills/engineering/configuring-zsh/SKILL.md)**: Place zsh config in the right startup file.
-- **[cr](./skills/engineering/cr/SKILL.md)**: Start a reviewing-code review with a short name. Explicit invocation only. Calls: `reviewing-code`.
-- **[diagnosing-react-code](./skills/engineering/diagnosing-react-code/SKILL.md)**: Scan a React package and fix its errors.
-- **[drawing-mermaid-diagrams](./skills/engineering/drawing-mermaid-diagrams/SKILL.md)**: Write, render, and debug Mermaid diagrams.
-- **[explaining-architecture](./skills/engineering/explaining-architecture/SKILL.md)**: Explain how a subsystem or runtime flow works. Calls: `investigating-design-rationale`.
-- **[explaining-code](./skills/engineering/explaining-code/SKILL.md)**: Explain a PR, diff, or code briefly or in full. Calls: `explaining-architecture`.
-- **[fixing-root-causes](./skills/engineering/fixing-root-causes/SKILL.md)**: Trace each symptom to its root and fix it there.
-- **[freeing-disk-space](./skills/engineering/freeing-disk-space/SKILL.md)**: Find what fills the disk and clear regenerable files.
-- **[grooming-backlogs](./skills/engineering/grooming-backlogs/SKILL.md)**: Plan backlog grooming changes for approval.
-- **[hillclimbing](./skills/engineering/hillclimbing/SKILL.md)**: Iterate on measured changes until the criteria pass.
-- **[investigating-design-rationale](./skills/engineering/investigating-design-rationale/SKILL.md)**: Investigate why code is shaped as it is. Calls: `explaining-architecture`.
-- **[landing-prs](./skills/engineering/landing-prs/SKILL.md)**: Land a reviewed pull request on explicit request. Calls: `rebasing-branches`.
-- **[making-code-agent-friendly](./skills/engineering/making-code-agent-friendly/SKILL.md)**: Audit, review, and refactor code so many agents can change it in parallel.
-- **[merging-dependabot-prs](./skills/engineering/merging-dependabot-prs/SKILL.md)**: Plan and merge safe Dependabot updates one at a time, or only request rebases. Explicit invocation only.
-- **[proving-claims](./skills/engineering/proving-claims/SKILL.md)**: Prove claims or a PR test plan with rated evidence.
-- **[rebasing-branches](./skills/engineering/rebasing-branches/SKILL.md)**: Rebase the current branch onto its base and force-push with a lease.
-- **[rebasing-open-prs](./skills/engineering/rebasing-open-prs/SKILL.md)**: Rebase all open pull requests onto their bases after confirmation. Explicit invocation only.
-- **[redesigning-from-first-principles](./skills/engineering/redesigning-from-first-principles/SKILL.md)**: Redesign as if a new requirement was always there. Explicit invocation only.
-- **[redoing-implementations](./skills/engineering/redoing-implementations/SKILL.md)**: Rebuild the current work as a simpler design. Explicit invocation only.
-- **[removing-comments](./skills/engineering/removing-comments/SKILL.md)**: Remove every source comment outside a short keep list, fixing root causes with approval. Explicit invocation only.
-- **[reviewing-code](./skills/engineering/reviewing-code/SKILL.md)**: Review a diff in a fresh-context read-only subagent.
-- **[reviewing-design-docs](./skills/engineering/reviewing-design-docs/SKILL.md)**: Adversarially review a technical design document.
-- **[reviewing-security](./skills/engineering/reviewing-security/SKILL.md)**: Security-review a diff in a fresh-context read-only subagent.
-- **[simplifying-ruby-code](./skills/engineering/simplifying-ruby-code/SKILL.md)**: Find or fix over-engineered Ruby and Rails code.
-- **[summarizing-friction-logs](./skills/engineering/summarizing-friction-logs/SKILL.md)**: Prioritize frog friction logs across a workspace.
-- **[updating-bostonaholic-skills](./skills/engineering/updating-bostonaholic-skills/SKILL.md)**: Update the bostonaholic plugin installs and skill copies to the latest release. Explicit invocation only.
-- **[verifying-production-changes](./skills/engineering/verifying-production-changes/SKILL.md)**: Confirm a merged change took effect in production.
-- **[watching-authored-prs](./skills/engineering/watching-authored-prs/SKILL.md)**: Watch your own PR for review feedback and CI. Calls: `addressing-pr-comments`, `rebasing-branches`.
-- **[watching-reviewed-prs](./skills/engineering/watching-reviewed-prs/SKILL.md)**: Watch a PR you reviewed and approve once feedback settles. Explicit invocation only.
-- **[writing-no-comments](./skills/engineering/writing-no-comments/SKILL.md)**: Write code with no comments outside a short keep list.
-- **[writing-no-tests](./skills/engineering/writing-no-tests/SKILL.md)**: Write no tests. I dare you.
-- **[writing-technical-design-docs](./skills/engineering/writing-technical-design-docs/SKILL.md)**: Draft a directionally correct technical design doc. Calls: `reviewing-design-docs`.
+| Skill                                                                                                  | Say                                  | Invoked by         | What it does                                                                             |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------ | ------------------ | ---------------------------------------------------------------------------------------- |
+| [`addressing-pr-comments`](./skills/engineering/addressing-pr-comments/SKILL.md)                       | "address the PR comments"            | user, model, skill | Triage and address open PR feedback.                                                     |
+| [`attaching-pr-screenshots`](./skills/engineering/attaching-pr-screenshots/SKILL.md)                   | "attach screenshots to the PR"       | user, model, skill | Attach local images and short videos to a PR body.                                       |
+| [`auditing-agent-token-usage`](./skills/engineering/auditing-agent-token-usage/SKILL.md)               | "audit token usage"                  | user, model        | Audit Claude Code and Codex token and context costs.                                     |
+| [`auditing-complexity`](./skills/engineering/auditing-complexity/SKILL.md)                             | "find complexity hotspots"           | user, model        | Rank code complexity hotspots and CRAP change risk.                                      |
+| [`auditing-rails-tech-debt`](./skills/engineering/auditing-rails-tech-debt/SKILL.md)                   | "audit Rails tech debt"              | user, model        | Audit a Rails app for cited tech debt findings.                                          |
+| [`auditing-repo-security`](./skills/engineering/auditing-repo-security/SKILL.md)                       | "is this repo safe to run?"          | user, model        | Audit a third-party repo before running it.                                              |
+| [`auditing-tests`](./skills/engineering/auditing-tests/SKILL.md)                                       | "audit the tests"                    | user, model        | Audit a test suite for low-value tests.                                                  |
+| [`capturing-screenshots`](./skills/engineering/capturing-screenshots/SKILL.md)                         | "take screenshots"                   | user, model        | Capture verified screenshots of an app.                                                  |
+| [`choosing-determinism`](./skills/engineering/choosing-determinism/SKILL.md)                           | "script the deterministic steps"     | user, model        | Move a skill's deterministic steps into scripts it runs.                                 |
+| [`configuring-zsh`](./skills/engineering/configuring-zsh/SKILL.md)                                     | "update the zsh config"              | user, model        | Place zsh config in the right startup file.                                              |
+| [`cr`](./skills/engineering/cr/SKILL.md)                                                               | `/cr`                                | user               | Start a reviewing-code review with a short name.                                         |
+| [`diagnosing-react-code`](./skills/engineering/diagnosing-react-code/SKILL.md)                         | "health-check the React code"        | user, model        | Scan a React package and fix its errors.                                                 |
+| [`drawing-mermaid-diagrams`](./skills/engineering/drawing-mermaid-diagrams/SKILL.md)                   | "draw a diagram"                     | user, model        | Write, render, and debug Mermaid diagrams.                                               |
+| [`explaining-architecture`](./skills/engineering/explaining-architecture/SKILL.md)                     | "how does this work?"                | user, model, skill | Explain how a subsystem or runtime flow works.                                           |
+| [`explaining-code`](./skills/engineering/explaining-code/SKILL.md)                                     | "explain this PR"                    | user, model        | Explain a PR, diff, or code briefly or in full.                                          |
+| [`fixing-root-causes`](./skills/engineering/fixing-root-causes/SKILL.md)                               | "find the root cause"                | user, model        | Trace each symptom to its root and fix it there.                                         |
+| [`freeing-disk-space`](./skills/engineering/freeing-disk-space/SKILL.md)                               | "free up disk space"                 | user, model        | Find what fills the disk and clear regenerable files.                                    |
+| [`grooming-backlogs`](./skills/engineering/grooming-backlogs/SKILL.md)                                 | "groom the backlog"                  | user, model        | Plan backlog grooming changes for approval.                                              |
+| [`hillclimbing`](./skills/engineering/hillclimbing/SKILL.md)                                           | "hillclimb"                          | user, model, skill | Iterate on measured changes until the criteria pass.                                     |
+| [`investigating-design-rationale`](./skills/engineering/investigating-design-rationale/SKILL.md)       | "why is it built this way?"          | user, model, skill | Investigate why code is shaped as it is.                                                 |
+| [`landing-prs`](./skills/engineering/landing-prs/SKILL.md)                                             | "ship it"                            | user, model        | Land a reviewed pull request on explicit request.                                        |
+| [`making-code-agent-friendly`](./skills/engineering/making-code-agent-friendly/SKILL.md)               | "make this agent-friendly"           | user, model        | Audit, review, and refactor code so many agents can change it in parallel.               |
+| [`merging-dependabot-prs`](./skills/engineering/merging-dependabot-prs/SKILL.md)                       | `/merging-dependabot-prs`            | user               | Plan and merge safe Dependabot updates one at a time, or only request rebases.           |
+| [`proving-claims`](./skills/engineering/proving-claims/SKILL.md)                                       | "prove it"                           | user, model        | Prove claims or a PR test plan with rated evidence.                                      |
+| [`rebasing-branches`](./skills/engineering/rebasing-branches/SKILL.md)                                 | "rebase this branch"                 | user, model, skill | Rebase the current branch onto its base and force-push with a lease.                     |
+| [`rebasing-open-prs`](./skills/engineering/rebasing-open-prs/SKILL.md)                                 | `/rebasing-open-prs`                 | user               | Rebase all open pull requests onto their bases after confirmation.                       |
+| [`redesigning-from-first-principles`](./skills/engineering/redesigning-from-first-principles/SKILL.md) | `/redesigning-from-first-principles` | user               | Redesign as if a new requirement was always there.                                       |
+| [`redoing-implementations`](./skills/engineering/redoing-implementations/SKILL.md)                     | `/redoing-implementations`           | user               | Rebuild the current work as a simpler design.                                            |
+| [`removing-comments`](./skills/engineering/removing-comments/SKILL.md)                                 | `/removing-comments`                 | user               | Remove every source comment outside a short keep list, fixing root causes with approval. |
+| [`reviewing-code`](./skills/engineering/reviewing-code/SKILL.md)                                       | "code review"                        | user, model, skill | Review a diff in a fresh-context read-only subagent.                                     |
+| [`reviewing-design-docs`](./skills/engineering/reviewing-design-docs/SKILL.md)                         | "review this design doc"             | user, model, skill | Adversarially review a technical design document.                                        |
+| [`reviewing-security`](./skills/engineering/reviewing-security/SKILL.md)                               | "security review"                    | user, model        | Security-review a diff in a fresh-context read-only subagent.                            |
+| [`simplifying-ruby-code`](./skills/engineering/simplifying-ruby-code/SKILL.md)                         | "simplify this Ruby"                 | user, model, skill | Find or fix over-engineered Ruby and Rails code.                                         |
+| [`summarizing-friction-logs`](./skills/engineering/summarizing-friction-logs/SKILL.md)                 | "show the friction dashboard"        | user, model        | Prioritize frog friction logs across a workspace.                                        |
+| [`updating-bostonaholic-skills`](./skills/engineering/updating-bostonaholic-skills/SKILL.md)           | `/updating-bostonaholic-skills`      | user               | Update the bostonaholic plugin installs and skill copies to the latest release.          |
+| [`verifying-production-changes`](./skills/engineering/verifying-production-changes/SKILL.md)           | "is it live in prod?"                | user, model        | Confirm a merged change took effect in production.                                       |
+| [`watching-authored-prs`](./skills/engineering/watching-authored-prs/SKILL.md)                         | "watch this PR"                      | user, model        | Watch your own PR for review feedback and CI.                                            |
+| [`watching-reviewed-prs`](./skills/engineering/watching-reviewed-prs/SKILL.md)                         | `/watching-reviewed-prs`             | user               | Watch a PR you reviewed and approve once feedback settles.                               |
+| [`writing-no-comments`](./skills/engineering/writing-no-comments/SKILL.md)                             | "no comments"                        | user, model        | Write code with no comments outside a short keep list.                                   |
+| [`writing-no-tests`](./skills/engineering/writing-no-tests/SKILL.md)                                   | "write tests"                        | user, model        | Write no tests. I dare you.                                                              |
+| [`writing-technical-design-docs`](./skills/engineering/writing-technical-design-docs/SKILL.md)         | "write a design doc"                 | user, model        | Draft a directionally correct technical design doc.                                      |
 
 ### Productivity
 
-- **[being-extremely-fucking-brief](./skills/productivity/being-extremely-fucking-brief/SKILL.md)**: Keep every response extremely brief.
-- **[composing-agent-prompts](./skills/productivity/composing-agent-prompts/SKILL.md)**: Compose a source-cited task prompt for another agent. Calls: `improving-prompts`.
-- **[conducting-deep-research](./skills/productivity/conducting-deep-research/SKILL.md)**: Research an evidence review plus a funding map.
-- **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core. Calls: `hillclimbing`.
-- **[improving-prompts](./skills/productivity/improving-prompts/SKILL.md)**: Compress and clarify an existing prompt.
-- **[learning-from-mistakes](./skills/productivity/learning-from-mistakes/SKILL.md)**: Turn a correction into an approved instructions-file rule.
-- **[running-retros](./skills/productivity/running-retros/SKILL.md)**: Mine a session or named sources for durable learnings. Explicit invocation only.
-- **[summarizing-shipped-work](./skills/productivity/summarizing-shipped-work/SKILL.md)**: Summarize merged PRs into a shipped-work report.
-- **[writing-prose](./skills/productivity/writing-prose/SKILL.md)**: Write plain, short prose for people.
-- **[writing-system-prompts](./skills/productivity/writing-system-prompts/SKILL.md)**: Write or review a system prompt.
+| Skill                                                                                           | Say                                | Invoked by         | What it does                                               |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------ | ---------------------------------------------------------- |
+| [`being-extremely-fucking-brief`](./skills/productivity/being-extremely-fucking-brief/SKILL.md) | "be brief"                         | user, model        | Keep every response extremely brief.                       |
+| [`composing-agent-prompts`](./skills/productivity/composing-agent-prompts/SKILL.md)             | "write a prompt for another agent" | user, model        | Compose a source-cited task prompt for another agent.      |
+| [`conducting-deep-research`](./skills/productivity/conducting-deep-research/SKILL.md)           | "deep research"                    | user, model        | Research an evidence review plus a funding map.            |
+| [`cutting-skills`](./skills/productivity/cutting-skills/SKILL.md)                               | "cut this skill"                   | user, model        | Audit or trim an agent skill to its behavioral core.       |
+| [`improving-prompts`](./skills/productivity/improving-prompts/SKILL.md)                         | "improve this prompt"              | user, model, skill | Compress and clarify an existing prompt.                   |
+| [`learning-from-mistakes`](./skills/productivity/learning-from-mistakes/SKILL.md)               | "learn from this mistake"          | user, model        | Turn a correction into an approved instructions-file rule. |
+| [`running-retros`](./skills/productivity/running-retros/SKILL.md)                               | "retro"                            | user, model        | Mine a session or named sources for durable learnings.     |
+| [`summarizing-shipped-work`](./skills/productivity/summarizing-shipped-work/SKILL.md)           | "what shipped?"                    | user, model        | Summarize merged PRs into a shipped-work report.           |
+| [`writing-prose`](./skills/productivity/writing-prose/SKILL.md)                                 | "write this up"                    | user, model        | Write plain, short prose for people.                       |
+| [`writing-system-prompts`](./skills/productivity/writing-system-prompts/SKILL.md)               | "write a system prompt"            | user, model        | Write or review a system prompt.                           |
+
+### Skill calls
+
+Some skills call others. Install the skills they call too.
+
+- `addressing-pr-comments` calls `attaching-pr-screenshots`.
+- `auditing-rails-tech-debt` calls `simplifying-ruby-code`.
+- `composing-agent-prompts` calls `improving-prompts`.
+- `cr` calls `reviewing-code`.
+- `cutting-skills` calls `hillclimbing`.
+- `explaining-architecture` calls `investigating-design-rationale`.
+- `explaining-code` calls `explaining-architecture`.
+- `investigating-design-rationale` calls `explaining-architecture`.
+- `landing-prs` calls `rebasing-branches`.
+- `watching-authored-prs` calls `addressing-pr-comments`, `rebasing-branches`.
+- `writing-technical-design-docs` calls `reviewing-design-docs`.
 
 <!-- generated:end -->
 

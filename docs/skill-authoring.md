@@ -58,15 +58,15 @@ with it.
 
 ## A. Metadata
 
-| ID  | Rule                                                                                                                                                                                                                                                                                     |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint**                                                                                                                                                                     |
-| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. A short alias such as `cr` may skip it when listed in `GERUND_EXEMPT` in `scripts/lint-skills.mjs`. **lint**                                                                   |
-| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                                                                                                                                                                                         |
-| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**                                                                                                                                                                                  |
-| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                                                                                                                                                                                            |
-| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills.                                                                                                                                                                                                  |
-| A7  | Each skill has `agents/openai.yaml`. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`. An incubating skill also sets `disable-model-invocation: true` and `metadata.internal: true`. **lint** |
+| ID  | Rule                                                                                                                                                                                                                                                                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | `name` is at most 64 characters of lowercase letters, digits, and hyphens, with no `anthropic` or `claude`. **lint**                                                                                                                                                                            |
+| A2  | `name` starts with a gerund (`reviewing-code`), so the collection follows one pattern. Avoid vague names. A short alias such as `cr` may skip it when listed in `GERUND_EXEMPT` in `scripts/lint-skills.mjs`. **lint**                                                                          |
+| A3  | `description` is non-empty, at most 1,024 characters, with no XML tags. **lint**                                                                                                                                                                                                                |
+| A4  | `description` is third person: it opens with a verb such as "Reviews" and never says I or you. **lint**                                                                                                                                                                                         |
+| A5  | `description` says what the skill does and when to use it, with a `Use when` clause. **lint**                                                                                                                                                                                                   |
+| A6  | `description` names specific key terms and triggers, plus exclusions for nearby skills. A model-invoked skill's description always says `Use when the user says "<phrase>"`, with a short phrase that starts it and appears in the README's Say column. `scripts/catalog.mjs` fails without it. |
+| A7  | Each skill has `agents/openai.yaml`. A skill is user-invoked in both harnesses or neither: `disable-model-invocation: true` pairs with `policy.allow_implicit_invocation: false`. An incubating skill also sets `disable-model-invocation: true` and `metadata.internal: true`. **lint**        |
 
 ## B. Concision and freedom
 
@@ -406,10 +406,10 @@ Run these steps on each model. Caps per command are Haiku $5, Sonnet $10, and
 Opus $30.
 
 1. List the skills to run: the edited skill, its callers, and its siblings.
-   - A caller is a skill whose `Calls:` list in the README catalog names the
-     edited skill. `scripts/catalog.mjs` builds that list from each "call the
-     Skill tool with `<name>`" line. Add the callers of each caller until no
-     new caller appears.
+   - A caller is a skill whose line in the README catalog's Skill calls list
+     names the edited skill. `scripts/catalog.mjs` builds that list from each
+     "call the Skill tool with `<name>`" line. Add the callers of each caller
+     until no new caller appears.
    - A sibling is a skill whose `description:` names the edited skill, or a
      skill that the edited skill's `description:` names. Find the first kind
      with

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-10-29
+
+### Added
+
+- Every model-invoked skill's description names a short trigger phrase in its `Use when` clause, such as "code review" or "ship it", listed in the README's Say column. [#162](https://github.com/bostonaholic/skills/pull/162)
+
+### Changed
+
+- `running-retros` starts when the user says "retro" instead of only by name. [#162](https://github.com/bostonaholic/skills/pull/162)
+
 ## [0.74.0] - 2026-10-29
 
 ### Added
@@ -966,5 +976,7 @@
 
 [0.73.0]: https://github.com/bostonaholic/skills/compare/v0.72.1...v0.73.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.74.0...HEAD
 [0.74.0]: https://github.com/bostonaholic/skills/compare/v0.73.0...v0.74.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.75.0...HEAD
+[0.75.0]: https://github.com/bostonaholic/skills/compare/v0.74.0...v0.75.0

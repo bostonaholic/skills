@@ -1,6 +1,6 @@
 ---
 name: verifying-production-changes
-description: Verifies a merged change took effect in production by revision ancestry and cohort sampling, and reports a bound over sampled requests rather than "fully deployed". Use when asked to confirm or report whether a merged change is live or deployed in production, before answering, even when the build-info, status, or deploy output is already in hand; also when gating on a deploy reaching the fleet, sequencing deploys, or verifying a one-time migration, backfill, or cleanup. Not for CI or build state.
+description: Verifies a merged change took effect in production by revision ancestry and cohort sampling, and reports a bound over sampled requests rather than "fully deployed". Use when the user says "is it live in prod?", or when asked to confirm or report whether a merged change is live or deployed in production, before answering, even when the build-info, status, or deploy output is already in hand; also when gating on a deploy reaching the fleet, sequencing deploys, or verifying a one-time migration, backfill, or cleanup. Not for CI or build state.
 ---
 
 # Verify a production change

@@ -1,6 +1,6 @@
 ---
 name: hillclimbing
-description: Iterates toward a goal one measured change at a time, keeping what raises the score and reverting what does not, until a fresh run of the check proves the completion criteria met. Use when the user gives a goal and completion criteria and asks to hillclimb, iterate, or keep going until they pass.
+description: Iterates toward a goal one measured change at a time, keeping what raises the score and reverting what does not, until a fresh run of the check proves the completion criteria met. Use when the user says "hillclimb", or when the user gives a goal and completion criteria and asks to hillclimb, iterate, or keep going until they pass.
 ---
 
 # Hillclimbing

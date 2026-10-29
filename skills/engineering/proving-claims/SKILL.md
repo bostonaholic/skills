@@ -1,6 +1,6 @@
 ---
 name: proving-claims
-description: 'Proves or disproves claims, or the test plan of a PR, by trying to falsify each and rating the strongest evidence reached (PROVEN, PARTIAL, DISPROVEN, UNPROVEN). Changes nothing. Use when asked to prove, verify, or fact-check claims or a PR test plan with evidence.'
+description: 'Proves or disproves claims, or the test plan of a PR, by trying to falsify each and rating the strongest evidence reached (PROVEN, PARTIAL, DISPROVEN, UNPROVEN). Changes nothing. Use when the user says "prove it", or when asked to prove, verify, or fact-check claims or a PR test plan with evidence.'
 effort: high
 argument-hint: "[<claims> | <pr-number-or-url>]"
 ---

@@ -1,6 +1,6 @@
 ---
 name: writing-technical-design-docs
-description: Drafts technical design docs that are directionally correct, not perfect, deciding one-way doors, deferring two-way doors, and naming unknowns. Use when asked to write, draft, or author a design doc, RFC, tech spec, or architecture proposal. Not for reviewing a design; use reviewing-design-docs.
+description: Drafts technical design docs that are directionally correct, not perfect, deciding one-way doors, deferring two-way doors, and naming unknowns. Use when the user says "write a design doc", or when asked to write, draft, or author a design doc, RFC, tech spec, or architecture proposal. Not for reviewing a design; use reviewing-design-docs.
 ---
 
 # Writing Technical Design Docs

@@ -1,6 +1,6 @@
 ---
 name: rebasing-branches
-description: Rebases the current branch onto its PR or default base, resolves conflicts by intent, re-runs the project's checks, and force-pushes with an explicit lease. Use when the user explicitly asks to rebase the current branch, or when landing-prs or watching-authored-prs calls it on a conflict. Never infer from a behind branch alone. Not for rebasing every open PR; use rebasing-open-prs.
+description: Rebases the current branch onto its PR or default base, resolves conflicts by intent, re-runs the project's checks, and force-pushes with an explicit lease. Use when the user says "rebase this branch", or when the user explicitly asks to rebase the current branch, or when landing-prs or watching-authored-prs calls it on a conflict. Never infer from a behind branch alone. Not for rebasing every open PR; use rebasing-open-prs.
 effort: high
 argument-hint: "[<pr-number-or-url>]"
 ---

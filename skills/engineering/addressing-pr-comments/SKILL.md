@@ -1,6 +1,6 @@
 ---
 name: addressing-pr-comments
-description: Triages open PR feedback, verifying each review thread, review summary, and comment against the code, then carrying out each item's recommended option, declines and clarifying questions included, and pausing only on exclusions. Use when the user explicitly asks to address or fix PR comments. Never infer from unresolved comments.
+description: Triages open PR feedback, verifying each review thread, review summary, and comment against the code, then carrying out each item's recommended option, declines and clarifying questions included, and pausing only on exclusions. Use when the user says "address the PR comments", or when the user explicitly asks to address or fix PR comments. Never infer from unresolved comments.
 effort: high
 argument-hint: "[<pr-number-or-url>]"
 ---
