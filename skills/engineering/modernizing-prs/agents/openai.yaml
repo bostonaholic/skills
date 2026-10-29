@@ -1,0 +1,4 @@
+interface:
+  display_name: "Modernizing PRs"
+  short_description: "Bring a PR up to date, or recommend reworking or closing it"
+  default_prompt: "Use $modernizing-prs to check this PR against its base and bring it up to date."
