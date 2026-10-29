@@ -1,6 +1,6 @@
 ---
 name: stacking-prs
-description: Splits a large change into stacked pull requests with GitHub's gh stack CLI. Use when the user says "stack PRs" or "create a PR stack", or when a change is too big to review as one PR, has dependent parts, or overlaps the same author's open PRs, or when creating, updating, syncing, merging, or recovering a gh stack stack. Not for Graphite (gt) stacks.
+description: Splits a large change into stacked pull requests with GitHub's gh stack CLI. Use when the user says "stack PRs" or "create a PR stack", or when a change is too big to review as one PR, has dependent parts, or overlaps the same author's open PRs, or when creating, updating, syncing, merging, or recovering a gh stack stack.
 ---
 
 # Stacking PRs
