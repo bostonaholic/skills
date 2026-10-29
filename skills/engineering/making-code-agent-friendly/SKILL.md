@@ -101,6 +101,6 @@ Never mix the refactor with feature work. Commit or open a PR only when asked.
 
 ## Write
 
-- Before finishing new or changed code, run the [writing checklist](references/principles.md#writing-checklist).
+- Before finishing new or changed code, run the [writing checklist](references/principles.md#writing-checklist). Add no comment the [code comments rules](shared/code-comments.md) do not keep.
 - Fix a failing check in this change when the fix stays inside the files you
   touch; otherwise name it in the reply with its red flag ID.

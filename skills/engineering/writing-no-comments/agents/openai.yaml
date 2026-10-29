@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing No Comments"
+  short_description: "Write code with no comments outside a short keep list"
+  default_prompt: "Use $writing-no-comments while writing or editing code."

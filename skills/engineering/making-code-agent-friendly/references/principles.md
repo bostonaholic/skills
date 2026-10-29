@@ -313,9 +313,10 @@ Each step merges on its own, so no change has to touch every module in lockstep.
 
 Each module carries a short README or AGENTS.md that states its purpose,
 public surface, invariants, and verify command. A constraint or rationale the
-code cannot show goes in a comment at the line it constrains: agents keep no
-memory between sessions, so a reason left in chat is lost. Keep both true: a
-lying doc is worse than none.
+code cannot show goes in a test, a type, or that README or AGENTS.md, and in a
+comment only when the code comments rules keep it: agents keep no memory
+between sessions, so a reason left in chat is lost. Keep both true: a lying
+doc is worse than none.
 
 Fixes: AF13
 

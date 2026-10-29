@@ -35,8 +35,8 @@ decide). Rules that say what a change must do still bind.
 5. Recommend one option. When the evidence cannot separate two, say so and name
    what would decide between them.
 
-Cite `file:line` for every claim about the code. Suggest a comment only when it
-explains why the code is not written another way.
+Cite `file:line` for every claim about the code. Suggest a comment only for a
+constraint from outside the project that the code cannot show.
 
 ## Output
 

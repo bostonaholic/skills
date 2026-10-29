@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `writing-no-comments`, a skill that loads before an agent writes or edits code and keeps out every comment a short keep list does not cover. [#163](https://github.com/bostonaholic/skills/pull/163)
+
+### Changed
+
+- `making-code-agent-friendly` adds no comment the shared keep list rejects when it writes code, and its P10 puts a constraint the code cannot show in a test, a type, or the module's README before a comment. [#163](https://github.com/bostonaholic/skills/pull/163)
+- The `oracle` subagent suggests a comment only for a constraint from outside the project that the code cannot show. [#163](https://github.com/bostonaholic/skills/pull/163)
+
 ## [0.73.0] - 2026-10-29
 
 ### Removed
