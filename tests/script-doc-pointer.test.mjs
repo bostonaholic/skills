@@ -774,23 +774,6 @@ const ROWS = [
     exit: 69,
     target: "skills/productivity/learning-from-mistakes/SKILL.md",
   },
-  // pricing-creativity
-  {
-    label: "price-calc.mjs usage",
-    script: "skills/productivity/pricing-creativity/scripts/price-calc.mjs",
-    interpreter: "node",
-    args: none,
-    exit: 2,
-    target: "skills/productivity/pricing-creativity/SKILL.md",
-  },
-  {
-    label: "price-calc.mjs invalid input",
-    script: "skills/productivity/pricing-creativity/scripts/price-calc.mjs",
-    interpreter: "node",
-    args: () => ["ceiling", "$5"],
-    exit: 1,
-    target: "skills/productivity/pricing-creativity/SKILL.md",
-  },
   // running-retros, summarizing-shipped-work
   {
     label: "resolve-transcript.mjs usage",

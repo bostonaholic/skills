@@ -71,7 +71,6 @@ Or follow the [installation instructions](INSTALL.md).
 - **[cutting-skills](./skills/productivity/cutting-skills/SKILL.md)**: Audit or trim an agent skill to its behavioral core. Calls: `hillclimbing`.
 - **[improving-prompts](./skills/productivity/improving-prompts/SKILL.md)**: Compress and clarify an existing prompt.
 - **[learning-from-mistakes](./skills/productivity/learning-from-mistakes/SKILL.md)**: Turn a correction into an approved instructions-file rule.
-- **[pricing-creativity](./skills/productivity/pricing-creativity/SKILL.md)**: Price creative work by value with Blair Enns's frameworks.
 - **[running-retros](./skills/productivity/running-retros/SKILL.md)**: Mine a session or named sources for durable learnings. Explicit invocation only.
 - **[summarizing-shipped-work](./skills/productivity/summarizing-shipped-work/SKILL.md)**: Summarize merged PRs into a shipped-work report.
 - **[writing-prose](./skills/productivity/writing-prose/SKILL.md)**: Write plain, short prose for people.

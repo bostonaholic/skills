@@ -58,7 +58,7 @@ git -C ~/bostonaholic-skills pull
 sh ~/bostonaholic-skills/scripts/install-grok-bot.sh
 ```
 
-A bot that plans, writes, and researches rather than codes needs only the strategy set: `being-extremely-fucking-brief`, `composing-agent-prompts`, `conducting-deep-research`, `grooming-backlogs`, `improving-prompts`, `pricing-creativity`, `writing-prose`, and `writing-system-prompts`. Install only those with `--set strategy`:
+A bot that plans, writes, and researches rather than codes needs only the strategy set: `being-extremely-fucking-brief`, `composing-agent-prompts`, `conducting-deep-research`, `grooming-backlogs`, `improving-prompts`, `writing-prose`, and `writing-system-prompts`. Install only those with `--set strategy`:
 
 ```sh
 sh ~/bostonaholic-skills/scripts/install-grok-bot.sh --set strategy
