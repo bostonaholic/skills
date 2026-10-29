@@ -44,6 +44,7 @@ These forms were written against gh-stack v0.3.0. On a newer release,
 | `gh stack init --base <trunk> <branch>`. Several names only when all but the last exist locally.                                                      | bare `init`, which prompts or exits 5, or `init` without `--base`                                                                                    |
 | `gh stack add <branch>`                                                                                                                               | bare `add`, which prompts for a name, or `add` with `-m`, `-A`, or `-u`, which commit or stage for it                                                |
 | `gh stack submit --auto --remote <remote>`                                                                                                            | bare `submit`, which opens a full-screen editor, or `submit` without `--remote`, which takes the remote from branch config                           |
+| `gh stack sync --remote <remote>`. Add `--prune` only on the user's request.                                                                          | `sync` without `--remote`, which picks a remote itself                                                                                               |
 | `gh stack push --remote <remote>`                                                                                                                     | `push` without `--remote`, which takes the remote from branch config                                                                                 |
 | `gh stack rebase --upstack --no-trunk <layer>` for the cascade. `gh stack rebase --remote <remote>` for a catch-up, a retarget, or a `sync` conflict. | `--upstack` without `--no-trunk` after the checks ran, which rebases the bottom onto a freshly fetched trunk, or a trunk `rebase` without `--remote` |
 | `gh stack checkout <target>`                                                                                                                          | bare `checkout`, which opens a picker                                                                                                                |
@@ -78,6 +79,20 @@ These forms were written against gh-stack v0.3.0. On a newer release,
   those layers in `DIVERGED`, and the change path runs this rebase first.
 - `needsRebase` is true when a layer's base is not its ancestor. The lowest
   active layer's base is the local trunk branch, so only `sync` updates it.
+- `sync` fetches, rebases every active layer onto the new trunk, and pushes
+  them all with `--atomic`, so a failed push moves no remote tip. Its push
+  failure prints a warning and exits 0, which `after-sync` catches.
+- `sync` pulls PRs added to GitHub's stack only into a stack it tracks by ID,
+  and skips the pull on an API error, yet still rebases and pushes. `view --json`
+  shows no stack ID, so `after-sync` tests the pull.
+- `sync` publishes only conflict-free replays. On a conflict it restores every
+  branch, pushes nothing, and exits 3.
+- The update path runs no local checks. After a merge, GitHub already rebased
+  the same layers. When only the trunk moved, GitHub did not, yet the replays
+  are conflict-free, GitHub runs required checks on every stacked PR, and a
+  stacked merge needs every lower PR's checks to pass. Those checks gate the
+  merge, so the report says local checks did not run.
+- `sync --prune` deletes the local branch of each merged layer.
 - `submit` opens new PRs as drafts. `--open` also marks existing drafts ready,
   so it runs only when the user asks for ready PRs. Mark one PR ready with
   `gh pr ready <n> --repo <repo>`, only on the user's request.
@@ -123,6 +138,10 @@ from inside the repository. Its header lists every exit code.
 - `compare <record>` fetches again and exits 5 when any recorded remote tip,
   PR, PR state, merged layer's local tip, or the GitHub stack's PRs changed, or
   a new layer has a PR or a remote branch. It prints nothing on a pass.
+- `after-sync <record>` fetches again, then exits 9 when a recorded
+  `REMOTE_ONLY` branch is not a layer, because `sync` did not pull its PR.
+  Then it exits 6 when an active layer's local tip differs from its remote
+  tip. It prints nothing on a pass.
 - `after-submit <record>` passes when every active layer has an open PR and
   GitHub's stack holds the active layers' PRs bottom to top.
 
@@ -135,7 +154,7 @@ An active layer is one whose PR is neither merged nor queued, the set
 | `REPO`        | `repo`, `check`    | `<host>/<owner>/<repo>`, to pass as `--repo`                                      |
 | `DEFAULT`     | `repo`             | the repository's default branch                                                   |
 | `TRUNK`       | `check`            | the stack's trunk                                                                 |
-| `RECORD`      | `check`            | the record's path, for `compare` and `after-submit`                               |
+| `RECORD`      | `check`            | the record's path, for `compare`, `after-sync`, and `after-submit`                |
 | `FORWARDED`   | `check`            | layers `check` fast-forwarded to their remote copy                                |
 | `DIVERGED`    | `check`            | diverged layers that passed, because every remote commit has a local copy         |
 | `STACKED`     | `check` named mode | named branches whose open PR is already in a GitHub stack                         |

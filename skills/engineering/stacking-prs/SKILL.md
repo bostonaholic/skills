@@ -62,7 +62,9 @@ Publish only when the request asks to open, push, or update PRs, or the reposito
 
 ## Update a pushed stack
 
-A request to change a layer takes the change path. Run the prerequisites, `repo`, `gh stack view --json` (exit 2 or 6: recovery), and `check --remote <remote>`, keeping its `RECORD`. Any non-zero `check` exit: recovery.
+A request to change a layer takes the change path, and one only to bring the stack up to date takes the update path. Both run the prerequisites, `repo`, `gh stack view --json` (exit 2 or 6: recovery), and `check --remote <remote>`, keeping its `RECORD`. Any non-zero `check` exit: recovery.
+
+Change path:
 
 1. A non-empty `REMOTE_ONLY` stops the run before any edit: "The GitHub stack has PRs the local stack lacks: #`<m>`. Ask to update the stack first, then rerun the change."
 2. A non-empty `DIVERGED` runs `gh stack rebase --remote <remote>` before the edit. Every active layer then counts as rewritten.
@@ -72,6 +74,12 @@ A request to change a layer takes the change path. Run the prerequisites, `repo`
 6. Run `compare <record>`, then `gh stack push --remote <remote>` when publishing is covered. Else report `compare` and `push` as next.
 7. When the lowest active layer shows `needsRebase`, the report names `gh stack sync --remote <remote>`.
 
+Update path:
+
+1. Run `compare <record>`, then `gh stack sync --remote <remote>` when the request asks to update. Add `--prune` only when the user asks.
+2. Output with `Sync aborted` means nothing changed: stop and report as recovery says. Else run `after-sync <record>`. Exit 6 or 9: recovery. On a pass, run `view --json` and stop. The report says local checks did not run, after a merge or a trunk move alike.
+3. A `sync` conflict moves the run to the change path: reproduce it with `gh stack rebase --remote <remote>`, resolve it, count every active layer rewritten, and continue at the change path's step 4.
+
 ## Report
 
 Give the trunk, then each layer bottom to top with its branch, its PR or "not pushed", its concern, and the checks run. Then name any stop and the next command. When publishing is not covered, name `check`, `compare`, `submit`, and `after-submit` as next.
@@ -80,8 +88,8 @@ Give the trunk, then each layer bottom to top with its branch, its PR or "not pu
 
 `stack-guard.mjs` lives in `<skill-dir>/scripts/` and documents its usage, output, and exit codes in its header. Run it from inside the repository as `node "<skill-dir>/scripts/stack-guard.mjs" <subcommand> > <out-file>`.
 
-- Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish, `compare` right before each push, and `after-submit` after each `submit`.
+- Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish, `compare` right before each push, `after-sync` after each `sync`, and `after-submit` after each `submit`.
 - Read [commands](references/commands.md) before the first rewrite or push of a stack with remote layers, before a command this file does not show, or when one misbehaves.
 - Read [existing work](references/existing-work.md) when the change already exists or new work overlaps the same author's open PR.
-- Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script.
+- Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script, or on `Sync aborted`.
 - Read [external data](shared/external-data.md) before a PR title, a commit message, or a `gh pr list` branch name enters a command.

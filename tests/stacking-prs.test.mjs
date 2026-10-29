@@ -1766,6 +1766,80 @@ test("compare stops when any recorded tip, PR, or stack changed", async (t) => {
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
   });
+
+  // Slice 6 rows.
+
+  await t.test("passes after sync pulled a REMOTE_ONLY branch", (t) => {
+    const w = compareWorld(t);
+    pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+    setScenario(w, {
+      pulls: [...COMPARE_PULLS, pull(104, "invoices/csv")],
+      stacks: [{ number: 7, pulls: [101, 102, 104] }],
+    });
+    const record = checkRecord(w);
+    git(w.work, "fetch", "-q", "origin");
+    git(w.work, "branch", "invoices/csv", "origin/invoices/csv");
+    setScenario(w, {
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+        layer("invoices/csv", { pr: 104 }),
+      ]),
+    });
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  await t.test("a pulled REMOTE_ONLY branch whose tip moved exits 5", (t) => {
+    const w = compareWorld(t);
+    pushRemoteOnly(w, "invoices/csv", "invoices/api", "csv.txt");
+    setScenario(w, {
+      pulls: [...COMPARE_PULLS, pull(104, "invoices/csv")],
+      stacks: [{ number: 7, pulls: [101, 102, 104] }],
+    });
+    const record = checkRecord(w);
+    git(w.work, "fetch", "-q", "origin");
+    git(w.work, "branch", "invoices/csv", "origin/invoices/csv");
+    setScenario(w, {
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+        layer("invoices/csv", { pr: 104 }),
+      ]),
+    });
+    advanceRemote(w, "invoices/csv", "csv-fix.txt");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/csv/);
+  });
+
+  await t.test("a merged layer whose local branch is gone exits 5", (t) => {
+    const w = world(t);
+    buildLayers(w);
+    push(w, "invoices/schema", "invoices/api");
+    setScenario(w, {
+      pulls: [pull(101, "invoices/schema", { state: "MERGED" }), pull(102, "invoices/api")],
+      stacks: [{ number: 7, pulls: [101, 102] }],
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101, merged: true }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui"),
+      ]),
+    });
+    const record = checkRecord(w);
+    git(w.work, "branch", "-q", "-D", "invoices/schema");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/schema/);
+  });
 });
 
 // The state after a submit for most after-submit rows: invoices/schema #101 merged, and
@@ -2235,5 +2309,78 @@ test("check passes a rebased layer only when every remote commit has a local cop
       result.stderr.includes(remoteOnly.slice(0, 7)),
       `stderr does not name ${remoteOnly}:\n${result.stderr}`,
     );
+  });
+});
+
+// Slice 6
+
+// The three layers pushed with PRs #101 to #103, and #104 on invoices/csv, the user's PR
+// from another clone, on top of them in GitHub stack #7.
+function remoteOnlyWorld(t) {
+  const { w } = pushedStackWorld(t);
+  pushRemoteOnly(w, "invoices/csv", "invoices/ui", "csv.txt");
+  setScenario(w, {
+    pulls: [
+      pull(101, "invoices/schema"),
+      pull(102, "invoices/api"),
+      pull(103, "invoices/ui"),
+      pull(104, "invoices/csv"),
+    ],
+    stacks: [{ number: 7, pulls: [101, 102, 103, 104] }],
+  });
+  return w;
+}
+
+test("after-sync stops when sync skipped a pull or left a tip unpushed", async (t) => {
+  await t.test("passes when each REMOTE_ONLY branch is a layer and every tip matches", (t) => {
+    const w = remoteOnlyWorld(t);
+    const record = checkRecord(w);
+    git(w.work, "fetch", "-q", "origin");
+    git(w.work, "branch", "invoices/csv", "origin/invoices/csv");
+    setScenario(w, {
+      stackView: stackView("invoices/ui", [
+        layer("invoices/schema", { pr: 101 }),
+        layer("invoices/api", { pr: 102 }),
+        layer("invoices/ui", { pr: 103 }),
+        layer("invoices/csv", { pr: 104 }),
+      ]),
+    });
+
+    const result = run(w, ["after-sync", record]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "");
+  });
+
+  await t.test("a REMOTE_ONLY branch that is not a layer exits 9 with every tip matching", (t) => {
+    const w = remoteOnlyWorld(t);
+    const record = checkRecord(w);
+
+    const result = run(w, ["after-sync", record]);
+
+    assert.equal(result.status, 9, result.stderr);
+    assert.match(result.stderr, /#104\b/);
+  });
+
+  await t.test("an active layer whose local and remote tips differ exits 6 naming it", (t) => {
+    const { w } = pushedStackWorld(t);
+    const record = checkRecord(w);
+    commit(w.work, "ui-unpushed.txt");
+
+    const result = run(w, ["after-sync", record]);
+
+    assert.equal(result.status, 6, result.stderr);
+    assert.match(result.stderr, /invoices\/ui/);
+  });
+
+  await t.test("gh runs without GH_FORCE_TTY or GH_STACK_NO_ATOMIC and with GH_REPO", (t) => {
+    const { w } = pushedStackWorld(t);
+    const record = checkRecord(w);
+    clearCalls(w);
+
+    const result = run(w, ["after-sync", record], { env: D6_PARENT_ENV });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(childEnvironments(w), [D6_CHILD_ENV]);
   });
 });

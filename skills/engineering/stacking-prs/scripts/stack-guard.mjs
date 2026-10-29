@@ -8,6 +8,7 @@
  *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" check --remote <remote> --trunk <trunk> <branch>... > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" compare <record> > <out-file>
+ *     node "<skill-dir>/scripts/stack-guard.mjs" after-sync <record> > <out-file>
  *     node "<skill-dir>/scripts/stack-guard.mjs" after-submit <record> > <out-file>
  *
  * Requires `git` and `gh` (authenticated) on PATH. Every gh call runs with
@@ -38,9 +39,9 @@
  *   active layer (not merged, not queued) against its remote copy: absent
  *   or ahead passes, behind fast-forwards (`git merge --ff-only` on the
  *   current branch, `git fetch .` on another), and diverged passes only when
- *   every remote commit has a local copy. Writes the record that
- *   compare and after-submit read, in a new directory under the system temp
- *   directory. On exit 0 prints, lists comma-separated:
+ *   every remote commit has a local copy. Writes the record that compare,
+ *   after-sync, and after-submit read, in a new directory under the system
+ *   temp directory. On exit 0 prints, lists comma-separated:
  *
  *     REMOTE, REPO  as repo prints them
  *     TRUNK         the stack's trunk, or --trunk
@@ -60,6 +61,11 @@
  *   remote tip (`absent` included), PR, and PR state, every merged layer's
  *   local tip, and the GitHub stack's unmerged PRs are unchanged, and no
  *   unrecorded layer has a PR or a remote branch.
+ *
+ * after-sync <record>
+ *   Fetches the record's remote, then reads `view --json` and the layer PRs.
+ *   Passes, printing nothing, when every recorded REMOTE_ONLY branch is now
+ *   a layer, then when every active layer's local tip equals its remote tip.
  *
  * after-submit <record>
  *   Reads `view --json`, the layer PRs, and the GitHub stack of the top
@@ -85,12 +91,15 @@
  *      (by patch ID) that are not on <remote>/<trunk>
  *   5  compare: a recorded tip, PR, PR state, merged layer's local tip, or
  *      the GitHub stack's PRs changed, or a new layer appeared on the remote
- *   6  after-submit: an active layer has no open PR
+ *   6  after-sync: an active layer's local and remote tips differ;
+ *      after-submit: an active layer has no open PR
  *   7  repo: several remotes and no remote.pushDefault, or a pushDefault that
  *      names no configured remote
  *   8  repo, check: no remote, a remote URL or pushurl that names no GitHub
  *      repository, or another source that names a different repository
- *   9  after-submit: the top PR is in no GitHub stack, or that stack lacks,
+ *   9  after-sync: a recorded REMOTE_ONLY branch is not a layer, because
+ *      `gh stack sync` did not pull its PR;
+ *      after-submit: the top PR is in no GitHub stack, or that stack lacks,
  *      adds, or reorders PRs
  */
 
@@ -107,6 +116,7 @@ const USAGE = [
   `       node ${SCRIPT} check --remote <remote> > <out-file>`,
   `       node ${SCRIPT} check --remote <remote> --trunk <trunk> <branch>... > <out-file>`,
   `       node ${SCRIPT} compare <record> > <out-file>`,
+  `       node ${SCRIPT} after-sync <record> > <out-file>`,
   `       node ${SCRIPT} after-submit <record> > <out-file>`,
 ];
 
@@ -116,7 +126,7 @@ const EXIT_USAGE = 2;
 const EXIT_NOT_PUBLISHABLE = 3;
 const EXIT_REMOTE_COMMITS = 4;
 const EXIT_CHANGED = 5;
-const EXIT_NO_OPEN_PR = 6;
+const EXIT_NOT_PUBLISHED = 6;
 const EXIT_ASK_REMOTE = 7;
 const EXIT_WRONG_REPOSITORY = 8;
 const EXIT_STACK_MISMATCH = 9;
@@ -471,6 +481,12 @@ function viewDisagreements(layers) {
       );
   }
   return reasons;
+}
+
+// The recorded REMOTE_ONLY entries whose branches no layer has, so `gh stack sync` did not
+// pull their PRs.
+function unpulledEntries(remoteOnly, layerNames) {
+  return remoteOnly.filter((entry) => !layerNames.has(entry.branch));
 }
 
 function sameNumbers(left, right) {
@@ -935,6 +951,42 @@ function compareCommand(recordPath) {
   return [];
 }
 
+// The REMOTE_ONLY test runs first, because an unpulled branch has no layer tip to test.
+function afterSyncCommand(recordPath) {
+  const { remote, repository, remoteOnly } = readRecord(recordPath);
+  fetchRemote(remote);
+  const view = readStackView();
+  const layerNames = view.branches.map((branch) => branch.name);
+  const unpulled = unpulledEntries(remoteOnly, new Set(layerNames));
+  if (unpulled.length > 0)
+    stop(EXIT_STACK_MISMATCH, [
+      `GitHub's stack has ${unpulled.length === 1 ? "PR" : "PRs"} ` +
+        `${numberList(unpulled.map((entry) => entry.pr))}, which \`gh stack sync\` did not pull, ` +
+        `so ${unpulled.length === 1 ? "it sits" : "they sit"} on old commits. Run ` +
+        `\`gh stack unstack --local\`, \`gh stack checkout ${unpulled[0].pr}\`, then ` +
+        `\`gh stack sync --remote ${remote}\`.`,
+    ]);
+  const { pullsByBranch } = readLayerPulls(repository, layerNames);
+  const unpushed = classifyLayers(view.branches, pullsByBranch)
+    .filter((layer) => layer.active)
+    .map((layer) => ({
+      name: layer.name,
+      localTip: refTip(`refs/heads/${layer.name}`) ?? ABSENT,
+      remoteTip: refTip(remoteRef(remote, layer.name)) ?? ABSENT,
+    }))
+    .filter((tips) => tips.localTip !== tips.remoteTip);
+  if (unpushed.length > 0)
+    stop(
+      EXIT_NOT_PUBLISHED,
+      unpushed.map(
+        (tips) =>
+          `Active layer \`${tips.name}\` is at ${tips.localTip} locally and ` +
+          `${tips.remoteTip} on \`${remote}\`.`,
+      ),
+    );
+  return [];
+}
+
 function afterSubmitCommand(recordPath) {
   const { repository } = readRecord(recordPath);
   const view = readStackView();
@@ -943,7 +995,7 @@ function afterSubmitCommand(recordPath) {
   const withoutPull = active.filter((layer) => layer.pull?.state !== "OPEN");
   if (withoutPull.length > 0)
     stop(
-      EXIT_NO_OPEN_PR,
+      EXIT_NOT_PUBLISHED,
       withoutPull.map((layer) => `Active layer \`${layer.name}\` has no open PR.`),
     );
   const top = active.at(-1);
@@ -969,6 +1021,7 @@ function main(args) {
   if (subcommand === "check" && rest.length >= 5 && rest[0] === "--remote" && rest[2] === "--trunk")
     return checkCommand({ remote: rest[1], trunk: rest[3], branches: rest.slice(4) });
   if (subcommand === "compare" && rest.length === 1) return compareCommand(rest[0]);
+  if (subcommand === "after-sync" && rest.length === 1) return afterSyncCommand(rest[0]);
   if (subcommand === "after-submit" && rest.length === 1) return afterSubmitCommand(rest[0]);
   return stop(EXIT_USAGE, USAGE);
 }
