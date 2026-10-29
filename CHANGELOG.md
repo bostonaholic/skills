@@ -11,6 +11,7 @@
 - `making-code-agent-friendly` adds no comment the shared keep list rejects when it writes code, and its P10 puts a constraint the code cannot show in a test, a type, or the module's README before a comment. [#163](https://github.com/bostonaholic/skills/pull/163)
 - The `oracle` subagent suggests a comment only for a constraint from outside the project that the code cannot show. [#163](https://github.com/bostonaholic/skills/pull/163)
 - `removing-comments` removes every comment outside the shared keep list, including one it is unsure about, instead of keeping comments that explain a current reason. [#163](https://github.com/bostonaholic/skills/pull/163)
+- `reviewing-code` reports every code comment finding as a non-blocking suggestion that shows the code to replace the comment, so comments alone no longer block a review. [#163](https://github.com/bostonaholic/skills/pull/163)
 
 ## [0.73.0] - 2026-10-29
 
