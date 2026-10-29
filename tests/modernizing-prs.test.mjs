@@ -20,7 +20,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
-const SCRIPTS = resolve("skills/engineering/rebasing-branches/scripts");
+const SCRIPTS = resolve("skills/engineering/modernizing-prs/scripts");
 const PREPARE = join(SCRIPTS, "prepare-rebase.sh");
 const PUBLISH = join(SCRIPTS, "publish.sh");
 
@@ -87,7 +87,7 @@ esac
 // A temporary world: a bare remote at <dir>/remotes/acme/api.git with `main`, a
 // clone at <dir>/work on branch `feature` one commit ahead, and a fake gh.
 function world(t) {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "rebasing-branches-")));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "modernizing-prs-")));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const bin = join(dir, "bin");
   mkdirSync(bin);
