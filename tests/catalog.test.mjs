@@ -352,17 +352,26 @@ test("catalog --check exits 1 naming a SKILL.md whose name differs from its dire
   assert.ok(run.output.includes("skills/engineering/delta/SKILL.md"), run.output);
 });
 
-test("catalog --check exits 1 naming a model-invoked SKILL.md whose description quotes no phrase", (t) => {
-  const root = fixtureRepo(t, {
-    "README.md": FIXTURE_README,
-    "skills/engineering/gamma/SKILL.md":
-      "---\nname: gamma\ndescription: 'Use for fixture checks.'\n---\n\n# gamma\n",
+const MISSING_PHRASE_CASES = [
+  { label: "no phrase", description: "'Use for fixture checks.'" },
+  {
+    label: "phrase outside Use when the user says",
+    description: `'Use for fixture checks when the user says "run gamma".'`,
+  },
+];
+
+for (const { label, description } of MISSING_PHRASE_CASES) {
+  test(`catalog --check exits 1 naming a model-invoked SKILL.md without Use when the user says (${label})`, (t) => {
+    const root = fixtureRepo(t, {
+      "README.md": FIXTURE_README,
+      "skills/engineering/gamma/SKILL.md": `---\nname: gamma\ndescription: ${description}\n---\n\n# gamma\n`,
+    });
+    const run = runCli(CATALOG, root, "--check");
+    assert.equal(run.status, 1, run.output);
+    assert.ok(run.output.includes("skills/engineering/gamma/SKILL.md"), run.output);
+    assert.ok(run.output.includes('Use when the user says "<phrase>"'), run.output);
   });
-  const run = runCli(CATALOG, root, "--check");
-  assert.equal(run.status, 1, run.output);
-  assert.ok(run.output.includes("skills/engineering/gamma/SKILL.md"), run.output);
-  assert.ok(run.output.includes('says "<phrase>"'), run.output);
-});
+}
 
 test("catalog --check exits 1 naming a stale block after a description changes", (t) => {
   const root = fixtureRepo(t, {

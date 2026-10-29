@@ -35,7 +35,7 @@ export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 export const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
 const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
 // The phrase a model-invoked skill's `Use when` clause quotes, shown in the README Say column.
-const SAY_PHRASE = /\bthe user says "([^"]+)"/;
+const SAY_PHRASE = /\bUse when the user says "([^"]+)"/;
 
 // A problem with the repository's input files. The CLIs report its message and exit 1.
 export class CatalogError extends Error {}

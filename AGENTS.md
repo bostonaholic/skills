@@ -17,7 +17,7 @@ When documentation, this file included, disagrees with what the code does now, n
 
 A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` frontmatter carries a `name` and a `description` with a `Use when` clause; the body is the procedure.
 
-- **Model-invoked skills** load when a request matches their description. Each `Use when` clause opens with `the user says "<phrase>"`, the short phrase shown in the README's Say column.
+- **Model-invoked skills** load when a request matches their description. Each description's `Use when` clause starts with `Use when the user says "<phrase>"`, and that phrase is shown in the README's Say column.
 - **Explicit-invocation skills**, shown with a slash command in the README's Say column, run only when the user names them: `/<name>` in Claude Code (`/bostonaholic:<name>` when installed as the plugin), Cursor, and Grok Bot, `$<name>` in Codex.
 - **Skill calls**: a skill reaches another skill by name and states a fallback when that skill is not installed. A harness with no Skill tool, such as Grok Bot, reads the called skill's `SKILL.md` instead, as `shared/skill-calls.md` says.
 - **Subagents** in `agents/` (`oracle`) ship only with the Claude Code and Cursor plugins. `npx skills` installs skills without them.
