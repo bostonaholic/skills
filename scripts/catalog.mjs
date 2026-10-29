@@ -140,9 +140,16 @@ function callsLine(skill) {
   return `- \`${skill.name}\` calls ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
 }
 
+// Keeps a cell on one table row: a newline would end the row and a bare pipe would split it.
+function escapeCell(text) {
+  return text.replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+}
+
 // Pads every cell to its column's widest cell, header included, because oxfmt pads tables that
-// way: unpadded output would make `npm run format:check` and `--check` disagree.
-function table(rows) {
+// way: unpadded output would make `npm run format:check` and `--check` disagree. Cells are
+// escaped first so the widths measure the bytes written.
+function table(rawRows) {
+  const rows = rawRows.map((row) => row.map(escapeCell));
   const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)));
   const line = (cells) =>
     `| ${cells.map((cell, column) => cell.padEnd(widths[column])).join(" | ")} |`;
