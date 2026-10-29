@@ -26,6 +26,11 @@ export const INSTALL_DOC = "INSTALL.md";
 export const README_START = "<!-- generated:start -->";
 export const README_END = "<!-- generated:end -->";
 
+const TABLE_HEADER = ["Skill", "Say", "What it does"];
+const SAY_LEGEND =
+  "Skills marked (automatic) load when your request matches them. Start the others with the command in the Say column, written in [the form your harness uses](AGENTS.md#what-the-skills-are).";
+const CALLS_LEAD = "Some skills call others. Install the skills they call too.";
+
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 export const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
 const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
@@ -123,10 +128,26 @@ export function skillGroups(catalog) {
   ].filter((group) => group.skills.length);
 }
 
-function readmeEntry(skill) {
-  const entry = `- **[${skill.name}](./${skill.directory}/SKILL.md)**: ${skill.summary}.${skill.userInvoked ? " Explicit invocation only." : ""}`;
-  if (!skill.calls.length) return entry;
-  return `${entry} Calls: ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
+function tableRow(skill) {
+  return [
+    `[\`${skill.name}\`](./${skill.directory}/SKILL.md)`,
+    skill.userInvoked ? `\`/${skill.name}\`` : "(automatic)",
+    `${skill.summary}.`,
+  ];
+}
+
+function callsLine(skill) {
+  return `- \`${skill.name}\` calls ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
+}
+
+// Pads every cell to its column's widest cell, header included, because oxfmt pads tables that
+// way: unpadded output would make `npm run format:check` and `--check` disagree.
+function table(rows) {
+  const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)));
+  const line = (cells) =>
+    `| ${cells.map((cell, column) => cell.padEnd(widths[column])).join(" | ")} |`;
+  const [header, ...body] = rows;
+  return [line(header), line(widths.map((width) => "-".repeat(width))), ...body.map(line)];
 }
 
 // Returns the text strictly between README_START and README_END.
@@ -148,9 +169,18 @@ export function renderReadme(catalog) {
     "",
   ];
   lines.push(`Or follow the [installation instructions](${INSTALL_DOC}).`, "", "## Skills", "");
+  lines.push(SAY_LEGEND, "");
   for (const group of skillGroups(catalog)) {
-    lines.push(`### ${group.heading}`, "", ...group.skills.map(readmeEntry), "");
+    lines.push(
+      `### ${group.heading}`,
+      "",
+      ...table([TABLE_HEADER, ...group.skills.map(tableRow)]),
+      "",
+    );
   }
+  const callers = catalog.filter((skill) => skill.calls.length);
+  if (callers.length)
+    lines.push("### Skill calls", "", CALLS_LEAD, "", ...callers.map(callsLine), "");
   return `\n\n${lines.join("\n")}\n`;
 }
 

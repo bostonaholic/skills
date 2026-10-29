@@ -406,10 +406,10 @@ Run these steps on each model. Caps per command are Haiku $5, Sonnet $10, and
 Opus $30.
 
 1. List the skills to run: the edited skill, its callers, and its siblings.
-   - A caller is a skill whose `Calls:` list in the README catalog names the
-     edited skill. `scripts/catalog.mjs` builds that list from each "call the
-     Skill tool with `<name>`" line. Add the callers of each caller until no
-     new caller appears.
+   - A caller is a skill whose line in the README catalog's Skill calls list
+     names the edited skill. `scripts/catalog.mjs` builds that list from each
+     "call the Skill tool with `<name>`" line. Add the callers of each caller
+     until no new caller appears.
    - A sibling is a skill whose `description:` names the edited skill, or a
      skill that the edited skill's `description:` names. Find the first kind
      with

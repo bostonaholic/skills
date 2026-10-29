@@ -98,10 +98,21 @@ function fixtureRepo(t, files) {
   return root;
 }
 
-function readmeEntry(root, name) {
-  return readFileSync(join(root, "README.md"), "utf8")
+function readmeRow(root, category, name) {
+  const prefix = `| [\`${name}\`](./skills/${category}/${name}/SKILL.md) `;
+  const row = readFileSync(join(root, "README.md"), "utf8")
     .split("\n")
-    .find((line) => line.startsWith(`- **[${name}](./skills/engineering/${name}/SKILL.md)**:`));
+    .find((line) => line.startsWith(prefix));
+  assert.ok(row, `README.md has no table row starting ${prefix}`);
+  return row;
+}
+
+// Splits a table row on the pipes that no backslash precedes and trims each cell.
+function rowCells(row) {
+  return row
+    .split(/(?<!\\)\|/)
+    .slice(1, -1)
+    .map((cell) => cell.trim());
 }
 
 const FIXTURE_README = `# Fixture\n\n${START}\n${END}\n`;
@@ -121,10 +132,13 @@ test("categorized inputs retain names, source paths, calls, and invocation label
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
   const readme = readFileSync(join(root, "README.md"), "utf8");
-  assert.match(readme, /### Engineering\n\n- \*\*\[alpha\]/);
-  assert.match(readme, /### Productivity\n\n- \*\*\[beta\]/);
+  assert.match(readme, /### Engineering\n\n\| Skill +\| Say +\| What it does +\|/);
+  assert.match(readme, /### Productivity\n\n\| Skill +\| Say +\| What it does +\|/);
   assert.ok(readme.includes("./skills/productivity/beta/SKILL.md"));
-  assert.ok(readme.includes("Explicit invocation only. Calls: `beta`."));
+  assert.equal(rowCells(readmeRow(root, "engineering", "alpha"))[1], "`/alpha`");
+  assert.equal(rowCells(readmeRow(root, "productivity", "beta"))[1], "(automatic)");
+  assert.match(readme, /^- `alpha` calls `beta`\.$/m);
+  assert.ok(!readme.includes("Explicit invocation only"), readme);
   assert.ok(!readme.includes("Archived fixture"));
   const html = readFileSync(join(buildSite(t, root), "index.html"), "utf8");
   assert.deepEqual(
@@ -229,7 +243,7 @@ test("the site HTML-escapes argument hints from its input", (t) => {
 // ---------------------------------------------------------------------------------------------
 // The CLIs on fixture repositories
 
-test("a Skill tool call wrapped across a line break still yields a Calls entry", (t) => {
+test("a Skill tool call wrapped across a line break still yields a Skill calls entry", (t) => {
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/alpha/SKILL.md":
@@ -239,7 +253,8 @@ test("a Skill tool call wrapped across a line break still yields a Calls entry",
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
-  assert.match(readmeEntry(root, "alpha") ?? "", / Calls: `beta`\.$/);
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  assert.match(readme, /^- `alpha` calls `beta`\.$/m);
 });
 
 test("a skill without agents/openai.yaml is listed with the first sentence of its description", (t) => {
@@ -250,11 +265,66 @@ test("a skill without agents/openai.yaml is listed with the first sentence of it
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
-  assert.equal(
-    readmeEntry(root, "gamma"),
-    "- **[gamma](./skills/engineering/gamma/SKILL.md)**: Use for fixture checks.",
-  );
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  const table = [
+    "| Skill                                          | Say         | What it does            |",
+    "| ---------------------------------------------- | ----------- | ----------------------- |",
+    "| [`gamma`](./skills/engineering/gamma/SKILL.md) | (automatic) | Use for fixture checks. |",
+  ].join("\n");
+  assert.ok(readme.includes(table), `README.md lacks the padded gamma table:\n${readme}`);
+  assert.ok(!readme.includes("### Skill calls"), readme);
+  assert.ok(!readme.includes("### Productivity"), readme);
 });
+
+test("a column header wider than every body cell sets that column's width", (t) => {
+  const root = fixtureRepo(t, {
+    "README.md": FIXTURE_README,
+    "skills/engineering/delta/SKILL.md":
+      "---\nname: delta\ndescription: 'Use it.'\n---\n\n# delta\n",
+    "skills/engineering/epsilon/SKILL.md":
+      "---\nname: epsilon\ndescription: 'Use for a.'\n---\n\n# epsilon\n",
+  });
+  const run = runCli(CATALOG, root, "--write");
+  assert.equal(run.status, 0, run.output);
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  const table = [
+    "| Skill                                              | Say         | What it does |",
+    "| -------------------------------------------------- | ----------- | ------------ |",
+    "| [`delta`](./skills/engineering/delta/SKILL.md)     | (automatic) | Use it.      |",
+    "| [`epsilon`](./skills/engineering/epsilon/SKILL.md) | (automatic) | Use for a.   |",
+  ].join("\n");
+  assert.ok(readme.includes(table), `README.md lacks the header-widest table:\n${readme}`);
+});
+
+// Each case: a label, the raw short_description YAML value, and the expected What it does cell.
+// The newline case holds a backslash and `n`, which unquote() turns into a newline via JSON.parse.
+const CELL_ESCAPE_CASES = [
+  { label: "pipe", value: '"Split a | b"', cell: "Split a \\| b." },
+  { label: "newline", value: '"Line one\\nline two"', cell: "Line one line two." },
+];
+
+for (const { label, value, cell } of CELL_ESCAPE_CASES) {
+  test(`a pipe or newline in a short_description stays inside its table cell (${label})`, (t) => {
+    const root = fixtureRepo(t, {
+      "README.md": FIXTURE_README,
+      "skills/engineering/pipe/SKILL.md":
+        "---\nname: pipe\ndescription: 'Use for fixture checks.'\n---\n\n# pipe\n",
+      "skills/engineering/pipe/agents/openai.yaml": `interface:\n  short_description: ${value}\n`,
+    });
+    const run = runCli(CATALOG, root, "--write");
+    assert.equal(run.status, 0, run.output);
+    const row = readmeRow(root, "engineering", "pipe");
+    assert.deepEqual(rowCells(row), [
+      "[`pipe`](./skills/engineering/pipe/SKILL.md)",
+      "(automatic)",
+      cell,
+    ]);
+    const header = readFileSync(join(root, "README.md"), "utf8")
+      .split("\n")
+      .find((line) => line.startsWith("| Skill"));
+    assert.equal(row.length, header?.length, `row and header widths differ:\n${header}\n${row}`);
+  });
+}
 
 test("--write exits 1 naming the missing generated-block marker", (t) => {
   const root = fixtureRepo(t, {
@@ -276,6 +346,25 @@ test("catalog --check exits 1 naming a SKILL.md whose name differs from its dire
   const run = runCli(CATALOG, root, "--check");
   assert.equal(run.status, 1, run.output);
   assert.ok(run.output.includes("skills/engineering/delta/SKILL.md"), run.output);
+});
+
+test("catalog --check exits 1 naming a stale block after a description changes", (t) => {
+  const root = fixtureRepo(t, {
+    "README.md": FIXTURE_README,
+    "skills/engineering/gamma/SKILL.md":
+      "---\nname: gamma\ndescription: 'Use for fixture checks.'\n---\n\n# gamma\n",
+  });
+  const write = runCli(CATALOG, root, "--write");
+  assert.equal(write.status, 0, write.output);
+  const fresh = runCli(CATALOG, root, "--check");
+  assert.equal(fresh.status, 0, fresh.output);
+  writeFileSync(
+    join(root, "skills/engineering/gamma/SKILL.md"),
+    "---\nname: gamma\ndescription: 'Use for changed checks.'\n---\n\n# gamma\n",
+  );
+  const stale = runCli(CATALOG, root, "--check");
+  assert.equal(stale.status, 1, stale.output);
+  assert.ok(stale.output.includes("stale"), stale.output);
 });
 
 test("build-site exits 1 naming a SKILL.md whose name differs from its directory", (t) => {

@@ -5,7 +5,7 @@ This file is the map for agents working with [bostonaholic/skills](https://githu
 ## Start here
 
 1. To install the skills for a user, follow [INSTALL.md](INSTALL.md).
-2. To pick a skill, read the catalog in [README.md](README.md): one line per skill, grouped by category, with the skills each one calls.
+2. To pick a skill, read the catalog in [README.md](README.md): a table per category with one row per skill, then a list of the skills each one calls.
 3. To use a skill, read its `skills/<category>/<name>/SKILL.md` and the files it links.
 4. To change the repository, read the [rules](#rules-for-changes) below, then [skill authoring](docs/skill-authoring.md) and [versioning](docs/versioning.md).
 
@@ -18,7 +18,7 @@ When documentation, this file included, disagrees with what the code does now, n
 A skill is a directory of instructions an agent loads on demand. Its `SKILL.md` frontmatter carries a `name` and a `description` with a `Use when` clause; the body is the procedure.
 
 - **Model-invoked skills** load when a request matches their description.
-- **Explicit-invocation skills**, marked "Explicit invocation only" in the README, run only when the user names them: `/<name>` in Claude Code (`/bostonaholic:<name>` when installed as the plugin), Cursor, and Grok Bot, `$<name>` in Codex.
+- **Explicit-invocation skills**, shown with a slash command in the README's Say column, run only when the user names them: `/<name>` in Claude Code (`/bostonaholic:<name>` when installed as the plugin), Cursor, and Grok Bot, `$<name>` in Codex.
 - **Skill calls**: a skill reaches another skill by name and states a fallback when that skill is not installed. A harness with no Skill tool, such as Grok Bot, reads the called skill's `SKILL.md` instead, as `shared/skill-calls.md` says.
 - **Subagents** in `agents/` (`oracle`) ship only with the Claude Code and Cursor plugins. `npx skills` installs skills without them.
 
