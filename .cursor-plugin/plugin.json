@@ -47,6 +47,7 @@
     "./skills/engineering/reviewing-design-docs",
     "./skills/engineering/reviewing-security",
     "./skills/engineering/simplifying-ruby-code",
+    "./skills/engineering/stacking-prs",
     "./skills/engineering/summarizing-friction-logs",
     "./skills/engineering/updating-bostonaholic-skills",
     "./skills/engineering/verifying-production-changes",
