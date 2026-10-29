@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-10-29
+
 ### Changed
 
 - `reviewing-code` posts its findings as inline comments and its verdict as an approve, comment, or request-changes review on the pull request without asking, then prints only the verdict and a short summary. [#165](https://github.com/bostonaholic/skills/pull/165)
@@ -982,5 +984,7 @@
 
 [0.74.0]: https://github.com/bostonaholic/skills/compare/v0.73.0...v0.74.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.75.0...HEAD
 [0.75.0]: https://github.com/bostonaholic/skills/compare/v0.74.0...v0.75.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.76.0...HEAD
+[0.76.0]: https://github.com/bostonaholic/skills/compare/v0.75.0...v0.76.0
