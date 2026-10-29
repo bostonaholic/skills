@@ -8,6 +8,6 @@ disable-model-invocation: true
 
 Call the Skill tool with `reviewing-code`, per [skill call rules](shared/skill-calls.md). Pass the text the user typed after `cr`, unchanged, as the diff target. If the user typed nothing after it, pass no target.
 
-`reviewing-code` owns the review. Add nothing after its report or its own stop message, and copy none of its rules here.
+`reviewing-code` owns the review. Add nothing after its output or its own stop message, and copy none of its rules here.
 
 If `reviewing-code` is not installed, do not review the code yourself. Print one line saying so, naming the skill to install, and stop.

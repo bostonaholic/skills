@@ -1,6 +1,6 @@
 ---
 name: reviewing-code
-description: 'Reviews a code diff (PR, branch, commit range, working tree, or a diff already in the conversation) in a fresh-context read-only subagent, because a session holding the conversation is a biased reviewer, and returns Conventional Comments findings with an APPROVE, REQUEST CHANGES, or COMMENT verdict. Use when the user says "code review", or when asked to review code, a diff, or a PR, including a pasted diff, a .diff or .patch file, or a diff shown earlier; never review it inline. Not for design docs; use reviewing-design-docs. Not for a security-focused review; use reviewing-security.'
+description: 'Reviews a code diff (PR, branch, commit range, working tree, or a diff already in the conversation) in a fresh-context read-only subagent, because a session holding the conversation is a biased reviewer, posts its Conventional Comments findings inline and its APPROVE, REQUEST CHANGES, or COMMENT verdict to the pull request when one exists, and returns a short summary. Use when the user says "code review", or when asked to review code, a diff, or a PR, including a pasted diff, a .diff or .patch file, or a diff shown earlier; never review it inline. Not for design docs; use reviewing-design-docs. Not for a security-focused review; use reviewing-security.'
 effort: high
 argument-hint: "[<diff target>]"
 ---
@@ -30,13 +30,34 @@ argument-hint: "[<diff target>]"
 - An older permalink alone does not prove the concern is fixed.
 - Report verification separately; never use a cached verdict to approve newer commits or rewrite the original verdict.
 
-## Verdict and relay
+## Verdict
 
 - The report's first line must be a `**Verdict: ...**` line whose word is exactly `APPROVE`, `REQUEST CHANGES`, or `COMMENT` (match the word, not the emoji).
 - When it is missing or wrong, run one new reviewer with the same inputs and name the failed contract.
-- When the second report also fails, print it, name the failure, and stop. Never repair a verdict yourself.
-- Print the report in full. Name any heading deviation on its own line.
-- When the read-only restriction rested on the reviewer's prompt rather than its tool grants, say so in one line after the report.
+- When the second report also fails, print it, name the failure, and stop. Never repair a verdict yourself, and post nothing.
+
+## Post
+
+- Post when the target is a pull request, or a branch whose head has an open pull request. Post without asking the user.
+- Post one review on the reviewed head SHA from `### Checks`, with the verdict as its event: `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`. With `gh`: `gh api repos/<owner>/<repo>/pulls/<n>/reviews` with `commit_id`, `event`, `body`, and `comments`.
+- Each finding whose `file:line` falls in the diff becomes an inline comment on that line, its body the finding verbatim. The review body is the report's `### Summary` plus every finding that cannot anchor to a diff line.
+- On a re-review, post inline only findings that are new this round; the body lists each earlier finding still open.
+- GitHub rejects `APPROVE` and `REQUEST_CHANGES` on the viewer's own pull request. There, post `COMMENT` and keep the verdict word in the body.
+- When the post fails, fix the cause it names once (move a rejected comment into the body) and retry. When the retry fails, print the full report and the error.
+
+## Output
+
+Print exactly this, and nothing of the report beyond it:
+
+```markdown
+**Verdict: <✅ APPROVE | ❌ REQUEST CHANGES | 💬 COMMENT>**
+
+<3 to 5 sentences: what was reviewed and at which short SHA; the finding count, blocking count, and the most serious finding; the test result; the review URL, or why nothing was posted.>
+```
+
+- When nothing was posted, add the report's `### Findings` section after the summary, since the findings exist nowhere else.
+- When a [reused finding](#reused-findings) was verified, add its verification after the summary, apart from the verdict.
+- When the reviewer used a nonstandard heading, or its read-only restriction rested on its prompt rather than its tool grants, say so in one sentence of the summary.
 
 ## Re-review
 
