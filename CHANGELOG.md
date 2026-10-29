@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-10-29
+
+### Added
+
+- `stacking-prs` splits a large or overlapping change into stacked PRs with the `gh stack` extension, checking the remote and each layer before every push, and reports how to merge the stack instead of merging it. [#166](https://github.com/bostonaholic/skills/pull/166)
+
 ## [0.78.0] - 2026-10-29
 
 ### Added
@@ -1011,5 +1017,7 @@
 
 [0.77.0]: https://github.com/bostonaholic/skills/compare/v0.76.0...v0.77.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.78.0...HEAD
 [0.78.0]: https://github.com/bostonaholic/skills/compare/v0.77.0...v0.78.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.79.0...HEAD
+[0.79.0]: https://github.com/bostonaholic/skills/compare/v0.78.0...v0.79.0

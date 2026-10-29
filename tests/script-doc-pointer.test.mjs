@@ -201,6 +201,15 @@ const ROWS = [
     exit: 3,
     target: "skills/engineering/simplifying-ruby-code/SKILL.md",
   },
+  // stacking-prs
+  {
+    label: "stack-guard.mjs usage",
+    script: "skills/engineering/stacking-prs/scripts/stack-guard.mjs",
+    interpreter: "node",
+    args: () => ["check"],
+    exit: 2,
+    target: "skills/engineering/stacking-prs/references/recovery.md",
+  },
   // watching-authored-prs
   {
     label: "watching-authored-prs poll.mjs",

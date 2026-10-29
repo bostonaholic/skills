@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stacking PRs"
+  short_description: "Split a large change into stacked PRs with gh stack"
+  default_prompt: "Use $stacking-prs to split this change into stacked pull requests."
