@@ -30,7 +30,7 @@ Search every category: **source control**, **issue/ticket tracker**, **long-form
 - Skip one only when it is provably irrelevant, never because it "probably has nothing".
 - A null result is a finding; a skipped search is a blind spot reported by name with its reason.
 
-A subagent searching a category gets the user's question verbatim, never your
+A fresh-context subagent searching a category, never a fork of this conversation, gets the user's question verbatim, never your
 hypothesis or the user's guess. Spot-check its citations before asserting
 them.
 

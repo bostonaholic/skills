@@ -47,7 +47,7 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 3. **Inspect by module.** Check each module against every red flag.
    - When the scope spans more than one module and subagents are available,
      give each module, or a group of small ones, to a fresh-context, read-only
-     subagent, so each reads its code in full instead of a skim of all of it.
+     subagent, never a fork of this conversation, so each reads its code in full instead of a skim of all of it.
    - Keep a lane to about 40 files. For a larger module, inspect its public
      entry, its hot files, and its tests.
    - Hand each subagent its paths, every contention row naming one of its
@@ -61,7 +61,7 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 - Review what the diff adds or worsens, not what it leaves alone. Resolve the
   target as a PR, branch, commit range, or the working tree against the base.
 - When the diff is this session's own work, review it in a fresh-context,
-  read-only subagent ([independent review rules](shared/independent-review.md)).
+  read-only subagent, never a fork of this conversation ([independent review rules](shared/independent-review.md)).
 - Run `contention.mjs -- <changed paths>` to see how often each changed file
   already moves. When it cannot run, say so and continue.
 - Ask of each changed file:

@@ -34,7 +34,7 @@ disable-model-invocation: true
 
 - Classification is done by an independent reviewer: run the
   [comment reviewer brief](references/reviewer.md) in a fresh-context
-  subagent with read and search tools only, under the
+  subagent, never a fork of this conversation, with read and search tools only, under the
   [independent review rules](shared/independent-review.md).
 - Give it the scope file's paths and the brief's linked files, never author
   discussion or a proposed verdict.

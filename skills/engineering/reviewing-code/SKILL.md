@@ -17,7 +17,7 @@ argument-hint: "[<diff target>]"
 ## Reviewer
 
 - This session holds the author's conversation, so it cannot review the work ([independent review rules](shared/independent-review.md)).
-- Run the [code reviewer brief](references/code-reviewer.md) in a fresh-context subagent that holds no file-editing tool.
+- Run the [code reviewer brief](references/code-reviewer.md) in a fresh-context subagent, never a fork of this conversation, that holds no file-editing tool.
 - Give it only the resolved target, any [re-review](#re-review) inputs, and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), [code standards](shared/code-standards.md), [code comments rules](shared/code-comments.md), and [docs and code rules](shared/docs-vs-code.md).
 - If it has a shell, it runs only the project's test command and read-only git commands.
 - If no such subagent can run, stop and say so. Never review inline.
@@ -25,7 +25,7 @@ argument-hint: "[<diff target>]"
 ## Reused findings
 
 - External reviewers may reuse findings after later commits.
-- Before reporting a reused finding as current, ask a fresh read-only verifier to check its behavioral claim against the resolved head.
+- Before reporting a reused finding as current, ask a fresh-context, read-only verifier, never a fork of this conversation, to check its behavioral claim against the resolved head.
 - Supply the claim and cited paths without the previous verdict or producer explanation.
 - An older permalink alone does not prove the concern is fixed.
 - Report verification separately; never use a cached verdict to approve newer commits or rewrite the original verdict.

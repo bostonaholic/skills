@@ -20,7 +20,7 @@ question of every source the run gathered (`transcript.jsonl` and each file in
 `sources/`). The question decides what counts as a finding, and the rules below
 bind it exactly as they bind a lens.
 
-Run each pass in a fresh read-only subagent that sees only the sources, its own
+Run each pass in a fresh-context, read-only subagent, never a fork of this conversation, that sees only the sources, its own
 question, and the rules here, so one lens does not anchor on another's
 findings.
 

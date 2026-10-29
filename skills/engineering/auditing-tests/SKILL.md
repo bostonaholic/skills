@@ -50,13 +50,13 @@ name to the directories that own it and state the resolution in one line.
    prefix), at most 25 test files per lane. Every file lands in one lane or
    in `gaps` with a reason.
 4. **Ledgers.** Audit each lane per the [lane auditor brief](references/lane-auditor.md),
-   in a fresh-context, read-only subagent where available, otherwise inline.
+   in a fresh-context, read-only subagent, never a fork of this conversation, where available, otherwise inline.
 5. **Redundant layers.** Where several suites guard one contract, name the
    **keeper**: the suite at the strongest boundary, preferring a real
    boundary with a fake dependency over a mocked collaborator. List the
    files it retires and the assertions it must absorb first.
 6. **Verify every C and D** with an independent verifier: a fresh-context,
-   read-only subagent that has not seen the auditor's reasoning, given only
+   read-only subagent, never a fork of this conversation, that has not seen the auditor's reasoning, given only
    the neutral claim "`<remainingProof>` fails when `<caughtBug>` happens, so
    `<test>` at `<file:line>` is not the only guard" and asked to refute it
    from the code. **CONFIRMED** sets `verified: true`. **REFUTED** or

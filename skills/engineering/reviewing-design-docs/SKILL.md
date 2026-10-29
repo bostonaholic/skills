@@ -16,9 +16,9 @@ argument-hint: "[<design-doc-path-or-url>]"
 ## Reviewer
 
 - This session holds the author's conversation, so it cannot review the document ([independent review rules](shared/independent-review.md)).
-- Run the [design reviewer brief](references/design-reviewer.md) once per lens, each in its own fresh-context subagent with read and search tools only. The lenses, in order: `naive-reader`, `decisions`, `readiness`, `accuracy`. Every lens runs on every document.
+- Run the [design reviewer brief](references/design-reviewer.md) once per lens, each in its own fresh-context subagent, never a fork of this conversation, with read and search tools only. The lenses, in order: `naive-reader`, `decisions`, `readiness`, `accuracy`. Every lens runs on every document.
 - Give each lens run the document's absolute path, its lens name, and the paths of the [report format](references/report-format.md) and [finding format](shared/findings.md), which every run reads, the [design template](references/design-template.md), which `readiness` reads, and the [decision-record rules](shared/decisions.md), which `decisions` reads.
-- After every lens report passes the verdict line check, run the [synthesizer brief](references/synthesizer.md) in a fresh-context subagent with read and search tools only. Give it the document's absolute path, every lens report verbatim and labeled with its lens, and the paths of the report format and finding format.
+- After every lens report passes the verdict line check, run the [synthesizer brief](references/synthesizer.md) in a fresh-context subagent, never a fork of this conversation, with read and search tools only. Give it the document's absolute path, every lens report verbatim and labeled with its lens, and the paths of the report format and finding format.
 - Pass no author discussion, and give no lens another lens's report.
 - If no such subagent can run, stop before any lens runs and say so. Never review inline.
 

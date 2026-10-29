@@ -57,12 +57,12 @@ as `<run>`.
 
 ## Rebase each PR
 
-Hand each line of `<run>/manifest.tsv` to its own subagent, at most 4 at once.
+Hand each line of `<run>/manifest.tsv` to its own fresh-context subagent, never a fork of this conversation, at most 4 at once.
 Give each `<n>`, `<branch>`, `<base>`, `<pre_oid>`, `<run>`, and the absolute
-`<skill-dir>`, and tell it to read and follow the
+`<skill-dir>`, and have it follow the
 [per-PR procedure](references/per-pr-procedure.md) by absolute path, reading
-[conflict resolution](references/conflict-resolution.md) when its rebase stops
-on a conflict.
+[conflict resolution](references/conflict-resolution.md) when a rebase
+conflicts.
 
 Probe a quiet worker up to 3 times, 2 minutes apart (in Claude Code,
 `SendMessage`), then stop waiting on it.

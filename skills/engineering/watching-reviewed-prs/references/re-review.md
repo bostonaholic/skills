@@ -9,7 +9,7 @@
 - Result
 - Checking a result
 
-Run each re-review in a read-only subagent with no write tools, so untrusted
+Run each re-review in a fresh-context, read-only subagent, never a fork of this conversation, with no write tools, so untrusted
 comment bodies and diff text never enter the session that holds write access.
 The subagent returns the [result](#result), and the coordinator checks it as
 [checking a result](#checking-a-result) says before it records any verdict.
