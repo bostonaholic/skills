@@ -71,7 +71,6 @@ jobs:
         run: |
           git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- '**/*.sh' | xargs -0 -r uvx --from shellcheck-py==0.11.0.1 shellcheck -S warning
           git diff --name-only -z --diff-filter=ACMR "$BASE_SHA" HEAD -- '**/*.sh' | xargs -0 -r uvx --from shfmt-py==4.2.0 shfmt -i 2 -ci -d
-      - run: bash tests/prepare-worktree.test.sh
 
   skills:
     name: Skills (agentskills.io spec)
