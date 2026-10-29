@@ -36,8 +36,9 @@
  *   which no stack holds yet, the same way, with no `gh stack` call. Takes
  *   each PR's state from GitHub, not from `view --json`. Stops when another
  *   worktree holds a tested branch. Then fetches every branch of <remote>
- *   once, whatever the clone's refspec, and tests each active layer (not
- *   merged, not queued) against its remote copy: absent or ahead passes,
+ *   once, whatever the clone's refspec, pruning the refs of deleted
+ *   branches, and tests each active layer (not merged, not queued) against
+ *   its remote copy: absent or ahead passes,
  *   behind fast-forwards (`git merge --ff-only` on the current branch,
  *   `git fetch .` on another), and diverged passes only when every remote
  *   commit has a local copy. Writes the record that compare,
@@ -512,9 +513,10 @@ function isAncestor(ancestor, descendant) {
 
 // An explicit refspec, because a --single-branch or --depth clone's configured
 // refspec skips the layer branches and leaves their remote refs absent or stale.
-// gh stack push fetches each layer this way before its lease.
+// gh stack push fetches each layer this way before its lease. --prune drops the ref of a
+// branch deleted on the remote, such as a merged PR's, so it reads as absent.
 function fetchRemote(remote) {
-  runGit(["fetch", "--quiet", remote, `+refs/heads/*:${remoteRef(remote, "*")}`]);
+  runGit(["fetch", "--quiet", "--prune", remote, `+refs/heads/*:${remoteRef(remote, "*")}`]);
 }
 
 function remoteRef(remote, branch) {

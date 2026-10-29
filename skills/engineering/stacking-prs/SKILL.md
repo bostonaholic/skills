@@ -25,7 +25,7 @@ Split a large change into an ordered stack of small PRs and run GitHub's `gh sta
 - Before any branch, list the layers bottom to top, each with a branch name, a one-sentence concern, and the paths it owns. A concern that needs two sentences is two layers. Plan first: no command reorders a stack without a terminal.
 - Code uses only its own layer or a lower one. Each layer builds and passes the project's checks alone, because GitHub runs required checks on every stacked PR.
 - Branch names follow the repository's or user's convention, else `<topic>/<concern>`.
-- New-name test, after `git fetch <remote> '+refs/heads/*:refs/remotes/<remote>/*'` and before the first branch: each name the run creates passes `git check-ref-format --branch <name>`, and `git rev-parse --verify --quiet` fails on both `refs/heads/<name>` and `refs/remotes/<remote>/<name>`. Else pick another name, because `init` and `add` adopt an existing branch and its commits.
+- New-name test, after `git fetch --prune <remote> '+refs/heads/*:refs/remotes/<remote>/*'` and before the first branch: each name the run creates passes `git check-ref-format --branch <name>`, and `git rev-parse --verify --quiet` fails on both `refs/heads/<name>` and `refs/remotes/<remote>/<name>`. Else pick another name, because `init` and `add` adopt an existing branch and its commits.
 
 ## Before the first command
 

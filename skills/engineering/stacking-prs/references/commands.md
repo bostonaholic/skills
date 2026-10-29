@@ -132,9 +132,10 @@ from inside the repository. Its header lists every exit code.
   each PR's state from GitHub, because `view --json` can drop a closed PR and
   miss a queued one. It stops on another author's PR, a closed or queued PR, or
   a branch with two open PRs, and when another worktree holds a layer. Then it
-  fetches every branch of `<remote>`, whatever the clone's refspec,
-  fast-forwards a layer that is behind its remote copy, and stops on a layer
-  whose remote copy has commits the local layer lacks. It writes the record.
+  fetches every branch of `<remote>`, whatever the clone's refspec, and drops
+  the refs of branches deleted there. It fast-forwards a layer that is behind
+  its remote copy, and stops on a layer whose remote copy has commits the local
+  layer lacks. It writes the record.
 - `check --remote <remote> --trunk <trunk> <branch>...` is named mode, for
   branches no stack holds yet. It runs the same tests on the named branches and
   every unmerged PR on each one's GitHub stack, with no `gh stack` call.

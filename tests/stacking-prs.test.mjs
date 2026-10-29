@@ -2436,3 +2436,50 @@ test("a single-branch clone still sees every layer's remote tip", async (t) => {
     assert.match(result.stderr, /invoices\/api/);
   });
 });
+
+// Review round 3
+
+// Deletes <branch> on the bare remote, as GitHub does after a merge, and leaves the clone's
+// refs/remotes/origin/<branch> in place.
+function deleteRemoteBranch(w, branch) {
+  git(w.remote, "update-ref", "-d", `refs/heads/${branch}`);
+}
+
+test("a remote branch deleted behind a stale tracking ref counts as absent", async (t) => {
+  await t.test("check records a deleted layer branch as absent, not as diverged", (t) => {
+    const { w } = pushedStackWorld(t);
+    advanceRemote(w, "invoices/api", "api-remote.txt");
+    git(w.work, "fetch", "-q", "origin");
+    commitOn(w, "invoices/api", "api-local.txt");
+    deleteRemoteBranch(w, "invoices/api");
+
+    const result = run(w, ["check", "--remote", "origin"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    const record = JSON.parse(readFileSync(outputKeys(result.stdout).RECORD, "utf8"));
+    const api = record.layers.find((entry) => entry.branch === "invoices/api");
+    assert.equal(api.remoteTip, "absent");
+  });
+
+  await t.test("compare exits 5 when a recorded layer branch was deleted", (t) => {
+    const w = compareWorld(t);
+    const record = checkRecord(w);
+    deleteRemoteBranch(w, "invoices/api");
+
+    const result = run(w, ["compare", record]);
+
+    assert.equal(result.status, 5, result.stderr);
+    assert.match(result.stderr, /invoices\/api/);
+  });
+
+  await t.test("after-sync exits 6 when an active layer's branch was deleted", (t) => {
+    const { w } = pushedStackWorld(t);
+    const record = checkRecord(w);
+    deleteRemoteBranch(w, "invoices/ui");
+
+    const result = run(w, ["after-sync", record]);
+
+    assert.equal(result.status, 6, result.stderr);
+    assert.match(result.stderr, /invoices\/ui/);
+  });
+});
