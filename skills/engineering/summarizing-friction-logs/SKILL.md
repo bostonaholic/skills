@@ -1,8 +1,6 @@
 ---
 name: summarizing-friction-logs
-description: Aggregates frog friction logs across every repository in a workspace plus the global log into one prioritized dashboard. Use when asked for the friction dashboard, all known friction or papercuts across repos, to list friction logs, or to decide which friction to fix first.
-metadata:
-  say: "show the friction dashboard"
+description: Aggregates frog friction logs across every repository in a workspace plus the global log into one prioritized dashboard. Use when the user says "show the friction dashboard", or when asked for the friction dashboard, all known friction or papercuts across repos, to list friction logs, or to decide which friction to fix first.
 ---
 
 # Summarizing friction logs

@@ -1,8 +1,6 @@
 ---
 name: fixing-root-causes
-description: 'Traces a bug or failure to its root cause and fixes it there instead of patching the symptom. Use when debugging a crash, failing test, regression, or "fails after restart" bug, or when a fix would add a guard, retry, or workaround to silence an error.'
-metadata:
-  say: "find the root cause"
+description: 'Traces a bug or failure to its root cause and fixes it there instead of patching the symptom. Use when the user says "find the root cause", or when debugging a crash, failing test, regression, or "fails after restart" bug, or when a fix would add a guard, retry, or workaround to silence an error.'
 ---
 
 # Fix Root Causes

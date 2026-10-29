@@ -1,10 +1,8 @@
 ---
 name: auditing-complexity
-description: 'Ranks where code complexity concentrates in a git repository (cyclomatic complexity, nesting, fan-out, mutable state) and scores CRAP change risk from a coverage file. Read-only. Use when asked for complexity hotspots or change risk. Not for test value; use auditing-tests.'
+description: 'Ranks where code complexity concentrates in a git repository (cyclomatic complexity, nesting, fan-out, mutable state) and scores CRAP change risk from a coverage file. Read-only. Use when the user says "find complexity hotspots", or when asked for complexity hotspots or change risk. Not for test value; use auditing-tests.'
 effort: high
 argument-hint: "[<path or subsystem> ...] [--out <dir>] [--coverage <file>]"
-metadata:
-  say: "find complexity hotspots"
 ---
 
 # Auditing complexity

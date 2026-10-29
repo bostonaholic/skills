@@ -1,8 +1,6 @@
 ---
 name: being-extremely-fucking-brief
-description: 'Keeps every reply to the user to three lines or fewer, with no preamble, restated question, recap, or closing offer. Use when about to reply to the user: load it before every reply in every session, including plain questions, recommendations, and comparisons, even when no other skill applies.'
-metadata:
-  say: "be brief"
+description: 'Keeps every reply to the user to three lines or fewer, with no preamble, restated question, recap, or closing offer. Use when the user says "be brief", or when about to reply to the user: load it before every reply in every session, including plain questions, recommendations, and comparisons, even when no other skill applies.'
 ---
 
 # Be extremely fucking brief

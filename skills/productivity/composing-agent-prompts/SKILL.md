@@ -1,10 +1,8 @@
 ---
 name: composing-agent-prompts
-description: Composes a self-contained, source-cited task prompt for another coding agent to execute in a target repository, without running the task. Use when the user asks to write, draft, or hand off a prompt, brief, or task spec for another agent. Not for system prompts; use writing-system-prompts.
+description: Composes a self-contained, source-cited task prompt for another coding agent to execute in a target repository, without running the task. Use when the user says "write a prompt for another agent", or when the user asks to write, draft, or hand off a prompt, brief, or task spec for another agent. Not for system prompts; use writing-system-prompts.
 effort: medium
 argument-hint: "[<task description>] [--repo <path>] [--out <path>]"
-metadata:
-  say: "write a prompt for another agent"
 ---
 
 # Agent Prompt

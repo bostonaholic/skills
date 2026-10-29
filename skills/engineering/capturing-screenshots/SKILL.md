@@ -1,10 +1,8 @@
 ---
 name: capturing-screenshots
-description: Captures deterministic, visually verified screenshots of a running web or native app (named screens, states, viewports, dark mode) with a manifest. Use when asked for screenshots of an app or its screens. Not for attaching images to a PR; use attaching-pr-screenshots.
+description: Captures deterministic, visually verified screenshots of a running web or native app (named screens, states, viewports, dark mode) with a manifest. Use when the user says "take screenshots", or when asked for screenshots of an app or its screens. Not for attaching images to a PR; use attaching-pr-screenshots.
 effort: high
 argument-hint: "[--out <dir>] [--url <app-url>] [<what to shoot>]"
-metadata:
-  say: "take screenshots"
 ---
 
 # Capturing screenshots

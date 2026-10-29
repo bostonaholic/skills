@@ -1,10 +1,8 @@
 ---
 name: reviewing-security
-description: 'Reviews a code diff for exploitable security vulnerabilities in a fresh-context read-only subagent, reporting only high-confidence findings with an exploit scenario and fix. Use when asked for a security review of code, a diff, a branch, or a PR. Not for general review; use reviewing-code. Not for a third-party clone; use auditing-repo-security.'
+description: 'Reviews a code diff for exploitable security vulnerabilities in a fresh-context read-only subagent, reporting only high-confidence findings with an exploit scenario and fix. Use when the user says "security review", or when asked for a security review of code, a diff, a branch, or a PR. Not for general review; use reviewing-code. Not for a third-party clone; use auditing-repo-security.'
 effort: high
 argument-hint: "[<diff target>]"
-metadata:
-  say: "security review"
 ---
 
 # Security Review

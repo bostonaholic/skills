@@ -1,8 +1,6 @@
 ---
 name: simplifying-ruby-code
-description: Rewrites over-engineered Ruby and Rails classes (stateless service objects, behaviorless value objects, class-method-only classes, deep inheritance, needless metaprogramming) as Data, Struct, Hash, modules, or pure functions, after finding every caller and getting a green test baseline, or reports findings when asked to review. Use when asked to refactor, simplify, review, or cut boilerplate from a Ruby or Rails class, value object, service object, gem, or branch diff (hand-written initialize, readers, ==, eql?, or hash; call-only classes; Struct vs Data), or when tests need heavy mocking. Not for a broad Rails tech-debt audit; use auditing-rails-tech-debt.
-metadata:
-  say: "simplify this Ruby"
+description: Rewrites over-engineered Ruby and Rails classes (stateless service objects, behaviorless value objects, class-method-only classes, deep inheritance, needless metaprogramming) as Data, Struct, Hash, modules, or pure functions, after finding every caller and getting a green test baseline, or reports findings when asked to review. Use when the user says "simplify this Ruby", or when asked to refactor, simplify, review, or cut boilerplate from a Ruby or Rails class, value object, service object, gem, or branch diff (hand-written initialize, readers, ==, eql?, or hash; call-only classes; Struct vs Data), or when tests need heavy mocking. Not for a broad Rails tech-debt audit; use auditing-rails-tech-debt.
 ---
 
 # Simplifying Ruby Code

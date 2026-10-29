@@ -1,8 +1,6 @@
 ---
 name: writing-no-comments
-description: 'Bans source comments outside a short keep list in code the agent writes or edits. Use when about to write or edit code, tests, scripts, or config: load it before the first code edit of every task, including code a subagent writes. Not for cleaning existing comments. The user runs removing-comments.'
-metadata:
-  say: "no comments"
+description: 'Bans source comments outside a short keep list in code the agent writes or edits. Use when the user says "no comments", or when about to write or edit code, tests, scripts, or config: load it before the first code edit of every task, including code a subagent writes. Not for cleaning existing comments. The user runs removing-comments.'
 ---
 
 # Writing no comments

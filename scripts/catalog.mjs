@@ -34,6 +34,8 @@ const CALLS_LEAD = "Some skills call others. Install the skills they call too.";
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 export const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
 const FIRST_SENTENCE = /^.*?[.!?](?=\s|$)/;
+// The phrase a model-invoked skill's `Use when` clause quotes, shown in the README Say column.
+const SAY_PHRASE = /\bthe user says "([^"]+)"/;
 
 // A problem with the repository's input files. The CLIs report its message and exit 1.
 export class CatalogError extends Error {}
@@ -82,9 +84,11 @@ function loadSkill(path, skillNames, errors) {
     errors.push(`${path}: name "${name}" differs from its directory "${directoryName}"`);
   if (!description) errors.push(`${path}: no description`);
   const userInvoked = scalar(frontmatter, "disable-model-invocation") === "true";
-  const say = scalar(frontmatter, "say");
+  const say = description?.match(SAY_PHRASE)?.[1];
   if (!userInvoked && !say)
-    errors.push(`${path}: no metadata.say phrase for the README Say column`);
+    errors.push(
+      `${path}: description has no 'Use when the user says "<phrase>"' for the Say column`,
+    );
   if (name !== directoryName || !description || (!userInvoked && !say)) return null;
 
   const yamlPath = `${dir}/agents/openai.yaml`;

@@ -1,10 +1,8 @@
 ---
 name: watching-authored-prs
-description: Watches the user's own PR in a bounded loop, triaging new review feedback and reporting failing CI, or re-running or fixing it when granted, until approval, then hands off to landing-prs without merging, even when asked to merge once approved. Use when the user explicitly asks to watch their PR for feedback or CI, including a watch that should merge on approval. Never infer from an open PR. Not for a PR the user reviewed; use watching-reviewed-prs.
+description: Watches the user's own PR in a bounded loop, triaging new review feedback and reporting failing CI, or re-running or fixing it when granted, until approval, then hands off to landing-prs without merging, even when asked to merge once approved. Use when the user says "watch this PR", or when the user explicitly asks to watch their PR for feedback or CI, including a watch that should merge on approval. Never infer from an open PR. Not for a PR the user reviewed; use watching-reviewed-prs.
 effort: medium
 argument-hint: "[<pr-number-or-url>]"
-metadata:
-  say: "watch my PR"
 ---
 
 # Watching Authored PRs
