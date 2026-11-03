@@ -30,6 +30,20 @@ Every item lands in exactly one bucket:
 
 ## Rules for every Accepted item
 
+- **One change per item.** A finding that supports two changes gives two
+  whole items, each with every field. Merging collapses findings with one cause
+  and never bundles their changes. Each change to a new file that is not a
+  skill is its own creation item. A new skill counts as one change, so findings
+  that call for one new skill give one creation item whose evidence lists each
+  record.
+- **A fact, not a list of cases.** Proposed text states a fact that holds
+  beyond the cases the session saw. For the instructions file or a doc, the
+  fact is about the repository. For a skill target, it is about that skill's
+  task. It never lists the cases the session saw. It never treats a case
+  missing from a list as new or as caused by the agent's own edits. Rewrite
+  such text as a fact about the cause, or send the finding to Rejected. For
+  example, write "`<task>` runs through `<repo script>`, and `<stock tool>` is
+  not installed", not a list of the `<failing tests>` seen.
 - **Items for one skill fit together.** The texts of every item for one
   `SKILL.md` fit its 100-line body limit together, so any approved subset fits.
   Items that do not fit target a reference the skill links for that task. When
