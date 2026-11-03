@@ -24,14 +24,16 @@ Every item lands in exactly one bucket:
   mistake, a preference already recorded, a fact about a specific ticket. A
   finding that no source record shows goes here too, with the reason
   "no source record". That includes a missing, unwired, or broken check with no
-  record of what it cost. So does a finding that changes only how the agent
-  performs a task, with no repository file as its home. A skill is the
+  record of what it cost. A finding that changes only how the agent performs a
+  task, with no repository file as its home, also goes here. A skill is the
   home of a change to its own task, in its `SKILL.md` or a reference it links
   for that task. The instructions file is the home of a fact about this
   repository. A doc is a home only when the `Loaded by:` rule counts it as
   loaded. A new skill is a home for a task the session did, never for a
-  preference about which tool does a task. One line of reason each, so a
-  rejection is auditable rather than silent.
+  preference about which tool does a task. A finding that
+  admits no recurrence criterion is true of one session, so it goes here too.
+  That includes a mechanical finding with no runner and no criterion. One line
+  of reason each, so a rejection is auditable rather than silent.
 - **Backlog**: a finding a machine check would enforce better than prose. It
   also holds an item that is not a check: a change this skill files as an issue
   instead of writing, such as a skill creation in a distributed plugin's
@@ -68,6 +70,11 @@ Every item lands in exactly one bucket:
   - a skill by name only, when it sets `disable-model-invocation: true`
   - a file one of those links for that task
   - `none`
+- **A recurrence criterion per item.** Each item names the action that shows
+  the change worked, in a later session where the problem can arise again. A
+  criterion that only says the original problem is fixed does not count. A new
+  skill carries one criterion for its task. The criterion stays in the plan,
+  never in the proposed text.
 - **Items for one skill fit together.** The texts of every item for one
   `SKILL.md` fit its 100-line body limit together, so any approved subset fits.
   Items that do not fit target a reference the skill links for that task. When
@@ -149,6 +156,7 @@ resolve through scripts/write-target.mjs and need the approval answer.
 Learning: <one or two sentences>
 Evidence: <file path, turn index, or source URL of the record the finding rests on>
 Loaded by: <the instructions file at session start, a skill by description, a skill by name only, a file one of those links for that task, or "none">
+Recurrence criterion: <the later-session action that shows the change worked>
 Pre-image: <blob id from `git hash-object`, or "absent" for a creation>
 Proposed text:
 

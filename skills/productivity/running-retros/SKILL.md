@@ -43,9 +43,10 @@ argument-hint: "[what to retro on]"
 3. Sort the findings once into Accepted, Rejected, or Backlog and write the
    plan file: [synthesis](references/synthesis.md).
 4. Print the report so far, then ask one question for the whole file-write
-   class, showing each proposed edit's target, learning, and evidence, and
-   naming each target with `Loaded by: none`. Backlog issues are not in this
-   class. With no Accepted items, skip to filing.
+   class, showing each proposed edit's target, learning, evidence, and
+   recurrence criterion, and naming each target with `Loaded by: none`.
+   Backlog issues are not in this class. With no Accepted items, skip to
+   filing.
 
 ## Apply turn
 
