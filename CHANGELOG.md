@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `running-retros` proposes a change only when a turn, comment, or other source record shows the problem happened; a missing hook or CI job is no longer a finding on its own. [#172](https://github.com/bostonaholic/skills/pull/172)
+- `running-retros` makes one change per proposed edit and states it as a fact about the repository, never as a list of the cases one session saw. [#172](https://github.com/bostonaholic/skills/pull/172)
+- `running-retros` proposes a check only when a check command, CI job, or commit hook that the session's records show running would run it, with every tool it needs. [#172](https://github.com/bostonaholic/skills/pull/172)
+- `running-retros` says how later sessions load each proposed edit's target, flags a target nothing loads, and rejects a change that has no repository file as its home. [#172](https://github.com/bostonaholic/skills/pull/172)
+- `running-retros` shows, for each proposed edit, what a later session would do if the change worked. [#172](https://github.com/bostonaholic/skills/pull/172)
+
+### Fixed
+
+- `running-retros` applies every approved edit to one file instead of skipping all but the first. [#172](https://github.com/bostonaholic/skills/pull/172)
+
 ## [0.80.0] - 2026-11-03
 
 ### Changed
