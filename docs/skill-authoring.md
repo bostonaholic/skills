@@ -700,11 +700,12 @@ Subagents in `agents/` ship only with the Claude Code and Cursor plugins.
 They follow the description form rows (A3 to A6), concision (B1), and output
 templates (E3), plus the rows below.
 
-| ID  | Rule                                                                                                       |
-| --- | ---------------------------------------------------------------------------------------------------------- |
-| S1  | Pin `model` by tier alias (`opus`, `sonnet`, `haiku`), never a dated ID. **lint**                          |
-| S2  | A read-only subagent sets `readonly: true` beside its `tools` list, since Cursor ignores `tools`. **lint** |
-| S3  | Names are role nouns, since the gerund rule (A2) names skills. **lint** (not a gerund)                     |
+| ID  | Rule                                                                                                                                                                                                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S1  | Pin `model` by tier alias (`opus`, `sonnet`, `haiku`), never a dated ID. **lint**                                                                                                                                                                                                                                                                      |
+| S2  | A read-only subagent sets `readonly: true` beside its `tools` list, since Cursor ignores `tools`. **lint**                                                                                                                                                                                                                                             |
+| S3  | Names are role nouns, since the gerund rule (A2) names skills. **lint** (not a gerund)                                                                                                                                                                                                                                                                 |
+| S4  | The definition states the subagent's whole return, so the contract holds on every call without the caller trimming it: an exact status line first, then only what the caller uses, with no preamble, restated question, or search narration. A read-only subagent (S2) returns its findings inline, because it holds no tool to write a findings file. |
 
 ## Checks
 
