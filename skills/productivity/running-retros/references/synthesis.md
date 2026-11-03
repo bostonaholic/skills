@@ -1,5 +1,15 @@
 # Synthesis: one list, sorted once
 
+## Contents
+
+- Merge and sort
+- Rules for every Accepted item
+- The Backlog criterion, applied once, here
+- The plan file
+- Zero findings
+
+## Merge and sort
+
 Merge the passes' findings into one list, collapsing findings that name the
 same cause.
 
@@ -17,6 +27,17 @@ Every item lands in exactly one bucket:
   record of what it cost. One line of reason each, so a rejection is auditable
   rather than silent.
 - **Backlog**: a finding a machine check would enforce better than prose.
+
+## Rules for every Accepted item
+
+- **Items for one skill fit together.** The texts of every item for one
+  `SKILL.md` fit its 100-line body limit together, so any approved subset fits.
+  Items that do not fit target a reference the skill links for that task. When
+  the skill links no reference for that task, the items that do not fit go to
+  Rejected with that reason.
+- **No shared file-level text.** Creation texts for one new file that is not a
+  skill carry no shared file-level text, such as a title, so any approved
+  subset joins without a repeat.
 
 ## The Backlog criterion, applied once, here
 
