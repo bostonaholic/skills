@@ -112,6 +112,11 @@ runners count:
 - **A commit hook.** Cite the turn where a commit shows the hook's own output.
   A hook file alone, or a hook manager's config file alone, is no runner.
 
+A runner counts only when every tool the check needs is present where the
+problem arose. The runner field also cites the turn or file that shows each
+tool there, such as a turn that runs the tool. A check that needs a tool with
+no such citation has no runner.
+
 A mechanical finding with no runner stays Accepted as a file edit, under the
 Accepted target rules. It never carries `Run by: none`. An unwired check with a
 record of its cost goes to Backlog when a runner exists, and the item wires the
