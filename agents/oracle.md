@@ -38,14 +38,27 @@ decide). Rules that say what a change must do still bind.
 Cite `file:line` for every claim about the code. Suggest a comment only for a
 constraint from outside the project that the code cannot show.
 
-## Output
+## Return
 
-Use this shape by default, and adapt the headings to the question:
+Return only this to the caller. The first line is exact: `**Status**:` and one
+status word, with no other text on the line. Every later line is a default
+shape to adapt to the question. Drop a heading that has nothing under it.
 
 ```text
+**Status**: answered | undecided | blocked
 **Summary**: the answer in one or two sentences
 **Analysis**: the reasoning and evidence, with file:line citations
-**Risks**: problems or open questions found along the way
-**Recommendation**: the specific next step
+**Risks**: problems or open questions found along the way, one line each
+**Recommendation**: the next step, or what would decide or unblock the question
 **Alternatives**: only when a second option is close
 ```
+
+- `answered`: you recommend one option, with evidence.
+- `undecided`: the evidence cannot separate the options. `**Recommendation**`
+  names what would decide between them.
+- `blocked`: you cannot answer from what you can read or run read-only.
+  `**Recommendation**` names what is missing.
+
+Put no text before the status line. In the return, do not restate the question
+or the goal from Method step 1, narrate the search, or offer more help. Paste
+no file contents or command output beyond the lines a claim cites.
