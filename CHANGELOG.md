@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-11-03
+
+### Changed
+
+- `oracle` opens its reply with a status line (`answered`, `undecided`, or `blocked`) and returns only its answer, with no preamble, search narration, or pasted output. [#171](https://github.com/bostonaholic/skills/pull/171)
+
 ## [0.79.0] - 2026-10-29
 
 ### Added
@@ -1019,5 +1025,7 @@
 
 [0.78.0]: https://github.com/bostonaholic/skills/compare/v0.77.0...v0.78.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.79.0...HEAD
 [0.79.0]: https://github.com/bostonaholic/skills/compare/v0.78.0...v0.79.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.80.0...HEAD
+[0.80.0]: https://github.com/bostonaholic/skills/compare/v0.79.0...v0.80.0
