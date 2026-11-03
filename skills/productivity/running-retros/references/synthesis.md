@@ -24,8 +24,14 @@ Every item lands in exactly one bucket:
   mistake, a preference already recorded, a fact about a specific ticket. A
   finding that no source record shows goes here too, with the reason
   "no source record". That includes a missing, unwired, or broken check with no
-  record of what it cost. One line of reason each, so a rejection is auditable
-  rather than silent.
+  record of what it cost. So does a finding that changes only how the agent
+  performs a task, with no repository file as its home. A skill is the
+  home of a change to its own task, in its `SKILL.md` or a reference it links
+  for that task. The instructions file is the home of a fact about this
+  repository. A doc is a home only when the `Loaded by:` rule counts it as
+  loaded. A new skill is a home for a task the session did, never for a
+  preference about which tool does a task. One line of reason each, so a
+  rejection is auditable rather than silent.
 - **Backlog**: a finding a machine check would enforce better than prose. It
   also holds an item that is not a check: a change this skill files as an issue
   instead of writing, such as a skill creation in a distributed plugin's
@@ -47,6 +53,21 @@ Every item lands in exactly one bucket:
   such text as a fact about the cause, or send the finding to Rejected. For
   example, write "`<task>` runs through `<repo script>`, and `<stock tool>` is
   not installed", not a list of the `<failing tests>` seen.
+- **A target later sessions load.** Each item's `Loaded by:` field names how a
+  later session reads its target, with one of the values below. A skill by name
+  only counts as loaded only for a change to its own task. For any other
+  learning, it counts as `none`. A link offered only as optional reading, such
+  as a "see also" line, does not count. Synthesis moves a learning whose target
+  nothing loads into a loaded file. A prompt-named target stays, with
+  `Loaded by: none`, and the approval question names it. This rule also picks
+  the file for a mechanical finding with no runner. The values:
+  - the instructions file at session start (`AGENTS.md`, `CLAUDE.md`, or the
+    instructions this session loaded)
+  - a skill by description, when its description matches the task where the
+    problem arose
+  - a skill by name only, when it sets `disable-model-invocation: true`
+  - a file one of those links for that task
+  - `none`
 - **Items for one skill fit together.** The texts of every item for one
   `SKILL.md` fit its 100-line body limit together, so any approved subset fits.
   Items that do not fit target a reference the skill links for that task. When
@@ -127,6 +148,7 @@ resolve through scripts/write-target.mjs and need the approval answer.
 
 Learning: <one or two sentences>
 Evidence: <file path, turn index, or source URL of the record the finding rests on>
+Loaded by: <the instructions file at session start, a skill by description, a skill by name only, a file one of those links for that task, or "none">
 Pre-image: <blob id from `git hash-object`, or "absent" for a creation>
 Proposed text:
 
