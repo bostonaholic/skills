@@ -11,8 +11,11 @@ Every item lands in exactly one bucket:
   and cites its evidence. When the prompt named targets, prefer them; a finding
   that fits none of them names the file it does fit.
 - **Rejected**: a finding true of one session or one item only: a one-off
-  mistake, a preference already recorded, a fact about a specific ticket. One
-  line of reason each, so a rejection is auditable rather than silent.
+  mistake, a preference already recorded, a fact about a specific ticket. A
+  finding that no source record shows goes here too, with the reason
+  "no source record". That includes a missing, unwired, or broken check with no
+  record of what it cost. One line of reason each, so a rejection is auditable
+  rather than silent.
 - **Backlog**: a finding a machine check would enforce better than prose.
 
 ## The Backlog criterion, applied once, here
@@ -58,7 +61,7 @@ resolve through scripts/write-target.mjs and need the approval answer.
 ### A1. <skill name or repo-relative path> (<edit | create>)
 
 Learning: <one or two sentences>
-Evidence: <file path, turn index, or source URL>
+Evidence: <file path, turn index, or source URL of the record the finding rests on>
 Pre-image: <blob id from `git hash-object`, or "absent" for a creation>
 Proposed text:
 
@@ -71,7 +74,7 @@ Proposed text:
 ### B1. <issue title>
 
 Layer: <where the check would live>
-Evidence: <file path, turn index, or source URL>
+Evidence: <file path, turn index, or source URL of the record the finding rests on>
 Title file: <run cache>/title-1.txt
 Body file: <run cache>/issue-1.md
 
