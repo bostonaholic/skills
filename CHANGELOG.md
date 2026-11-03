@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `oracle` opens its reply with a status line (`answered`, `undecided`, or `blocked`) and returns only its answer, with no preamble, search narration, or pasted output. [#171](https://github.com/bostonaholic/skills/pull/171)
+
 ## [0.79.0] - 2026-10-29
 
 ### Added
