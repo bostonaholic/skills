@@ -8,7 +8,7 @@ export const HOSTS: Record<string, { kind: "file" | "sqlite"; depth?: number; su
 /** A supported host's name, or null when this process is on neither. */
 export type HostName = "claude-code" | "codex" | "opencode";
 
-/** One normalized record: an allowlisted span the lenses may read. */
+/** One normalized record: an allowlisted span a skill may read. */
 export interface NormalizedRecord {
   /** The record's normalized side of the conversation: "user" or "assistant". */
   type: string;

@@ -2,54 +2,22 @@
 
 ## Open the run cache
 
-Create the run's cache directory first and print its absolute path:
-
-```bash
-RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/running-retros.XXXXXXXX")" \
-  || { echo "cannot create the run cache — stopping" >&2; exit 1; }
-echo "run cache: $RUN_DIR"
-```
-
-A cache that cannot be created stops the run rather than falling back to
-memory. With a prompt, write it to `<run cache>/prompt.md` now.
-
-The printed path is **this run's marker**: the host records command output
-inline in the transcript, so the path appears in this session's records and in
-no other file on disk. The transcript resolver searches for it on a host that exports no session
-id of its own.
+Open it as [session transcripts](shared/session-transcripts.md) says, with
+`running-retros` as the skill name, and print its path. With a prompt, write
+it to `<run cache>/prompt.md` now.
 
 A **run** is one invocation plus every later turn that answers its approval
 questions, named by the one run cache path this conversation printed. Later
-commands take that absolute path literally. The cache is **never deleted**, so
-the report stays auditable after the run ends.
+commands take that absolute path literally.
 
 ## Resolve this session's transcript
 
 Do this when the sources include this session: always without a prompt, and
-with one that names this session or names no source.
-
-```bash
-node "<skill-dir>/scripts/resolve-transcript.mjs" "<the printed run cache path>"
-```
-
-Substitute `<skill-dir>` with this skill's own directory. Never interpolate a
-host variable into it: `${CLAUDE_PLUGIN_ROOT}` exists on Claude Code alone, so
-a command carrying it breaks on every other host.
-
-The script writes `transcript.jsonl` into the run cache. **The lenses read only
-that normalized file.**
-
-The script reads the store of the host running this session: Claude Code,
-Codex, or OpenCode. A Conductor session resolves as whichever of those it runs.
-It identifies the session by the id the host exported, or, where the host
-exports none, by a fixed-string search for the marker. It never takes the newest
-file, guesses from the working directory, or picks among candidates. A named
-failure (exit 1, the name on the first stderr line, then `tried:` and `note:`
-lines) stops the run; report each of them.
-
-Report the script's printed counts with the sources, and any prior history the
-file does not carry: a Codex thread forked from another one leaves its earlier
-turns in the parent's file, which this run does not read.
+with one that names this session or names no source. Resolve it as
+[session transcripts](shared/session-transcripts.md) says. **The lenses read
+only the normalized `transcript.jsonl` it writes.** Report its printed counts
+and any prior history it names with the sources, and stop the run on a named
+failure, reporting each of its lines.
 
 ## Gather the other sources
 
@@ -65,13 +33,11 @@ and never widen a source past what the prompt asked.
   sources. A named failure (exit 1, the name on the first stderr line) leaves
   past sessions unread; report the name and its `note:` line, and say OpenCode's
   SQLite store is not read when the name is `unsupported-store`. Normalize each
-  `session:` path with
-  `node "<skill-dir>/scripts/resolve-transcript.mjs" "<the printed run cache path>" --file "<transcript path>"`,
-  which writes `sources/<name>.jsonl` (suffixed `-2`, `-3`, ... when a
-  different earlier source took the name; the same transcript normalized again
-  reuses its path) and prints the same counts as above. A named failure here,
-  such as `unreadable-transcript` or `unsupported-format`, does not stop the
-  run: mark that session unread in `sources.md` with the failure name.
+  `session:` path with the `--file` form in
+  [session transcripts](shared/session-transcripts.md), which writes
+  `sources/<name>.jsonl` and prints the same counts as above. A named failure
+  here does not stop the run: mark that session unread in `sources.md` with
+  the failure name.
 - **PR review comments, issues, and other tracker text**: fetch with the
   repository's authenticated `gh` (`gh api --paginate`), every call carrying
   the repository explicitly, and save the JSON response as the source file.

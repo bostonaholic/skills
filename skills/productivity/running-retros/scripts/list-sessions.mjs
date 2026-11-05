@@ -40,7 +40,7 @@ import {
   readHead,
   storeRootFor,
   transcriptsUnder,
-} from "./resolve-transcript.mjs";
+} from "../shared/scripts/resolve-transcript.mjs";
 
 // The skill file that explains each exit code.
 const DOC_PATH = fileURLToPath(new URL("../references/reading-sources.md", import.meta.url));

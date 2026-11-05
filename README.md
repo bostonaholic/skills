@@ -66,6 +66,7 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`watching-reviewed-prs`](./skills/engineering/watching-reviewed-prs/SKILL.md)                         | `/watching-reviewed-prs`             | user               | Watch a PR you reviewed and approve once feedback settles.                               |
 | [`writing-no-comments`](./skills/engineering/writing-no-comments/SKILL.md)                             | "no comments"                        | user, model        | Write code with no comments outside a short keep list.                                   |
 | [`writing-no-tests`](./skills/engineering/writing-no-tests/SKILL.md)                                   | "write tests"                        | user, model        | Write no tests. I dare you.                                                              |
+| [`writing-playbooks`](./skills/engineering/writing-playbooks/SKILL.md)                                 | "write the playbook"                 | user, model        | Turn a resolved incident session into a runnable playbook.                               |
 | [`writing-technical-design-docs`](./skills/engineering/writing-technical-design-docs/SKILL.md)         | "write a design doc"                 | user, model        | Draft a directionally correct technical design doc.                                      |
 
 ### Productivity
@@ -123,7 +124,7 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 
 ### Local files outside the working repository
 
-- Reads: Claude Code and Codex session logs (`auditing-agent-token-usage`, `running-retros`), frog friction logs across a workspace (`summarizing-friction-logs`), global instruction files (`learning-from-mistakes`), and cache sizes (`freeing-disk-space`).
+- Reads: Claude Code and Codex session logs (`auditing-agent-token-usage`, `running-retros`, `writing-playbooks`), frog friction logs across a workspace (`summarizing-friction-logs`), global instruction files (`learning-from-mistakes`), and cache sizes (`freeing-disk-space`).
 - `updating-bostonaholic-skills` updates the plugin installs and skill copies of each harness after you confirm its plan. It backs up each old copy under `${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/`.
 - `configuring-zsh` edits zsh startup files and the dotfiles repository behind them.
 - `learning-from-mistakes` adds a rule to a project or global `CLAUDE.md` or `AGENTS.md` after you approve it.
