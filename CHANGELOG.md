@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `writing-playbooks`, a skill that turns the session which resolved an alert or incident into a playbook an on-call agent can run next time, with every command checked against the session transcript. [#173](https://github.com/bostonaholic/skills/pull/173)
+
+### Changed
+
+- The session transcript resolver moves from `running-retros` into the shared scripts, with a shared rule file that `running-retros` and `writing-playbooks` both read. [#173](https://github.com/bostonaholic/skills/pull/173)
+
 ## [0.81.0] - 2026-11-05
 
 ### Changed
