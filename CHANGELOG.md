@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-11-05
+
 ### Changed
 
 - `running-retros` proposes a change only when a turn, comment, or other source record shows the problem happened; a missing hook or CI job is no longer a finding on its own. [#172](https://github.com/bostonaholic/skills/pull/172)
@@ -1039,5 +1041,7 @@
 
 [0.79.0]: https://github.com/bostonaholic/skills/compare/v0.78.0...v0.79.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.80.0...HEAD
 [0.80.0]: https://github.com/bostonaholic/skills/compare/v0.79.0...v0.80.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.81.0...HEAD
+[0.81.0]: https://github.com/bostonaholic/skills/compare/v0.80.0...v0.81.0
