@@ -18,6 +18,7 @@
  *
  *   {
  *     "armHead": "<sha>" | null,         // null: lost, the baseline is missing
+ *     "armReview": "<review id>" | null, // standing review at arm; null: none or lost
  *     "autoMergeConfirmed": false,       // the user confirmed an auto-merge run
  *     "trackedItems": ["<node id>"],     // PR-level items the classification tracked
  *     "armCounts": { "threads": 0, "reviewSummaries": 0,
@@ -52,6 +53,7 @@
  *     "triggers": [ { id, shape, kind, key, resolvedKey? } ],
  *     "thirdParty": [ { id, logins } ],   // unresolved threads only
  *     "vanished": [ "<id>" ],             // trackedItems no longer found
+ *     "newApproval": { id, url } | null,
  *     "approvalReady": bool,
  *     "safety": { headDrift, autoMergeUnconfirmed, baselineMissing },
  *     "snapshot": "<one line>"
@@ -68,9 +70,14 @@
  * earliest non-viewer author; a deleted author prints as `(deleted)`.
  * `approvalReady` holds when the PR is OPEN, the tracked set is non-empty,
  * the gate and triggers are empty, and every item's current verdict is
- * `addressed` or `answered`. `headDrift` is true when the head differs from
- * a non-null `armHead`; `autoMergeUnconfirmed` when auto-merge is on and
- * `autoMergeConfirmed` is false; `baselineMissing` when `armHead` is null.
+ * `addressed` or `answered`. The viewer's standing review is their latest
+ * review by `submittedAt` that is not PENDING or COMMENTED, the later one in
+ * GitHub order on a tie; a counted viewer review with no parseable
+ * `submittedAt` exits 1. `newApproval` is the standing review when it is
+ * APPROVED and its `id` is not `armReview`. `headDrift` is true when the
+ * head differs from a non-null `armHead`; `autoMergeUnconfirmed` when
+ * auto-merge is on and `autoMergeConfirmed` is false; `baselineMissing` when
+ * `armHead` is null.
  *
  * Exit codes:
  *
@@ -202,6 +209,22 @@ export function trackedPrLevel(feedback, state) {
   };
 }
 
+export function standingReview(reviews, viewer) {
+  let standing = null;
+  let standingTime = -Infinity;
+  for (const node of reviews) {
+    if (loginOf(node) !== viewer) continue;
+    if (node.state === "PENDING" || node.state === "COMMENTED") continue;
+    const time = typeof node.submittedAt === "string" ? Date.parse(node.submittedAt) : NaN;
+    if (Number.isNaN(time)) throw new Failure(EXIT_FAILURE, "a viewer review has no submittedAt");
+    if (time >= standingTime) {
+      standing = node;
+      standingTime = time;
+    }
+  }
+  return standing;
+}
+
 export function evaluatePoll(feedback, state, headCommittedAt) {
   const viewer = feedback.viewer.login;
   const head = feedback.pr.headRefOid;
@@ -242,6 +265,11 @@ export function evaluatePoll(feedback, state, headCommittedAt) {
     head,
     autoMerge: feedback.pr.autoMergeEnabled,
   };
+  const standing = standingReview(feedback.reviewSummaries, viewer);
+  const newApproval =
+    standing?.state === "APPROVED" && standing.id !== state.armReview
+      ? { id: standing.id, url: standing.url }
+      : null;
   const approvalReady =
     pr.state === "OPEN" &&
     items.length > 0 &&
@@ -273,6 +301,7 @@ export function evaluatePoll(feedback, state, headCommittedAt) {
       .filter((result) => result.thirdLogins?.length > 0)
       .map((result) => ({ id: result.item.id, logins: result.thirdLogins })),
     vanished: state.trackedItems.filter((id) => !found.has(id)),
+    newApproval,
     approvalReady,
     safety,
     snapshot,

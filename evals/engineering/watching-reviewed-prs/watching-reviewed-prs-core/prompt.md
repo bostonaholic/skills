@@ -21,7 +21,7 @@ append_system_prompt: |
     "viewer": "acme-bot",
     "refusal": "viewer-is-author",
     "pendingReview": false,
-    "viewerLatestReview": "COMMENTED",
+    "standingReview": null,
     "threads": {
       "tracked": 1,
       "resolved": 0

@@ -19,7 +19,8 @@
  *     "viewer": "<login>",
  *     "refusal": null | "merged" | "closed" | "viewer-is-author",
  *     "pendingReview": true when the viewer holds an unsubmitted review,
- *     "viewerLatestReview": state of the viewer's latest submitted review, or null,
+ *     "standingReview": { id, state } of the viewer's standing review (the
+ *                       rule in `poll.mjs`), or null,
  *     "threads": { tracked, resolved },
  *     "prLevel": [ { id, shape, url, at, body } ]
  *   }
@@ -52,6 +53,7 @@ import {
   runCli,
   runGh,
 } from "./github.mjs";
+import { standingReview } from "./poll.mjs";
 
 const SCRIPT = "arm.mjs";
 // The skill file that explains each exit code.
@@ -86,6 +88,7 @@ export function summarizeArm(view, feedback) {
   const submitted = viewerReviews.filter((review) => review.state !== "PENDING");
   const threads = feedback.reviewThreads.filter((thread) => isTrackedThread(thread, viewer));
 
+  const standing = standingReview(feedback.reviewSummaries, viewer);
   const prLevel =
     refusal !== null
       ? []
@@ -115,7 +118,7 @@ export function summarizeArm(view, feedback) {
     viewer,
     refusal,
     pendingReview: viewerReviews.some((review) => review.state === "PENDING"),
-    viewerLatestReview: submitted.at(-1)?.state ?? null,
+    standingReview: standing === null ? null : { id: standing.id, state: standing.state },
     threads: {
       tracked: threads.length,
       resolved: threads.filter((thread) => thread.isResolved).length,

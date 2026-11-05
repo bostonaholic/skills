@@ -8,5 +8,8 @@ transcript, never a fresh read:
 - **Tracked PR-level list:** never reclassify or guess. If lost, stop as
   `Tracked list lost`.
 - Otherwise, re-create the file with every lost field at its lost value:
-  `armHead`, `armCounts`, and `resolvedBySkill` null, `autoMergeConfirmed`
-  false, and no verdicts. Never take `armHead` from the current head.
+  `armHead`, `armReview`, `armCounts`, and `resolvedBySkill` null,
+  `autoMergeConfirmed` false, and no verdicts. Never take `armHead` from the
+  current head or `armReview` from a fresh read. When `armReview` is re-created
+  as null, tell the user that any standing approval of theirs, one from before
+  arm included, now ends the watch at the next poll.
