@@ -21,6 +21,7 @@ import test from "node:test";
 import { isValidRepoPath } from "../skills/productivity/running-retros/scripts/write-target.mjs";
 
 const SCRIPTS = resolve("skills/productivity/running-retros/scripts");
+const SHARED_SCRIPTS = resolve("shared/scripts");
 
 function scratchDir(t) {
   const root = mkdtempSync(join(tmpdir(), "retro-resources-"));
@@ -29,7 +30,8 @@ function scratchDir(t) {
 }
 
 function run(script, args) {
-  return spawnSync(process.execPath, [join(SCRIPTS, script), ...args], { encoding: "utf8" });
+  const dir = script === "resolve-transcript.mjs" ? SHARED_SCRIPTS : SCRIPTS;
+  return spawnSync(process.execPath, [join(dir, script), ...args], { encoding: "utf8" });
 }
 
 const CLAUDE_CODE_LINES = [

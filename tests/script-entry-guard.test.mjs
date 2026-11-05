@@ -34,11 +34,25 @@ function importModule(t, path) {
 }
 
 test("resolve-transcript.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "resolve-transcript.mjs"),
-  );
+  const run = runScript(join(symlinkedDir(t, "shared/scripts"), "resolve-transcript.mjs"));
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^usage: resolve-transcript\.mjs </);
+});
+
+test("check-playbook.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/writing-playbooks/scripts"), "check-playbook.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^check-playbook\.mjs: usage: check-playbook\.mjs /);
+});
+
+test("importing check-playbook.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/writing-playbooks/scripts"), "check-playbook.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
 test("write-target.mjs run through a symlinked directory reaches its usage error", (t) => {
@@ -74,10 +88,7 @@ test("splice.mjs run through a symlinked directory reaches its usage error", (t)
 });
 
 test("importing resolve-transcript.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "resolve-transcript.mjs"),
-  );
+  const run = importModule(t, join(symlinkedDir(t, "shared/scripts"), "resolve-transcript.mjs"));
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Playbooks"
+  short_description: "Turn a resolved incident session into a runnable playbook"
+  default_prompt: "Use $writing-playbooks to turn this session's alert or incident resolution into a playbook an on-call agent can run next time."

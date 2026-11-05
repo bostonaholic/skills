@@ -1,0 +1,7 @@
+---
+type: llm
+---
+
+PASS if the reply serves the request by following `writing-playbooks`'s procedure: it reads the normalized transcript at `.tmp/writing-playbooks.Q7mZ2kLp/transcript.jsonl` rather than answering from memory (SKILL.md:15-18); it produces a playbook, or the plan for one, whose Check and Fix commands are commands the transcript shows the session ran, such as the `kubectl -n billing rollout undo deploy/ledger-service` rollback, each cited by transcript line (SKILL.md:19-22); its Verify section names a signal read from monitoring, such as the `rabbitmq_queue_messages` queue depth, rather than the rollback command's output (SKILL.md:31-35); and it reports the playbook path, the run cache path, and the steps left for a person (SKILL.md:70-74). FAIL if it answers without that procedure, invents a check or fix the transcript does not show, or refuses or stops because a tool is unavailable, except for the file writes (`timeline.md` and the playbook file) and the `check-playbook.mjs` run, which are graded as a plan.
+Grade the plan for the file writes (`timeline.md` and the playbook file) and the `check-playbook.mjs` run. A reply that reports them as not done passes when it gives the plan or the content. FAIL if the reply claims a file write or the check ran.
+FAIL if the reply stops or refuses because the shell, `node`, or `git` is unavailable, except for the file writes (`timeline.md` and the playbook file) and the `check-playbook.mjs` run, which are graded as a plan.

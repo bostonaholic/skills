@@ -1,11 +1,13 @@
 #!/usr/bin/env node
+// Canonical file: shared/scripts/resolve-transcript.mjs at the repository root. Edit it there,
+// then run npm run sync-shared.
 
 /**
  * Resolve the invoking session's transcript on whichever host is running, and
  * normalize it into one complete record stream.
  *
- *     node "<skill-dir>/scripts/resolve-transcript.mjs" <run-cache-dir> [store-root]
- *     node "<skill-dir>/scripts/resolve-transcript.mjs" <run-cache-dir> --file <transcript.jsonl>
+ *     node "<skill-dir>/shared/scripts/resolve-transcript.mjs" <run-cache-dir> [store-root]
+ *     node "<skill-dir>/shared/scripts/resolve-transcript.mjs" <run-cache-dir> --file <transcript.jsonl>
  *
  * Output: the session form writes <run-cache-dir>/transcript.jsonl; the --file
  * form writes <run-cache-dir>/sources/<name>.jsonl, suffixed -2, -3, ... when
@@ -19,9 +21,8 @@
  *
  * THREE HOSTS, ONE CONTRACT. Claude Code and Codex CLI each keep their own
  * session store in their own record format; OpenCode keeps its sessions in a
- * SQLite database. Everything downstream — the lenses, the plan, the report —
- * reads the single normalized shape this file emits, so a host is added here
- * and nowhere else.
+ * SQLite database. Every skill that reads a session reads the single
+ * normalized shape this file emits, so a host is added here and nowhere else.
  *
  * CONDUCTOR IS NOT A HOST HERE. Conductor runs Claude Code, Codex, Cursor
  * Agent, or OpenCode inside a git worktree; the backend agent writes the
@@ -65,8 +66,8 @@ import { homedir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The skill file that explains each failure.
-const DOC_PATH = fileURLToPath(new URL("../references/reading-sources.md", import.meta.url));
+// The shared rule file that explains each failure.
+const DOC_PATH = fileURLToPath(new URL("../session-transcripts.md", import.meta.url));
 
 /**
  * The hosts whose stores this file can read, and the shape of each store.
@@ -979,7 +980,7 @@ function writeNewSource(dir, stem, text) {
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const runDir = process.argv[2] ?? "";
   // `--file <path>` normalizes a transcript the caller already named, such as
-  // a past session a retro prompt asked for, instead of resolving this one.
+  // a past session the prompt asked for, instead of resolving this one.
   const namedFile = process.argv[3] === "--file" ? (process.argv[4] ?? "") : null;
   const storeOverride = namedFile === null ? (process.argv[3] ?? "") : "";
 
@@ -993,7 +994,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   const FAILURE_NOTES = {
     "unsupported-host":
-      "retro reads Claude Code, Codex, and OpenCode session stores; Conductor is supported through whichever of those it runs, and its Cursor Agent backend is not",
+      "this script reads Claude Code, Codex, and OpenCode session stores; Conductor is supported through whichever of those it runs, and its Cursor Agent backend is not",
     "ambiguous-host":
       "two agents' session variables are set in one process and the marker settled neither transcript",
     "ambiguous-session":
