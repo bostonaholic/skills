@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.83.0] - 2026-11-05
+
 ### Changed
 
 - `watching-reviewed-prs` ends the watch as `Approved by hand` at the first poll that sees an approval you gave after arming, and writes nothing after that poll. [#174](https://github.com/bostonaholic/skills/pull/174)
@@ -1059,5 +1061,7 @@
 
 [0.81.0]: https://github.com/bostonaholic/skills/compare/v0.80.0...v0.81.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.82.0...HEAD
 [0.82.0]: https://github.com/bostonaholic/skills/compare/v0.81.0...v0.82.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.83.0...HEAD
+[0.83.0]: https://github.com/bostonaholic/skills/compare/v0.82.0...v0.83.0
