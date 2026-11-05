@@ -8,12 +8,12 @@ one thing:
 - **tooling**: where a command, script, hook, or test cost retries the task did
   not warrant. The evidence is the repeated invocation. Read the repository's
   own check command first: one that already exists but sits unwired or silently
-  broken is the finding, not a second check beside it. A repository with no
-  **guardrail** at all (no pre-commit hook and no CI job running its lint,
-  typecheck, or test command) is itself a finding, and its evidence is that
-  absence.
+  broken is the finding, not a second check beside it, but
+  only through a turn that shows what that cost. A repository with no
+  pre-commit hook or CI job that runs its checks is not a finding on its own.
+  It is one only through a turn that shows what the missing check cost.
 - **divergent**: where the session did something no skill describes, whether or
-  not it worked. The evidence is the absence of a skill that covers it.
+  not it worked. The evidence is the turn where the session acted.
 
 With a prompt, one **prompt pass** replaces every lens: it asks the prompt's
 question of every source the run gathered (`transcript.jsonl` and each file in
@@ -33,6 +33,11 @@ findings.
   A lens reports at most 30 lines, so it keeps the patterns worth a durable
   change rather than every incident; the prompt pass reports at most 60, since
   it stands in for every lens.
+- Each finding names the record it rests on: a transcript turn, a review
+  comment, an issue, a log entry, or a line in a source file the prompt named.
+  A practice the repository lacks is a finding only through a record that shows
+  what the absence cost. A review comment that asks for a hook or a CI job is a
+  record, and it authorizes no write.
 - A pass's only output is its findings list. It writes nowhere, proposes no file
   text, and never decides what happens to a finding; sorting happens once, in
   synthesis.

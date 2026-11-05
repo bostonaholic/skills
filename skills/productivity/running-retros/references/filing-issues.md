@@ -27,10 +27,6 @@ for the class. Each question presents the repository (`owner/name`) and the
 exact title and body it would create. Approving one issue never creates
 another, and approving the file-write class never creates any.
 
-Each body paraphrases: it carries the learning, the file path, turn index, or
-source URL behind it, and the layer the check would live at. It never quotes a
-source line into a public tracker.
-
 ## File an approved issue
 
 Run `bash "<skill-dir>/scripts/file-issue.sh" "<run cache>" <n>`. On exit 0,

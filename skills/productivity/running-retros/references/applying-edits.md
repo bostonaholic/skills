@@ -3,7 +3,7 @@
 ## Contents
 
 - Read the plan this conversation printed
-- Per item: the precondition that makes the undo true
+- Per target: the precondition that makes the undo true
 - Where a write may land
 - How a skill edit is authored
 
@@ -17,23 +17,34 @@ stop and ask for the absolute plan path rather than guessing at one.
 Apply only the items the approval answer named. Nothing is written for an item
 the answer left out.
 
-## Per item: the precondition that makes the undo true
+## Per target: the precondition that makes the undo true
 
 One approval question covers the whole file-write class only because of this
 precondition: every write is a new file (undone by deleting it) or an edit to a
 tracked, clean file (undone by `git restore -- <path>`), so neither undo can
 reach the user's own work. Never skip it.
 
-Before each write, run
+Group the approved items by the target line `write-target.mjs` printed. For a
+skill name, the item's `edit | create` mark picks the `edit target` or
+`create target` line. The items for one target share one pre-image. Per
+target, run this once, with the plan's pre-image (a blob id, or `absent` for a
+creation):
 `bash "<skill-dir>/scripts/check-edit-target.sh" "$(git rev-parse --show-toplevel)" "<target>" "<pre-image>"`
-with the target `write-target.mjs` printed and the plan's pre-image (a blob id,
-or `absent` for a creation). Write only on `apply` (exit 0). On
-`skip: <reason>` (exit 3), skip that item and report the reason; this skill
-overwrites nothing it did not create. Exit 1 is an error: skip the item and
-report the stderr.
 
-After each write, re-read the file and confirm it carries the approved text.
-Report any item that does not as skipped, with what the file holds instead.
+- **On `apply` (exit 0)**, one write inserts each approved item's text, in plan
+  order. A new path is created from its approved creation texts, in plan
+  order. A skill creation is one item whose text is the whole `SKILL.md`.
+- **On `skip: <reason>` (exit 3)**, every item for that target skips, and the
+  report names each item with the reason. This skill overwrites nothing it did
+  not create.
+- **Exit 1 is an error.** Every item for that target skips, and the report
+  names each item with the stderr.
+
+After the write, re-read the file for each approved item's text. Report each
+item whose text it lacks as skipped, with what the file holds instead.
+
+The report gives one undo per target (`git restore -- <path>`, or delete the
+new file) and lists the items that undo reverts.
 
 ## Where a write may land
 
