@@ -35,8 +35,8 @@ correct the list by editing or deleting a comment and re-arming.
 - Nothing is tracked (`threads.tracked` is zero and no item classified as
   feedback): refuse. When every PR-level item was chatter, say so and list
   them. When `pendingReview` is true, hint "submit your pending review first".
-- A `viewerLatestReview` of `APPROVED` with new tracked feedback arms; say a
-  fresh approval will be cast. `CHANGES_REQUESTED` arms, noting the approval
+- A `standingReview.state` of `APPROVED` with new tracked feedback arms; say
+  a fresh approval will be cast. `CHANGES_REQUESTED` arms, noting the approval
   will supersede it.
 
 ## Arm-report warnings
@@ -48,14 +48,16 @@ correct the list by editing or deleting a comment and re-arming.
   approval-triggered workflow can still merge on approval.
 - **PR-level items tracked.** Say the watch can run to the soft cap on an item
   no push addressed, which is expected; that an item the author answers only
-  in prose always rides to the soft cap, so the user may approve by hand; and
-  that settlement is judged against the branch, not read off a flag.
+  in prose always rides to the soft cap, so the user may approve by hand, and
+  a by-hand approval ends the watch at the next poll; and that settlement is
+  judged against the branch, not read off a flag.
 - **Draft** (`pr.isDraft`). GitHub permits reviews on drafts; watch normally
   and name the state.
 
 ## Write the state file
 
 Write the state file `scripts/poll.mjs` documents: `armHead` is `pr.head`,
+`armReview` is `standingReview.id` or null,
 `autoMergeConfirmed` is whether the user confirmed an auto-merge run,
 `trackedItems` holds the ids classified as feedback, `armCounts` holds
 `threads.tracked` and the tracked count of each PR-level shape,

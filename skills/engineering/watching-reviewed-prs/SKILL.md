@@ -62,8 +62,11 @@ in the schema the header of `scripts/poll.mjs` documents.
 - Run `poll.mjs "$PR_URL" --state <state-file>` and save its stdout to a file
   for the approval. Exit 1 is a poll failure, as the watch loop counts them;
   any other nonzero exit stops, reporting stderr.
-- `pr.state` MERGED or CLOSED stops as `Merge or close`. All tracked counts at
-  zero mid-watch stops as `Empty tracked set`. Name each `vanished` id.
+- On every poll (cycle 0, each loop cycle, and each re-poll in approve,
+  including the one after a granted confirmation), before any re-review or
+  write: `pr.state` MERGED or CLOSED stops as `Merge or close`, then a non-null
+  `newApproval` stops as `Approved by hand`, then all tracked counts at zero
+  mid-watch stops as `Empty tracked set`. Name each `vanished` id.
 - Order matters:
   1. Re-review every entry of `triggers`, and record each verdict.
   2. Run the third-party and `Dispute stands` checks. A non-empty `thirdParty`
@@ -94,10 +97,10 @@ posts one rebuttal and leaves the item open.
 ## Stops
 
 - Beyond the watch loop's own stops, report exactly one of: `Approval cast`;
-  `Merge or close` (say "merged without your approval" when so); `Empty tracked
-  set`; `Confirmation declined`; `Confirmation churn`; `Gate reopened`;
-  `Third-party participant`; `Dispute stands`; `Approval failed`; `Tracked list
-  lost`.
+  `Merge or close` (say "merged without your approval" when so); `Approved by
+  hand`; `Empty tracked set`; `Confirmation declined`; `Confirmation churn`;
+  `Gate reopened`; `Third-party participant`; `Dispute stands`; `Approval
+  failed`; `Tracked list lost`.
 - Read [stop reports](references/stops.md) for what to report at the soft cap and
   at every stop.
 - After a compaction, read [compaction](references/compaction.md).

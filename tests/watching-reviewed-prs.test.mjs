@@ -1,8 +1,8 @@
 // Fails when watching-reviewed-prs's scripts misjudge the tracked set, the gate, a re-review
-// trigger, the third-party check, approval readiness, or a merge-safety check; let another
-// author's body or any thread body reach the arm output; read a body during a poll; render an
-// approval body that breaks a rendering rule; or report an approval its read cannot confirm at
-// the head.
+// trigger, the third-party check, approval readiness, or a merge-safety check; miss or misread
+// the viewer's standing approval; let another author's body or any thread body reach the arm
+// output; read a body during a poll; render an approval body that breaks a rendering rule; or
+// report an approval its read cannot confirm at the head.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -12,6 +12,7 @@ import test from "node:test";
 import { summarizeArm } from "../skills/engineering/watching-reviewed-prs/scripts/arm.mjs";
 import {
   evaluatePoll,
+  standingReview,
   validateState,
 } from "../skills/engineering/watching-reviewed-prs/scripts/poll.mjs";
 import { renderApproval } from "../skills/engineering/watching-reviewed-prs/scripts/render-approval.mjs";
@@ -97,6 +98,7 @@ function feedback({
 function state(extra = {}) {
   return {
     armHead: ARM_HEAD,
+    armReview: null,
     autoMergeConfirmed: false,
     trackedItems: [],
     armCounts: { threads: 0, reviewSummaries: 0, conversationComments: 0 },
@@ -105,6 +107,54 @@ function state(extra = {}) {
     ...extra,
   };
 }
+
+// ---------- standingReview ----------
+
+test("standingReview picks the viewer's latest counted review", async (t) => {
+  const approval = summary("R1", "me", { state: "APPROVED", submittedAt: BEFORE });
+  const laterComment = summary("R2", "me", { state: "COMMENTED", submittedAt: AFTER });
+  const laterPending = summary("R3", "me", { state: "PENDING", submittedAt: AFTER });
+  const laterChanges = summary("R4", "me", { state: "CHANGES_REQUESTED", submittedAt: AFTER });
+  const dismissed = summary("R5", "me", { state: "DISMISSED", submittedAt: BEFORE });
+  const tiedFirst = summary("R6", "me", { state: "APPROVED", submittedAt: AFTER });
+  const tiedSecond = summary("R7", "me", { state: "CHANGES_REQUESTED", submittedAt: AFTER });
+  const cases = [
+    ["no viewer reviews", [], null],
+    [
+      "only COMMENTED viewer reviews",
+      [summary("R8", "me", { submittedAt: BEFORE }), summary("R9", "me", { submittedAt: AFTER })],
+      null,
+    ],
+    ["APPROVED, then a later COMMENTED", [approval, laterComment], approval],
+    ["APPROVED, then a later PENDING", [approval, laterPending], approval],
+    ["APPROVED, then a later CHANGES_REQUESTED", [approval, laterChanges], laterChanges],
+    ["a DISMISSED node", [dismissed], dismissed],
+    ["two counted reviews with equal submittedAt", [tiedFirst, tiedSecond], tiedSecond],
+    [
+      "another login's APPROVED review and a null-author node",
+      [
+        summary("R10", "lee", { state: "APPROVED", submittedAt: AFTER }),
+        summary("R11", null, { state: "APPROVED", submittedAt: AFTER }),
+      ],
+      null,
+    ],
+  ];
+  for (const [name, reviews, expected] of cases) {
+    await t.test(name, () => {
+      assert.equal(standingReview(reviews, "me"), expected);
+    });
+  }
+  await t.test("a counted viewer review with no parseable submittedAt", () => {
+    assert.throws(
+      () =>
+        standingReview(
+          [summary("R12", "me", { state: "APPROVED", submittedAt: "not a date" })],
+          "me",
+        ),
+      (error) => error.exitCode === 1,
+    );
+  });
+});
 
 // ---------- evaluatePoll ----------
 
@@ -266,7 +316,31 @@ test("the third-party check names every third login on unresolved threads only",
   );
 });
 
-test("approval readiness needs an open PR, a non-empty set, an empty gate, and passing verdicts", async (t) => {
+test("evaluatePoll reports a standing approval as newApproval unless arm recorded it", async (t) => {
+  const cases = [
+    ["a standing approval arm did not record", "APPROVED", null, { id: "R1", url: `${PR_URL}#R1` }],
+    ["the approval arm recorded", "APPROVED", "R1", null],
+    [
+      "a standing approval after a different arm review",
+      "APPROVED",
+      "R0",
+      { id: "R1", url: `${PR_URL}#R1` },
+    ],
+    ["a standing CHANGES_REQUESTED review", "CHANGES_REQUESTED", null, null],
+  ];
+  for (const [name, reviewState, armReview, expected] of cases) {
+    await t.test(name, () => {
+      const poll = evaluatePoll(
+        feedback({ summaries: [summary("R1", "me", { state: reviewState })] }),
+        state({ armReview }),
+        null,
+      );
+      assert.deepEqual(poll.newApproval, expected);
+    });
+  }
+});
+
+test("approval readiness needs an open PR, a non-empty set, an empty gate, no new viewer approval, and passing verdicts", async (t) => {
   const ready = {
     threads: [thread("T1", [comment("C1", "me"), comment("C2", "lee")], true)],
     summaries: [summary("S1", "me")],
@@ -294,6 +368,13 @@ test("approval readiness needs an open PR, a non-empty set, an empty gate, and p
     ],
     ["a merged PR", ready, verdicts, "MERGED", false],
     ["an empty tracked set", {}, {}, "OPEN", false],
+    [
+      "a new viewer approval",
+      { ...ready, summaries: [...ready.summaries, summary("R1", "me", { state: "APPROVED" })] },
+      verdicts,
+      "OPEN",
+      false,
+    ],
   ];
   for (const [name, shape, recorded, prState, expected] of cases) {
     await t.test(name, () => {
@@ -334,18 +415,36 @@ test("the safety checks flag head drift, unconfirmed auto-merge, and a missing b
 });
 
 test("validateState names the first malformed field", async (t) => {
-  const cases = {
-    "not an object": [],
-    armHead: state({ armHead: "abc" }),
-    autoMergeConfirmed: state({ autoMergeConfirmed: "no" }),
-    trackedItems: state({ trackedItems: [1] }),
-    armCounts: state({ armCounts: { threads: -1, reviewSummaries: 0, conversationComments: 0 } }),
-    resolvedBySkill: state({ resolvedBySkill: "T1" }),
-    verdicts: state({ verdicts: [] }),
-    "verdicts.T1": state({ verdicts: { T1: { key: "k", verdict: "fine" } } }),
-  };
-  for (const [field, value] of Object.entries(cases)) {
-    await t.test(field, () => {
+  const cases = [
+    ["not an object", "not an object", []],
+    ["armHead", "armHead", state({ armHead: "abc" })],
+    [
+      "armReview missing",
+      "armReview",
+      {
+        armHead: ARM_HEAD,
+        autoMergeConfirmed: false,
+        trackedItems: [],
+        armCounts: { threads: 0, reviewSummaries: 0, conversationComments: 0 },
+        resolvedBySkill: [],
+        verdicts: {},
+      },
+    ],
+    ["armReview a number", "armReview", state({ armReview: 7 })],
+    ["armReview empty", "armReview", state({ armReview: "" })],
+    ["autoMergeConfirmed", "autoMergeConfirmed", state({ autoMergeConfirmed: "no" })],
+    ["trackedItems", "trackedItems", state({ trackedItems: [1] })],
+    [
+      "armCounts",
+      "armCounts",
+      state({ armCounts: { threads: -1, reviewSummaries: 0, conversationComments: 0 } }),
+    ],
+    ["resolvedBySkill", "resolvedBySkill", state({ resolvedBySkill: "T1" })],
+    ["verdicts", "verdicts", state({ verdicts: [] })],
+    ["verdicts.T1", "verdicts.T1", state({ verdicts: { T1: { key: "k", verdict: "fine" } } })],
+  ];
+  for (const [name, field, value] of cases) {
+    await t.test(name, () => {
       assert.throws(
         () => validateState(value),
         (error) => error.exitCode === 2 && error.message.endsWith(field),
@@ -356,6 +455,8 @@ test("validateState names the first malformed field", async (t) => {
     validateState(state({ armHead: null, armCounts: null, resolvedBySkill: null })).armHead,
     null,
   );
+  assert.equal(validateState(state()).armReview, null);
+  assert.equal(validateState(state({ armReview: "R1" })).armReview, "R1");
 });
 
 // ---------- summarizeArm ----------
@@ -369,6 +470,7 @@ test("arm prints only the viewer's PR-level bodies and the arm-time facts", () =
         thread("T2", [comment("C2", "me")]),
       ],
       summaries: [
+        summary("S5", "me", { state: "APPROVED" }),
         summary("S1", "me", { body: "Please add a test." }),
         summary("S2", "me", { body: "  " }),
         summary("S3", "lee", { body: BODY_SENTINEL }),
@@ -392,7 +494,7 @@ test("arm prints only the viewer's PR-level bodies and the arm-time facts", () =
   });
   assert.equal(summaryOut.refusal, null);
   assert.equal(summaryOut.pendingReview, true);
-  assert.equal(summaryOut.viewerLatestReview, "COMMENTED");
+  assert.deepEqual(summaryOut.standingReview, { id: "S5", state: "APPROVED" });
   assert.deepEqual(summaryOut.threads, { tracked: 2, resolved: 1 });
   assert.deepEqual(
     summaryOut.prLevel.map((item) => [item.id, item.shape, item.at, item.body]),
