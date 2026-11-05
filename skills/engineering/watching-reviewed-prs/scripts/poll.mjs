@@ -121,6 +121,8 @@ export function validateState(state) {
   };
   if (state === null || typeof state !== "object" || Array.isArray(state)) fault("not an object");
   if (state.armHead !== null && !SHA_PATTERN.test(state.armHead ?? "")) fault("armHead");
+  if (state.armReview !== null && (typeof state.armReview !== "string" || state.armReview === ""))
+    fault("armReview");
   if (typeof state.autoMergeConfirmed !== "boolean") fault("autoMergeConfirmed");
   if (!isStringArray(state.trackedItems)) fault("trackedItems");
   if (

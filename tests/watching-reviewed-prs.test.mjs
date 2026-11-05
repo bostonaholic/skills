@@ -415,18 +415,36 @@ test("the safety checks flag head drift, unconfirmed auto-merge, and a missing b
 });
 
 test("validateState names the first malformed field", async (t) => {
-  const cases = {
-    "not an object": [],
-    armHead: state({ armHead: "abc" }),
-    autoMergeConfirmed: state({ autoMergeConfirmed: "no" }),
-    trackedItems: state({ trackedItems: [1] }),
-    armCounts: state({ armCounts: { threads: -1, reviewSummaries: 0, conversationComments: 0 } }),
-    resolvedBySkill: state({ resolvedBySkill: "T1" }),
-    verdicts: state({ verdicts: [] }),
-    "verdicts.T1": state({ verdicts: { T1: { key: "k", verdict: "fine" } } }),
-  };
-  for (const [field, value] of Object.entries(cases)) {
-    await t.test(field, () => {
+  const cases = [
+    ["not an object", "not an object", []],
+    ["armHead", "armHead", state({ armHead: "abc" })],
+    [
+      "armReview missing",
+      "armReview",
+      {
+        armHead: ARM_HEAD,
+        autoMergeConfirmed: false,
+        trackedItems: [],
+        armCounts: { threads: 0, reviewSummaries: 0, conversationComments: 0 },
+        resolvedBySkill: [],
+        verdicts: {},
+      },
+    ],
+    ["armReview a number", "armReview", state({ armReview: 7 })],
+    ["armReview empty", "armReview", state({ armReview: "" })],
+    ["autoMergeConfirmed", "autoMergeConfirmed", state({ autoMergeConfirmed: "no" })],
+    ["trackedItems", "trackedItems", state({ trackedItems: [1] })],
+    [
+      "armCounts",
+      "armCounts",
+      state({ armCounts: { threads: -1, reviewSummaries: 0, conversationComments: 0 } }),
+    ],
+    ["resolvedBySkill", "resolvedBySkill", state({ resolvedBySkill: "T1" })],
+    ["verdicts", "verdicts", state({ verdicts: [] })],
+    ["verdicts.T1", "verdicts.T1", state({ verdicts: { T1: { key: "k", verdict: "fine" } } })],
+  ];
+  for (const [name, field, value] of cases) {
+    await t.test(name, () => {
       assert.throws(
         () => validateState(value),
         (error) => error.exitCode === 2 && error.message.endsWith(field),
@@ -437,6 +455,8 @@ test("validateState names the first malformed field", async (t) => {
     validateState(state({ armHead: null, armCounts: null, resolvedBySkill: null })).armHead,
     null,
   );
+  assert.equal(validateState(state()).armReview, null);
+  assert.equal(validateState(state({ armReview: "R1" })).armReview, "R1");
 });
 
 // ---------- summarizeArm ----------
