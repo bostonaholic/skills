@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-11-05
+
 ### Added
 
 - Add `writing-playbooks`, a skill that turns the session which resolved an alert or incident into a playbook an on-call agent can run next time, with every command checked against the session transcript. [#173](https://github.com/bostonaholic/skills/pull/173)
@@ -1051,5 +1053,7 @@
 
 [0.80.0]: https://github.com/bostonaholic/skills/compare/v0.79.0...v0.80.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.81.0...HEAD
 [0.81.0]: https://github.com/bostonaholic/skills/compare/v0.80.0...v0.81.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.82.0...HEAD
+[0.82.0]: https://github.com/bostonaholic/skills/compare/v0.81.0...v0.82.0
