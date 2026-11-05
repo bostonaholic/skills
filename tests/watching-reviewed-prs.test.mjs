@@ -340,7 +340,7 @@ test("evaluatePoll reports a standing approval as newApproval unless arm recorde
   }
 });
 
-test("approval readiness needs an open PR, a non-empty set, an empty gate, and passing verdicts", async (t) => {
+test("approval readiness needs an open PR, a non-empty set, an empty gate, no new viewer approval, and passing verdicts", async (t) => {
   const ready = {
     threads: [thread("T1", [comment("C1", "me"), comment("C2", "lee")], true)],
     summaries: [summary("S1", "me")],
@@ -368,6 +368,13 @@ test("approval readiness needs an open PR, a non-empty set, an empty gate, and p
     ],
     ["a merged PR", ready, verdicts, "MERGED", false],
     ["an empty tracked set", {}, {}, "OPEN", false],
+    [
+      "a new viewer approval",
+      { ...ready, summaries: [...ready.summaries, summary("R1", "me", { state: "APPROVED" })] },
+      verdicts,
+      "OPEN",
+      false,
+    ],
   ];
   for (const [name, shape, recorded, prState, expected] of cases) {
     await t.test(name, () => {

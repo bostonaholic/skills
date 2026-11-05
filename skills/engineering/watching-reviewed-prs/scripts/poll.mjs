@@ -68,13 +68,13 @@
  * with no new reply. `viewerReplied` is true when a viewer comment sits below
  * the thread's first. A third login is neither the viewer nor the thread's
  * earliest non-viewer author; a deleted author prints as `(deleted)`.
- * `approvalReady` holds when the PR is OPEN, the tracked set is non-empty,
- * the gate and triggers are empty, and every item's current verdict is
- * `addressed` or `answered`. The viewer's standing review is their latest
- * review by `submittedAt` that is not PENDING or COMMENTED, the later one in
- * GitHub order on a tie; a counted viewer review with no parseable
- * `submittedAt` exits 1. `newApproval` is the standing review when it is
- * APPROVED and its `id` is not `armReview`. `headDrift` is true when the
+ * `approvalReady` holds when the PR is OPEN, there is no `newApproval`, the
+ * tracked set is non-empty, the gate and triggers are empty, and every item's
+ * current verdict is `addressed` or `answered`. The viewer's standing review
+ * is their latest review by `submittedAt` that is not PENDING or COMMENTED,
+ * the later one in GitHub order on a tie; a counted viewer review with no
+ * parseable `submittedAt` exits 1. `newApproval` is the standing review when
+ * it is APPROVED and its `id` is not `armReview`. `headDrift` is true when the
  * head differs from a non-null `armHead`; `autoMergeUnconfirmed` when
  * auto-merge is on and `autoMergeConfirmed` is false; `baselineMissing` when
  * `armHead` is null.
@@ -272,6 +272,7 @@ export function evaluatePoll(feedback, state, headCommittedAt) {
       : null;
   const approvalReady =
     pr.state === "OPEN" &&
+    newApproval === null &&
     items.length > 0 &&
     gate.length === 0 &&
     triggers.length === 0 &&
