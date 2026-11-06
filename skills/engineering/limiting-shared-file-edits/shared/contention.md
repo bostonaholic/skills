@@ -20,6 +20,8 @@ node <skill-dir>/shared/scripts/contention.mjs [--max-commits <n>] [--top <n>] [
 - Raise `--max-commits` when 500 commits cover only days of history.
 - When files that are not findings fill a list, exclude them with pathspecs, such as `-- . ':!<lockfile>'`, or raise `--top`, and rerun.
 
+A pathspec changes the counts. `git log` lists only the matching paths, so the skip for commits over 50 files counts only those paths. `--max-commits` counts only commits that match, so the run can reach further back. `share` divides by those commits, so one named file reads 1. Compare counts only between runs with the same pathspec.
+
 ## Output
 
 | Field                         | Meaning                                                           |

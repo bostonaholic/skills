@@ -1,7 +1,7 @@
 ---
 name: limiting-shared-file-edits
 description: Lists the shared files a design or diff edits and reports any file every change appends to as a smell, with its fix. Use when the user says "check shared files", or asks which shared files a feature edits or which files every change appends to. Not for a parallel-agent audit or review; use making-code-agent-friendly.
-argument-hint: "[<design or feature> | <diff target>]"
+argument-hint: "[<design or feature> | <diff target>] [<package directory>]"
 ---
 
 # Limiting shared-file edits
@@ -15,12 +15,13 @@ Design the codebase so a new feature edits few shared files, and treat any file 
 
 ## Terms
 
-A shared file is a file the change edits that other features also edit, or a new file the next feature must edit. A hot file is a `hotFiles` row. The scope is the paths the run reads: the whole repository, less any excluded file.
+A shared file is a file the change edits that other features also edit, or a new file the next feature must edit. A hot file is a `hotFiles` row. The scope is the paths the run reads: the whole repository or the package directory, less any excluded file.
 
 ## Steps
 
 1. **Resolve the target:** a design or feature description, or a diff (a PR, branch, commit range, or the working tree against the base). No target means a repository scan. A request that names one file runs a scan.
-2. **Measure.** Run `node <skill-dir>/shared/scripts/contention.mjs` from the repository root per the [contention guide](shared/contention.md), and name no changed file.
+2. **Measure.** Run `node <skill-dir>/shared/scripts/contention.mjs` from the repository root per the [contention guide](shared/contention.md), and name no changed file. The scope is the whole repository, or the package directory the user names, passed as `-- <directory>`. With no named directory, the run stays whole-repository.
+   - A directory that matches nothing has `commitsScanned` and `commitsIgnored` both 0. `History` reads `not measured: no commits touch <directory>`, not a short history. A design or a diff continues by reading code, and a scan prints no rows.
    - `commitsScanned` under 50: the header says `not measured: history too short to show a pattern`. 50 measures.
      - A design or a diff: the next-feature test still shows recurrence, so verdicts rest on the code, and each `Why` says so. A file the test does not list reads `not measured`.
      - A repository scan: the `hotFiles` rows print as a ranking, each with the verdict `not measured` and no fix. No row says `smell`, because a scan has no recurrence evidence. An empty `hotFiles` prints no rows.
@@ -42,7 +43,7 @@ A shared file is a file the change edits that other features also edit, or a new
    - A diff with hundreds of files gets rows only for hot and next-feature files, and one line counts the rest.
    - A repository scan takes the top `hotFiles` rows from step 2, and uses no next-feature test.
 4. **Apply the smell test.** Read each file's newest diffs with `git log -p -5 -- <file>`, then apply these conditions in order to each listed file, hot or not. The first condition that fails sets the verdict, so the guide decides a listed file only when condition 1 passes. A file that passes each condition is a `smell`.
-   1. It recurs: the file sits near the top of `hotFiles` with the AF1 or AF2 signal, so its newest diffs come from unrelated features, or keep landing at one end of a list. A listing by the next-feature test counts too. A file that meets neither is `not a smell`. When the test does not list a file and `hotFiles` cannot rank it, nothing shows recurrence either way, so the row reads `not measured`. `hotFiles` cannot rank a file on a short history or after a failed run. A file a rerun excluded already has the guide's verdict.
+   1. It recurs: the file sits near the top of `hotFiles` with the AF1 or AF2 signal, so its newest diffs come from unrelated features, or keep landing at one end of a list. A listing by the next-feature test counts too. A file that meets neither is `not a smell`. When the test does not list a file and `hotFiles` cannot rank it, nothing shows recurrence either way, so the row reads `not measured`. `hotFiles` cannot rank a file on a short history, after a failed run, or outside the scope. A file a rerun excluded already has the guide's verdict.
    2. The guide does not clear it: read [when a hot file is not a finding](shared/contention.md#when-a-hot-file-is-not-a-finding). A file the section clears reads `not a smell`, `Why` names the case, the row gets no fix, and the closing line still lists it when the next feature edits it.
    - A short-history scan row stops at condition 1 and reads `not measured`.
    - A doubtful read reads `smell`, and `Why` names the doubt.
@@ -60,7 +61,7 @@ A shared file is a file the change edits that other features also edit, or a new
    After these fixes, the next feature edits: <files, or none>.
    ```
 
-   - `<scope>` is `the whole repository`, and it names any file a rerun excluded. `<short sha>` is the detector's `commit`.
+   - `<scope>` is `the whole repository` or the package directory, and it names any file a rerun excluded. `<short sha>` is the detector's `commit`.
    - `<target>` reads `repository scan` for a scan, which omits the closing line. On a short history, a scan row reads as below.
 
      ```text
@@ -72,7 +73,12 @@ A shared file is a file the change edits that other features also edit, or a new
      - Inside the scope, below the last row: its `commits` is at most the last row's value.
      - Inside the scope, with `hotFiles` empty: it has at most 1 commit.
      - New: it has no history.
-     - The detector could not run: the run did not count it, so no limit applies.
+     - Outside the scope, or the detector could not run: the run did not count it, so no limit applies.
+   - A file outside the scope that the next-feature test does not list, and that no rerun excluded, reads as this form:
+
+     ```text
+     | config/app.yaml | - | - | not measured | outside packages/billing, so the run did not count it | none |
+     ```
 
 ## Fixes
 
