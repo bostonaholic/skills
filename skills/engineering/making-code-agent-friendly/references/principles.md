@@ -394,4 +394,4 @@ Run these before finishing new code. Each answer should be yes.
 - A small repo with a few contributors gains little from splitting; apply these where parallel edits actually collide.
 - Do not split a module before a second responsibility appears. Premature directories scatter a feature as surely as a god module hides one.
 - Indirection that breaks search costs more than the conflict it avoids. Prefer discovery by an explicit directory convention over reflection or string-built names.
-- A registry file is fine when entries are one per line, sorted, and rarely change; sorted lines rarely conflict.
+- A hot registry file is fine only when the [contention guide](shared/contention.md#when-a-hot-file-is-not-a-finding) clears it. One canonical object stays in one file, even when most features edit it. Sorted lines rarely conflict, but sorting clears no file.

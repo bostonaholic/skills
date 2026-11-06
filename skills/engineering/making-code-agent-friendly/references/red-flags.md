@@ -23,7 +23,7 @@ Each flag names a code shape that breaks when many agents change one codebase in
 
 Example: [P1](references/principles.md#p1-additive-change).
 
-**Not a flag when:** the file changes a few times a year, or one writer owns it. Lockfiles and generated files also top `hotFiles`; they are not findings unless edited by hand (the file changes without its source). Exclude them with a pathspec such as `-- . ':!<lockfile>'` and rerun.
+**Not a flag when:** the [contention guide](shared/contention.md#when-a-hot-file-is-not-a-finding) clears the file.
 
 ### AF2 Append-point hotspot
 
@@ -53,7 +53,7 @@ export const PLANS = [
 
 Additions now land at different sorted positions and merge cleanly.
 
-**Not a flag when:** the order carries meaning (a middleware chain, a priority list) and changes rarely.
+**Not a flag when:** the [contention guide](shared/contention.md#when-a-hot-file-is-not-a-finding) clears the file, as it does for an order that carries meaning (a middleware chain, a priority list).
 
 ### AF3 Global sequence
 

@@ -51,7 +51,7 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
    - Keep a lane to about 40 files. For a larger module, inspect its public
      entry, its hot files, and its tests.
    - Hand each subagent its paths, every contention row naming one of its
-     files, and the red flags path. It returns findings in the report's form.
+     files, and the red flags and contention guide paths. It returns findings in the report's form.
 4. **Verify.** Open the cited line of every `high` and `medium` finding. Drop
    a finding whose citation does not show the flag.
 5. **Report** in the [report form](references/report.md). Change no code.
