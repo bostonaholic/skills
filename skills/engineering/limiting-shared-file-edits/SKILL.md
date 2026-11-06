@@ -1,6 +1,6 @@
 ---
 name: limiting-shared-file-edits
-description: Lists the shared files a design or diff edits and reports any file every change appends to as a smell, with its fix. Use when the user says "check shared files", or asks which shared files a feature edits. Not for a parallel-agent audit or review; use making-code-agent-friendly.
+description: Lists the shared files a design or diff edits and reports any file every change appends to as a smell, with its fix. Use when the user says "check shared files", or asks which shared files a feature edits or which files every change appends to. Not for a parallel-agent audit or review; use making-code-agent-friendly.
 argument-hint: "[<design or feature> | <diff target>]"
 ---
 
@@ -19,17 +19,32 @@ A shared file is a file the change edits that other features also edit, or a new
 
 ## Steps
 
-1. **Resolve the target:** a design or feature description, or a diff (a PR, branch, commit range, or the working tree against the base). With no target, ask for one.
+1. **Resolve the target:** a design or feature description, or a diff (a PR, branch, commit range, or the working tree against the base). No target means a repository scan. A request that names one file runs a scan.
 2. **Measure.** Run `node <skill-dir>/shared/scripts/contention.mjs` from the repository root per the [contention guide](shared/contention.md), and name no changed file.
-   - `commitsScanned` under 50: the header says `not measured: history too short to show a pattern`. 50 measures. The next-feature test still shows recurrence, so verdicts rest on the code, and each `Why` says so. A file the test does not list reads `not measured`.
-   - Exit 1, or `node` or a shell absent: relay stderr. The header says `not measured` and gives the reason. The file list comes from the diff, the feature, and the code. `Commits` and `Share` show `-`. A file the next-feature test does not list reads `not measured`. Saved output stands in where a harness gives it.
+   - `commitsScanned` under 50: the header says `not measured: history too short to show a pattern`. 50 measures.
+     - A design or a diff: the next-feature test still shows recurrence, so verdicts rest on the code, and each `Why` says so. A file the test does not list reads `not measured`.
+     - A repository scan: the `hotFiles` rows print as a ranking, each with the verdict `not measured` and no fix. No row says `smell`, because a scan has no recurrence evidence. An empty `hotFiles` prints no rows.
+   - `commitsScanned` of 50 or more with an empty `hotFiles`: a repository scan says no file is hot and stops.
+   - Exit 1, or `node` or a shell absent: relay stderr. The header says `not measured` and gives the reason. Saved output stands in where a harness gives it.
+     - A design or a diff: the file list comes from the diff, the feature, and the code. `Commits` and `Share` show `-`. A file the next-feature test does not list reads `not measured`.
+     - A repository scan: it has no file list, so it prints this form and stops.
+
+       ```text
+       Shared files: repository scan
+       History: not measured: <reason>
+
+       No file list: a scan needs the detector. A design or a diff still works.
+       ```
+
    - Exit 2: fix the command and rerun.
-3. **List the shared files.** A diff starts from the files it edits, and a new file gets a row only when the next feature must edit it. Then apply the next-feature test: name the next feature of this kind, and list each file it must edit, new or current.
+3. **List the shared files.** A diff starts from the files it edits, and a new file gets a row only when the next feature must edit it. For a design or a diff, apply the next-feature test: name the next feature of this kind, and list each file it must edit, new or current.
    - When a design names no files, read the file list of the last comparable commit. With no files and no comparable commit, read the code the design names, and state which files stay unknown.
    - A diff with hundreds of files gets rows only for hot and next-feature files, and one line counts the rest.
+   - A repository scan takes the top `hotFiles` rows from step 2, and uses no next-feature test.
 4. **Apply the smell test.** Read each file's newest diffs with `git log -p -5 -- <file>`, then apply these conditions in order to each listed file, hot or not. The first condition that fails sets the verdict, so the guide decides a listed file only when condition 1 passes. A file that passes each condition is a `smell`.
    1. It recurs: the file sits near the top of `hotFiles` with the AF1 or AF2 signal, so its newest diffs come from unrelated features, or keep landing at one end of a list. A listing by the next-feature test counts too. A file that meets neither is `not a smell`. When the test does not list a file and `hotFiles` cannot rank it, nothing shows recurrence either way, so the row reads `not measured`. `hotFiles` cannot rank a file on a short history or after a failed run. A file a rerun excluded already has the guide's verdict.
    2. The guide does not clear it: read [when a hot file is not a finding](shared/contention.md#when-a-hot-file-is-not-a-finding). A file the section clears reads `not a smell`, `Why` names the case, the row gets no fix, and the closing line still lists it when the next feature edits it.
+   - A short-history scan row stops at condition 1 and reads `not measured`.
    - A doubtful read reads `smell`, and `Why` names the doubt.
    - A rate the run cannot read leaves the guide's other cases to decide, and `Why` says the rate is not measured.
 5. **Report** in this form. It is a default to adapt, but its header and verdict words stay. A change that edits no shared file gets a report that says so.
@@ -46,7 +61,13 @@ A shared file is a file the change edits that other features also edit, or a new
    ```
 
    - `<scope>` is `the whole repository`, and it names any file a rerun excluded. `<short sha>` is the detector's `commit`.
-   - End with the files the next feature still edits after the fixes, including any `not a smell` file it edits.
+   - `<target>` reads `repository scan` for a scan, which omits the closing line. On a short history, a scan row reads as below.
+
+     ```text
+     | src/handlers/index.ts | 12 | 0.522 | not measured | history too short to show a pattern | none |
+     ```
+
+   - For a design or a diff, end with the files the next feature still edits after the fixes, including any `not a smell` file it edits.
    - A file with no `hotFiles` row shows `-` under `Commits` and `Share`. `Why` gives what the run knows:
      - Inside the scope, below the last row: its `commits` is at most the last row's value.
      - Inside the scope, with `hotFiles` empty: it has at most 1 commit.
