@@ -1,6 +1,6 @@
 ---
 name: making-code-agent-friendly
-description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Use when the user says "make this agent-friendly", or when asked to make code agent-friendly or find where parallel agents will collide. Not for general code review; use reviewing-code.'
+description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Use when the user says "make this agent-friendly", or when asked to make code agent-friendly or find where parallel agents will collide. Not for general code review; use reviewing-code. Not for listing the shared files one feature edits; use limiting-shared-file-edits.'
 effort: high
 argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding>]"
 ---
@@ -41,8 +41,8 @@ duplicate helpers (AF17), so it belongs on a schedule as well as on demand.
 1. **Orient.** Read the root `AGENTS.md`, `CLAUDE.md`, or `README`, the
    manifests, and the CI config. Learn the modules (packages, else top-level
    source directories), the test command, and the enforced formatter and linter. Where those files disagree with the code, apply the [docs and code rules](shared/docs-vs-code.md).
-2. **Measure contention.** Run `scripts/contention.mjs` per the
-   [contention guide](references/contention.md), which gives its flags,
+2. **Measure contention.** Run `shared/scripts/contention.mjs` per the
+   [contention guide](shared/contention.md), which gives its flags,
    output fields, noise exclusions, and exits.
 3. **Inspect by module.** Check each module against every red flag.
    - When the scope spans more than one module and subagents are available,

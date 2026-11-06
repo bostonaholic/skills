@@ -1,6 +1,6 @@
 # Red flags
 
-Each flag names a code shape that breaks when many agents change one codebase in parallel. Detect it with the signal, confirm it is not a false positive, then cite the fix principle. Contention signals come from `scripts/contention.mjs`; the rest come from search and reading. Examples of each fix live in [principles.md](references/principles.md); a flag shows its own only when no principle does.
+Each flag names a code shape that breaks when many agents change one codebase in parallel. Detect it with the signal, confirm it is not a false positive, then cite the fix principle. Contention signals come from `shared/scripts/contention.mjs`; the rest come from search and reading. Examples of each fix live in [principles.md](references/principles.md); a flag shows its own only when no principle does.
 
 ## Contents
 

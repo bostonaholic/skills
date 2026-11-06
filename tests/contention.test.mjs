@@ -1,4 +1,4 @@
-// Tests for skills/engineering/making-code-agent-friendly/scripts/contention.mjs. The
+// Tests for shared/scripts/contention.mjs. The
 // repository cases build throwaway git repositories under the OS temp directory; git there
 // reads only an empty global config plus the identity and signing flags each commit passes.
 import assert from "node:assert/strict";
@@ -15,10 +15,10 @@ import {
   parseLog,
   sequences,
   splitBulk,
-} from "../skills/engineering/making-code-agent-friendly/scripts/contention.mjs";
+} from "../shared/scripts/contention.mjs";
 
-const SCRIPT = resolve("skills/engineering/making-code-agent-friendly/scripts/contention.mjs");
-const DOC = resolve("skills/engineering/making-code-agent-friendly/references/contention.md");
+const SCRIPT = resolve("shared/scripts/contention.mjs");
+const DOC = resolve("shared/contention.md");
 
 // ---------------------------------------------------------------------------------------------
 // Fixtures and helpers
@@ -265,6 +265,32 @@ test("contention.mjs limits commits with --max-commits and paths with a pathspec
     [SIBLING_A, ROUTES, SIBLING_B],
   );
   assert.deepEqual(src.sequences, []);
+});
+
+test("contention.mjs counts only what a pathspec matches", (t) => {
+  const { repo, env } = contentionRepo(t);
+
+  // The registry is in commits 1-5, 7, and 8. Under this pathspec the 51-file commit 8 lists one
+  // path, so it counts as scanned, not bulk: 7 of 7, and none ignored.
+  const named = run(["--", REGISTRY], { cwd: repo, env });
+  assert.equal(named.status, 0, named.stderr);
+  const registry = JSON.parse(named.stdout);
+  assert.deepEqual(registry.hotFiles, [{ path: REGISTRY, commits: 7, share: 1 }]);
+  assert.equal(registry.commitsIgnored, 0);
+
+  // src/a.js last changed in commit 6, so a limit counted before the path filter finds nothing.
+  const limited = run(["--max-commits", "1", "--", SIBLING_A], { cwd: repo, env });
+  assert.equal(limited.status, 0, limited.stderr);
+  assert.equal(JSON.parse(limited.stdout).commitsScanned, 1);
+});
+
+test("contention.mjs exits 0 with zero counts when a pathspec matches nothing", (t) => {
+  const { repo, env } = contentionRepo(t);
+  const result = run(["--", "packages/billing"], { cwd: repo, env });
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.commitsScanned, 0);
+  assert.equal(report.commitsIgnored, 0);
 });
 
 test("contention.mjs outside a git repository exits 1 with git's error and the see line", (t) => {

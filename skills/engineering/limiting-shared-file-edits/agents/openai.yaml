@@ -1,0 +1,4 @@
+interface:
+  display_name: "Limiting Shared-File Edits"
+  short_description: "List the shared files a change edits and flag append-everywhere files"
+  default_prompt: "Use $limiting-shared-file-edits to list the shared files this change edits and flag any file every change appends to."

@@ -9,7 +9,7 @@ append_system_prompt: |
   - git-rev-parse-show-toplevel.txt: git rev-parse --show-toplevel
   - git-rev-parse-head.txt: git rev-parse --verify HEAD; a later git rev-parse HEAD prints the same output
   - git-rev-parse-short-head.txt: git rev-parse --short HEAD
-  - contention.json: node <skill-dir>/scripts/contention.mjs (exit 0)
+  - contention.json: node <skill-dir>/shared/scripts/contention.mjs (exit 0)
 
   node-version.txt:
   ```text

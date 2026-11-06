@@ -47,7 +47,8 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`hillclimbing`](./skills/engineering/hillclimbing/SKILL.md)                                           | "hillclimb"                          | user, model, skill | Iterate on measured changes until the criteria pass.                                     |
 | [`investigating-design-rationale`](./skills/engineering/investigating-design-rationale/SKILL.md)       | "why is it built this way?"          | user, model, skill | Investigate why code is shaped as it is.                                                 |
 | [`landing-prs`](./skills/engineering/landing-prs/SKILL.md)                                             | "ship it"                            | user, model        | Land a reviewed pull request on explicit request.                                        |
-| [`making-code-agent-friendly`](./skills/engineering/making-code-agent-friendly/SKILL.md)               | "make this agent-friendly"           | user, model        | Audit, review, and refactor code so many agents can change it in parallel.               |
+| [`limiting-shared-file-edits`](./skills/engineering/limiting-shared-file-edits/SKILL.md)               | "check shared files"                 | user, model        | List the shared files a change edits and flag append-everywhere files.                   |
+| [`making-code-agent-friendly`](./skills/engineering/making-code-agent-friendly/SKILL.md)               | "make this agent-friendly"           | user, model, skill | Audit, review, and refactor code so many agents can change it in parallel.               |
 | [`merging-dependabot-prs`](./skills/engineering/merging-dependabot-prs/SKILL.md)                       | `/merging-dependabot-prs`            | user               | Plan and merge safe Dependabot updates one at a time, or only request rebases.           |
 | [`modernizing-prs`](./skills/engineering/modernizing-prs/SKILL.md)                                     | "modernize this PR"                  | user, model, skill | Bring a PR up to date, or recommend reworking or closing it.                             |
 | [`proving-claims`](./skills/engineering/proving-claims/SKILL.md)                                       | "prove it"                           | user, model        | Prove claims or a PR test plan with rated evidence.                                      |
@@ -97,6 +98,7 @@ Some skills call others. Install the skills they call too.
 - `explaining-code` calls `explaining-architecture`.
 - `investigating-design-rationale` calls `explaining-architecture`.
 - `landing-prs` calls `modernizing-prs`.
+- `limiting-shared-file-edits` calls `making-code-agent-friendly`.
 - `watching-authored-prs` calls `addressing-pr-comments`, `modernizing-prs`.
 - `writing-technical-design-docs` calls `reviewing-design-docs`.
 
