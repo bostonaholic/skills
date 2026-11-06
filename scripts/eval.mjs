@@ -6,7 +6,8 @@
 // cases at --runs 3. Each tag runs as its own command, readonly then bash, so only bash cases get
 // the Edit, git, and npm test grants. A tag with no selected case is skipped. Each command writes
 // to evals/results/<timestamp>-<model>-<tag>/, and scripts/eval-verdict.mjs then prints one line
-// per case; a selected case with no line prints as incomplete.
+// per case; a selected case with no line prints as incomplete. scripts/eval-compare.mjs then prints
+// each case's pass rate and mean cost without and with the skills.
 // --check runs the free load check ($0 cap) and compiles every grader regex. It starts no run.
 // --dry-run prints the commands and runs nothing. Arguments after -- go to every claude command.
 // A run or --check starts claude only under `npm run eval`; anywhere else it exits 2 first.
@@ -254,6 +255,16 @@ function runEvals(commands, runs) {
     console.log(`\n== ${tag} verdicts (--runs ${runs}):`);
     for (const line of lines) console.log(line);
     if (lines.some((line) => !line.endsWith(" pass"))) ok = false;
+    const cost = spawnSync(process.execPath, ["scripts/eval-compare.mjs", resultPath], {
+      encoding: "utf8",
+    });
+    if (cost.status !== 0) {
+      console.error(cost.stderr.trim());
+      ok = false;
+      continue;
+    }
+    console.log(`\n== ${tag} pass rate and mean cost, without -> with the skills:`);
+    process.stdout.write(cost.stdout);
   }
   return ok;
 }

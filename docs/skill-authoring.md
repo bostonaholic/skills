@@ -25,6 +25,8 @@ test in `npm test`. The rest are review criteria.
     - Free load check
     - Recorded runs
     - Verdicts
+    - Cost and pass rate
+    - Comparing two variants
     - Before and after a skill edit
     - Traces and the G3 review
     - Handoff eval
@@ -151,7 +153,7 @@ difference between them.
 `npm run eval` wraps the commands on this page with their required flags.
 It runs the `readonly` and `bash` tags as separate commands, writes each
 to `evals/results/<timestamp>-<model>-<tag>/`, and runs the verdict script
-on each result. It exits 1 if any case fails or is incomplete. A live run
+and the [cost comparison](#cost-and-pass-rate) on each result. It exits 1 if any case fails or is incomplete. A live run
 or `--check` starts only through `npm run eval`. Started from
 `node scripts/eval.mjs`, `npm test`, or CI, it exits 2 before `claude`
 starts. `--dry-run` and `--help` run anywhere.
@@ -399,6 +401,44 @@ stdout, for these causes:
 - a counted run with no error and a missing or empty `graders` list
 
 The script checks the whole file for these causes before it prints a line.
+
+#### Cost and pass rate
+
+A verdict says whether a case passes, not what passing costs. After the
+verdicts, `npm run eval` runs `scripts/eval-compare.mjs` on the same results
+file. It prints each case's pass rate and mean cost per run without the skills
+and with them, the relative change in cost, and the change in pass rate in
+percentage points, then a total line:
+
+```sh
+node scripts/eval-compare.mjs evals/results/<timestamp>/aggregate-result.json
+```
+
+It counts runs as the verdict script does, so an excluded run moves neither
+number. Cost is the run's `costUsd`, the agent's spend without the judge's.
+The script's header states its output format and its exit 2 causes.
+
+#### Comparing two variants
+
+Measure an expensive step before keeping it. To learn whether a step earns
+its cost, such as a fresh-context reviewer against same-session self-review:
+
+1. Commit the variant on its own branch and check it out in a worktree:
+   `git worktree add ../skills-variant <branch>`.
+2. In each checkout, run the same cases on the same model:
+   `npm run eval -- <skill> --model <model>`. Each run writes its own
+   `evals/results/` directory.
+3. Compare the with-arms, control first:
+
+   ```sh
+   node scripts/eval-compare.mjs \
+     evals/results/<control>/aggregate-result.json \
+     ../skills-variant/evals/results/<treatment>/aggregate-result.json
+   ```
+
+4. Weigh the cost change against the pass rate change, and report both. At
+   `--runs 3`, one run moves a case's pass rate by 33 points, so read the
+   total line, and rerun before deciding on a small difference.
 
 #### Before and after a skill edit
 

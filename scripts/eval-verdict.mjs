@@ -33,7 +33,7 @@ const PASSING_RUNS_NEEDED = new Map([
 const LIMIT_ERROR = /(usage|rate)[ -]limit/i;
 
 // Input the script cannot judge. The CLI reports its message and exits 2.
-class VerdictError extends Error {}
+export class VerdictError extends Error {}
 
 function parseArgs(args) {
   if (args[0] === "--runs" && args.length >= 2 && !PASSING_RUNS_NEEDED.has(args[1]))
@@ -43,7 +43,7 @@ function parseArgs(args) {
   return { runs: Number(args[1]), passingNeeded: PASSING_RUNS_NEEDED.get(args[1]), path: args[2] };
 }
 
-function readResult(path) {
+export function readResult(path) {
   let text;
   try {
     text = readFileSync(path, "utf8");
@@ -57,7 +57,7 @@ function readResult(path) {
   }
 }
 
-function isObject(value) {
+export function isObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -66,7 +66,7 @@ function checkOptionalBoolean(owner, key, where) {
     throw new VerdictError(`${where}: ${key} is not a boolean`);
 }
 
-function checkRun(run, where) {
+export function checkRun(run, where) {
   if (!isObject(run)) throw new VerdictError(`${where} is not an object`);
   if (run.error !== undefined && run.error !== null && typeof run.error !== "string")
     throw new VerdictError(`${where}: error is neither null nor a string`);
@@ -93,15 +93,15 @@ function withArmRuns(evalCase, index) {
   return withRuns;
 }
 
-function isExcluded(run) {
+export function isExcluded(run) {
   return run.skippedPaidGraders === true || LIMIT_ERROR.test(run.error ?? "");
 }
 
-function endedClean(run) {
+export function endedClean(run) {
   return run.error === null || run.error === undefined;
 }
 
-function runPasses(run) {
+export function runPasses(run) {
   return (
     endedClean(run) &&
     run.graders.every((grader) => grader.scored === false || grader.passed === true)
