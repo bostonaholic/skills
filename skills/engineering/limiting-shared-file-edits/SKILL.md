@@ -23,7 +23,7 @@ A shared file is a file the change edits that other features also edit, or a new
 2. **Measure.** Run `node <skill-dir>/shared/scripts/contention.mjs` from the repository root per the [contention guide](shared/contention.md), and name no changed file. The scope is the whole repository, or the package directory the user names, passed as `-- <directory>`. With no named directory, the run stays whole-repository.
    - A directory that matches nothing has `commitsScanned` and `commitsIgnored` both 0. `History` reads `not measured: no commits touch <directory>`, not a short history. A design or a diff continues by reading code, and a scan prints no rows.
    - `commitsScanned` under 50: the header says `not measured: history too short to show a pattern`. 50 measures.
-     - A design or a diff: the next-feature test still shows recurrence, so verdicts rest on the code, and each `Why` says so. A file the test does not list reads `not measured`.
+     - A design or a diff: the next-feature test still shows recurrence, so verdicts rest on the code, and each `Why` says so. No `Why` cites a `commits`, `share`, or `coupledPairs` value or calls a file hot, because a short history ranks nothing. A file the test does not list reads `not measured`.
      - A repository scan: the `hotFiles` rows print as a ranking, each with the verdict `not measured` and no fix. No row says `smell`, because a scan has no recurrence evidence. An empty `hotFiles` prints no rows.
    - `commitsScanned` of 50 or more with an empty `hotFiles`: a repository scan says no file is hot and stops.
    - Exit 1, or `node` or a shell absent: relay stderr. The header says `not measured` and gives the reason. Saved output stands in where a harness gives it.
