@@ -119,13 +119,21 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
   item in `checks` for each name in its lane's `checks`, and at least one
   artifact with a suffix from its lane's `artifacts`. Each artifact exists on
   disk, and each `result` sits under `<run>` by real path. A `proposed`
-  finding also needs a non-empty `proposedChange`.
+  finding also needs a non-empty `proposedChange`. A `reported` or `deferred`
+  finding carries no `checks`.
+- Each `checks` item names a check its lane declares, or `tests` on an
+  `applied` finding, and its `result` file holds a `check` field equal to its
+  `name`. When the lane declares `model-check`, each `model-check` result
+  holds a `.tla` artifact of the finding among its `inputs`, compared by real
+  path, and each `.tla` artifact sits among the `inputs` of some
+  `model-check` result.
 - An `applied` finding needs `<run>/baseline.json` to read `pass`, non-empty
   `coveringTests` and `changed`, and a `review.status` of `confirmed` or
   `not-run`. Each `coveringTests` entry is `path:line`, and may sit outside
-  the scope. Its `tests` item must name `<run>/checkpoints/<id>/tests.json`,
-  which reads `pass` and holds the `tree` from that step's `verify.json`. A
-  `model-check` result of `fail` keeps the finding valid.
+  the scope. Each of its `tests` items must name
+  `<run>/checkpoints/<id>/tests.json`, which reads `pass` and holds the `tree`
+  from that step's `verify.json`. A `model-check` result of `fail` keeps the
+  finding valid.
 - `review` is `{ status, reason }`, with `status` one of `confirmed`,
   `refuted`, `inconclusive`, or `not-run`. Every status but `confirmed`
   needs a `reason`.
@@ -135,9 +143,10 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
   `review.status` is `refuted` or `inconclusive`, else `spec changed after
   the run`. A `fail` keeps its trace. A finding with checks reads `verified`
   only when every resolved check reads `pass` and `review.status` is
-  `confirmed`; every other finding with checks reads `unverified`. The written
-  `report.json` and `report.md` embed each resolved check, because `<run>`
-  is temporary.
+  `confirmed`; every other finding with checks reads `unverified`, and a
+  finding with no checks has no label. A `label` typed in `report.json`
+  loses too. The written `report.json` and `report.md` embed each resolved
+  check, because `<run>` is temporary.
 - With no finding, the renderer prints `no findings` and writes nothing.
 - The renderer refuses a symlinked `report.json` or `report.md` in `<out>`,
   and a `report.json` there whose `skill` is not `improving-codebases`.

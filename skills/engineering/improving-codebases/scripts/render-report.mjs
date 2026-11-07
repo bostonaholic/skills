@@ -12,14 +12,7 @@
 // <run> is the directory of report.json's real path. Each check result sits under it, and the
 // renderer reads that file for the status, so a status typed into report.json never counts.
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -227,6 +220,8 @@ function validateFinding(finding, label, registry, scope, facts, errors) {
   if (MADE.has(finding.outcome)) {
     validateArtifacts(finding, label, lane, facts, errors);
     validateChecks(finding, label, lane, facts, errors);
+  } else if (finding.checks !== undefined && list(finding.checks).length !== 0) {
+    errors.push(`${label}: outcome ${finding.outcome} carries no checks; only a make step does`);
   }
   if (finding.outcome === "applied") validateApplied(finding, label, facts, errors);
 }
@@ -247,22 +242,21 @@ function validateApplied(finding, label, facts, errors) {
     errors.push(`${label}: outcome applied needs changed, the paths verify.json lists`);
   if (!APPLIED_REVIEWS.has(finding.review?.status))
     errors.push(`${label}: outcome applied needs review.status confirmed or not-run`);
-  const item = list(finding.checks).find((check) => isObject(check) && check.name === "tests");
-  if (!item) {
-    errors.push(`${label}: outcome applied needs a tests item in checks`);
-    return;
+  const items = list(finding.checks).filter((check) => isObject(check) && check.name === "tests");
+  if (items.length === 0) errors.push(`${label}: outcome applied needs a tests item in checks`);
+  for (const item of items) {
+    const file = facts.checks[item.result];
+    if (!file || file.problem) continue;
+    const expected = facts.testsPaths[finding.id];
+    if (file.real !== expected)
+      errors.push(`${label}: the tests result must be ${expected}, not ${item.result}`);
+    else if (file.data.status !== "pass")
+      errors.push(`${label}: the tests result reads ${file.data.status}, not pass`);
+    else if (file.data.tree !== facts.verifyTrees[finding.id])
+      errors.push(
+        `${label}: the tests result tree does not match checkpoints/${finding.id}/verify.json, so the tests ran on another tree`,
+      );
   }
-  const file = facts.checks[item.result];
-  if (!file || file.problem) return;
-  const expected = facts.testsPaths[finding.id];
-  if (file.real !== expected)
-    errors.push(`${label}: the tests result must be ${expected}, not ${item.result}`);
-  else if (file.data.status !== "pass")
-    errors.push(`${label}: the tests result reads ${file.data.status}, not pass`);
-  else if (file.data.tree !== facts.verifyTrees[finding.id])
-    errors.push(
-      `${label}: the tests result tree does not match checkpoints/${finding.id}/verify.json, so the tests ran on another tree`,
-    );
 }
 
 function validateReview(review, label, errors) {
@@ -286,19 +280,60 @@ function validateArtifacts(finding, label, lane, facts, errors) {
     errors.push(`${label}: needs an artifact ending in ${suffixes.join(" or ")}`);
 }
 
+// Each check item binds to a result file that names the same check, and only to a check the lane
+// declares, or `tests` for an applied finding. So no item can borrow another check's pass.
 function validateChecks(finding, label, lane, facts, errors) {
+  if (finding.checks !== undefined && !Array.isArray(finding.checks))
+    errors.push(`${label}: checks must be a list`);
   const checks = list(finding.checks).filter((item, index) => {
     const valid = isObject(item) && filled(item.name) && filled(item.result);
     if (!valid) errors.push(`${label}: checks[${index}] needs a name and a result path`);
     return valid;
   });
+  const allowed = new Set(lane?.checks ?? []);
+  if (finding.outcome === "applied") allowed.add("tests");
   for (const item of checks) {
-    const problem = facts.checks[item.result]?.problem ?? null;
-    if (problem) errors.push(`${label}: check ${item.name} result ${item.result} ${problem}`);
+    if (lane && !allowed.has(item.name))
+      errors.push(`${label}: check ${item.name} is not a check lane ${lane.lane} declares`);
+    const file = facts.checks[item.result];
+    if (!file || file.problem) {
+      errors.push(
+        `${label}: check ${item.name} result ${item.result} ${file?.problem ?? "was not read"}`,
+      );
+      continue;
+    }
+    if (file.data.check !== item.name)
+      errors.push(
+        `${label}: check ${item.name} names result ${item.result}, which holds check ${file.data.check}`,
+      );
   }
   for (const name of lane?.checks ?? []) {
     if (!checks.some((item) => item.name === name))
       errors.push(`${label}: lane ${lane.lane} needs a result for check ${name}`);
+  }
+  if (allowed.has("model-check")) validateModelChecks(finding, label, checks, facts, errors);
+}
+
+// A model-check result vouches only for the specs it hashed. Each one must hold a .tla artifact of
+// this finding among its inputs, and each .tla artifact must sit among some result's inputs.
+function validateModelChecks(finding, label, checks, facts, errors) {
+  const specs = list(finding.artifacts).filter(
+    (path) => typeof path === "string" && path.endsWith(".tla") && facts.artifacts[path],
+  );
+  const covered = new Set();
+  for (const item of checks.filter((check) => check.name === "model-check")) {
+    const file = facts.checks[item.result];
+    if (!file || file.problem) continue;
+    const held = specs.filter((spec) => list(file.inputPaths).includes(facts.artifacts[spec]));
+    if (held.length === 0)
+      errors.push(
+        `${label}: model-check result ${item.result} holds none of this finding's .tla artifacts in its inputs`,
+      );
+    for (const spec of held) covered.add(spec);
+  }
+  for (const spec of specs) {
+    if (!covered.has(spec))
+      errors.push(`${label}: artifact ${spec} sits in the inputs of no model-check result`);
   }
 }
 
@@ -306,8 +341,9 @@ function validateChecks(finding, label, lane, facts, errors) {
 // holds what the loader read: { head, inventory, lines, artifacts, checks, baseline, testsPaths,
 // verifyTrees }. `lines` maps each cited
 // path to its line count at scope.commit, or null when the path is absent there. `artifacts` maps
-// each artifact path to whether it exists. `checks` maps each result path to { problem, data,
-// changedInputs }, where `problem` is null for a readable result file under <run>. `baseline` is
+// each artifact path to its real path, or null when it does not exist. `checks` maps each result
+// path to { problem, real, data, changedInputs, inputPaths }, where `problem` is null for a
+// readable result file under <run>, and `inputPaths` holds the real path of each input. `baseline` is
 // <run>/baseline.json or null. For each applied finding, `testsPaths` holds the one path its tests
 // result may sit at, and `verifyTrees` holds the tree its verify.json recorded.
 export function validateReport(report, lanes, facts) {
@@ -360,16 +396,18 @@ export function findingLabel(finding) {
   return passed && finding.review?.status === "confirmed" ? "verified" : "unverified";
 }
 
-// Returns the report with each check replaced by what its result file states, and each label set.
+// Returns the report with each check replaced by what its result file states, and each label set
+// from those checks. A label typed into report.json never survives.
 export function resolveReport(report, facts) {
   return {
     ...report,
     findings: list(report.findings).map((finding) => {
-      if (list(finding.checks).length === 0) return finding;
+      const { label: _typed, ...rest } = finding;
+      if (list(finding.checks).length === 0) return rest;
       const checks = finding.checks.map((item) =>
         resolveCheck(item, facts.checks[item.result], finding.review),
       );
-      const resolved = { ...finding, checks };
+      const resolved = { ...rest, checks };
       return { ...resolved, label: findingLabel(resolved) };
     }),
   };
@@ -522,6 +560,14 @@ function lineCount(blob) {
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+function realOrNull(path) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
+  }
+}
+
 // Reads one check result file by real path, and rehashes each of its inputs.
 function readCheckFile(path, runDir) {
   if (!isAbsolute(path)) return { problem: "is not an absolute path under <run>" };
@@ -552,7 +598,10 @@ function readCheckFile(path, runDir) {
       }
     })
     .map((input) => input.path);
-  return { problem: null, real, data, changedInputs };
+  const inputPaths = list(data.inputs)
+    .map((input) => (isObject(input) && filled(input.path) ? realOrNull(input.path) : null))
+    .filter(Boolean);
+  return { problem: null, real, data, changedInputs, inputPaths };
 }
 
 // Reads what validateReport needs from git and disk: HEAD, the tracked inventory under scope.paths,
@@ -593,7 +642,7 @@ export function loadFacts(report, runDir) {
   for (const finding of list(report.findings)) {
     if (!isObject(finding)) continue;
     for (const path of list(finding.artifacts)) {
-      if (relativePath(path)) artifacts[path] = existsSync(join(root, path));
+      if (relativePath(path)) artifacts[path] = realOrNull(join(root, path));
     }
     for (const item of list(finding.checks)) {
       if (isObject(item) && filled(item.result) && !(item.result in checks))
