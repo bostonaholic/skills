@@ -27,7 +27,7 @@ Example: [P1](references/principles.md#p1-additive-change).
 
 ### AF2 Append-point hotspot
 
-**Signal:** a `hotFiles` entry whose changed lines cluster at the end of one array, enum, switch, or list. Check with `git log -p -- <file>` or `git log -L <start>,<end>:<file>` on the list: a flag when added lines keep landing at the same end position. Reading cues: unsorted lists, "add new entries here" comments, no trailing comma on the last item.
+**Signal:** a `hotFiles` entry whose changed lines cluster at the end of one array, enum, switch, or list. After the guide's [name check](shared/contention.md#name-check), check with `git log -p -- <file>` or `git log -L <start>,<end>:<file>` on the list: a flag when added lines keep landing at the same end position. Reading cues: unsorted lists, "add new entries here" comments, no trailing comma on the last item.
 
 **Why agents suffer:** two purely additive changes edit the same lines, so git reports a conflict that only a human or an extra agent turn resolves.
 
