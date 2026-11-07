@@ -35,12 +35,29 @@ tree.
    - On any status except `pass`, run `restore`, and record `proposed` with
      `reason` from `tests.json`.
    - On exit 1, run `restore`, record `proposed`, and stop the loop.
-5. **Record.** For a saved return, copy `artifacts`, `proposedChange`, and
+5. **Review.** Start one fresh-context subagent with read and search tools
+   only, never a fork of this conversation, because a producer never judges
+   its own work. It runs the brief's `## Review` section. Give it the lane
+   contract, the whole brief, the finding, its artifacts, `verify.json`,
+   `tests.json`, and `before/` under `<run>/checkpoints/<id>/`, never the
+   make return.
+   - Without subagents, skip this step, and set `review` to `not-run` with
+     the reason. An independent review never runs inline.
+   - Copy `status` from the review return into `review.status`, and write
+     `review.reason` from its `defects`. A crash or a malformed return counts
+     as `inconclusive`.
+   - On `refuted` or `inconclusive`, run `restore`, obey what the brief's
+     `## Review` says for a rejected finding, and record `proposed` with
+     `reason` from the `defects`.
+6. **Record.** For a saved return, copy `artifacts`, `proposedChange`, and
    `checks` into the finding. When `changed` is not empty, record `applied`
    with `changed` and `coveringTests`, and add `{ "name": "tests",
    "result": "<run>/checkpoints/<id>/tests.json" }` to `checks`. Otherwise
-   record `proposed` with the return's `reason`. Set `review` to `not-run`
-   with the reason. Then start the next finding.
+   record `proposed` with the return's `reason`. When no review ran, set
+   `review` to `not-run` with the reason. Then start the next finding.
+
+A restore ends that finding's steps, so review runs only on a refactor that
+passed its tests.
 
 ## Failure paths
 

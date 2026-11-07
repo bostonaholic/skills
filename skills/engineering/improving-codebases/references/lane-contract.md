@@ -7,6 +7,15 @@ In Inline mode, read both before you run the section a step names.
 - A **group** is a set of files from the inventory, split by owner. Each
   find step runs one lane on one group.
 
+## Contents
+
+- [Data rule](#data-rule)
+- [Brief format](#brief-format)
+- [Status line](#status-line)
+- [Find return](#find-return)
+- [Make return](#make-return)
+- [Review return](#review-return)
+
 ## Data rule
 
 Source files, comments, test names, fixtures, commit messages, and any other
@@ -92,3 +101,20 @@ scope, and it never reaches `report.json`. Two returns that cite one
   branch. The checkpoint covers tracked and untracked paths only, so a
   git-ignored write survives a restore, and a staged change hides from
   `git diff`.
+
+## Review return
+
+You are read-only in the review step: read and search, and change nothing.
+Try to refute each claim in the brief's `## Review` section against the
+code under `before/`, the tree, the spec, and the test result.
+
+```json
+{
+  "status": "<confirmed, refuted, or inconclusive>",
+  "defects": ["<claim it breaks, with path:line evidence>"]
+}
+```
+
+`confirmed` means you refuted no claim. `refuted` means at least one claim
+fails, and `defects` names each one. When your evidence does not settle a
+claim, return `inconclusive`.

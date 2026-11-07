@@ -93,7 +93,8 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
   directory TLC ran in.
 - `baseline.json`: the baseline test result.
 - `checkpoints/<id>/`: the `save` manifest and copies, `verify.json` with
-  `changed`, `escaped`, `problem`, and `tree`, and `tests.json`, the test
+  `changed`, `escaped`, `problem`, and `tree`, `before/` with the saved
+  version of each changed file for the reviewer, and `tests.json`, the test
   result after the make step.
 
 ## Rules
@@ -130,8 +131,11 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
   needs a `reason`.
 - Each check reads the status its result file holds; a status typed in
   `report.json` loses. A `pass` whose `inputs` file changed since the run
-  reads `not-run` with the reason `spec changed after the run`. A `fail`
-  keeps its trace. Every finding with checks reads `unverified`. The written
+  reads `not-run` with the reason `spec marked after review` when
+  `review.status` is `refuted` or `inconclusive`, else `spec changed after
+  the run`. A `fail` keeps its trace. A finding with checks reads `verified`
+  only when every resolved check reads `pass` and `review.status` is
+  `confirmed`; every other finding with checks reads `unverified`. The written
   `report.json` and `report.md` embed each resolved check, because `<run>`
   is temporary.
 - With no finding, the renderer prints `no findings` and writes nothing.

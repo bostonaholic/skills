@@ -9,6 +9,12 @@ artifacts: .tla, .cfg
 
 # State-machine lane
 
+## Contents
+
+- [Find](#find)
+- [Make](#make)
+- [Review](#review)
+
 ## Find
 
 A candidate is a variable, a flag set, or a status column with at least two
@@ -92,8 +98,17 @@ Give the reviewer these neutral claims to refute:
 - Each spec action maps to a cited transition.
 - Each cited transition maps to a spec action.
 - Each spec action has the same guard as the code before the refactor, and
-  `Init` holds every
-  state that code creates the holder in. Hydration from storage does not
-  count.
+  `Init` holds every state that code creates the holder in. Hydration from
+  storage does not count.
+- The refactored code has the same transitions, guards, side effect order,
+  and transaction boundaries as its copy under `before/`.
+- Every transition write, anywhere in the repository, goes through the one
+  transition function.
+- Each `coveringTests` entry drives the machine, and the command in
+  `tests.json` runs it.
 - At least one invariant other than `TypeOK` can fail on a state that the
   type set allows.
+- No path in `changed` is a test, a fixture, or test configuration.
+
+For a rejected finding, the main session adds `\* UNCHECKED: <reason>` as the
+first line of each spec this finding's make step wrote.

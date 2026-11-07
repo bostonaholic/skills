@@ -335,8 +335,9 @@ export function validateReport(report, lanes, facts) {
   return errors;
 }
 
-// The check as its result file states it. A pass whose inputs changed since the run reads not-run.
-export function resolveCheck(item, file) {
+// The check as its result file states it. A pass whose inputs changed since the run reads not-run:
+// after a rejected review the main session marks the spec, and any other edit voids the run.
+export function resolveCheck(item, file, review) {
   const data = file.data;
   const resolved = { name: item.name, result: item.result, status: data.status };
   for (const field of ["reason", "trace", "distinctStates", "seconds", "command"]) {
@@ -344,14 +345,19 @@ export function resolveCheck(item, file) {
   }
   if (data.status === "pass" && file.changedInputs.length > 0) {
     resolved.status = "not-run";
-    resolved.reason = `spec changed after the run: ${file.changedInputs.join(", ")}`;
+    const marked = review?.status === "refuted" || review?.status === "inconclusive";
+    const cause = marked ? "spec marked after review" : "spec changed after the run";
+    resolved.reason = `${cause}: ${file.changedInputs.join(", ")}`;
   }
   return resolved;
 }
 
-// Every finding with checks reads unverified, as no review has run.
+// A finding with checks reads verified only when every check passes and a review confirmed it.
 export function findingLabel(finding) {
-  return list(finding.checks).length === 0 ? "" : "unverified";
+  const checks = list(finding.checks);
+  if (checks.length === 0) return "";
+  const passed = checks.every((check) => check.status === "pass");
+  return passed && finding.review?.status === "confirmed" ? "verified" : "unverified";
 }
 
 // Returns the report with each check replaced by what its result file states, and each label set.
@@ -360,7 +366,9 @@ export function resolveReport(report, facts) {
     ...report,
     findings: list(report.findings).map((finding) => {
       if (list(finding.checks).length === 0) return finding;
-      const checks = finding.checks.map((item) => resolveCheck(item, facts.checks[item.result]));
+      const checks = finding.checks.map((item) =>
+        resolveCheck(item, facts.checks[item.result], finding.review),
+      );
       const resolved = { ...finding, checks };
       return { ...resolved, label: findingLabel(resolved) };
     }),

@@ -5,7 +5,8 @@
 //            <run>/checkpoints/<id>/
 //   verify   write and print <run>/checkpoints/<id>/verify.json: `changed`, `escaped`, `problem`,
 //            and `tree`, the digest run-bounded.mjs computes, so a later test result can prove it
-//            ran on this tree
+//            ran on this tree; copy the saved version of each changed file to before/, the only
+//            copy of the code before the step that a reviewer can read
 //   restore  return each changed path to its saved state, then test the tree, HEAD, and refs again
 //   exit 0  done; for verify, HEAD and refs are unchanged and no path escaped
 //   exit 1  failure: an unreadable <run>, a save that cannot write, a moved HEAD or ref before a
@@ -263,11 +264,24 @@ function moved(root, manifest) {
   return problems;
 }
 
+// Writes the saved version of each changed file under before/. A new file has no saved version.
+function writeBefore(dir, changed, savedState) {
+  const before = join(dir, "before");
+  rmSync(before, { recursive: true, force: true });
+  mkdirSync(before, { recursive: true });
+  for (const path of changed) {
+    const state = savedState(path);
+    if (state.kind !== "file") continue;
+    mkdirSync(dirname(join(before, path)), { recursive: true });
+    writeFileSync(join(before, path), state.bytes);
+  }
+}
+
 function verify(run, id) {
   const bounds = loadBounds(run, id);
   const manifest = loadManifest(run, id);
   const problems = moved(bounds.root, manifest);
-  const { changed } = changedPaths(bounds, manifest);
+  const { changed, savedState } = changedPaths(bounds, manifest);
   const escaped = changed.filter(
     (path) =>
       !bounds.paths.some((scopePath) => underPath(path, scopePath)) ||
@@ -286,9 +300,10 @@ function verify(run, id) {
   };
   const text = `${JSON.stringify(result, null, 2)}\n`;
   try {
+    writeBefore(checkpointDir(run, id), changed, savedState);
     writeFileSync(join(checkpointDir(run, id), "verify.json"), text);
   } catch (error) {
-    throw new Failure(`cannot write verify.json: ${error.message}`);
+    throw new Failure(`cannot write verify.json and before/: ${error.message}`);
   }
   process.stdout.write(text);
   return problems.length > 0 ? EXIT_PROBLEM : 0;

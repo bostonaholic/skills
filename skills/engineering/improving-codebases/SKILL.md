@@ -18,6 +18,8 @@ finding cites its code as `file:line`.
 - The skill never commits, pushes, branches, stages, stashes, or installs.
 - Scripts own every check result. Never call a finding verified or checked
   beyond what its label says ([verified results](shared/verified-results.md)).
+- Each refactor goes to a fresh-context reviewer that never judges its own
+  work ([independent review](shared/independent-review.md)).
 
 `<skill-dir>` is this skill's directory, `<top>` is the output of
 `git rev-parse --show-toplevel`, `<out>` is the absolute output directory,
@@ -59,8 +61,9 @@ Give these items:
 
 - The resolved scope paths.
 - One line per lane, with its status and its count per outcome.
-- Each finding, with its outcome, its label from `report.md`, its reason, and its `file:line` citations. A finding with checks reads `unverified`.
+- Each finding, with its outcome, its label from `report.md`, its reason, and its `file:line` citations. Only a finding whose checks all pass and whose review is `confirmed` reads `verified`; every other finding with checks reads `unverified`, and a refuted or inconclusive review names its defects.
 - Every gap, limit hit, and skipped check, each on its own line. A vendored, generated, or build-output gap names its evidence, and an absent checker names what `run-tlc.mjs` looked for.
 - When the baseline does not read `pass`, its reason and the tracked paths it changed, and that `--env <NAME>` passes a variable the tests need.
 - Both report paths and the `<run>` path, only when a report exists. A run with no finding writes no file in the repository.
-- One line saying which rules held by prompt only: the read-only find subagents, the data rule, the limit of 20 candidates per return, the make step's bounds, no edit to a test outside `coveringTests`, the `\* UNCHECKED` mark, no reuse of an existing spec, no write to a git-ignored path, no staging, and no other writer in the working tree.
+- When a reviewer held tools beyond read and search, say the structural guarantee of an independent review was unavailable. No `verify` runs after a review, so a reviewer's edit goes unseen.
+- One line saying which rules held by prompt only: the read-only find and review subagents, `review.status`, which the main session copies from the review return and no script tests, the data rule, the limit of 20 candidates per return, the make step's bounds, no edit to a test outside `coveringTests`, the `\* UNCHECKED` mark, no reuse of an existing spec, no write to a git-ignored path, no staging, and no other writer in the working tree.
