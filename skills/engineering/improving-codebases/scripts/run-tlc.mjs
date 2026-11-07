@@ -9,8 +9,9 @@
 //           not match ^[A-Z][A-Za-z0-9]*$
 // Finds `tlc` on PATH, else `java` with the jar that TLA2TOOLS_JAR names. Copies every .tla and .cfg
 // beside the spec into a scratch directory beside result.json and runs TLC there, so TLC's states/
-// directory and trace files stay out of the repository. The verdict fails safe: output this
-// script does not recognize reads not-run, never pass.
+// directory and trace files stay out of the repository. The result names the spec under `spec`,
+// apart from the siblings in `inputs`, so it vouches for that spec alone. The verdict fails safe:
+// output this script does not recognize reads not-run, never pass.
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -224,6 +225,7 @@ export async function runTlc(spec, result, bounds) {
   const record = (fields, command = []) => {
     const body = {
       check: "model-check",
+      spec: resolve(spec),
       ...fields,
       seconds: Math.round((Date.now() - started) / 100) / 10,
       command,

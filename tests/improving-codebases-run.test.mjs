@@ -952,6 +952,19 @@ printf 'ran\\n' > '${ranFile}'
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(result).check, "model-check");
     });
+
+    await t.test("the result names the spec it checked, apart from its siblings", (st) => {
+      const fx = checkerFixture(st);
+      writeFileSync(join(fx.specs, "Helper.tla"), "---- MODULE Helper ----\nConst == 1\n====\n");
+      stub(fx.bin, "tlc", "exit 0\n");
+      const result = join(fx.run, "tlc", "1.json");
+      mkdirSync(dirname(result));
+
+      const run = node(script("run-tlc.mjs"), [fx.spec, result], { PATH: fx.bin });
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(readJson(result).spec, fx.spec);
+    });
   });
 });
 

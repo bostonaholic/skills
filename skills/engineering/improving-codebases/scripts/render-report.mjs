@@ -314,8 +314,9 @@ function validateChecks(finding, label, lane, facts, errors) {
   if (allowed.has("model-check")) validateModelChecks(finding, label, checks, facts, errors);
 }
 
-// A model-check result vouches only for the specs it hashed. Each one must hold a .tla artifact of
-// this finding among its inputs, and each .tla artifact must sit among some result's inputs.
+// A model-check result vouches only for the spec TLC checked, never for a sibling it copied. Each
+// one must name a .tla artifact of this finding as its spec, and each .tla artifact must be the
+// spec of some result.
 function validateModelChecks(finding, label, checks, facts, errors) {
   const specs = list(finding.artifacts).filter(
     (path) => typeof path === "string" && path.endsWith(".tla") && facts.artifacts[path],
@@ -324,16 +325,16 @@ function validateModelChecks(finding, label, checks, facts, errors) {
   for (const item of checks.filter((check) => check.name === "model-check")) {
     const file = facts.checks[item.result];
     if (!file || file.problem) continue;
-    const held = specs.filter((spec) => list(file.inputPaths).includes(facts.artifacts[spec]));
-    if (held.length === 0)
+    const checked = specs.filter((spec) => file.specPath === facts.artifacts[spec]);
+    if (checked.length === 0)
       errors.push(
-        `${label}: model-check result ${item.result} holds none of this finding's .tla artifacts in its inputs`,
+        `${label}: model-check result ${item.result} checked ${file.data.spec ?? "no named spec"}, which is none of this finding's .tla artifacts`,
       );
-    for (const spec of held) covered.add(spec);
+    for (const spec of checked) covered.add(spec);
   }
   for (const spec of specs) {
     if (!covered.has(spec))
-      errors.push(`${label}: artifact ${spec} sits in the inputs of no model-check result`);
+      errors.push(`${label}: artifact ${spec} is the spec of no model-check result`);
   }
 }
 
@@ -342,10 +343,10 @@ function validateModelChecks(finding, label, checks, facts, errors) {
 // verifyTrees }. `lines` maps each cited
 // path to its line count at scope.commit, or null when the path is absent there. `artifacts` maps
 // each artifact path to its real path, or null when it does not exist. `checks` maps each result
-// path to { problem, real, data, changedInputs, inputPaths }, where `problem` is null for a
-// readable result file under <run>, and `inputPaths` holds the real path of each input. `baseline` is
-// <run>/baseline.json or null. For each applied finding, `testsPaths` holds the one path its tests
-// result may sit at, and `verifyTrees` holds the tree its verify.json recorded.
+// path to { problem, real, data, changedInputs, specPath }, where `problem` is null for a
+// readable result file under <run>, and `specPath` is the real path of its `spec`, or null.
+// `baseline` is <run>/baseline.json or null. For each applied finding, `testsPaths` holds the one
+// path its tests result may sit at, and `verifyTrees` holds the tree its verify.json recorded.
 export function validateReport(report, lanes, facts) {
   if (!isObject(report)) return ["report is not a JSON object"];
   const errors = [];
@@ -598,10 +599,8 @@ function readCheckFile(path, runDir) {
       }
     })
     .map((input) => input.path);
-  const inputPaths = list(data.inputs)
-    .map((input) => (isObject(input) && filled(input.path) ? realOrNull(input.path) : null))
-    .filter(Boolean);
-  return { problem: null, real, data, changedInputs, inputPaths };
+  const specPath = filled(data.spec) ? realOrNull(data.spec) : null;
+  return { problem: null, real, data, changedInputs, specPath };
 }
 
 // Reads what validateReport needs from git and disk: HEAD, the tracked inventory under scope.paths,

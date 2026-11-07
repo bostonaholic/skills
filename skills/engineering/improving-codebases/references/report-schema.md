@@ -66,6 +66,7 @@ and embeds it, so the model never states a result.
 | `seconds`        | Wall clock                                                                                      |
 | `command`        | The argv that ran                                                                               |
 | `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                   |
+| `spec`           | `run-tlc.mjs` only. The absolute path of the `.tla` file it checked                             |
 | `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included |
 | `tree`           | `run-bounded.mjs` only. One digest of HEAD, every ref, and the content of each tracked change   |
 
@@ -124,9 +125,9 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
 - Each `checks` item names a check its lane declares, or `tests` on an
   `applied` finding, and its `result` file holds a `check` field equal to its
   `name`. When the lane declares `model-check`, each `model-check` result
-  holds a `.tla` artifact of the finding among its `inputs`, compared by real
-  path, and each `.tla` artifact sits among the `inputs` of some
-  `model-check` result.
+  names a `.tla` artifact of the finding as its `spec`, compared by real
+  path, and each `.tla` artifact is the `spec` of some `model-check` result.
+  A sibling among a result's `inputs` binds nothing.
 - An `applied` finding needs `<run>/baseline.json` to read `pass`, non-empty
   `coveringTests` and `changed`, and a `review.status` of `confirmed` or
   `not-run`. Each `coveringTests` entry is `path:line`, and may sit outside
