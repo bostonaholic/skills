@@ -316,12 +316,23 @@ function unreachableReason(root, path) {
   return null;
 }
 
-function put(root, path, state) {
-  const target = join(root, path);
+const UNDER_LINK = "it sits under a symlinked directory";
+
+// Removes whatever sits at `path` now. Each call tests the path's directories again, so a removal
+// never passes through a link, even one an earlier step of this restore made.
+function removeCurrent(root, path) {
   const current = pathState(root, path);
-  if (current.kind === "other") rmSync(target, { recursive: true });
-  else if (current.kind !== "absent") unlinkSync(target);
+  if (current.kind === "unreachable") throw new Error(UNDER_LINK);
+  if (current.kind === "other") rmSync(join(root, path), { recursive: true });
+  else if (current.kind !== "absent") unlinkSync(join(root, path));
+}
+
+// Writes the saved state at `path`, which removeCurrent emptied. Each call tests the path's
+// directories again, so a write never passes through a link, even one an earlier write made.
+function writeSaved(root, path, state) {
   if (state.kind === "absent") return;
+  if (!reachable(root, path)) throw new Error(UNDER_LINK);
+  const target = join(root, path);
   mkdirSync(dirname(target), { recursive: true });
   if (state.kind === "link") symlinkSync(state.target, target);
   else {
@@ -337,18 +348,23 @@ function restore(run, id) {
   if (problems.length > 0)
     throw new Failure(`restore wrote nothing, because ${problems.join(" and ")}`);
   const { changed, savedState } = changedPaths(bounds, manifest);
-  const blocked = changed.map((path) => unreachableReason(bounds.root, path)).filter(Boolean);
+  const blocked = [
+    ...changed.map((path) => unreachableReason(bounds.root, path)).filter(Boolean),
+    ...changed
+      .filter((path) => ["other", "unreachable"].includes(savedState(path).kind))
+      .map((path) => `${path} has a saved state that is not a file or a link`),
+  ];
   if (blocked.length > 0) throw new Failure(`restore wrote nothing: ${blocked.join("; ")}`);
-  for (const path of changed) {
-    const state = savedState(path);
-    if (state.kind === "other" || state.kind === "unreachable")
-      throw new Failure(`cannot restore ${path}, whose saved state is not a file or a link`);
+  // Every removal runs before any write, so no removal can pass through a link this restore made.
+  const step = (path, action) => {
     try {
-      put(bounds.root, path, state);
+      action();
     } catch (error) {
       throw new Failure(`cannot restore ${path}: ${error.message}; stop the run on this tree`);
     }
-  }
+  };
+  for (const path of changed) step(path, () => removeCurrent(bounds.root, path));
+  for (const path of changed) step(path, () => writeSaved(bounds.root, path, savedState(path)));
   const after = moved(bounds.root, manifest);
   const left = changedPaths(bounds, manifest).changed;
   if (after.length > 0 || left.length > 0)

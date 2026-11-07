@@ -10,6 +10,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -389,6 +390,51 @@ describe("slice 3: undo a failed make step", () => {
 
         assert.equal(restore.status, 1, restore.stderr);
         assert.match(restore.stderr, /src\/a\.js/);
+        assert.equal(readFileSync(join(outside, "a.js"), "utf8"), "outside the repository\n");
+      },
+    );
+
+    await t.test(
+      "a make step that replaced a tracked symlink with a directory: restore brings the link back and deletes nothing through it",
+      (st) => {
+        const fx = checkpointFixture(st, { files: { "src/a.js": "a at head\n" } });
+        const outside = tempDir(st, "improving-codebases-outside-");
+        writeFileSync(join(outside, "a.js"), "outside the repository\n");
+        symlinkSync(outside, join(fx.root, "lnk"));
+        git(fx.root, "add", "lnk");
+        git(fx.root, "commit", "-q", "-m", "a tracked symlink");
+        assert.equal(fx.checkpoint("save", fx.run, "machines/1").status, 0);
+        unlinkSync(join(fx.root, "lnk"));
+        write(fx.root, "lnk/a.js", "made by the step\n");
+
+        const restore = fx.checkpoint("restore", fx.run, "machines/1");
+
+        assert.equal(restore.status, 0, restore.stderr);
+        assert.equal(readlinkSync(join(fx.root, "lnk")), outside);
+        assert.equal(readFileSync(join(outside, "a.js"), "utf8"), "outside the repository\n");
+      },
+    );
+
+    await t.test(
+      "a saved file under a link that restore itself recreates: exit 1, and nothing is written through the link",
+      (st) => {
+        const fx = checkpointFixture(st, { files: { "src/a.js": "a at head\n" } });
+        const outside = tempDir(st, "improving-codebases-outside-");
+        writeFileSync(join(outside, "a.js"), "outside the repository\n");
+        assert.equal(fx.checkpoint("save", fx.run, "machines/1").status, 0);
+        const dir = join(fx.run, "checkpoints", "machines", "1");
+        const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+        writeFileSync(join(dir, "files", "through-link"), "written through the link\n");
+        manifest.paths.push(
+          { path: "lnk", kind: "link", target: outside },
+          { path: "lnk/a.js", kind: "file", mode: 0o644, copy: "files/through-link" },
+        );
+        writeFileSync(join(dir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+        const restore = fx.checkpoint("restore", fx.run, "machines/1");
+
+        assert.equal(restore.status, 1, restore.stderr);
+        assert.match(restore.stderr, /lnk\/a\.js/);
         assert.equal(readFileSync(join(outside, "a.js"), "utf8"), "outside the repository\n");
       },
     );
