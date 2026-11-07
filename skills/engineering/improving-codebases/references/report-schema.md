@@ -6,6 +6,13 @@ repository, then writes `report.json` and `report.md` into `<out>`. The
 renderer rejects a report that breaks a rule, names each broken rule, and
 writes nothing, so its errors are the full rule list.
 
+## Contents
+
+- [`report.json`](#reportjson)
+- [Check result file](#check-result-file)
+- [`<run>` layout](#run-layout)
+- [Rules](#rules)
+
 ## `report.json`
 
 ```json
@@ -31,12 +38,39 @@ writes nothing, so its errors are the full rule list.
       "title": "<one line>",
       "citations": ["<path:line>"],
       "evidence": [{ "kind": "<kind>", "name": "<name>", "citation": "<path:line>" }],
-      "outcome": "reported",
-      "reason": "<why the finding ends here>"
+      "outcome": "proposed",
+      "reason": "<why the finding ends here>",
+      "proposedChange": "<the change, from the make return>",
+      "artifacts": ["<repository-relative path the make step kept>"],
+      "checks": [{ "name": "<check name>", "result": "<absolute path of a result file under <run>>" }],
+      "review": { "status": "not-run", "reason": "<why>" }
     }
   ]
 }
 ```
+
+## Check result file
+
+`run-tlc.mjs` writes this shape. The renderer reads it and embeds it, so the
+model never states a result.
+
+| Field            | Rule                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `check`          | The check name, such as `model-check`                                                           |
+| `status`         | `pass`, `fail`, or `not-run`                                                                    |
+| `reason`         | Necessary for `not-run`                                                                         |
+| `trace`          | Necessary for `fail`: the counterexample                                                        |
+| `seconds`        | Wall clock                                                                                      |
+| `command`        | The argv that ran                                                                               |
+| `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                   |
+| `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included |
+
+## `<run>` layout
+
+- `report.json`: the report the main session assembles.
+- `make/<id>.json`: the JSON block of a `complete` make return.
+- `tlc/<id>/<k>.json`: one `run-tlc.mjs` result per run, beside the scratch
+  directory TLC ran in.
 
 ## Rules
 
@@ -53,8 +87,22 @@ writes nothing, so its errors are the full rule list.
 - `id` is `<lane>/<n>` with a positive integer `<n>`, unique in the report.
 - A finding has a `title`, at least one citation, and at least one evidence
   item of each kind its lane declares.
-- `outcome` is `reported`, which only a `makes: false` lane may use, and it
+- `outcome` is `proposed`, `reported`, or `deferred`, and each needs a
+  `reason`. Only a `makes: false` lane uses `reported`. `deferred` means the
+  lane has a make step and it did not finish for this finding.
+- A `proposed` finding needs a non-empty `proposedChange`, a `{ name, result }`
+  item in `checks` for each name in its lane's `checks`, and at least one
+  artifact with a suffix from its lane's `artifacts`. Each artifact exists on
+  disk, and each `result` sits under `<run>` by real path.
+- `review` is `{ status, reason }`, with `status` one of `confirmed`,
+  `refuted`, `inconclusive`, or `not-run`. Every status but `confirmed`
   needs a `reason`.
+- Each check reads the status its result file holds; a status typed in
+  `report.json` loses. A `pass` whose `inputs` file changed since the run
+  reads `not-run` with the reason `spec changed after the run`. A `fail`
+  keeps its trace. Every finding with checks reads `unverified`. The written
+  `report.json` and `report.md` embed each resolved check, because `<run>`
+  is temporary.
 - With no finding, the renderer prints `no findings` and writes nothing.
 - The renderer refuses a symlinked `report.json` or `report.md` in `<out>`,
   and a `report.json` there whose `skill` is not `improving-codebases`.

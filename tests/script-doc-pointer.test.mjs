@@ -669,6 +669,14 @@ const ROWS = [
     target: "skills/engineering/improving-codebases/SKILL.md",
   },
   {
+    label: "improving-codebases run-tlc.mjs",
+    script: "skills/engineering/improving-codebases/scripts/run-tlc.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/improving-codebases/SKILL.md",
+  },
+  {
     label: "find-leads.mjs",
     script: "skills/engineering/auditing-rails-tech-debt/scripts/find-leads.mjs",
     interpreter: "node",

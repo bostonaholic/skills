@@ -89,6 +89,8 @@ test("sync-shared --check passes: every copy equals its canonical bytes and the 
 const SINGLE_READER = Object.freeze({
   "shared/human-control.md":
     "read only by grooming-backlogs; moving it into that skill's references/ is deferred",
+  "shared/verified-results.md":
+    "read only by improving-codebases; the design keeps it shared, and moving it is deferred",
 });
 
 test("every root shared/ file has more than one reader unless SINGLE_READER names it", () => {

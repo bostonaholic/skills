@@ -1,10 +1,10 @@
 ---
 lane: state-machines
-summary: Finds implicit state machines and cites their states, transitions, and guards
-makes: false
+summary: Finds implicit state machines, specs each one in TLA+, and checks the spec with TLC
+makes: true
 evidence: state, transition, guard
-checks:
-artifacts:
+checks: model-check
+artifacts: .tla, .cfg
 ---
 
 # State-machine lane
@@ -27,3 +27,50 @@ transitions, where at least one transition is guarded by the current state.
 - A candidate with no in-scope item of a declared evidence kind is not a
   finding. Name its holder in your return's candidates only when every kind
   has an in-scope citation; the merge step drops the rest to a gap line.
+
+## Make
+
+Run these steps in order. This step writes spec files only and leaves the
+source untouched.
+
+1. **Name the spec.** `<Module>` is a PascalCase name for the holder. Specs
+   go in the directory that already holds `.tla` files, else `specs/tla/`.
+   When a spec of that name exists there, ignoring case, add the lowest free
+   number, as in `OrderStatus2`. Never reuse or replace an existing spec.
+2. **Write `<Module>.tla` and `<Module>.cfg`.** Model the code as it is now.
+   `Init` holds every state that code creates the holder in. Each cited
+   transition becomes one action, with the guard the code has. The `.cfg`
+   names `INIT`, `NEXT`, and, under `INVARIANTS`, `TypeOK` plus at least one
+   invariant that can fail.
+3. **Add a history variable.** When the holder is the only variable, every
+   reachable value already sits in the type set, so no state predicate on
+   the holder alone can reject an illegal step. Add a history variable `prev`
+   that each action sets to the old state, and write the invariant over
+   `prev` and the holder, for example
+   `NoSkip == ~(prev = "pending" /\ s = "shipped")`.
+4. **Check it.** Run
+   `node <skill-dir>/scripts/run-tlc.mjs <spec.tla> <run>/tlc/<id>/<k>.json`,
+   with a new result file `<k>` for each run. On a parse error, repair the
+   spec and run again, at most 3 runs per finding.
+5. **Keep a counterexample.** A counterexample stands unless its trace
+   contradicts a cited line. Never drop or weaken an invariant, tighten a
+   guard, or narrow `Init` to reach `pass`. The trace is a report item, and
+   the code keeps its behavior.
+6. **Mark an unchecked spec.** A spec whose last result is not `pass` or
+   `fail` starts with `\* UNCHECKED: <reason>`.
+7. **Return** `status: complete` with both spec paths under `artifacts`, the
+   explicit machine you would write under `proposedChange`, the last result
+   file as the `model-check` check, and `reason` set to `spec only`.
+
+## Review
+
+Give the reviewer these neutral claims to refute:
+
+- Each spec action maps to a cited transition.
+- Each cited transition maps to a spec action.
+- Each spec action has the same guard as the code before the refactor, and
+  `Init` holds every
+  state that code creates the holder in. Hydration from storage does not
+  count.
+- At least one invariant other than `TypeOK` can fail on a state that the
+  type set allows.

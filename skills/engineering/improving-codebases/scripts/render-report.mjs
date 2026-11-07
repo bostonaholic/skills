@@ -9,8 +9,18 @@
 //           skill's report
 //   exit 2  not exactly two arguments; stderr prints the usage line
 // Citations are tested at scope.commit through git, because a refactor moves lines in the tree.
-import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+// <run> is the directory of report.json's real path. Each check result sits under it, and the
+// renderer reads that file for the status, so a status typed into report.json never counts.
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { listLanes } from "./list-lanes.mjs";
@@ -20,7 +30,11 @@ import { childEnv } from "./run-bounded.mjs";
 const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 export const SKILL = "improving-codebases";
-export const OUTCOMES = Object.freeze(["reported"]);
+export const OUTCOMES = Object.freeze(["proposed", "reported", "deferred"]);
+export const REVIEW_STATUSES = Object.freeze(["confirmed", "refuted", "inconclusive", "not-run"]);
+export const CHECK_STATUSES = Object.freeze(["pass", "fail", "not-run"]);
+// A fence needs more backticks than any run inside the text it fences.
+const MIN_FENCE = 3;
 const FINDING_ID = /^([a-z0-9-]+)\/([1-9][0-9]*)$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LINE_NUMBER = /^[1-9][0-9]*$/;
@@ -204,11 +218,57 @@ function validateFinding(finding, label, registry, scope, facts, errors) {
     errors.push(`${label}: lane ${lane.lane} has a make step, so its findings are never reported`);
   if (finding.outcome !== "applied" && !filled(finding.reason))
     errors.push(`${label}: outcome ${finding.outcome} needs a reason`);
+  if (finding.review !== undefined) validateReview(finding.review, label, errors);
+  if (finding.outcome === "proposed") {
+    if (!filled(finding.proposedChange))
+      errors.push(`${label}: outcome proposed needs a proposedChange`);
+    validateArtifacts(finding, label, lane, facts, errors);
+    validateChecks(finding, label, lane, facts, errors);
+  }
+}
+
+function validateReview(review, label, errors) {
+  if (!isObject(review) || !REVIEW_STATUSES.includes(review.status)) {
+    errors.push(`${label}: review.status must be one of ${REVIEW_STATUSES.join(", ")}`);
+    return;
+  }
+  if (review.status !== "confirmed" && !filled(review.reason))
+    errors.push(`${label}: review ${review.status} needs a reason`);
+}
+
+function validateArtifacts(finding, label, lane, facts, errors) {
+  const artifacts = list(finding.artifacts);
+  for (const path of artifacts) {
+    if (!relativePath(path)) errors.push(`${label}: artifact ${path} is not repository-relative`);
+    else if (!facts.artifacts[path])
+      errors.push(`${label}: artifact ${path} does not exist on disk`);
+  }
+  const suffixes = lane?.artifacts ?? [];
+  if (suffixes.length > 0 && !artifacts.some((path) => suffixes.some((s) => path.endsWith(s))))
+    errors.push(`${label}: needs an artifact ending in ${suffixes.join(" or ")}`);
+}
+
+function validateChecks(finding, label, lane, facts, errors) {
+  const checks = list(finding.checks).filter((item, index) => {
+    const valid = isObject(item) && filled(item.name) && filled(item.result);
+    if (!valid) errors.push(`${label}: checks[${index}] needs a name and a result path`);
+    return valid;
+  });
+  for (const item of checks) {
+    const problem = facts.checks[item.result]?.problem ?? null;
+    if (problem) errors.push(`${label}: check ${item.name} result ${item.result} ${problem}`);
+  }
+  for (const name of lane?.checks ?? []) {
+    if (!checks.some((item) => item.name === name))
+      errors.push(`${label}: lane ${lane.lane} needs a result for check ${name}`);
+  }
 }
 
 // Returns every rule `report` breaks. `lanes` is the registry from list-lanes.mjs, and `facts`
-// holds what the loader read: { head, inventory, lines }, where `lines` maps each cited path to its
-// line count at scope.commit, or null when the path is absent there.
+// holds what the loader read: { head, inventory, lines, artifacts, checks }. `lines` maps each cited
+// path to its line count at scope.commit, or null when the path is absent there. `artifacts` maps
+// each artifact path to whether it exists. `checks` maps each result path to { problem, data,
+// changedInputs }, where `problem` is null for a readable result file under <run>.
 export function validateReport(report, lanes, facts) {
   if (!isObject(report)) return ["report is not a JSON object"];
   const errors = [];
@@ -234,6 +294,44 @@ export function validateReport(report, lanes, facts) {
   return errors;
 }
 
+// The check as its result file states it. A pass whose inputs changed since the run reads not-run.
+export function resolveCheck(item, file) {
+  const data = file.data;
+  const resolved = { name: item.name, result: item.result, status: data.status };
+  for (const field of ["reason", "trace", "distinctStates", "seconds", "command"]) {
+    if (data[field] !== undefined) resolved[field] = data[field];
+  }
+  if (data.status === "pass" && file.changedInputs.length > 0) {
+    resolved.status = "not-run";
+    resolved.reason = `spec changed after the run: ${file.changedInputs.join(", ")}`;
+  }
+  return resolved;
+}
+
+// Every finding with checks reads unverified, as no review has run.
+export function findingLabel(finding) {
+  return list(finding.checks).length === 0 ? "" : "unverified";
+}
+
+// Returns the report with each check replaced by what its result file states, and each label set.
+export function resolveReport(report, facts) {
+  return {
+    ...report,
+    findings: list(report.findings).map((finding) => {
+      if (list(finding.checks).length === 0) return finding;
+      const checks = finding.checks.map((item) => resolveCheck(item, facts.checks[item.result]));
+      const resolved = { ...finding, checks };
+      return { ...resolved, label: findingLabel(resolved) };
+    }),
+  };
+}
+
+function fence(text) {
+  const longest = Math.max(0, ...[...String(text).matchAll(/`+/g)].map((run) => run[0].length));
+  const ticks = "`".repeat(Math.max(MIN_FENCE, longest + 1));
+  return `${ticks}text\n${text}\n${ticks}\n`;
+}
+
 const cell = (value) =>
   String(value ?? "")
     .replace(/\r?\n/g, " ")
@@ -250,21 +348,49 @@ export function laneStatus(entry) {
   return list(entry.failed).length > 0 ? "partial" : "complete";
 }
 
+const codeList = (items) =>
+  list(items)
+    .map((item) => `\`${item}\``)
+    .join(", ");
+
+function checkDetail(check) {
+  if (check.status === "pass" && check.distinctStates !== undefined)
+    return `${check.distinctStates} distinct states`;
+  if (check.status === "fail") return "counterexample trace below";
+  return check.reason ?? "";
+}
+
 function findingSection(finding) {
   const out = [`### ${cell(finding.id)}: ${cell(finding.title)}\n`];
   out.push(`- Outcome: ${finding.outcome}`);
+  if (filled(finding.label)) out.push(`- Label: ${finding.label}`);
   if (filled(finding.reason)) out.push(`- Reason: ${cell(finding.reason)}`);
-  out.push(
-    `- Citations: ${list(finding.citations)
-      .map((c) => `\`${c}\``)
-      .join(", ")}\n`,
-  );
+  if (isObject(finding.review)) {
+    const why = filled(finding.review.reason) ? `: ${cell(finding.review.reason)}` : "";
+    out.push(`- Review: ${finding.review.status}${why}`);
+  }
+  out.push(`- Citations: ${codeList(finding.citations)}`);
+  if (list(finding.artifacts).length > 0) out.push(`- Artifacts: ${codeList(finding.artifacts)}`);
+  out.push("");
   out.push(
     table(
       ["Kind", "Name", "Citation"],
       list(finding.evidence).map((item) => [item.kind, item.name, item.citation]),
     ),
   );
+  if (filled(finding.proposedChange))
+    out.push(`Proposed change: ${cell(finding.proposedChange)}\n`);
+  const checks = list(finding.checks);
+  if (checks.length > 0) {
+    out.push(
+      table(
+        ["Check", "Status", "Detail"],
+        checks.map((check) => [check.name, check.status, checkDetail(check)]),
+      ),
+    );
+    for (const check of checks.filter((item) => item.status === "fail"))
+      out.push(`Trace for ${check.name}:\n\n${fence(check.trace)}`);
+  }
   return out.join("\n");
 }
 
@@ -305,8 +431,8 @@ export function renderReport(report, lanes) {
   out.push("## Findings\n");
   out.push(
     table(
-      ["ID", "Lane", "Outcome", "Title"],
-      findings.map((f) => [f.id, f.lane, f.outcome, f.title]),
+      ["ID", "Lane", "Outcome", "Label", "Title"],
+      findings.map((f) => [f.id, f.lane, f.outcome, f.label ?? "", f.title]),
     ),
   );
   for (const finding of findings) out.push(findingSection(finding));
@@ -345,9 +471,45 @@ function lineCount(blob) {
   return blob[blob.length - 1] === NEWLINE ? count : count + 1;
 }
 
-// Reads what validateReport needs from git: HEAD, the tracked inventory under scope.paths, and the
-// line count at scope.commit of each cited path. Returns { facts } or { errors }.
-export function loadFacts(report) {
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+// Reads one check result file by real path, and rehashes each of its inputs.
+function readCheckFile(path, runDir) {
+  if (!isAbsolute(path)) return { problem: "is not an absolute path under <run>" };
+  let real;
+  try {
+    real = realpathSync(path);
+  } catch {
+    return { problem: "does not exist" };
+  }
+  if (!real.startsWith(`${runDir}${sep}`)) return { problem: `is not under <run> ${runDir}` };
+  let data;
+  try {
+    data = JSON.parse(readFileSync(real, "utf8"));
+  } catch (error) {
+    return { problem: `cannot be read: ${error.message}` };
+  }
+  if (!isObject(data) || !CHECK_STATUSES.includes(data.status))
+    return { problem: `holds no status of ${CHECK_STATUSES.join(", ")}` };
+  if (data.status === "fail" && !filled(data.trace)) return { problem: "reads fail with no trace" };
+  if (data.status === "not-run" && !filled(data.reason))
+    return { problem: "reads not-run with no reason" };
+  const changedInputs = list(data.inputs)
+    .filter((input) => {
+      try {
+        return sha256(readFileSync(input.path)) !== input.sha256;
+      } catch {
+        return true;
+      }
+    })
+    .map((input) => input.path);
+  return { problem: null, data, changedInputs };
+}
+
+// Reads what validateReport needs from git and disk: HEAD, the tracked inventory under scope.paths,
+// the line count at scope.commit of each cited path, each artifact's presence, and each check
+// result file under `runDir`. Returns { facts } or { errors }.
+export function loadFacts(report, runDir) {
   const scope = isObject(report?.scope) ? report.scope : {};
   if (!filled(scope.root) || !isAbsolute(scope.root))
     return { errors: ["scope.root must be the absolute path of the repository's top level"] };
@@ -377,7 +539,19 @@ export function loadFacts(report) {
     const blob = git(root, ["cat-file", "blob", `${scope.commit}:${path}`], "buffer");
     lines[path] = blob.status === 0 ? lineCount(blob.stdout) : null;
   }
-  return { facts: { head: head.stdout.trim(), inventory, lines } };
+  const artifacts = {};
+  const checks = {};
+  for (const finding of list(report.findings)) {
+    if (!isObject(finding)) continue;
+    for (const path of list(finding.artifacts)) {
+      if (relativePath(path)) artifacts[path] = existsSync(join(root, path));
+    }
+    for (const item of list(finding.checks)) {
+      if (isObject(item) && filled(item.result) && !(item.result in checks))
+        checks[item.result] = readCheckFile(item.result, runDir);
+    }
+  }
+  return { facts: { head: head.stdout.trim(), inventory, lines, artifacts, checks } };
 }
 
 // Returns why the renderer refuses to write `target`, or null when it may write there.
@@ -426,7 +600,9 @@ function main(args) {
   }
   const [input, out] = args;
   let report;
+  let runDir;
   try {
+    runDir = dirname(realpathSync(input));
     report = JSON.parse(readFileSync(input, "utf8"));
   } catch (error) {
     return fail([`render-report.mjs: cannot read ${input}: ${error.message}`]);
@@ -434,7 +610,7 @@ function main(args) {
   const registry = listLanes();
   if (registry.errors.length > 0)
     return fail(["render-report.mjs: the lane registry is malformed", ...registry.errors]);
-  const loaded = loadFacts(report);
+  const loaded = loadFacts(report, runDir);
   if (loaded.errors) return fail(loaded.errors.map((error) => `render-report.mjs: ${error}`));
   const errors = validateReport(report, registry.lanes, loaded.facts);
   if (errors.length > 0)
@@ -448,11 +624,12 @@ function main(args) {
   }
   const refusal = outRefusal(out);
   if (refusal) return fail([`render-report.mjs: ${refusal}`]);
+  const resolved = resolveReport(report, loaded.facts);
   const target = join(out, "report.md");
   try {
     mkdirSync(out, { recursive: true });
-    writeFileSync(join(out, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
-    writeFileSync(target, renderReport(report, registry.lanes));
+    writeFileSync(join(out, "report.json"), `${JSON.stringify(resolved, null, 2)}\n`);
+    writeFileSync(target, renderReport(resolved, registry.lanes));
   } catch (error) {
     return fail([`render-report.mjs: cannot write ${out}: ${error.message}`]);
   }

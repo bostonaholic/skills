@@ -69,3 +69,22 @@ and cite each one inside the scope.
 `subject` is a merge key for the merge step only. It may sit outside the
 scope, and it never reaches `report.json`. Two returns that cite one
 `subject` describe one finding.
+
+## Make return
+
+```json
+{
+  "artifacts": ["<repository-relative path of each file the step wrote and keeps>"],
+  "proposedChange": "<the change that makes the improvement, in enough detail to apply by hand>",
+  "checks": [{ "name": "<a check the brief declares>", "result": "<result file a script wrote under <run>>" }],
+  "reason": "<why no refactor ran; empty when one ran>"
+}
+```
+
+- `status: complete` means the step finished with its kept artifacts in
+  place, with or without a refactor or a check verdict. `proposedChange` is
+  never empty in a `complete` return, because a restore can leave the return
+  as the only copy of the change.
+- `status: partial` or `status: blocked` means the step left nothing to
+  keep. This holds for a lane with empty `artifacts` too.
+- Never type a check status. Each `result` names a file that a script wrote.
