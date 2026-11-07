@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.85.0] - 2026-11-07
+
+### Added
+
+- Add improving-codebases, which audits a codebase with one subagent per improvement lane, starting with a lane that finds implicit state machines, refactors each into an explicit one, and checks it with a TLA+ spec and TLC. [#177](https://github.com/bostonaholic/skills/pull/177)
+
 ## [0.84.0] - 2026-11-07
 
 ### Added
@@ -1076,5 +1082,7 @@
 
 [0.83.0]: https://github.com/bostonaholic/skills/compare/v0.82.0...v0.83.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.84.0...HEAD
 [0.84.0]: https://github.com/bostonaholic/skills/compare/v0.83.0...v0.84.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.85.0...HEAD
+[0.85.0]: https://github.com/bostonaholic/skills/compare/v0.84.0...v0.85.0

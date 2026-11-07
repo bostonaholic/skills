@@ -45,6 +45,7 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`freeing-disk-space`](./skills/engineering/freeing-disk-space/SKILL.md)                               | "free up disk space"                 | user, model        | Find what fills the disk and clear regenerable files.                                    |
 | [`grooming-backlogs`](./skills/engineering/grooming-backlogs/SKILL.md)                                 | "groom the backlog"                  | user, model        | Plan backlog grooming changes for approval.                                              |
 | [`hillclimbing`](./skills/engineering/hillclimbing/SKILL.md)                                           | "hillclimb"                          | user, model, skill | Iterate on measured changes until the criteria pass.                                     |
+| [`improving-codebases`](./skills/engineering/improving-codebases/SKILL.md)                             | "improve this codebase"              | user, model        | Sweep a codebase with focused improvement lanes.                                         |
 | [`investigating-design-rationale`](./skills/engineering/investigating-design-rationale/SKILL.md)       | "why is it built this way?"          | user, model, skill | Investigate why code is shaped as it is.                                                 |
 | [`landing-prs`](./skills/engineering/landing-prs/SKILL.md)                                             | "ship it"                            | user, model        | Land a reviewed pull request on explicit request.                                        |
 | [`limiting-shared-file-edits`](./skills/engineering/limiting-shared-file-edits/SKILL.md)               | "check shared files"                 | user, model        | List the shared files a change edits and flag append-everywhere files.                   |
@@ -134,6 +135,7 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 - `capturing-screenshots` installs Playwright into `${XDG_CACHE_HOME:-~/.cache}/paparazzi` and Chromium into the Playwright browser cache.
 - `stacking-prs` runs `gh stack`, which records its release checks in `gh-stack/state.yml` under GitHub CLI's state directory.
 - `summarizing-shipped-work` adds highlights to your brag document when you accept its offer.
+- `improving-codebases` keeps its run files, such as the assembled `report.json`, in a `mktemp -d` directory outside the target repository and names it in the reply. It runs the TLC model checker when `tlc` is on `PATH` or `TLA2TOOLS_JAR` names the TLA+ tools jar, in a scratch directory under that run directory. It runs the target repository's test command, found in its manifest or CI config, before the first refactor and after each one, with only an allowlisted environment plus the names you pass with `--env`. TLC sends usage statistics only after you opt in through `~/.tlaplus/esc.txt`, and the skill never opts in.
 
 ### Development-only paths
 

@@ -258,6 +258,94 @@ test("importing auditing-complexity/render-report.mjs through a symlinked direct
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
+test("improving-codebases/list-lanes.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = spawnSync(
+    process.execPath,
+    [
+      join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "list-lanes.mjs"),
+      "stray",
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^list-lanes\.mjs: usage: list-lanes\.mjs /);
+});
+
+test("importing improving-codebases/list-lanes.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "list-lanes.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("improving-codebases/render-report.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "render-report.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^render-report\.mjs: usage: render-report\.mjs /);
+});
+
+test("importing improving-codebases/render-report.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "render-report.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("improving-codebases/checkpoint.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "checkpoint.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^checkpoint\.mjs: usage: checkpoint\.mjs /);
+});
+
+test("importing improving-codebases/checkpoint.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "checkpoint.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("improving-codebases/run-bounded.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-bounded.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^run-bounded\.mjs: usage: run-bounded\.mjs /);
+});
+
+test("importing improving-codebases/run-bounded.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-bounded.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
+test("improving-codebases/run-tlc.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-tlc.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(
+    run.stderr,
+    /^run-tlc\.mjs: expected a spec and a result path\nrun-tlc\.mjs: usage: run-tlc\.mjs /,
+  );
+});
+
+test("importing improving-codebases/run-tlc.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-tlc.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("re-request-review.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
     join(

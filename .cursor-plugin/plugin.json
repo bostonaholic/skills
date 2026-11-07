@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic",
-  "version": "0.84.0",
+  "version": "0.85.0",
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston"
@@ -34,6 +34,7 @@
     "./skills/engineering/freeing-disk-space",
     "./skills/engineering/grooming-backlogs",
     "./skills/engineering/hillclimbing",
+    "./skills/engineering/improving-codebases",
     "./skills/engineering/investigating-design-rationale",
     "./skills/engineering/landing-prs",
     "./skills/engineering/limiting-shared-file-edits",
