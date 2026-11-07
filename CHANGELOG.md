@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.84.0] - 2026-11-07
+
+### Added
+
+- Add limiting-shared-file-edits, which lists the shared files a design or diff edits and reports any file every change appends to as a smell, with its fix. [#176](https://github.com/bostonaholic/skills/pull/176)
+
+### Changed
+
+- making-code-agent-friendly now clears a hot file by one shared guide, so AF1 and AF2 share their exceptions: a hot file that is one canonical object is no finding, a rate needs a date check, and a regenerated lockfile is not a hand edit. [#176](https://github.com/bostonaholic/skills/pull/176)
+- making-code-agent-friendly now checks a repository file name against an allowlist before passing it to git, and marks a failing name `not measured`. [#176](https://github.com/bostonaholic/skills/pull/176)
+
 ## [0.83.0] - 2026-11-05
 
 ### Changed
@@ -1063,5 +1074,7 @@
 
 [0.82.0]: https://github.com/bostonaholic/skills/compare/v0.81.0...v0.82.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.83.0...HEAD
 [0.83.0]: https://github.com/bostonaholic/skills/compare/v0.82.0...v0.83.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.84.0...HEAD
+[0.84.0]: https://github.com/bostonaholic/skills/compare/v0.83.0...v0.84.0

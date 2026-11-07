@@ -509,7 +509,7 @@ for (const script of ["arm.mjs", "poll.mjs", "render-approval.mjs", "verify-appr
 }
 
 test("contention.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const dir = symlinkedDir(t, "skills/engineering/making-code-agent-friendly/scripts");
+  const dir = symlinkedDir(t, "shared/scripts");
   const run = spawnSync(process.execPath, [join(dir, "contention.mjs"), "--bogus"], {
     encoding: "utf8",
   });
@@ -518,12 +518,6 @@ test("contention.mjs run through a symlinked directory reaches its usage error",
 });
 
 test("importing contention.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/engineering/making-code-agent-friendly/scripts"),
-      "contention.mjs",
-    ),
-  );
+  const run = importModule(t, join(symlinkedDir(t, "shared/scripts"), "contention.mjs"));
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });

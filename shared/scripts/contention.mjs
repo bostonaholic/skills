@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Canonical file: shared/scripts/contention.mjs at the repository root. Edit it there,
+// then run npm run sync-shared.
 // Reads git history for where parallel agents will collide and prints the signals as JSON.
 // Usage: contention.mjs [--max-commits <n>] [--top <n>] [-- <pathspec>...]
 //   --max-commits  newest non-merge commits reachable from HEAD to read (default 500)
@@ -22,8 +24,8 @@ import { realpathSync } from "node:fs";
 import { posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The skill file that explains each exit code.
-const DOC_PATH = fileURLToPath(new URL("../references/contention.md", import.meta.url));
+// The shared file that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../contention.md", import.meta.url));
 
 const SCRIPT = "contention.mjs";
 const USAGE = `${SCRIPT}: usage: ${SCRIPT} [--max-commits <n>] [--top <n>] [-- <pathspec>...]`;

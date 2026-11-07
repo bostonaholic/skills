@@ -1,6 +1,6 @@
 # Red flags
 
-Each flag names a code shape that breaks when many agents change one codebase in parallel. Detect it with the signal, confirm it is not a false positive, then cite the fix principle. Contention signals come from `scripts/contention.mjs`; the rest come from search and reading. Examples of each fix live in [principles.md](references/principles.md); a flag shows its own only when no principle does.
+Each flag names a code shape that breaks when many agents change one codebase in parallel. Detect it with the signal, confirm it is not a false positive, then cite the fix principle. Contention signals come from `shared/scripts/contention.mjs`; the rest come from search and reading. Examples of each fix live in [principles.md](references/principles.md); a flag shows its own only when no principle does.
 
 ## Contents
 
@@ -23,11 +23,11 @@ Each flag names a code shape that breaks when many agents change one codebase in
 
 Example: [P1](references/principles.md#p1-additive-change).
 
-**Not a flag when:** the file changes a few times a year, or one writer owns it. Lockfiles and generated files also top `hotFiles`; they are not findings unless edited by hand (the file changes without its source). Exclude them with a pathspec such as `-- . ':!<lockfile>'` and rerun.
+**Not a flag when:** the [contention guide](shared/contention.md#when-a-hot-file-is-not-a-finding) clears the file.
 
 ### AF2 Append-point hotspot
 
-**Signal:** a `hotFiles` entry whose changed lines cluster at the end of one array, enum, switch, or list. Check with `git log -p -- <file>` or `git log -L <start>,<end>:<file>` on the list: a flag when added lines keep landing at the same end position. Reading cues: unsorted lists, "add new entries here" comments, no trailing comma on the last item.
+**Signal:** a `hotFiles` entry whose changed lines cluster at the end of one array, enum, switch, or list. After the guide's [name check](shared/contention.md#name-check), check with `git log -p -- <file>` or `git log -L <start>,<end>:<file>` on the list: a flag when added lines keep landing at the same end position. Reading cues: unsorted lists, "add new entries here" comments, no trailing comma on the last item.
 
 **Why agents suffer:** two purely additive changes edit the same lines, so git reports a conflict that only a human or an extra agent turn resolves.
 
@@ -53,7 +53,7 @@ export const PLANS = [
 
 Additions now land at different sorted positions and merge cleanly.
 
-**Not a flag when:** the order carries meaning (a middleware chain, a priority list) and changes rarely.
+**Not a flag when:** the [contention guide](shared/contention.md#when-a-hot-file-is-not-a-finding) clears the file, as it does for an order that carries meaning (a middleware chain, a priority list).
 
 ### AF3 Global sequence
 
