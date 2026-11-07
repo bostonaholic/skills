@@ -3,7 +3,9 @@
 // Usage: checkpoint.mjs save|verify|restore <run> <id>
 //   save     record HEAD, a digest of every ref, and a copy of each path git status reports, under
 //            <run>/checkpoints/<id>/
-//   verify   write and print <run>/checkpoints/<id>/verify.json: `changed`, `escaped`, `problem`
+//   verify   write and print <run>/checkpoints/<id>/verify.json: `changed`, `escaped`, `problem`,
+//            and `tree`, the digest run-bounded.mjs computes, so a later test result can prove it
+//            ran on this tree
 //   restore  return each changed path to its saved state, then test the tree, HEAD, and refs again
 //   exit 0  done; for verify, HEAD and refs are unchanged and no path escaped
 //   exit 1  failure: an unreadable <run>, a save that cannot write, a moved HEAD or ref before a
@@ -33,7 +35,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { listLanes } from "./list-lanes.mjs";
 import { underPath } from "./render-report.mjs";
-import { childEnv } from "./run-bounded.mjs";
+import { childEnv, treeState } from "./run-bounded.mjs";
 
 // The skill file that explains each exit code.
 const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
@@ -124,7 +126,7 @@ function reachable(root, path) {
 
 // The state of `path` in the working tree: absent, a file with its bytes, a link with its target,
 // another kind such as a directory, or unreachable through a symlinked directory.
-function treeState(root, path) {
+function pathState(root, path) {
   if (!reachable(root, path)) return { kind: "unreachable" };
   let stat;
   try {
@@ -211,7 +213,7 @@ function save(run, id) {
   const { root } = loadBounds(run, id);
   const dir = checkpointDir(run, id);
   const entries = [];
-  const states = statusPaths(root).map((path) => [path, treeState(root, path)]);
+  const states = statusPaths(root).map((path) => [path, pathState(root, path)]);
   try {
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(join(dir, "files"), { recursive: true });
@@ -247,7 +249,7 @@ function changedPaths(bounds, manifest) {
   );
   const changed = [...candidates]
     .filter((path) => !kept.has(path))
-    .filter((path) => !sameState(savedState(path), treeState(bounds.root, path)))
+    .filter((path) => !sameState(savedState(path), pathState(bounds.root, path)))
     .sort();
   return { changed, savedState };
 }
@@ -276,7 +278,12 @@ function verify(run, id) {
     problems.push(
       `the make step changed paths outside scope.paths, under gaps, or in coveringTests: ${escaped.join(", ")}`,
     );
-  const result = { changed, escaped, problem: problems.length > 0 ? problems.join("; ") : null };
+  const result = {
+    changed,
+    escaped,
+    problem: problems.length > 0 ? problems.join("; ") : null,
+    tree: treeState(bounds.root).digest,
+  };
   const text = `${JSON.stringify(result, null, 2)}\n`;
   try {
     writeFileSync(join(checkpointDir(run, id), "verify.json"), text);
@@ -296,7 +303,7 @@ function unreachableReason(root, path) {
 
 function put(root, path, state) {
   const target = join(root, path);
-  const current = treeState(root, path);
+  const current = pathState(root, path);
   if (current.kind === "other") rmSync(target, { recursive: true });
   else if (current.kind !== "absent") unlinkSync(target);
   if (state.kind === "absent") return;

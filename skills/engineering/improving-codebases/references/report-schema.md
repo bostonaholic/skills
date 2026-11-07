@@ -10,6 +10,7 @@ writes nothing, so its errors are the full rule list.
 
 - [`report.json`](#reportjson)
 - [Check result file](#check-result-file)
+- [Test request](#test-request)
 - [`<run>` layout](#run-layout)
 - [Rules](#rules)
 
@@ -43,7 +44,9 @@ writes nothing, so its errors are the full rule list.
       "proposedChange": "<the change, from the make return>",
       "artifacts": ["<repository-relative path the make step kept>"],
       "checks": [{ "name": "<check name>", "result": "<absolute path of a result file under <run>>" }],
-      "review": { "status": "not-run", "reason": "<why>" }
+      "review": { "status": "not-run", "reason": "<why>" },
+      "coveringTests": ["<path:line of a test that drives it>"],
+      "changed": ["<path from verify.json>"]
     }
   ]
 }
@@ -51,19 +54,36 @@ writes nothing, so its errors are the full rule list.
 
 ## Check result file
 
-`run-tlc.mjs` writes this shape. The renderer reads it and embeds it, so the
-model never states a result.
+`run-tlc.mjs` and `run-bounded.mjs` write this shape. The renderer reads it
+and embeds it, so the model never states a result.
 
 | Field            | Rule                                                                                            |
 | ---------------- | ----------------------------------------------------------------------------------------------- |
-| `check`          | The check name, such as `model-check`                                                           |
+| `check`          | `tests`, or the check name, such as `model-check`                                               |
 | `status`         | `pass`, `fail`, or `not-run`                                                                    |
 | `reason`         | Necessary for `not-run`                                                                         |
-| `trace`          | Necessary for `fail`: the counterexample                                                        |
+| `trace`          | Necessary for `fail`: the counterexample, or the log tail for tests                             |
 | `seconds`        | Wall clock                                                                                      |
 | `command`        | The argv that ran                                                                               |
 | `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                   |
 | `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included |
+| `tree`           | `run-bounded.mjs` only. One digest of HEAD, every ref, and the content of each tracked change   |
+
+## Test request
+
+`run-bounded.mjs <request.json>` reads this shape and runs `argv` with no
+shell. A run that changes `tree` reads `fail`, with the change in `reason`.
+
+```json
+{
+  "check": "tests",
+  "argv": ["<test command>", "<argument>"],
+  "cwd": "<top>",
+  "env": ["<NAME from --env>"],
+  "result": "<run>/baseline.json",
+  "log": "<run>/baseline.log"
+}
+```
 
 ## `<run>` layout
 
@@ -71,6 +91,10 @@ model never states a result.
 - `make/<id>.json`: the JSON block of a `complete` make return.
 - `tlc/<id>/<k>.json`: one `run-tlc.mjs` result per run, beside the scratch
   directory TLC ran in.
+- `baseline.json`: the baseline test result.
+- `checkpoints/<id>/`: the `save` manifest and copies, `verify.json` with
+  `changed`, `escaped`, `problem`, and `tree`, and `tests.json`, the test
+  result after the make step.
 
 ## Rules
 
@@ -87,13 +111,20 @@ model never states a result.
 - `id` is `<lane>/<n>` with a positive integer `<n>`, unique in the report.
 - A finding has a `title`, at least one citation, and at least one evidence
   item of each kind its lane declares.
-- `outcome` is `proposed`, `reported`, or `deferred`, and each needs a
-  `reason`. Only a `makes: false` lane uses `reported`. `deferred` means the
+- `outcome` is `applied`, `proposed`, `reported`, or `deferred`. Every
+  outcome but `applied` needs a `reason`. Only a `makes: false` lane uses `reported`. `deferred` means the
   lane has a make step and it did not finish for this finding.
-- A `proposed` finding needs a non-empty `proposedChange`, a `{ name, result }`
+- An `applied` or `proposed` finding needs a `{ name, result }`
   item in `checks` for each name in its lane's `checks`, and at least one
   artifact with a suffix from its lane's `artifacts`. Each artifact exists on
-  disk, and each `result` sits under `<run>` by real path.
+  disk, and each `result` sits under `<run>` by real path. A `proposed`
+  finding also needs a non-empty `proposedChange`.
+- An `applied` finding needs `<run>/baseline.json` to read `pass`, non-empty
+  `coveringTests` and `changed`, and a `review.status` of `confirmed` or
+  `not-run`. Each `coveringTests` entry is `path:line`, and may sit outside
+  the scope. Its `tests` item must name `<run>/checkpoints/<id>/tests.json`,
+  which reads `pass` and holds the `tree` from that step's `verify.json`. A
+  `model-check` result of `fail` keeps the finding valid.
 - `review` is `{ status, reason }`, with `status` one of `confirmed`,
   `refuted`, `inconclusive`, or `not-run`. Every status but `confirmed`
   needs a `reason`.

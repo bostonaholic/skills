@@ -135,7 +135,7 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 - `capturing-screenshots` installs Playwright into `${XDG_CACHE_HOME:-~/.cache}/paparazzi` and Chromium into the Playwright browser cache.
 - `stacking-prs` runs `gh stack`, which records its release checks in `gh-stack/state.yml` under GitHub CLI's state directory.
 - `summarizing-shipped-work` adds highlights to your brag document when you accept its offer.
-- `improving-codebases` keeps its run files, such as the assembled `report.json`, in a `mktemp -d` directory outside the target repository and names it in the reply. It runs the TLC model checker when `tlc` is on `PATH` or `TLA2TOOLS_JAR` names the TLA+ tools jar, in a scratch directory under that run directory. TLC sends usage statistics only after you opt in through `~/.tlaplus/esc.txt`, and the skill never opts in.
+- `improving-codebases` keeps its run files, such as the assembled `report.json`, in a `mktemp -d` directory outside the target repository and names it in the reply. It runs the TLC model checker when `tlc` is on `PATH` or `TLA2TOOLS_JAR` names the TLA+ tools jar, in a scratch directory under that run directory. It runs the target repository's test command, found in its manifest or CI config, before the first refactor and after each one, with only an allowlisted environment plus the names you pass with `--env`. TLC sends usage statistics only after you opt in through `~/.tlaplus/esc.txt`, and the skill never opts in.
 
 ### Development-only paths
 

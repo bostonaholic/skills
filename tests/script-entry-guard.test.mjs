@@ -311,6 +311,22 @@ test("importing improving-codebases/checkpoint.mjs through a symlinked directory
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
+test("improving-codebases/run-bounded.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-bounded.mjs"),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^run-bounded\.mjs: usage: run-bounded\.mjs /);
+});
+
+test("importing improving-codebases/run-bounded.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-bounded.mjs"),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("improving-codebases/run-tlc.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
     join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-tlc.mjs"),

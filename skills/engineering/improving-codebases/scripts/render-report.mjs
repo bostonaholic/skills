@@ -30,7 +30,10 @@ import { childEnv } from "./run-bounded.mjs";
 const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
 
 export const SKILL = "improving-codebases";
-export const OUTCOMES = Object.freeze(["proposed", "reported", "deferred"]);
+export const OUTCOMES = Object.freeze(["applied", "proposed", "reported", "deferred"]);
+// The outcomes a make step ends in, which carry its artifacts and check results.
+const MADE = new Set(["applied", "proposed"]);
+const APPLIED_REVIEWS = new Set(["confirmed", "not-run"]);
 export const REVIEW_STATUSES = Object.freeze(["confirmed", "refuted", "inconclusive", "not-run"]);
 export const CHECK_STATUSES = Object.freeze(["pass", "fail", "not-run"]);
 // A fence needs more backticks than any run inside the text it fences.
@@ -219,12 +222,47 @@ function validateFinding(finding, label, registry, scope, facts, errors) {
   if (finding.outcome !== "applied" && !filled(finding.reason))
     errors.push(`${label}: outcome ${finding.outcome} needs a reason`);
   if (finding.review !== undefined) validateReview(finding.review, label, errors);
-  if (finding.outcome === "proposed") {
-    if (!filled(finding.proposedChange))
-      errors.push(`${label}: outcome proposed needs a proposedChange`);
+  if (finding.outcome === "proposed" && !filled(finding.proposedChange))
+    errors.push(`${label}: outcome proposed needs a proposedChange`);
+  if (MADE.has(finding.outcome)) {
     validateArtifacts(finding, label, lane, facts, errors);
     validateChecks(finding, label, lane, facts, errors);
   }
+  if (finding.outcome === "applied") validateApplied(finding, label, facts, errors);
+}
+
+// An applied refactor rests only on files the scripts wrote: the baseline, verify.json, and the
+// finding's own tests.json.
+function validateApplied(finding, label, facts, errors) {
+  if (facts.baseline?.status !== "pass")
+    errors.push(
+      `${label}: outcome applied needs <run>/baseline.json to read pass, and it ${facts.baseline ? `reads ${facts.baseline.status}` : "is absent"}`,
+    );
+  const tests = list(finding.coveringTests);
+  if (tests.length === 0) errors.push(`${label}: outcome applied needs coveringTests`);
+  for (const test of tests) {
+    if (!parseCitation(test)) errors.push(`${label}: coveringTests entry ${test} is not path:line`);
+  }
+  if (list(finding.changed).length === 0)
+    errors.push(`${label}: outcome applied needs changed, the paths verify.json lists`);
+  if (!APPLIED_REVIEWS.has(finding.review?.status))
+    errors.push(`${label}: outcome applied needs review.status confirmed or not-run`);
+  const item = list(finding.checks).find((check) => isObject(check) && check.name === "tests");
+  if (!item) {
+    errors.push(`${label}: outcome applied needs a tests item in checks`);
+    return;
+  }
+  const file = facts.checks[item.result];
+  if (!file || file.problem) return;
+  const expected = facts.testsPaths[finding.id];
+  if (file.real !== expected)
+    errors.push(`${label}: the tests result must be ${expected}, not ${item.result}`);
+  else if (file.data.status !== "pass")
+    errors.push(`${label}: the tests result reads ${file.data.status}, not pass`);
+  else if (file.data.tree !== facts.verifyTrees[finding.id])
+    errors.push(
+      `${label}: the tests result tree does not match checkpoints/${finding.id}/verify.json, so the tests ran on another tree`,
+    );
 }
 
 function validateReview(review, label, errors) {
@@ -265,10 +303,13 @@ function validateChecks(finding, label, lane, facts, errors) {
 }
 
 // Returns every rule `report` breaks. `lanes` is the registry from list-lanes.mjs, and `facts`
-// holds what the loader read: { head, inventory, lines, artifacts, checks }. `lines` maps each cited
+// holds what the loader read: { head, inventory, lines, artifacts, checks, baseline, testsPaths,
+// verifyTrees }. `lines` maps each cited
 // path to its line count at scope.commit, or null when the path is absent there. `artifacts` maps
 // each artifact path to whether it exists. `checks` maps each result path to { problem, data,
-// changedInputs }, where `problem` is null for a readable result file under <run>.
+// changedInputs }, where `problem` is null for a readable result file under <run>. `baseline` is
+// <run>/baseline.json or null. For each applied finding, `testsPaths` holds the one path its tests
+// result may sit at, and `verifyTrees` holds the tree its verify.json recorded.
 export function validateReport(report, lanes, facts) {
   if (!isObject(report)) return ["report is not a JSON object"];
   const errors = [];
@@ -503,7 +544,7 @@ function readCheckFile(path, runDir) {
       }
     })
     .map((input) => input.path);
-  return { problem: null, data, changedInputs };
+  return { problem: null, real, data, changedInputs };
 }
 
 // Reads what validateReport needs from git and disk: HEAD, the tracked inventory under scope.paths,
@@ -551,7 +592,35 @@ export function loadFacts(report, runDir) {
         checks[item.result] = readCheckFile(item.result, runDir);
     }
   }
-  return { facts: { head: head.stdout.trim(), inventory, lines, artifacts, checks } };
+  const readOptional = (path) => {
+    try {
+      return JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      return null;
+    }
+  };
+  const testsPaths = {};
+  const verifyTrees = {};
+  for (const finding of list(report.findings)) {
+    if (!isObject(finding) || finding.outcome !== "applied" || !FINDING_ID.test(finding.id))
+      continue;
+    const dir = join(runDir, "checkpoints", finding.id);
+    testsPaths[finding.id] = join(dir, "tests.json");
+    verifyTrees[finding.id] = readOptional(join(dir, "verify.json"))?.tree ?? null;
+  }
+  const baseline = readOptional(join(runDir, "baseline.json"));
+  return {
+    facts: {
+      head: head.stdout.trim(),
+      inventory,
+      lines,
+      artifacts,
+      checks,
+      baseline,
+      testsPaths,
+      verifyTrees,
+    },
+  };
 }
 
 // Returns why the renderer refuses to write `target`, or null when it may write there.

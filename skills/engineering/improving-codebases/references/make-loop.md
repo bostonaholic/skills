@@ -11,8 +11,9 @@ tree.
    main context. Without subagents, do this step inline. It runs the brief's
    `## Make` section.
    - Give it the [lane contract](references/lane-contract.md), the whole
-     brief, the finding, `scope.paths`, `gaps`, the path of each script the
-     brief names under `<skill-dir>/scripts/`, and `<run>`.
+     brief, the finding, `scope.paths`, `gaps`, the baseline status from
+     `<run>/baseline.json`, the path of each script the brief names under
+     `<skill-dir>/scripts/`, and `<run>`.
    - Save the JSON block of a `complete` return to `<run>/make/<id>.json`.
    - On a crash, a malformed return, or any other status, save nothing, run
      `checkpoint.mjs restore <run> <id>`, and record `deferred` with the
@@ -24,16 +25,28 @@ tree.
    - On exit 3 with `escaped` paths, run `restore`, and record `proposed`
      with `reason` copied from `problem` in `verify.json`.
    - On exit 1, run `restore`, record `proposed`, and stop the loop.
-4. **Record.** For a saved return, copy `artifacts`, `proposedChange`, and
-   `checks` into the finding, and record `proposed` with the return's
-   `reason`. Set `review` to `not-run` with the reason. Then start the next
-   finding.
+4. **Tests.** When `changed` in `verify.json` is empty, skip to Record.
+   When `coveringTests` is empty, or `<run>/baseline.json` does not read
+   `pass`, run `restore` and record `proposed` with `reason` naming that
+   gate. Otherwise run the baseline request again through
+   `node <skill-dir>/scripts/run-bounded.mjs`, with `result` at
+   `<run>/checkpoints/<id>/tests.json` and `log` at
+   `<run>/checkpoints/<id>/tests.log`.
+   - On any status except `pass`, run `restore`, and record `proposed` with
+     `reason` from `tests.json`.
+   - On exit 1, run `restore`, record `proposed`, and stop the loop.
+5. **Record.** For a saved return, copy `artifacts`, `proposedChange`, and
+   `checks` into the finding. When `changed` is not empty, record `applied`
+   with `changed` and `coveringTests`, and add `{ "name": "tests",
+   "result": "<run>/checkpoints/<id>/tests.json" }` to `checks`. Otherwise
+   record `proposed` with the return's `reason`. Set `review` to `not-run`
+   with the reason. Then start the next finding.
 
 ## Failure paths
 
 - Exit 1 from `restore` stops the loop and names `<run>`. The run never
   continues on an unknown tree.
-- `restore` tests HEAD and the refs first, so a moved HEAD or a changed ref
+- `restore` tests HEAD and the refs first, so a test run that moves either
   stops the loop there too. The renderer rejects a moved HEAD, so the reply
   gives the findings inline and names what moved. A changed ref alone still
   renders.

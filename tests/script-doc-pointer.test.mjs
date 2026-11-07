@@ -677,6 +677,14 @@ const ROWS = [
     target: "skills/engineering/improving-codebases/SKILL.md",
   },
   {
+    label: "improving-codebases run-bounded.mjs",
+    script: "skills/engineering/improving-codebases/scripts/run-bounded.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/improving-codebases/SKILL.md",
+  },
+  {
     label: "improving-codebases run-tlc.mjs",
     script: "skills/engineering/improving-codebases/scripts/run-tlc.mjs",
     interpreter: "node",
@@ -922,8 +930,6 @@ const UNCOVERED = Object.freeze({
     "a helper module the skill's CLI scripts import; it has no command line of its own",
   "skills/engineering/merging-dependabot-prs/scripts/lib.mjs":
     "a helper module the skill's CLI scripts import; it has no command line of its own",
-  "skills/engineering/improving-codebases/scripts/run-bounded.mjs":
-    "a helper module the skill's scripts import; it has no command line of its own",
 });
 
 test("every tracked skill script has a ROWS entry or an UNCOVERED reason", () => {

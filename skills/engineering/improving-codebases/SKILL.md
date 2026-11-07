@@ -2,7 +2,7 @@
 name: improving-codebases
 description: 'Sweeps a git repository with focused improvement lanes, starting with implicit state machines made explicit and checked in TLA+. Leaves edits uncommitted. Use when the user says "improve this codebase", or when asked to make implicit state machines explicit. Never infer from a request to review or explain code. Not for test value or complexity rankings; use auditing-tests or auditing-complexity.'
 effort: high
-argument-hint: "[<path or subsystem> ...] [--out <dir>]"
+argument-hint: "[<path or subsystem> ...] [--out <dir>] [--env <NAME> ...]"
 ---
 
 # Improving codebases
@@ -34,7 +34,7 @@ holds the brief format and the return every subagent owes, to each subagent.
 
 ## Procedure
 
-1. **Input.** Parse the scope paths and `--out` per [input](references/input.md), and stop on any rule it names before any write.
+1. **Input.** Parse the scope paths, `--out`, and `--env` per [input](references/input.md), and stop on any rule it names before any write.
 2. **Lanes.** Run `node <skill-dir>/scripts/list-lanes.mjs`. Its JSON is the registry for this run. On exit 1, relay its stderr and stop. When `node` cannot run, read the briefs that `## Lanes` links.
 3. **Inventory.** Run `git ls-files --stage -z` with no path argument, so no user path reaches command text, and keep the files under each scope path.
    - Put documentation, data, configuration, and lock files, tracked symlinks (mode `120000`), and submodules (mode `160000`) in `gaps`.
@@ -48,6 +48,8 @@ holds the brief format and the return every subagent owes, to each subagent.
    - A finding of a `makes: false` lane is `reported`. A finding of a `makes: true` lane starts `deferred` with the reason `make step pending`.
    - Write the findings to `<run>/report.json`. With no finding, skip to Render.
 6. **Readiness.** With no finding of a `makes: true` lane, skip to Render. The make stage needs a tracked-clean tree (`git status --porcelain --untracked-files=no` prints nothing), `node`, write tools, and `<run>`. When one is absent, the run is find-only: keep every finding of a `makes: true` lane `deferred`, with a reason that names the cause, such as `tracked changes present`.
+   - Otherwise find the test command in the manifest or CI config, never by guessing, and write a request per the [report schema](references/report-schema.md): `check: "tests"`, its `argv`, `cwd` at `<top>`, `env` holding only the user's `--env` names, `result` at `<run>/baseline.json`, and `log` at `<run>/baseline.log`. Run `node <skill-dir>/scripts/run-bounded.mjs <request>`. With no test command, no refactor runs.
+   - A baseline that moves HEAD or changes a ref stops the run here: every finding of a `makes: true` lane stays `deferred`, and the reply gives the findings inline and names what moved.
 7. **Make.** First tell the user to leave the working tree alone until the reply, because a failed step reverts every path changed since its checkpoint. Run the [make loop](references/make-loop.md) for the top 10 findings of `makes: true` lanes, in rank order. The rest stay `deferred` with the reason `make limit reached`.
 8. **Render.** Run `node <skill-dir>/scripts/render-report.mjs <run>/report.json <out>`. On exit 1, fix the JSON and render again; stop after 3 rejected renders and report the remaining errors. Exit 2 is a usage error. When `render-report.mjs` cannot run, reply with every finding, the planned `<out>` paths, and the exact command, and say the report is unrendered.
 
@@ -59,5 +61,6 @@ Give these items:
 - One line per lane, with its status and its count per outcome.
 - Each finding, with its outcome, its label from `report.md`, its reason, and its `file:line` citations. A finding with checks reads `unverified`.
 - Every gap, limit hit, and skipped check, each on its own line. A vendored, generated, or build-output gap names its evidence, and an absent checker names what `run-tlc.mjs` looked for.
+- When the baseline does not read `pass`, its reason and the tracked paths it changed, and that `--env <NAME>` passes a variable the tests need.
 - Both report paths and the `<run>` path, only when a report exists. A run with no finding writes no file in the repository.
-- One line saying which rules held by prompt only: the read-only find subagents, the data rule, the limit of 20 candidates per return, the make step's spec-only bound, the `\* UNCHECKED` mark, no reuse of an existing spec, no write to a git-ignored path, no staging, and no other writer in the working tree.
+- One line saying which rules held by prompt only: the read-only find subagents, the data rule, the limit of 20 candidates per return, the make step's bounds, no edit to a test outside `coveringTests`, the `\* UNCHECKED` mark, no reuse of an existing spec, no write to a git-ignored path, no staging, and no other writer in the working tree.
