@@ -3,7 +3,8 @@
 // writes a check result file. It never installs anything.
 // Usage: run-tlc.mjs <Module.tla> <result.json>
 //   exit 0  wrote result.json, whatever its status: pass, fail, or not-run with the reason
-//   exit 1  cannot create the scratch directory beside result.json, or cannot write result.json
+//   exit 1  cannot create result.json's directory or the scratch directory beside it, or cannot
+//           write result.json
 //   exit 2  not exactly two arguments, a spec that does not exist, or a spec file stem that does
 //           not match ^[A-Z][A-Za-z0-9]*$
 // Finds `tlc` on PATH, else `java` with the jar that TLA2TOOLS_JAR names. Copies every .tla and .cfg
@@ -18,6 +19,7 @@ import {
   createWriteStream,
   existsSync,
   lstatSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -210,11 +212,12 @@ function runChecker(argv, cwd, logPath, bounds) {
   });
 }
 
-// Runs TLC on `spec` and writes the check result to `result`. Throws when the scratch directory or
-// the result cannot be written.
+// Runs TLC on `spec` and writes the check result to `result`, creating its directory on a first
+// run. Throws when that directory, the scratch directory, or the result cannot be written.
 export async function runTlc(spec, result, bounds) {
   const started = Date.now();
   const module = basename(spec, ".tla");
+  mkdirSync(dirname(resolve(result)), { recursive: true });
   const scratch = mkdtempSync(join(dirname(resolve(result)), `tlc-${module}-`));
   const inputs = copyInputs(resolve(spec), scratch);
   const checker = findChecker(module, process.env);

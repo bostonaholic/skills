@@ -941,6 +941,17 @@ printf 'ran\\n' > '${ranFile}'
 
       assert.equal(run.status, 1, run.stderr);
     });
+
+    await t.test("a first run, with no <run>/tlc/<id>/ yet: exit 0, and the result", (st) => {
+      const fx = checkerFixture(st);
+      stub(fx.bin, "tlc", "exit 0\n");
+      const result = join(fx.run, "tlc", "state-machines", "1", "1.json");
+
+      const run = node(script("run-tlc.mjs"), [fx.spec, result], { PATH: fx.bin });
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(readJson(result).check, "model-check");
+    });
   });
 });
 
