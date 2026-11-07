@@ -48,7 +48,7 @@ holds the brief format and the return every subagent owes, to each subagent.
    - A finding of a `makes: false` lane is `reported`. A finding of a `makes: true` lane starts `deferred` with the reason `make step pending`.
    - Write the findings to `<run>/report.json`. With no finding, skip to Render.
 6. **Readiness.** With no finding of a `makes: true` lane, skip to Render. The make stage needs a tracked-clean tree (`git status --porcelain --untracked-files=no` prints nothing), `node`, write tools, and `<run>`. When one is absent, the run is find-only: keep every finding of a `makes: true` lane `deferred`, with a reason that names the cause, such as `tracked changes present`.
-7. **Make.** Run the [make loop](references/make-loop.md) for the top 10 findings of `makes: true` lanes, in rank order. The rest stay `deferred` with the reason `make limit reached`.
+7. **Make.** First tell the user to leave the working tree alone until the reply, because a failed step reverts every path changed since its checkpoint. Run the [make loop](references/make-loop.md) for the top 10 findings of `makes: true` lanes, in rank order. The rest stay `deferred` with the reason `make limit reached`.
 8. **Render.** Run `node <skill-dir>/scripts/render-report.mjs <run>/report.json <out>`. On exit 1, fix the JSON and render again; stop after 3 rejected renders and report the remaining errors. Exit 2 is a usage error. When `render-report.mjs` cannot run, reply with every finding, the planned `<out>` paths, and the exact command, and say the report is unrendered.
 
 ## Reply
@@ -60,4 +60,4 @@ Give these items:
 - Each finding, with its outcome, its label from `report.md`, its reason, and its `file:line` citations. A finding with checks reads `unverified`.
 - Every gap, limit hit, and skipped check, each on its own line. A vendored, generated, or build-output gap names its evidence, and an absent checker names what `run-tlc.mjs` looked for.
 - Both report paths and the `<run>` path, only when a report exists. A run with no finding writes no file in the repository.
-- One line saying which rules held by prompt only: the read-only find subagents, the data rule, the limit of 20 candidates per return, the make step's spec-only bound, the `\* UNCHECKED` mark, and no reuse of an existing spec.
+- One line saying which rules held by prompt only: the read-only find subagents, the data rule, the limit of 20 candidates per return, the make step's spec-only bound, the `\* UNCHECKED` mark, no reuse of an existing spec, no write to a git-ignored path, no staging, and no other writer in the working tree.

@@ -669,6 +669,14 @@ const ROWS = [
     target: "skills/engineering/improving-codebases/SKILL.md",
   },
   {
+    label: "improving-codebases checkpoint.mjs",
+    script: "skills/engineering/improving-codebases/scripts/checkpoint.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/improving-codebases/SKILL.md",
+  },
+  {
     label: "improving-codebases run-tlc.mjs",
     script: "skills/engineering/improving-codebases/scripts/run-tlc.mjs",
     interpreter: "node",

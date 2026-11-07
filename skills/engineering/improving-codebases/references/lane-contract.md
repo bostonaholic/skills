@@ -88,3 +88,7 @@ scope, and it never reaches `report.json`. Two returns that cite one
 - `status: partial` or `status: blocked` means the step left nothing to
   keep. This holds for a lane with empty `artifacts` too.
 - Never type a check status. Each `result` names a file that a script wrote.
+- Never write a git-ignored path, and never stage, commit, stash, or
+  branch. The checkpoint covers tracked and untracked paths only, so a
+  git-ignored write survives a restore, and a staged change hides from
+  `git diff`.
