@@ -35,6 +35,7 @@
     "./skills/engineering/freeing-disk-space",
     "./skills/engineering/grooming-backlogs",
     "./skills/engineering/hillclimbing",
+    "./skills/engineering/improving-codebases",
     "./skills/engineering/investigating-design-rationale",
     "./skills/engineering/landing-prs",
     "./skills/engineering/limiting-shared-file-edits",

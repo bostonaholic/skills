@@ -50,6 +50,7 @@ export const LINT_IDS = Object.freeze([
 export const EVALS_PENDING = Object.freeze({
   cr: "alias that only calls reviewing-code, whose eval cases cover the review",
   "fixing-root-causes": "no eval cases yet; writing them is deferred",
+  "improving-codebases": "no eval cases yet; writing them is deferred",
   "updating-bostonaholic-skills": "no eval cases yet; writing them is deferred",
   "writing-no-tests": "no eval cases yet; writing them is deferred",
 });
