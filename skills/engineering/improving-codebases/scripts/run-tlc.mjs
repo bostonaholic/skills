@@ -151,7 +151,8 @@ function killGroup(pid) {
   try {
     process.kill(-pid, "SIGKILL");
   } catch (error) {
-    if (error.code !== "ESRCH") throw error;
+    // macOS answers EPERM, not ESRCH, for a group whose members have all exited but are not reaped.
+    if (error.code !== "ESRCH" && error.code !== "EPERM") throw error;
   }
 }
 
