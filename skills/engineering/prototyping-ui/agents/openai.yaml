@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prototyping UI"
+  short_description: "Build 3 to 5 interactive UI prototypes and recommend one"
+  default_prompt: "Use $prototyping-ui to build 3 to 5 interactive HTML, CSS, and JavaScript prototypes of this feature, each a different interaction model, then compare their usability as an experienced UX designer and recommend one."
