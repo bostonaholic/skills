@@ -1,6 +1,6 @@
 ---
 name: untangling-codebases
-description: Refactors a whole codebase in one pass so each change lands in one place: catalogs hidden links, needless links, surplus code, and special cases, redesigns to remove their shared causes, and repeats until nothing worth fixing is left. Use when the user explicitly asks to untangle a codebase. Never infer from a bug fix or feature request. Not for one new requirement; use redesigning-from-first-principles.
+description: 'Refactors a whole codebase in one pass so each change lands in one place: catalogs hidden links, needless links, surplus code, and special cases, redesigns to remove their shared causes, and repeats until nothing worth fixing is left. Use when the user explicitly asks to untangle a codebase. Never infer from a bug fix or feature request. Not for one new requirement; use redesigning-from-first-principles.'
 disable-model-invocation: true
 argument-hint: "[<area or concern to focus on>]"
 ---
@@ -8,9 +8,10 @@ argument-hint: "[<area or concern to focus on>]"
 # Untangle a Codebase
 
 Refactor the whole codebase, or the area the user names, and finish. Treat
-it as a goal, not a list of suggestions. The aim is code where an agent reads
-little per change, a change lands in one place, and a break shows up instead
-of hiding. Behavior stays the same.
+it as a goal, not a list of suggestions. Behavior stays the same.
+
+The aim is code where an agent reads little per change, a change lands in
+one place, and a break shows up instead of hiding.
 
 The test for every finding: should these pieces change together? Pieces
 that must change together but look apart are a hidden link. Pieces that look
