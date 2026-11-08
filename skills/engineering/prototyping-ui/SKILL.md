@@ -1,11 +1,11 @@
 ---
 name: prototyping-ui
-description: Builds 3 to 5 interactive HTML, CSS, and JavaScript prototypes of one interface, each a different interaction model, then compares their usability as an experienced UX designer and recommends one. Use when the user says "prototype this", or asks to prototype, mock up, or compare design options for a screen, flow, or component. Not for building the production feature.
+description: Builds 3 to 5 interactive HTML, CSS, and JavaScript prototypes of one feature, each a different interaction model, then compares their usability as an experienced UX designer and recommends one. Use when the user says "prototype this", or asks to prototype, mock up, or compare design options for a screen, flow, or component. Not for building the production feature.
 ---
 
 # Prototyping UI
 
-Build several working prototypes of the same interface so the user can compare
+Build several working prototypes of the same feature so the user can compare
 them by using them, then give a UX designer's judgment on which works best and
 why.
 
