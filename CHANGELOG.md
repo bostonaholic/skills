@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add untangling-codebases, which refactors a whole codebase in one pass: it lists hidden links, needless links, surplus code, and special cases, fixes their shared causes from a decision log, and repeats with fresh-context subagents until nothing worth fixing is left. [#179](https://github.com/bostonaholic/skills/pull/179)
+- Add untangling-codebases, which refactors a whole codebase in one pass: it lists hidden links, needless links, surplus code, and special cases, fixes their shared causes from a decision log, and repeats with fresh-context subagents until nothing worth fixing is left. [#180](https://github.com/bostonaholic/skills/pull/180)
 
 ## [0.86.0] - 2026-11-08
 
