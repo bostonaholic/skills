@@ -64,6 +64,7 @@
     "./skills/productivity/composing-agent-prompts",
     "./skills/productivity/conducting-deep-research",
     "./skills/productivity/cutting-skills",
+    "./skills/productivity/defining-problems",
     "./skills/productivity/improving-prompts",
     "./skills/productivity/learning-from-mistakes",
     "./skills/productivity/running-retros",

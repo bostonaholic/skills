@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add defining-problems, which interviews the user in rounds of numbered questions until the problem is defined, with who has it, evidence, impact, and success criteria, before any solution. [#179](https://github.com/bostonaholic/skills/pull/179)
+
 ## [0.86.0] - 2026-11-08
 
 ### Added
