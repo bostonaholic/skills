@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add prototyping-ui, which builds 3 to 5 interactive HTML, CSS, and JavaScript prototypes of one interface, each a different interaction model, then compares their usability as a UX designer and recommends one. [#178](https://github.com/bostonaholic/skills/pull/178)
+
 ## [0.85.0] - 2026-11-07
 
 ### Added
