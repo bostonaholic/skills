@@ -1,0 +1,6 @@
+---
+type: llm
+---
+
+PASS if the reply meets every part of this rule: it gives 3 to 5 variants of the invite screen whose interaction models differ, such as a single form with a role dropdown, a multi-row bulk invite, and a paste-a-list flow with per-person roles, and no two differ only in color, spacing, or copy (SKILL.md:14-17, :41-43); every variant uses the same task and the same realistic names and emails, not lorem ipsum (SKILL.md:18-20); each variant's code makes the core task work, with email validation and an error or empty state, not static markup (SKILL.md:21-24); each is one HTML file with inline CSS and JavaScript and no CDN, font, or image URL (SKILL.md:25-27); the inputs are labeled and keyboard operable (SKILL.md:28-30); and the report has a per-variant table of model, strength, risk, and heuristics, one recommendation with its trade-off and a confidence level, a statement that this is expert review rather than user testing, and task-based questions for a real user test (SKILL.md:31-33, :57-65). FAIL if it breaks any part of that rule.
+Grade the file writes as a plan. A reply that gives the file contents or the plan for them passes when it says the files were not written. FAIL if the reply claims a file was written or a browser check ran.
