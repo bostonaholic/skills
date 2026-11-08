@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-11-08
+
 ### Added
 
 - Add prototyping-ui, which builds 3 to 5 interactive HTML, CSS, and JavaScript prototypes of one feature, each a different interaction model, then compares their usability as a UX designer and recommends one. [#178](https://github.com/bostonaholic/skills/pull/178)
@@ -1088,5 +1090,7 @@
 
 [0.84.0]: https://github.com/bostonaholic/skills/compare/v0.83.0...v0.84.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.85.0...HEAD
 [0.85.0]: https://github.com/bostonaholic/skills/compare/v0.84.0...v0.85.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.86.0...HEAD
+[0.86.0]: https://github.com/bostonaholic/skills/compare/v0.85.0...v0.86.0
