@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visualizing {{SYSTEM}}</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      try {
+        const theme = localStorage.getItem("c4-theme");
+        if (theme) document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
+  </head>
+  <body data-level="overview">
+    <header class="topbar">
+      <a class="brand" href="index.html">Visualizing {{SYSTEM}}</a>
+      <nav class="levels" aria-label="C4 levels">
+        <a href="index.html" data-nav="overview">Overview</a>
+        <a href="context.html" data-nav="context"><span class="n">1</span>Context</a>
+        <a href="containers.html" data-nav="containers"><span class="n">2</span>Containers</a>
+        <a href="components.html" data-nav="components"><span class="n">3</span>Components</a>
+        <a href="code.html" data-nav="code"><span class="n">4</span>Code</a>
+      </nav>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch color theme">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </header>
+
+    <main class="overview">
+      <section class="hero">
+        <p class="eyebrow">C4 architecture</p>
+        <h1>Visualizing {{SYSTEM}}</h1>
+        <p class="lede">{{DESCRIPTION}}</p>
+        <dl class="hero-stats" id="hero-stats"></dl>
+      </section>
+
+      <section aria-labelledby="levels-heading">
+        <h2 class="section-title" id="levels-heading">Zoom levels</h2>
+        <p class="section-sub">
+          Each level zooms into the one before it. Start wide, then double-click any element to open
+          what is inside it.
+        </p>
+        <div class="level-cards" id="level-cards"></div>
+      </section>
+
+      <section aria-labelledby="cycles-heading">
+        <h2 class="section-title" id="cycles-heading">Dependency cycles</h2>
+        <p class="section-sub">
+          A cycle is a group of elements in which each one depends, directly or through the others,
+          on every other one. Counts come from the relationships in the model.
+        </p>
+        <div class="table-wrap">
+          <table class="cycle-table">
+            <thead>
+              <tr>
+                <th scope="col">Level</th>
+                <th scope="col">Cycles</th>
+                <th scope="col">Elements in a cycle</th>
+                <th scope="col">Largest cycle</th>
+                <th scope="col"><span class="visually-hidden">Open</span></th>
+              </tr>
+            </thead>
+            <tbody id="cycle-rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">Generated from <code>c4-model.json</code>. Diagrams use D3.</footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+      integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
+      crossorigin="anonymous"
+    ></script>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

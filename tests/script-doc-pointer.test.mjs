@@ -653,6 +653,14 @@ const ROWS = [
     target: "skills/engineering/auditing-tests/SKILL.md",
   },
   {
+    label: "visualizing-codebases build-c4-site.mjs",
+    script: "skills/engineering/visualizing-codebases/scripts/build-c4-site.mjs",
+    interpreter: "node",
+    args: (dir) => [write(dir, "c4-model.json", "{}\n"), join(dir, "site")],
+    exit: 1,
+    target: "skills/engineering/visualizing-codebases/SKILL.md",
+  },
+  {
     label: "improving-codebases list-lanes.mjs",
     script: "skills/engineering/improving-codebases/scripts/list-lanes.mjs",
     interpreter: "node",

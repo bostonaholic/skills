@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.89.0] - 2026-11-09
+
+### Added
+
+- Add visualizing-codebases, which builds an interactive static D3 site that visualizes a codebase, starting with a C4 view: one page per C4 level that shows dependency cycles between containers, components, and code without judging them. [#181](https://github.com/bostonaholic/skills/pull/181)
+
 ## [0.88.0] - 2026-11-09
 
 ### Added
@@ -1108,5 +1114,7 @@
 
 [0.87.0]: https://github.com/bostonaholic/skills/compare/v0.86.0...v0.87.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.88.0...HEAD
 [0.88.0]: https://github.com/bostonaholic/skills/compare/v0.87.0...v0.88.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.89.0...HEAD
+[0.89.0]: https://github.com/bostonaholic/skills/compare/v0.88.0...v0.89.0
