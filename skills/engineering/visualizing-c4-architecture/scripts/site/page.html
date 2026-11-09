@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{TITLE}} · {{SYSTEM}}</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      try {
+        const theme = localStorage.getItem("c4-theme");
+        if (theme) document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
+  </head>
+  <body data-level="{{LEVEL}}">
+    <header class="topbar">
+      <a class="brand" href="index.html"
+        ><span class="brand-mark" aria-hidden="true"></span>{{SYSTEM}}</a
+      >
+      <nav class="levels" aria-label="C4 levels">
+        <a href="index.html" data-nav="overview">Overview</a>
+        <a href="context.html" data-nav="context"><span class="n">1</span>Context</a>
+        <a href="containers.html" data-nav="containers"><span class="n">2</span>Containers</a>
+        <a href="components.html" data-nav="components"><span class="n">3</span>Components</a>
+        <a href="code.html" data-nav="code"><span class="n">4</span>Code</a>
+      </nav>
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch color theme">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </header>
+
+    <main class="level-layout">
+      <aside class="panel" aria-label="Diagram controls and details">
+        <div class="panel-head">
+          <p class="eyebrow" id="level-eyebrow"></p>
+          <h1 id="level-title">{{TITLE}}</h1>
+          <p class="summary" id="level-summary"></p>
+          <dl class="mini-stats" id="level-stats"></dl>
+        </div>
+
+        <div class="controls">
+          <label class="field">
+            <span class="field-label">Search <kbd>/</kbd></span>
+            <input
+              id="search"
+              type="search"
+              placeholder="Name, path, or technology"
+              autocomplete="off"
+            />
+          </label>
+          <ul class="results" id="search-results" hidden></ul>
+          <label class="field" id="filter-field" hidden>
+            <span class="field-label" id="filter-label">Scope</span>
+            <select id="filter"></select>
+          </label>
+          <div class="toggles">
+            <label class="toggle"
+              ><input type="checkbox" id="toggle-cycles" checked /><span
+                >Highlight cycles</span
+              ></label
+            >
+            <label class="toggle"
+              ><input type="checkbox" id="toggle-cycles-only" /><span>Cycles only</span></label
+            >
+            <label class="toggle"
+              ><input type="checkbox" id="toggle-labels" checked /><span>Edge labels</span></label
+            >
+          </div>
+        </div>
+
+        <section class="card" id="details" hidden aria-live="polite"></section>
+
+        <section class="card" id="cycles-card">
+          <h2>Dependency cycles <span class="count" id="cycle-count"></span></h2>
+          <p class="hint" id="cycle-hint"></p>
+          <ol class="cycles" id="cycles"></ol>
+        </section>
+
+        <section class="card">
+          <h2>Legend</h2>
+          <ul class="legend" id="legend"></ul>
+          <p class="hint">
+            Hover to trace, click for details, double-click to open the next level. Drag to pin;
+            <kbd>F</kbd> fits the view.
+          </p>
+        </section>
+      </aside>
+
+      <section class="stage" aria-label="Diagram">
+        <svg id="graph" role="img" aria-labelledby="level-title"></svg>
+        <div class="banner" id="banner" hidden></div>
+        <div class="toolbar" role="toolbar" aria-label="View">
+          <button type="button" class="icon-button" id="zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" class="icon-button" id="zoom-out" aria-label="Zoom out">−</button>
+          <button type="button" class="icon-button" id="fit" aria-label="Fit to view">⤢</button>
+          <button
+            type="button"
+            class="icon-button"
+            id="relayout"
+            aria-label="Unpin and re-run layout"
+          >
+            ↻
+          </button>
+        </div>
+        <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+        <div class="empty" id="empty" hidden></div>
+      </section>
+    </main>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+      integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
+      crossorigin="anonymous"
+    ></script>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
