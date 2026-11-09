@@ -1,7 +1,6 @@
 ---
 name: untangling-codebases
-description: 'Refactors a whole codebase in one pass so each change lands in one place: catalogs hidden links, needless links, surplus code, and special cases, redesigns to remove their shared causes, and repeats until nothing worth fixing is left. Use when the user explicitly asks to untangle a codebase. Never infer from a bug fix or feature request. Not for one new requirement; use redesigning-from-first-principles.'
-disable-model-invocation: true
+description: 'Refactors a whole codebase in one pass so each change lands in one place: catalogs hidden links, needless links, surplus code, and special cases, redesigns to remove their shared causes, and repeats until nothing worth fixing is left. Use when the user says "untangle this codebase", or when asked to refactor a whole codebase so changes land in one place. Never infer from a bug fix or feature request. Not for one new requirement; use redesigning-from-first-principles.'
 argument-hint: "[<area or concern to focus on>]"
 ---
 

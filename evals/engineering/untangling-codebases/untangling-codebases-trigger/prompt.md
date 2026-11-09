@@ -7,4 +7,4 @@ append_system_prompt: |
   The shell, Write, and Edit tools are unavailable in this session. Give each change you would make in the reply instead.
 ---
 
-/bostonaholic:untangling-codebases lib/ is a mess. Untangle it and show me the plan in your reply.
+Every change to lib/ seems to touch three files and something else breaks. Untangle this codebase so changes land in one place, and show me the plan in your reply.
