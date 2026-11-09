@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add visualizing-c4-architecture, which maps a codebase to the four C4 levels and builds an interactive static D3 site, one page per level, that shows dependency cycles between containers, components, and code without judging them. [#179](https://github.com/bostonaholic/skills/pull/179)
+- Add visualizing-c4-architecture, which maps a codebase to the four C4 levels and builds an interactive static D3 site, one page per level, that shows dependency cycles between containers, components, and code without judging them. [#181](https://github.com/bostonaholic/skills/pull/181)
 
 ## [0.88.0] - 2026-11-09
 
