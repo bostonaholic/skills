@@ -98,6 +98,21 @@ test("validation names duplicate ids, unknown parents, and unknown endpoints", (
   assert.ok(errors.some((e) => /relationships\[8\]: from and to are the same element/.test(e)));
 });
 
+test("ids may be framework route paths but never hold whitespace", () => {
+  const routes = model();
+  routes.code.push({
+    id: "app/join/[code]/(group)/@slot/page.tsx",
+    name: "page",
+    component: "web.ui",
+  });
+  routes.relationships.push({ from: "app/join/[code]/(group)/@slot/page.tsx", to: "ui/Page" });
+  assert.deepEqual(validateModel(routes), []);
+  routes.code.push({ id: "has space", name: "Spaced", component: "web.ui" });
+  assert.ok(
+    validateModel(routes).some((e) => /code\[6\]\.id: missing, or holds whitespace/.test(e)),
+  );
+});
+
 test("validation rejects a model with no system", () => {
   assert.deepEqual(validateModel({ containers: [] }), [
     "system: missing; give it an id and a name",

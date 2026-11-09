@@ -28,9 +28,9 @@ and reports every error by its JSON path, such as `code[12].component`.
 
 ## Fields
 
-- `id`: required and unique across the whole model. Letters, digits, and
-  `. _ : / -`, starting with a letter or digit. A repository-relative module
-  path such as `api/orders/service` makes a good code id.
+- `id`: required and unique across the whole model, with no whitespace. A
+  repository-relative file path, such as `app/join/[code]/page.tsx`, makes a
+  good code id.
 - `name`: required. What the diagram shows.
 - `container` on a component and `component` on a code element: required,
   the id of the parent.

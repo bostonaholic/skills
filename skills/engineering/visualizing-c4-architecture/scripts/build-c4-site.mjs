@@ -26,7 +26,9 @@ const SITE_DIR = fileURLToPath(new URL("./site/", import.meta.url));
 const USAGE = "usage: build-c4-site.mjs <c4-model.json> <out>";
 
 export const LEVELS = Object.freeze(["context", "containers", "components", "code"]);
-const ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]*$/;
+// Ids are often file paths, and framework routes put brackets, parentheses, and @ in them
+// (`app/join/[code]/page.tsx`), so any text without whitespace is an id.
+const ID = /^\S+$/;
 // A relationship's labels and technologies are listed on hover; past this many distinct values
 // the list stops growing and the count still says how many relationships were merged.
 const MAX_LISTED_VALUES = 8;
@@ -83,7 +85,8 @@ export function validateModel(model) {
   const system = model.system;
   if (!isObject(system)) errors.push("system: missing; give it an id and a name");
   else {
-    if (!filled(system.id) || !ID.test(system.id)) errors.push("system.id: missing or not an id");
+    if (!filled(system.id) || !ID.test(system.id))
+      errors.push("system.id: missing, or holds whitespace");
     if (!filled(system.name)) errors.push("system.name: missing");
     if (!optionalString(system.description)) errors.push("system.description: not a string");
   }
@@ -100,7 +103,7 @@ export function validateModel(model) {
       const where = `${key}[${index}]`;
       if (!isObject(element)) return errors.push(`${where}: not an object`);
       if (!filled(element.id) || !ID.test(element.id))
-        errors.push(`${where}.id: missing or not an id (letters, digits, and . _ : / -)`);
+        errors.push(`${where}.id: missing, or holds whitespace`);
       else if (types.has(element.id)) errors.push(`${where}.id: "${element.id}" is used twice`);
       else types.set(element.id, type);
       if (!filled(element.name)) errors.push(`${where}.name: missing`);
