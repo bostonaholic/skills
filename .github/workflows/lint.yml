@@ -100,8 +100,10 @@ jobs:
         env:
           VERSION: 1.7.12
           SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        # GitHub's release downloads return transient 5xx errors that have lasted minutes, so curl
+        # retries with its doubling backoff (1s, 2s, 4s, ...) for up to 5 minutes before failing.
         run: |
-          curl -fsSLo "$RUNNER_TEMP/actionlint.tgz" "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 8 --retry-max-time 300 -o "$RUNNER_TEMP/actionlint.tgz" "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
           echo "${SHA256}  $RUNNER_TEMP/actionlint.tgz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/actionlint.tgz" -C "$RUNNER_TEMP" actionlint
       - run: '"$RUNNER_TEMP/actionlint" -color'
