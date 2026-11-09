@@ -15,9 +15,9 @@ import {
   findCycles,
   stronglyConnected,
   validateModel,
-} from "../skills/engineering/visualizing-c4-architecture/scripts/build-c4-site.mjs";
+} from "../skills/engineering/visualizing-codebases/scripts/build-c4-site.mjs";
 
-const SCRIPT = resolve("skills/engineering/visualizing-c4-architecture/scripts/build-c4-site.mjs");
+const SCRIPT = resolve("skills/engineering/visualizing-codebases/scripts/build-c4-site.mjs");
 const SITE_FILES = [
   "index.html",
   "context.html",
@@ -272,7 +272,7 @@ test("the CLI refuses an invalid model, lists every error, and writes nothing", 
   assert.match(result.stderr, /2 validation error\(s\)/);
   assert.match(result.stderr, /"ghost"/);
   assert.match(result.stderr, /"nowhere"/);
-  assert.match(result.stderr, /\nsee \/.+\/visualizing-c4-architecture\/SKILL\.md\n$/);
+  assert.match(result.stderr, /\nsee \/.+\/visualizing-codebases\/SKILL\.md\n$/);
   assert.equal(existsSync(out), false);
 });
 

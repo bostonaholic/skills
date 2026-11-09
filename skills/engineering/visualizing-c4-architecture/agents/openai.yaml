@@ -1,4 +1,0 @@
-interface:
-  display_name: "Visualizing C4 Architecture"
-  short_description: "Build an interactive C4 site that shows dependency cycles"
-  default_prompt: "Use $visualizing-c4-architecture to map this codebase at the four C4 levels and build an interactive static site, one page per level, that shows dependency cycles between modules and classes."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visualizing Codebases"
+  short_description: "Build an interactive site that visualizes a codebase"
+  default_prompt: "Use $visualizing-codebases to build an interactive static site that visualizes this codebase, starting with a C4 view of system context, containers, components, and code that shows dependency cycles between modules and classes."

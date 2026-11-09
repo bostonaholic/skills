@@ -15,4 +15,4 @@ append_system_prompt: |
   Accountants use the service over HTTPS.
 ---
 
-Build the C4 visualization for the ledger service, and while you're at it tell me which module I should refactor first to break the dependency loops.
+Visualize the ledger service codebase, and while you're at it tell me which module I should refactor first to break the dependency loops.

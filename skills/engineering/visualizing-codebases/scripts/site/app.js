@@ -273,7 +273,7 @@
     $("#level-summary").textContent = view.summary;
     $("#toggle-cycles-only").checked = state.cyclesOnly;
     $("#toggle-labels").checked = state.edgeLabels;
-    document.title = `${view.title} · ${DATA.system.name}`;
+    document.title = `${view.title} · Visualizing ${DATA.system.name}`;
 
     renderStats();
     renderLegend();
