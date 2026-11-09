@@ -1,0 +1,6 @@
+interface:
+  display_name: "Untangling Codebases"
+  short_description: "Refactor a codebase so each change lands in one place"
+  default_prompt: "Use $untangling-codebases to untangle this codebase in one pass."
+policy:
+  allow_implicit_invocation: true

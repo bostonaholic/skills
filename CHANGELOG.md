@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-11-09
+
+### Added
+
+- Add untangling-codebases, which refactors a whole codebase in one pass: it lists hidden links, needless links, surplus code, and special cases, fixes their shared causes from a decision log, and repeats with fresh-context subagents until nothing worth fixing is left. [#180](https://github.com/bostonaholic/skills/pull/180)
+
 ## [0.87.0] - 2026-11-09
 
 ### Added
@@ -1100,5 +1106,7 @@
 
 [0.86.0]: https://github.com/bostonaholic/skills/compare/v0.85.0...v0.86.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.87.0...HEAD
 [0.87.0]: https://github.com/bostonaholic/skills/compare/v0.86.0...v0.87.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.88.0...HEAD
+[0.88.0]: https://github.com/bostonaholic/skills/compare/v0.87.0...v0.88.0
