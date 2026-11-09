@@ -1,0 +1,4 @@
+interface:
+  display_name: "Defining Problems"
+  short_description: "Interview the user until the problem is defined"
+  default_prompt: "Use $defining-problems to interview me until we have defined the problem, before any solution."
