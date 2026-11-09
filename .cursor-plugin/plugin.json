@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic",
-  "version": "0.86.0",
+  "version": "0.87.0",
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston"
@@ -65,6 +65,7 @@
     "./skills/productivity/composing-agent-prompts",
     "./skills/productivity/conducting-deep-research",
     "./skills/productivity/cutting-skills",
+    "./skills/productivity/defining-problems",
     "./skills/productivity/improving-prompts",
     "./skills/productivity/learning-from-mistakes",
     "./skills/productivity/running-retros",

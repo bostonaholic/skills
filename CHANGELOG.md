@@ -6,6 +6,12 @@
 
 - Add untangling-codebases, which refactors a whole codebase in one pass: it lists hidden links, needless links, surplus code, and special cases, fixes their shared causes from a decision log, and repeats with fresh-context subagents until nothing worth fixing is left. [#180](https://github.com/bostonaholic/skills/pull/180)
 
+## [0.87.0] - 2026-11-09
+
+### Added
+
+- Add defining-problems, which interviews the user in rounds of numbered questions until the problem is defined, with who has it, evidence, impact, and success criteria, before any solution. [#179](https://github.com/bostonaholic/skills/pull/179)
+
 ## [0.86.0] - 2026-11-08
 
 ### Added
@@ -1096,5 +1102,7 @@
 
 [0.85.0]: https://github.com/bostonaholic/skills/compare/v0.84.0...v0.85.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.86.0...HEAD
 [0.86.0]: https://github.com/bostonaholic/skills/compare/v0.85.0...v0.86.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.87.0...HEAD
+[0.87.0]: https://github.com/bostonaholic/skills/compare/v0.86.0...v0.87.0
