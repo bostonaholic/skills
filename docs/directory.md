@@ -63,7 +63,7 @@ git ls-files -s | awk '$1 == "120000"'
 # No submodules: prints nothing.
 git ls-files -s | awk '$1 == "160000"'
 # No LFS pointers and no export-ignore, export-subst, or filter attributes: prints nothing.
-git ls-files .gitattributes '**/.gitattributes'
+git grep -nE 'filter|export-(ignore|subst)' -- .gitattributes '**/.gitattributes'
 # No .DS_Store, Thumbs.db, desktop.ini, or __MACOSX: prints nothing.
 git ls-files | grep -E '(^|/)(\.DS_Store|Thumbs\.db|desktop\.ini|__MACOSX)(/|$)'
 # No case collisions, then no non-ASCII names: each prints nothing.
