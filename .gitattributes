@@ -1,0 +1,2 @@
+# CHANGELOG.md gets one bullet per PR under [Unreleased]; keep both sides on merge.
+CHANGELOG.md merge=union
