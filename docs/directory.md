@@ -167,7 +167,7 @@ facts becomes true:
 ## Launchers outside the loaded files
 
 The plugin loads the skill directories that `.claude-plugin/plugin.json` lists
-under `skills/engineering/` and `skills/productivity/`, and `agents/oracle.md`.
+under `skills/engineering/` and `skills/productivity/`, and the subagents in `agents/`.
 Launchers in other files stay as they are. To list them, run:
 
 ```sh

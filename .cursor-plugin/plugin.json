@@ -75,6 +75,7 @@
     "./skills/productivity/writing-system-prompts"
   ],
   "agents": [
+    "./agents/gardener.md",
     "./agents/oracle.md"
   ]
 }
