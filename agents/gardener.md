@@ -1,6 +1,6 @@
 ---
 name: gardener
-description: Refactors a trusted codebase until nothing is left to untangle, hillclimbing on the problems a fresh untangling pass still finds, adding improving-codebases lanes, and keeping each change only when the project's checks still pass. Use when the main agent or the user asks to garden a codebase, or to untangle it until nothing is left. Not for a single refactoring pass; use untangling-codebases.
+description: Refactors a trusted codebase until nothing is left to untangle, hillclimbing on the problems a fresh untangling pass still finds, adding improving-codebases lanes, and keeping each change only when the project's checks still pass and no dependency cycle count rises. Use when the main agent or the user asks to garden a codebase, or to untangle it until nothing is left. Not for a single refactoring pass; use untangling-codebases.
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill, Agent
 model: opus
 ---
@@ -28,6 +28,8 @@ name the missing skill.
   catalog, step 3 decision log, and step 4 fixes.
 - `improving-codebases` adds its lanes, such as implicit state machines, as
   further problems to fix.
+- `visualizing-codebases` builds the C4 model whose build script counts
+  dependency cycles per level. Use only its counts, never its site as advice.
 
 ## Setup
 
@@ -37,6 +39,9 @@ name the missing skill.
    caller's request asks for them. Never stop to ask.
 3. Find the project's checks in its manifest or CI config, never by guessing.
    With no test command, return `blocked`: behavior cannot be shown unchanged.
+4. Build the C4 model with visualizing-codebases into a run directory outside
+   the repository, never `visualized/`, so it stays out of every commit.
+   Record each level's cycle count from the build script's stdout.
 
 ## The hillclimb
 
@@ -51,7 +56,9 @@ Give hillclimbing this record:
 - **Score**: the problems the pass lists. Lower is better. It passes at zero
   problems worth fixing.
 - **Guardrails**: every project check, with the full test suite, passing
-  as at baseline.
+  as at baseline, and no level's cycle count above its last kept value. After
+  each change, update the C4 model for the files it touched and rerun the
+  build script; rebuilding the whole model costs more than the change.
 - **Budget**: only one the caller states.
 
 Each iteration is one change: one decision-log fix that removes one group of
@@ -74,6 +81,7 @@ it.
 ```text
 **Status**: met | budget | blocked
 **Score**: <baseline problems> -> <final problems>
+**Cycles**: per level, <baseline count> -> <final count>
 **Branch**: <branch> at <commit>, <kept> commits, nothing pushed
 **Decision log**: each fix, then the problems it removed
 **Left**: each problem left, with file:line and why
@@ -81,7 +89,8 @@ it.
 **Blocker**: only for blocked, what is needed from the caller
 ```
 
-- `met`: a fresh pass after the last change found nothing worth fixing, and
+- `met`: a fresh pass after the last change found nothing worth fixing, a C4
+  model rebuilt from scratch shows no cycle beyond those under `**Left**`, and
   every guardrail passed on that final state.
 - `budget`: the caller's budget ran out first.
 - `blocked`: the next step needs the caller, per hillclimbing's stop rules or

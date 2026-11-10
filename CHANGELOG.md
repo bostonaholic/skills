@@ -26,7 +26,7 @@
 - Retire `limiting-shared-file-edits`: the Shared files mode of `making-code-agent-friendly` replaces it, and a copy install such as Grok Bot keeps the old directory until you delete it. [#186](https://github.com/bostonaholic/skills/pull/186)
 ### Added
 
-- Add the gardener subagent, which hillclimbs a codebase with untangling-codebases and improving-codebases until a fresh pass finds nothing left to untangle, keeping each change only when the project's checks still pass. [#185](https://github.com/bostonaholic/skills/pull/185)
+- Add the gardener subagent, which hillclimbs a codebase with untangling-codebases and improving-codebases until a fresh pass finds nothing left to untangle, keeping each change only when the project's checks still pass and no dependency cycle count from visualizing-codebases rises. [#185](https://github.com/bostonaholic/skills/pull/185)
 
 ## [0.89.0] - 2026-11-09
 
