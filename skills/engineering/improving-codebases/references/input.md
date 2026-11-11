@@ -50,7 +50,7 @@ Check these rules once `list-lanes.mjs` has built the registry, and before
 - **Coverage lane.** `--coverage` needs the complexity lane selected.
 - **Earlier lane report.** For each selected report lane:
   - The lane files are `report.json`, `inventory.json`, and `report.md` for
-    complexity.
+    complexity, and `report.json` and `report.md` for test-audit.
   - Stop when `<out>/<lane>` or any lane file in it is a symlink.
   - Stop when any lane file exists and `<out>/<lane>/report.json` does not
     hold `skill: "improving-codebases"` and `lane: "<lane>"`. A missing

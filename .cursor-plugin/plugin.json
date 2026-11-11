@@ -20,7 +20,6 @@
     "./skills/engineering/auditing-agent-token-usage",
     "./skills/engineering/auditing-rails-tech-debt",
     "./skills/engineering/auditing-repo-security",
-    "./skills/engineering/auditing-tests",
     "./skills/engineering/capturing-screenshots",
     "./skills/engineering/choosing-determinism",
     "./skills/engineering/configuring-zsh",

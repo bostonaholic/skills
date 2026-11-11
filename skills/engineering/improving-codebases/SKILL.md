@@ -1,6 +1,6 @@
 ---
 name: improving-codebases
-description: 'Sweeps a git repository with focused improvement lanes: implicit state machines made explicit and checked in TLA+, and complexity hotspots with CRAP change risk. Its untangle mode refactors a whole codebase so each change lands in one place. Leaves edits uncommitted. Use when the user says "improve this codebase", "find complexity hotspots", or "untangle this codebase", or when asked to make implicit state machines explicit, rank complexity or change risk, or refactor a whole codebase so changes land in one place. Never infer from a request to review or explain code, a bug fix, or a feature request. Not for test value; use auditing-tests. Not for one new requirement; use redesigning-code.'
+description: 'Sweeps a git repository with focused improvement lanes: implicit state machines made explicit and checked in TLA+, complexity hotspots with CRAP change risk, and a test audit that marks each test retain, fix, consolidate, or delete with verified removal evidence. Its untangle mode refactors a whole codebase so each change lands in one place. Leaves edits uncommitted. Use when the user says "improve this codebase", "find complexity hotspots", "audit the tests", or "untangle this codebase", or when asked to make implicit state machines explicit, rank complexity or change risk, audit tests for redundant or low-value tests, or refactor a whole codebase so changes land in one place. Never infer from a request to review or explain code, a bug fix, or a feature request. Not for one new requirement; use redesigning-code.'
 effort: high
 argument-hint: "[untangle [<area or concern>]] [<path or subsystem> ...] [--lane <name> ...] [--out <dir>] [--env <NAME> ...] [--coverage <file>]"
 ---
@@ -58,12 +58,15 @@ The lanes:
   change risk, in its own report under `<out>/complexity/`.
 - [state-machines](references/lanes/state-machines.md): implicit state
   machines, each specced in TLA+ and checked with TLC.
+- [test-audit](references/lanes/test-audit.md): marks each test against the
+  [testing rules](shared/testing.md), in its own report under
+  `<out>/test-audit/`.
 
 ## Procedure
 
 1. **Input.** Apply the rules of [input](references/input.md) for the mode that `## Modes` picked, and stop on any rule it names, except the lane rules, before any write. In a sweep, parse the scope paths, `--lane`, `--out`, `--env`, and `--coverage`. In Untangle mode the only rule is the flag stop.
 2. **Lanes.** Run `node <skill-dir>/scripts/list-lanes.mjs`. Its JSON is the registry for this run. On exit 1, relay its stderr and stop. When `node` cannot run, read the briefs that `## Lanes` links. Select lanes per `## Lanes`, check the lane rules of input against the registry, and stop on a failed rule before any write. Then create `<run>` with `mktemp -d`, outside the repository. When `mktemp -d` cannot run, go on with no `<run>`.
-3. **Report lanes.** Run the `## Report` section of each selected lane whose `report` is `own`, in registry order. Its find subagents obey step 5: fresh context, never a fork of this conversation, at most 30 per lane, and one retry. Without subagents, the groups run inline and the cap counts them. A stop inside one lane ends only that lane.
+3. **Report lanes.** Run the `## Report` section of each selected lane whose `report` is `own`, in registry order. Its find subagents obey step 5: fresh context, never a fork of this conversation, at most 30 per lane, and one retry. Without subagents, the groups run inline and the cap counts them. A stop inside one lane ends only that lane, except at the test-audit baseline: a moved HEAD, a changed ref, a runner exit other than 0, or a missing result ends the run, and each later selected lane reads `not run`.
 4. **Inventory.** With no findings lane selected, skip to the reply. Otherwise run `git ls-files --stage -z` with no path argument, so no user path reaches command text, and keep the files under each scope path.
    - Put documentation, data, configuration, and lock files, tracked symlinks (mode `120000`), and submodules (mode `160000`) in `gaps`.
    - Put vendored, generated, and build-output paths in `gaps` too, with the evidence as `reason`: a `linguist-vendored` or `linguist-generated` entry, a generated-code header, or a manifest or build config that names the path. A directory name alone is not evidence, and a path the user names stays in.

@@ -5,6 +5,7 @@ Entrypoints use `SKILL.md.disabled` so recursive skill installers do not discove
 Their shared files are frozen copies and are not updated by `sync-shared`.
 
 - [auditing-complexity](auditing-complexity/SKILL.md.disabled): retired; its complexity ranking is now the complexity lane of `improving-codebases`, which owns its scripts.
+- [auditing-tests](auditing-tests/SKILL.md.disabled): retired; its test audit is now the test-audit lane of `improving-codebases`, which owns its script.
 - [bd-go](bd-go/SKILL.md.disabled): retired Beads task execution.
 - [bd-scan](bd-scan/SKILL.md.disabled): retired Beads branch scanning.
 - [limiting-shared-file-edits](limiting-shared-file-edits/SKILL.md.disabled): retired; its shared-file check is now the Shared files mode of `making-code-agent-friendly`.

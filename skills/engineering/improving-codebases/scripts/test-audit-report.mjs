@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Validates an auditing-tests report.json and renders report.md beside it.
-// Usage: render-report.mjs <report.json> [<report.md>]
+// Validates an improving-codebases test-audit lane report.json and renders report.md beside it.
+// Usage: test-audit-report.mjs <report.json> [<report.md>]
 //   exit 0  wrote report.md (beside report.json unless named) and printed its path
 //   exit 1  wrote nothing; stderr names an unreadable report.json, lists every validation error, or
 //           names a report.md that is a symlink or cannot be written
@@ -9,8 +9,8 @@ import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The skill file that explains each exit code.
-const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
+// The lane brief that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/lanes/test-audit.md", import.meta.url));
 
 export const MARKS = ["R", "F", "C", "D"];
 export const JUNK_CLASSES = [
@@ -45,6 +45,8 @@ export function validateReport(report) {
   const errors = [];
   if (!isObject(report)) return ["report is not a JSON object"];
   if (report.version !== 1) errors.push("version must be 1");
+  if (report.skill !== "improving-codebases") errors.push("skill must be improving-codebases");
+  if (report.lane !== "test-audit") errors.push("lane must be test-audit");
 
   const scope = report.scope ?? {};
   for (const field of ["commit", "discovery", "date"]) {
@@ -70,33 +72,33 @@ export function validateReport(report) {
     else placements.set(file, placements.get(file) + 1);
   };
 
-  const lanes = list(report.lanes).filter((lane, index) => {
-    if (!isObject(lane)) errors.push(`lanes[${index}] is not an object`);
-    return isObject(lane);
+  const groups = list(report.groups).filter((group, index) => {
+    if (!isObject(group)) errors.push(`groups[${index}] is not an object`);
+    return isObject(group);
   });
   const tests = new Map();
-  for (const lane of lanes) {
-    const laneName = filled(lane.name) ? lane.name : "(unnamed lane)";
-    if (!filled(lane.name)) errors.push("every lane needs a name");
-    if ("seams" in lane)
-      errors.push(`lane ${laneName} has a seams field; rename it to testOnlyCode`);
-    const laneFiles = new Set(list(lane.files));
-    for (const file of laneFiles) place(file, `lane ${laneName}`);
+  for (const group of groups) {
+    const groupName = filled(group.name) ? group.name : "(unnamed group)";
+    if (!filled(group.name)) errors.push("every group needs a name");
+    if ("seams" in group)
+      errors.push(`group ${groupName} has a seams field; rename it to testOnlyCode`);
+    const groupFiles = new Set(list(group.files));
+    for (const file of groupFiles) place(file, `group ${groupName}`);
 
-    for (const [index, test] of list(lane.tests).entries()) {
+    for (const [index, test] of list(group.tests).entries()) {
       if (!isObject(test)) {
-        errors.push(`lane ${laneName} tests[${index}] is not an object`);
+        errors.push(`group ${groupName} tests[${index}] is not an object`);
         continue;
       }
       const id = test.id;
       if (!filled(id)) {
-        errors.push(`lane ${laneName} has a test with no id`);
+        errors.push(`group ${groupName} has a test with no id`);
         continue;
       }
       if (tests.has(id)) errors.push(`test id ${id} appears more than once`);
       tests.set(id, test);
-      if (!laneFiles.has(test.file))
-        errors.push(`${id}: file ${test.file} is not in lane ${laneName}`);
+      if (!groupFiles.has(test.file))
+        errors.push(`${id}: file ${test.file} is not in group ${groupName}`);
       if (!MARKS.includes(test.mark)) {
         errors.push(`${id}: mark must be one of ${MARKS.join(", ")}`);
         continue;
@@ -127,12 +129,12 @@ export function validateReport(report) {
 
   for (const gap of list(report.gaps)) place(gap.file, "gaps");
   for (const [file, count] of placements) {
-    if (count === 0) errors.push(`${file} is in no lane and no gap`);
+    if (count === 0) errors.push(`${file} is in no group and no gap`);
     if (count > 1) errors.push(`${file} is placed ${count} times; place it exactly once`);
   }
 
-  for (const lane of lanes) {
-    for (const code of list(lane.testOnlyCode)) {
+  for (const group of groups) {
+    for (const code of list(group.testOnlyCode)) {
       for (const id of list(code.freedBy)) {
         if (!tests.has(id)) errors.push(`testOnlyCode ${code.location} names unknown test ${id}`);
       }
@@ -160,8 +162,8 @@ function table(headers, rows) {
 }
 
 function allTests(report) {
-  return list(report.lanes).flatMap((lane) =>
-    list(lane.tests).map((test) => ({ lane: lane.name, ...test })),
+  return list(report.groups).flatMap((group) =>
+    list(group.tests).map((test) => ({ group: group.name, ...test })),
   );
 }
 
@@ -220,9 +222,9 @@ export function renderReport(report) {
   out.push("## Delete (D)\n");
   out.push(
     table(
-      ["Lane", "Test", "Class", ...EVIDENCE_FIELDS],
+      ["Group", "Test", "Class", ...EVIDENCE_FIELDS],
       byMark("D").map((t) => [
-        t.lane,
+        t.group,
         `${t.file}:${t.line ?? "?"} ${t.name}`,
         t.junkClass,
         ...EVIDENCE_FIELDS.map((f) => t.evidence[f]),
@@ -232,9 +234,9 @@ export function renderReport(report) {
   out.push("## Consolidate (C)\n");
   out.push(
     table(
-      ["Lane", "Test", "Class", "Absorbed by"],
+      ["Group", "Test", "Class", "Absorbed by"],
       byMark("C").map((t) => [
-        t.lane,
+        t.group,
         `${t.file}:${t.line ?? "?"} ${t.name}`,
         t.junkClass,
         t.absorbedBy,
@@ -244,9 +246,9 @@ export function renderReport(report) {
   out.push("## Fix the assertion (F)\n");
   out.push(
     table(
-      ["Lane", "Test", "Class", "Contract", "Repair"],
+      ["Group", "Test", "Class", "Contract", "Repair"],
       byMark("F").map((t) => [
-        t.lane,
+        t.group,
         `${t.file}:${t.line ?? "?"} ${t.name}`,
         t.junkClass,
         t.contract,
@@ -272,8 +274,8 @@ export function renderReport(report) {
   out.push(
     table(
       ["Location", "Kind", "Freed by"],
-      list(report.lanes).flatMap((lane) =>
-        list(lane.testOnlyCode).map((c) => [c.location, c.kind, list(c.freedBy).join(", ")]),
+      list(report.groups).flatMap((group) =>
+        list(group.testOnlyCode).map((c) => [c.location, c.kind, list(c.freedBy).join(", ")]),
       ),
     ),
   );
@@ -287,34 +289,34 @@ export function renderReport(report) {
   );
 
   out.push("## Suggested batches\n");
-  const batches = list(report.lanes).filter((lane) =>
-    list(lane.tests).some((t) => t.mark === "C" || t.mark === "D"),
+  const batches = list(report.groups).filter((group) =>
+    list(group.tests).some((t) => t.mark === "C" || t.mark === "D"),
   );
   out.push(
     batches.length === 0
       ? "None.\n"
       : `${batches
-          .map((lane) => {
-            const ids = list(lane.tests).filter((t) => t.mark === "C" || t.mark === "D");
-            return `- **${lane.name}**: ${ids.length} candidate(s) in one owner-boundary change.`;
+          .map((group) => {
+            const ids = list(group.tests).filter((t) => t.mark === "C" || t.mark === "D");
+            return `- **${group.name}**: ${ids.length} candidate(s) in one owner-boundary change.`;
           })
           .join("\n")}\n`,
   );
 
   out.push("## Auditor notes\n");
-  const notes = list(report.lanes).flatMap((lane) =>
-    list(lane.notes).map((note) => `- **${lane.name}**: ${cell(note)}`),
+  const notes = list(report.groups).flatMap((group) =>
+    list(group.notes).map((note) => `- **${group.name}**: ${cell(note)}`),
   );
   out.push(notes.length === 0 ? "None.\n" : `${notes.join("\n")}\n`);
 
   out.push("## Ledger\n");
-  for (const lane of list(report.lanes)) {
-    out.push(`### ${lane.name}\n`);
-    out.push(`Owner: ${list(lane.owner).join(", ") || "unstated"}.\n`);
+  for (const group of list(report.groups)) {
+    out.push(`### ${group.name}\n`);
+    out.push(`Owner: ${list(group.owner).join(", ") || "unstated"}.\n`);
     out.push(
       table(
         ["Mark", "Test", "Guards", "Catches"],
-        list(lane.tests).map((t) => [
+        list(group.tests).map((t) => [
           t.mark,
           `${t.file}:${t.line ?? "?"} ${t.name}`,
           t.contract ?? t.absorbedBy ?? "",
@@ -350,7 +352,7 @@ function main(args) {
   const [input, output] = args;
   if (!input) {
     process.stderr.write(
-      "render-report.mjs: usage: render-report.mjs <report.json> [<report.md>]\n",
+      "test-audit-report.mjs: usage: test-audit-report.mjs <report.json> [<report.md>]\n",
     );
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
@@ -359,13 +361,13 @@ function main(args) {
   try {
     report = JSON.parse(readFileSync(input, "utf8"));
   } catch (error) {
-    process.stderr.write(`render-report.mjs: cannot read ${input}: ${error.message}\n`);
+    process.stderr.write(`test-audit-report.mjs: cannot read ${input}: ${error.message}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const errors = validateReport(report);
   if (errors.length > 0) {
-    process.stderr.write(`render-report.mjs: ${errors.length} error(s); nothing written\n`);
+    process.stderr.write(`test-audit-report.mjs: ${errors.length} error(s); nothing written\n`);
     for (const error of errors) process.stderr.write(`- ${error}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
@@ -373,14 +375,14 @@ function main(args) {
   const target = output ?? join(dirname(input), "report.md");
   const refusal = writeRefusal(target);
   if (refusal) {
-    process.stderr.write(`render-report.mjs: ${refusal}\n`);
+    process.stderr.write(`test-audit-report.mjs: ${refusal}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   try {
     writeFileSync(target, renderReport(report));
   } catch (error) {
-    process.stderr.write(`render-report.mjs: cannot write ${target}: ${error.message}\n`);
+    process.stderr.write(`test-audit-report.mjs: cannot write ${target}: ${error.message}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }

@@ -637,12 +637,12 @@ const ROWS = [
     target: "skills/engineering/improving-codebases/references/lanes/complexity.md",
   },
   {
-    label: "auditing-tests render-report.mjs",
-    script: "skills/engineering/auditing-tests/scripts/render-report.mjs",
+    label: "improving-codebases test-audit-report.mjs",
+    script: "skills/engineering/improving-codebases/scripts/test-audit-report.mjs",
     interpreter: "node",
     args: (dir) => [write(dir, "audit/report.json", "{}\n")],
     exit: 1,
-    target: "skills/engineering/auditing-tests/SKILL.md",
+    target: "skills/engineering/improving-codebases/references/lanes/test-audit.md",
   },
   {
     label: "visualizing-codebases build-c4-site.mjs",
