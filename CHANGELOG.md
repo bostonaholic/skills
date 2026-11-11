@@ -72,6 +72,9 @@
 
 - `reviewing-code` and `reviewing-security` now size each change first and set a `Light`, `Standard`, or `Deep` review depth from its size, scope, blast radius, impact, and risk, stated on a `Depth:` line. Test lines do not count toward size. [#188](https://github.com/bostonaholic/skills/pull/188)
 - `reviewing-code` now caps the verdict at COMMENT when a part of the change is not judged, posts and prints each `Not judged:` line, carries those lines into later review rounds, and recommends a split for a very large change. [#188](https://github.com/bostonaholic/skills/pull/188)
+### Changed
+
+- fixing-root-causes asks a fresh-context subagent running the oracle brief for an independent second opinion when instrumenting has not settled a diagnosis. [#187](https://github.com/bostonaholic/skills/pull/187)
 
 ## [0.90.0] - 2026-11-11
 
