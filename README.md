@@ -48,8 +48,7 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`improving-codebases`](./skills/engineering/improving-codebases/SKILL.md)                             | "improve this codebase"              | user, model        | Sweep a codebase with focused improvement lanes.                                          |
 | [`investigating-design-rationale`](./skills/engineering/investigating-design-rationale/SKILL.md)       | "why is it built this way?"          | user, model, skill | Investigate why code is shaped as it is.                                                  |
 | [`landing-prs`](./skills/engineering/landing-prs/SKILL.md)                                             | "ship it"                            | user, model        | Land a reviewed pull request on explicit request.                                         |
-| [`limiting-shared-file-edits`](./skills/engineering/limiting-shared-file-edits/SKILL.md)               | "check shared files"                 | user, model        | List the shared files a change edits and flag append-everywhere files.                    |
-| [`making-code-agent-friendly`](./skills/engineering/making-code-agent-friendly/SKILL.md)               | "make this agent-friendly"           | user, model, skill | Audit, review, refactor, and check shared files so many agents can edit code in parallel. |
+| [`making-code-agent-friendly`](./skills/engineering/making-code-agent-friendly/SKILL.md)               | "make this agent-friendly"           | user, model        | Audit, review, refactor, and check shared files so many agents can edit code in parallel. |
 | [`merging-dependabot-prs`](./skills/engineering/merging-dependabot-prs/SKILL.md)                       | `/merging-dependabot-prs`            | user               | Plan and merge safe Dependabot updates one at a time, or only request rebases.            |
 | [`modernizing-prs`](./skills/engineering/modernizing-prs/SKILL.md)                                     | "modernize this PR"                  | user, model, skill | Bring a PR up to date, or recommend reworking or closing it.                              |
 | [`prototyping-ui`](./skills/engineering/prototyping-ui/SKILL.md)                                       | "prototype this"                     | user, model        | Build 3 to 5 interactive UI prototypes and recommend one.                                 |
@@ -103,7 +102,6 @@ Some skills call others. Install the skills they call too.
 - `explaining-code` calls `explaining-architecture`.
 - `investigating-design-rationale` calls `explaining-architecture`.
 - `landing-prs` calls `modernizing-prs`.
-- `limiting-shared-file-edits` calls `making-code-agent-friendly`.
 - `watching-authored-prs` calls `addressing-pr-comments`, `modernizing-prs`.
 - `writing-technical-design-docs` calls `reviewing-design-docs`.
 

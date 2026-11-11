@@ -6,6 +6,7 @@ Their shared files are frozen copies and are not updated by `sync-shared`.
 
 - [bd-go](bd-go/SKILL.md.disabled): retired Beads task execution.
 - [bd-scan](bd-scan/SKILL.md.disabled): retired Beads branch scanning.
+- [limiting-shared-file-edits](limiting-shared-file-edits/SKILL.md.disabled): retired; its shared-file check is now the Shared files mode of `making-code-agent-friendly`.
 - [pr-cleanup](pr-cleanup/SKILL.md.disabled): retired standalone post-PR cleanup. Its original teardown declaration and variables are preserved in the archive.
 - [rebasing-branches](rebasing-branches/SKILL.md.disabled): renamed to `modernizing-prs`, which owns its scripts.
 - [rebasing-dependabot-prs](rebasing-dependabot-prs/SKILL.md.disabled): retired; its rebase-only flow is now a mode of `merging-dependabot-prs`.

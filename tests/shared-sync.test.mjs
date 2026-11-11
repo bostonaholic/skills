@@ -87,8 +87,12 @@ test("sync-shared --check passes: every copy equals its canonical bytes and the 
 // skill's references/. Only the real-tree test below reads these entries; no synthetic fixture
 // depends on them, and that test fails on an entry that no longer has exactly one reader.
 const SINGLE_READER = Object.freeze({
+  "shared/contention.md":
+    "read only by making-code-agent-friendly; moving it into that skill's references/ is deferred",
   "shared/human-control.md":
     "read only by grooming-backlogs; moving it into that skill's references/ is deferred",
+  "shared/scripts/contention.mjs":
+    "read only by making-code-agent-friendly; moving it into that skill's scripts/ is deferred",
   "shared/verified-results.md":
     "read only by improving-codebases; the design keeps it shared, and moving it is deferred",
 });

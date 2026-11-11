@@ -618,14 +618,6 @@ const ROWS = [
     target: "shared/contention.md",
   },
   {
-    label: "limiting-shared-file-edits shared/scripts/contention.mjs",
-    script: "skills/engineering/limiting-shared-file-edits/shared/scripts/contention.mjs",
-    interpreter: "node",
-    args: () => ["--bogus"],
-    exit: 2,
-    target: "skills/engineering/limiting-shared-file-edits/shared/contention.md",
-  },
-  {
     label: "making-code-agent-friendly shared/scripts/contention.mjs",
     script: "skills/engineering/making-code-agent-friendly/shared/scripts/contention.mjs",
     interpreter: "node",
