@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.90.0] - 2026-11-11
+
 ### Changed
 
 - Add a Shared files mode to `making-code-agent-friendly`, replacing `limiting-shared-file-edits`: say "check shared files" or start with `shared-files`. [#186](https://github.com/bostonaholic/skills/pull/186)
@@ -1124,5 +1126,7 @@
 
 [0.88.0]: https://github.com/bostonaholic/skills/compare/v0.87.0...v0.88.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.89.0...HEAD
 [0.89.0]: https://github.com/bostonaholic/skills/compare/v0.88.0...v0.89.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.90.0...HEAD
+[0.90.0]: https://github.com/bostonaholic/skills/compare/v0.89.0...v0.90.0
