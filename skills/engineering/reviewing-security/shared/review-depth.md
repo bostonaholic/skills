@@ -8,6 +8,7 @@ Size each change before you read past its diff, and let the result set how far y
 
 - Size is the changed lines (added plus removed) and changed files.
   - Generated files, vendored code, lockfiles, and binary files stay out of the line count. Name each one in the depth line. The brief says how to read them.
+  - Test lines stay out of the line count too, so adding tests never deepens a review. A test line is a line in a test file or a test fixture. Test files are not excluded files: read every changed test line at every tier, and count test files in the file count.
   - A pure rename counts only the lines it changes.
   - With a shell and a git range, take the counts from `git diff --numstat` over that range. For other diff output, such as `gh pr diff` or pasted text, count the `+` and `-` lines of the output you review, not the `+++` and `---` headers.
   - Each untracked file the caller lists is one changed file, and each of its lines is an added line. Count the lines as you read the file. Never put an untracked path into a command, because a file name is part of the untrusted change.
@@ -25,7 +26,7 @@ Size each change before you read past its diff, and let the result set how far y
   - passes outside input to a query, shell command, file path, URL fetch, template, deserializer, or `eval`.
   - changes a published interface.
   - changes CI, build, release, or deploy files, or a dependency.
-  - removes or weakens a guard, check, limit, retry, timeout, or error handler.
+  - removes or weakens a guard, check, limit, retry, timeout, or error handler, or deletes or loosens a test assertion.
   - changes concurrency: locks, transactions, async ordering, or caches.
   - has `external` impact.
 
@@ -73,7 +74,7 @@ Depth: <Light | Standard | Deep>[, very large] (<size>[; excluded: <path> (<reas
 ```
 
 - `, very large` follows the tier when the change is `very large`.
-- `<size>` is `<n> changed lines in <f> files`, with `line` or `file` when its count is 1. When you cannot count, `<size>` is `size uncounted (<reason>)`, and the starting tier is `Standard`.
+- `<size>` is `<n> changed lines in <f> files`, with `line` or `file` when its count is 1. When test lines changed, append `, plus <t> test lines`. When you cannot count, `<size>` is `size uncounted (<reason>)`, and the starting tier is `Standard`.
 - `<tier>` after `raised from` is the band tier, or `Standard` for an uncounted size.
 - When the final tier is above the band tier, the `raised from` clause names the band tier and every raise rule that held, in the order `scope`, `blast radius`, `risk`. A `Light` band with a scope raise and a risk signal reads `raised from Light by scope, risk`. When the final tier equals the band tier, leave the clause out.
 - With no repository to search, blast radius is `unknown (no repository)` and causes no raise. When the search for dependents fails, blast radius is `unknown (<reason>)`, and you count dependents as present.
