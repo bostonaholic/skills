@@ -1,6 +1,6 @@
 ---
 name: redesigning-code
-description: Redesigns code from first principles after the user approves the design. Redo mode rebuilds the current attempt from scratch as the simplest design that fits what was learned. Redesign mode reworks an existing design as if a new requirement had been a founding assumption, delivers it in working increments, and updates every reference. Use when the user explicitly asks to redo the work, start over, scrap the approach, or rewrite it more simply, or to redesign for a requirement or from first principles. Never infer from a failing or complex implementation or a feature request. Not for a whole-codebase cleanup; use untangling-codebases.
+description: Redesigns code from first principles after the user approves the design. Redo mode rebuilds the current attempt from scratch as the simplest design that fits what was learned. Redesign mode reworks an existing design as if a new requirement had been a founding assumption, delivers it in working increments, and updates every reference. Use when the user explicitly asks to redo the work, start over, scrap the approach, or rewrite it more simply, or to redesign for a requirement or from first principles. Never infer from a failing or complex implementation or a feature request. Not for a whole-codebase cleanup; use improving-codebases.
 disable-model-invocation: true
 argument-hint: "[redo | redesign <requirement>]"
 ---

@@ -1,72 +1,51 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mkdir -p src test
+mkdir -p lib test
+cat >lib/pricing.rb <<'EOF_1'
+TAX_RATE = 0.08
 
-cat >package.json <<'EOF_1'
-{
-  "name": "acme-orders",
-  "version": "0.3.0",
-  "type": "module",
-  "scripts": {
-    "test": "node --test"
-  }
-}
+def order_total(items, coupon_code = nil)
+  subtotal = items.sum { |i| i[:price] * i[:qty] }
+  subtotal -= 5 if coupon_code == "WELCOME5"
+  (subtotal * (1 + TAX_RATE)).round(2)
+end
 EOF_1
 
-cat >README.md <<'EOF_2'
-# acme-orders
+cat >lib/invoice.rb <<'EOF_2'
+require_relative "pricing"
 
-Order handling for the Acme shop.
+# Builds the invoice text.
+def invoice_text(items)
+  subtotal = items.sum { |i| i[:price] * i[:qty] }
+  total = (subtotal * 1.08).round(2)
+  "Total: #{total}"
+end
+
+def legacy_invoice_text(items)
+  invoice_text(items)
+end
 EOF_2
 
-cat >src/order.js <<'EOF_3'
-export class Order {
-  constructor(id) {
-    this.id = id;
-    this.status = "pending";
-  }
+cat >lib/mailer.rb <<'EOF_3'
+require_relative "invoice"
 
-  pay() {
-    if (this.status !== "pending") throw new Error(`cannot pay a ${this.status} order`);
-    this.status = "paid";
-  }
-
-  ship() {
-    if (this.status !== "paid") throw new Error(`cannot ship a ${this.status} order`);
-    this.status = "shipped";
-  }
-
-  cancel() {
-    if (this.status === "shipped") throw new Error("cannot cancel a shipped order");
-    this.status = "cancelled";
-  }
-}
+def send_invoice(items, email)
+  begin
+    puts "to #{email}: #{invoice_text(items)}"
+  rescue StandardError
+    nil
+  end
+end
 EOF_3
 
-cat >test/order.test.js <<'EOF_4'
-import assert from "node:assert/strict";
-import { test } from "node:test";
-import { Order } from "../src/order.js";
+cat >test/pricing_test.rb <<'EOF_4'
+require "minitest/autorun"
+require_relative "../lib/pricing"
 
-test("a paid order ships", () => {
-  const order = new Order(1);
-  order.pay();
-  order.ship();
-  assert.equal(order.status, "shipped");
-});
-
-test("a shipped order cannot be cancelled", () => {
-  const order = new Order(2);
-  order.pay();
-  order.ship();
-  assert.throws(() => order.cancel(), /cannot cancel/);
-});
-
-test("an unpaid order cannot ship", () => {
-  assert.throws(() => new Order(3).ship(), /cannot ship a pending order/);
-});
+class PricingTest < Minitest::Test
+  def test_total_with_tax
+    assert_equal 21.6, order_total([{ price: 10, qty: 2 }])
+  end
+end
 EOF_4
-
-git init -q
-git add -A

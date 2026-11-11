@@ -7,4 +7,4 @@ append_system_prompt: |
   The shell, Write, and Edit tools are unavailable in this session. Give each change you would make in the reply instead.
 ---
 
-/bostonaholic:untangling-codebases Skip both extras, no comment or test passes. Reply with your problem list, decision log, and the changes you would make.
+/bostonaholic:improving-codebases untangle Skip both extras, no comment or test passes. Reply with your problem list, decision log, and the changes you would make.

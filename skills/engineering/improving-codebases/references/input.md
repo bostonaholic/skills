@@ -1,6 +1,6 @@
 # Input
 
-The request names optional scope paths, any number of `--lane <name>`, an
+In a sweep, the request names optional scope paths, any number of `--lane <name>`, an
 optional `--out <dir>`, any number of `--env <NAME>`, and an optional
 `--coverage <file>`. Before any write, stop and name the rule on an unknown
 flag, a path outside the repository, a scope with no tracked file, a bad
@@ -33,6 +33,12 @@ breaks these rules, naming the rule, before writing anything.
 - **Earlier report.** Stop when `<out>/report.json` or `<out>/report.md` is a
   symlink, or when `<out>/report.json` exists and does not hold
   `skill: "improving-codebases"`.
+
+## Untangle mode
+
+The rest of the request is the area or concern, read as text, never as a
+scope path. Any flag stops the run. A flag is a word outside quotes and code
+spans that starts with `--`. No other rule of this file applies to Untangle.
 
 ## Lane rules
 

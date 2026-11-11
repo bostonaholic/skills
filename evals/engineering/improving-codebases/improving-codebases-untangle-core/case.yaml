@@ -1,4 +1,4 @@
 schema_version: "1.1"
-name: untangling-codebases-core
+name: improving-codebases-untangle-core
 context:
   scaffold_script: scaffold.sh

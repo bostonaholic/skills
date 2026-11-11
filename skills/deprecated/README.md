@@ -16,6 +16,7 @@ Their shared files are frozen copies and are not updated by `sync-shared`.
 - [redoing-implementations](redoing-implementations/SKILL.md.disabled): retired; it is now the Redo mode of `redesigning-code`, which owns its script.
 - [reviewing-rails-code](reviewing-rails-code/SKILL.md.disabled): retired; its review mode is now part of `simplifying-ruby-code`.
 - [reviewing-ruby-code](reviewing-ruby-code/SKILL.md.disabled): retired; its review mode is now part of `simplifying-ruby-code`.
+- [untangling-codebases](untangling-codebases/SKILL.md.disabled): retired; its whole-codebase pass is now the Untangle mode of `improving-codebases`.
 - [using-gh-cli](using-gh-cli/SKILL.md.disabled): retired; evals showed it rarely triggered and current models handle its gh cases without it.
 - [using-jq](using-jq/SKILL.md.disabled): retired; current models already know its jq gotchas.
 

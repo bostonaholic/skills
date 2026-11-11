@@ -1,8 +1,8 @@
 ---
 name: improving-codebases
-description: 'Sweeps a git repository with focused improvement lanes: implicit state machines made explicit and checked in TLA+, and complexity hotspots with CRAP change risk. Leaves edits uncommitted. Use when the user says "improve this codebase" or "find complexity hotspots", or when asked to make implicit state machines explicit or rank complexity or change risk. Never infer from a request to review or explain code, a bug fix, or a feature request. Not for test value; use auditing-tests.'
+description: 'Sweeps a git repository with focused improvement lanes: implicit state machines made explicit and checked in TLA+, and complexity hotspots with CRAP change risk. Its untangle mode refactors a whole codebase so each change lands in one place. Leaves edits uncommitted. Use when the user says "improve this codebase", "find complexity hotspots", or "untangle this codebase", or when asked to make implicit state machines explicit, rank complexity or change risk, or refactor a whole codebase so changes land in one place. Never infer from a request to review or explain code, a bug fix, or a feature request. Not for test value; use auditing-tests. Not for one new requirement; use redesigning-code.'
 effort: high
-argument-hint: "[<path or subsystem> ...] [--lane <name> ...] [--out <dir>] [--env <NAME> ...] [--coverage <file>]"
+argument-hint: "[untangle [<area or concern>]] [<path or subsystem> ...] [--lane <name> ...] [--out <dir>] [--env <NAME> ...] [--coverage <file>]"
 ---
 
 # Improving codebases
@@ -18,12 +18,26 @@ finding cites its code as `file:line`.
 - The skill never commits, pushes, branches, stages, stashes, or installs.
 - Scripts own every check result. Never call a finding verified or checked
   beyond what its label says ([verified results](shared/verified-results.md)).
-- Each refactor goes to a fresh-context reviewer that never judges its own
-  work ([independent review](shared/independent-review.md)).
+- Each refactor in a sweep goes to a fresh-context reviewer that never
+  judges its own work ([independent review](shared/independent-review.md)).
 
 `<skill-dir>` is this skill's directory, `<top>` is the output of
 `git rev-parse --show-toplevel`, `<out>` is the absolute output directory,
 and `<run>` is the run directory from step 2.
+
+## Modes
+
+Pick the mode, then run step 1 of `## Procedure`, which applies that
+mode's input rules.
+
+- **Sweep**, the default: then run steps 2 to 9 on the selected lanes.
+- **Untangle**: the first word `untangle`, or a request to untangle a
+  codebase or refactor a whole codebase so changes land in one place. After
+  step 1, run the [untangle procedure](references/untangle.md) and its
+  [decision log example](references/decision-log-example.md) in place of
+  steps 2 to 9 and `## Reply`, and reply as it says.
+- When a request asks for Untangle and for a lane's work, ask which one
+  in one line and edit nothing until the user answers.
 
 ## Lanes
 
@@ -47,7 +61,7 @@ The lanes:
 
 ## Procedure
 
-1. **Input.** Parse the scope paths, `--lane`, `--out`, `--env`, and `--coverage` per [input](references/input.md), and stop on any rule it names, except the lane rules, before any write.
+1. **Input.** Apply the rules of [input](references/input.md) for the mode that `## Modes` picked, and stop on any rule it names, except the lane rules, before any write. In a sweep, parse the scope paths, `--lane`, `--out`, `--env`, and `--coverage`. In Untangle mode the only rule is the flag stop.
 2. **Lanes.** Run `node <skill-dir>/scripts/list-lanes.mjs`. Its JSON is the registry for this run. On exit 1, relay its stderr and stop. When `node` cannot run, read the briefs that `## Lanes` links. Select lanes per `## Lanes`, check the lane rules of input against the registry, and stop on a failed rule before any write. Then create `<run>` with `mktemp -d`, outside the repository. When `mktemp -d` cannot run, go on with no `<run>`.
 3. **Report lanes.** Run the `## Report` section of each selected lane whose `report` is `own`, in registry order. Its find subagents obey step 5: fresh context, never a fork of this conversation, at most 30 per lane, and one retry. Without subagents, the groups run inline and the cap counts them. A stop inside one lane ends only that lane.
 4. **Inventory.** With no findings lane selected, skip to the reply. Otherwise run `git ls-files --stage -z` with no path argument, so no user path reaches command text, and keep the files under each scope path.
