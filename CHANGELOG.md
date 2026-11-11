@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.92.0] - 2026-11-11
+
+### Added
+
+- Add writing-acceptance-criteria, which rewrites acceptance criteria until each one names a check that can prove it true or false, and gives an agent a prompt that asks for evidence per criterion. [#189](https://github.com/bostonaholic/skills/pull/189)
+
 ## [0.91.0] - 2026-11-11
 
 ### Changed
@@ -1137,5 +1143,7 @@
 
 [0.90.0]: https://github.com/bostonaholic/skills/compare/v0.89.0...v0.90.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.91.0...HEAD
 [0.91.0]: https://github.com/bostonaholic/skills/compare/v0.90.0...v0.91.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.92.0...HEAD
+[0.92.0]: https://github.com/bostonaholic/skills/compare/v0.91.0...v0.92.0

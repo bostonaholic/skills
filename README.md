@@ -86,6 +86,7 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`learning-from-mistakes`](./skills/productivity/learning-from-mistakes/SKILL.md)               | "learn from this mistake"          | user, model        | Turn a correction into an approved instructions-file rule. |
 | [`running-retros`](./skills/productivity/running-retros/SKILL.md)                               | "retro"                            | user, model        | Mine a session or named sources for durable learnings.     |
 | [`summarizing-shipped-work`](./skills/productivity/summarizing-shipped-work/SKILL.md)           | "what shipped?"                    | user, model        | Summarize merged PRs into a shipped-work report.           |
+| [`writing-acceptance-criteria`](./skills/productivity/writing-acceptance-criteria/SKILL.md)     | "write acceptance criteria"        | user, model        | Write acceptance criteria that a check can prove.          |
 | [`writing-prose`](./skills/productivity/writing-prose/SKILL.md)                                 | "write this up"                    | user, model        | Write plain, short prose for people.                       |
 | [`writing-system-prompts`](./skills/productivity/writing-system-prompts/SKILL.md)               | "write a system prompt"            | user, model        | Write or review a system prompt.                           |
 
