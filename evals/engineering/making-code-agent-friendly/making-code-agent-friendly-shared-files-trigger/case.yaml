@@ -1,4 +1,4 @@
 schema_version: "1.1"
-name: limiting-shared-file-edits-scan
+name: making-code-agent-friendly-shared-files-trigger
 context:
   scaffold_script: scaffold.sh

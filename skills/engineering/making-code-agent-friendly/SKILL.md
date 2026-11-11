@@ -1,8 +1,8 @@
 ---
 name: making-code-agent-friendly
-description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Use when the user says "make this agent-friendly", or when asked to make code agent-friendly or find where parallel agents will collide. Not for general code review; use reviewing-code. Not for listing the shared files one feature edits, or the files every change appends to; use limiting-shared-file-edits.'
+description: 'Audits, reviews, and refactors code so many coding agents can change it in parallel without merge conflicts: few shared files, strong boundaries, explicit contracts, fast checks. Also lists the shared files a design or diff edits and flags any file every change appends to. Use when the user says "make this agent-friendly" or "check shared files", or when asked to make code agent-friendly, find where parallel agents will collide, or name the shared files a feature edits or the files every change appends to. Not for general code review; use reviewing-code.'
 effort: high
-argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding>]"
+argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding> | shared-files [<design or feature> | <diff target>] [<package directory>]]"
 ---
 
 # Making code agent-friendly
@@ -22,14 +22,14 @@ argument-hint: "[audit [<path>...] | review [<diff target>] | refactor <finding>
 
 ## Modes
 
-The user may name a mode as the first word of the request. Otherwise pick by
-what the request asks for:
+The user may name a mode as the first word of the request. Otherwise pick by what the request asks for:
 
 - **Audit**: `audit`, or a request to assess a codebase or path. Read-only.
 - **Review**: `review`, or a request to check a diff for agent-safety.
-- **Refactor**: `refactor <finding>`, or a request to fix a named finding.
-  "Make this codebase agent-friendly" is Audit, then Refactor of a plan step
-  the user picks.
+- **Refactor**: `refactor <finding>`, or a request to fix a named finding. "Make this codebase agent-friendly" is Audit, then Refactor of a plan step the user picks.
+- **Shared files**: `shared-files`, or a request to check shared files, list
+  the shared files a design or diff edits, or find the files every change
+  appends to. Read-only: run the [shared files procedure](references/shared-files.md).
 - **Write**: loaded while writing code, no mode named. Never start an Audit.
 
 ## Audit
