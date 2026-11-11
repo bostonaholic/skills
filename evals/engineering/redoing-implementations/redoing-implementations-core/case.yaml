@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: redoing-implementations-core
-context:
-  scaffold_script: scaffold.sh

@@ -370,7 +370,7 @@ const ROWS = [
     exit: 1,
     target: "skills/engineering/summarizing-friction-logs/SKILL.md",
   },
-  // modernizing-prs, redoing-implementations
+  // modernizing-prs, redesigning-code
   {
     label: "prepare-rebase.sh",
     script: "skills/engineering/modernizing-prs/scripts/prepare-rebase.sh",
@@ -389,11 +389,11 @@ const ROWS = [
   },
   {
     label: "save-and-reset-attempt.sh",
-    script: "skills/engineering/redoing-implementations/scripts/save-and-reset-attempt.sh",
+    script: "skills/engineering/redesigning-code/scripts/save-and-reset-attempt.sh",
     interpreter: "bash",
     args: none,
     exit: 3,
-    target: "skills/engineering/redoing-implementations/SKILL.md",
+    target: "skills/engineering/redesigning-code/SKILL.md",
   },
   // grooming-backlogs
   {
