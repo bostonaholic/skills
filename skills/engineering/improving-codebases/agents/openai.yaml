@@ -1,4 +1,4 @@
 interface:
   display_name: "Improving Codebases"
-  short_description: "Sweep a codebase with focused improvement lanes"
+  short_description: "Sweep a codebase with improvement and audit lanes"
   default_prompt: "Use $improving-codebases to find implicit state machines in this codebase and cite their states, transitions, and guards."

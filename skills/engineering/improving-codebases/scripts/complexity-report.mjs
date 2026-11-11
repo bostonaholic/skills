@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Joins an auditing-complexity report.json with the inventory.json beside it, validates both, and renders report.md.
-// Usage: render-report.mjs <report.json> [<report.md>]
+// Joins an improving-codebases complexity lane report.json with the inventory.json beside it,
+// validates both, and renders report.md.
+// Usage: complexity-report.mjs <report.json> [<report.md>]
 //   exit 0  wrote report.md (beside report.json unless named) and printed its path
 //   exit 1  wrote nothing; stderr names an unreadable input, lists every validation error, or names
 //           a report.md that is a symlink or cannot be written
@@ -9,13 +10,13 @@ import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The skill file that explains each exit code.
-const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
+// The lane brief that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/lanes/complexity.md", import.meta.url));
 
 export const MUTATION_KINDS = ["global", "field", "param"];
 // Each ranked table stops here and states the omitted count, so the report stays readable.
 const TABLE_ROWS = 25;
-// The lane analyst brief picks each file's top 3 functions by cyclomatic complexity, plus at most
+// The complexity brief's ## Find picks each file's top 3 functions by cyclomatic complexity, plus at most
 // its deepest, longest, and most-parameter function: 3 + 3.
 const TOP_BY_CYCLOMATIC = 3;
 const MAX_HOT_FUNCTIONS = 6;
@@ -92,32 +93,32 @@ function placementErrors(report, files) {
         `${where} lists ${file}, which is not a text file in inventory.json (status ${files[file]?.status ?? "absent"})`,
       );
   };
-  for (const lane of list(report.lanes))
-    for (const file of list(lane.files)) place(file, `lane ${lane.name}`);
+  for (const group of list(report.groups))
+    for (const file of list(group.files)) place(file, `group ${group.name}`);
   for (const gap of list(report.gaps)) place(gap.file, "gaps");
   for (const [file, count] of placements) {
-    if (count === 0) errors.push(`${file} is a text file in no lane and no gap`);
+    if (count === 0) errors.push(`${file} is a text file in no group and no gap`);
     if (count > 1) errors.push(`${file} is placed ${count} times. Place it exactly once`);
   }
   return errors;
 }
 
-function laneRecordErrors(lane) {
+function groupRecordErrors(group) {
   const errors = [];
-  const files = list(lane.files);
-  const records = [...list(lane.entries), ...list(lane.skipped)].map((record) => record?.file);
+  const files = list(group.files);
+  const records = [...list(group.entries), ...list(group.skipped)].map((record) => record?.file);
   for (const file of files) {
     const count = records.filter((recorded) => recorded === file).length;
     if (count === 0)
-      errors.push(`lane ${lane.name}: ${file} has neither an entry nor a skipped record`);
+      errors.push(`group ${group.name}: ${file} has neither an entry nor a skipped record`);
     if (count > 1)
       errors.push(
-        `lane ${lane.name}: ${file} has ${count} entries and skipped records. Give it exactly one`,
+        `group ${group.name}: ${file} has ${count} entries and skipped records. Give it exactly one`,
       );
   }
   for (const file of new Set(records.filter((recorded) => !files.includes(recorded)))) {
     errors.push(
-      `lane ${lane.name}: ${file} has an entry or skipped record but is not in the lane's files`,
+      `group ${group.name}: ${file} has an entry or skipped record but is not in the group's files`,
     );
   }
   return errors;
@@ -258,8 +259,10 @@ export function validateReport(report, inventory) {
   const errors = [];
   if (report.version !== 1)
     errors.push(`report.json version must be 1, not ${show(report.version)}`);
-  if (report.skill !== "auditing-complexity")
-    errors.push(`report.json skill must be auditing-complexity, not ${show(report.skill)}`);
+  if (report.skill !== "improving-codebases")
+    errors.push(`report.json skill must be improving-codebases, not ${show(report.skill)}`);
+  if (report.lane !== "complexity")
+    errors.push(`report.json lane must be complexity, not ${show(report.lane)}`);
   if (inventory.version !== 1)
     errors.push(`inventory.json version must be 1, not ${show(inventory.version)}`);
   const files = isObject(inventory.files) ? inventory.files : {};
@@ -267,9 +270,9 @@ export function validateReport(report, inventory) {
   const hasCoverage = typeof scope.coverage === "string";
   errors.push(...joinErrors(scope, inventory));
   errors.push(...placementErrors(report, files));
-  for (const lane of list(report.lanes)) {
-    errors.push(...laneRecordErrors(lane));
-    for (const entry of list(lane.entries)) errors.push(...entryErrors(entry, files, hasCoverage));
+  for (const group of list(report.groups)) {
+    errors.push(...groupRecordErrors(group));
+    for (const entry of list(group.entries)) errors.push(...entryErrors(entry, files, hasCoverage));
   }
   return errors;
 }
@@ -293,7 +296,7 @@ function capped(rows) {
   return { shown: rows.slice(0, TABLE_ROWS), note: omitted > 0 ? `${omitted} omitted.\n` : "" };
 }
 
-const entriesOf = (report) => list(report.lanes).flatMap((lane) => list(lane.entries));
+const entriesOf = (report) => list(report.groups).flatMap((group) => list(group.entries));
 const lengthOf = (hot) => hot.endLine - hot.line + 1;
 
 // <module> spans the whole file, so it would dominate every length and has no parameters.
@@ -386,7 +389,7 @@ function renderCrapTotals(report) {
 function renderSummary(report, inventory) {
   const scope = report.scope;
   const files = Object.values(inventory.files);
-  const lanes = list(report.lanes);
+  const groups = list(report.groups);
   const exclusions = list(scope.exclude).map((record) => `\`${record.path}\` (${record.reason})`);
   return [
     "## Summary\n",
@@ -397,8 +400,8 @@ function renderSummary(report, inventory) {
       ["Measure", "Count"],
       [
         ["Tracked paths in scope", files.length],
-        ["Measured files", lanes.reduce((sum, lane) => sum + list(lane.entries).length, 0)],
-        ["Skipped by analysts", lanes.reduce((sum, lane) => sum + list(lane.skipped).length, 0)],
+        ["Measured files", groups.reduce((sum, group) => sum + list(group.entries).length, 0)],
+        ["Skipped by analysts", groups.reduce((sum, group) => sum + list(group.skipped).length, 0)],
         ["Gaps", list(report.gaps).length],
         ["Not measured", files.filter((file) => file.status !== "text").length],
       ],
@@ -411,7 +414,7 @@ function renderFiles(report, files) {
   const { shown, note } = capped(fileRows(report, files));
   return [
     "## Files\n",
-    "Measured lane files rank by their highest hot-function cyclomatic complexity, then by lines, then by path. " +
+    "Measured group files rank by their highest hot-function cyclomatic complexity, then by lines, then by path. " +
       "Max cyclomatic is estimated by reading, and a file with no hot function shows `-`.\n",
     table(
       ["Rank", "File", "Max cyclomatic", "CC band", "Lines"],
@@ -515,14 +518,14 @@ function renderChangeRisk(report) {
   ];
 }
 
-function renderLanes(report) {
+function renderGroups(report) {
   const out = [
-    "## Lanes\n",
+    "## Groups\n",
     "Every value is estimated by reading. Maxima come from the hot functions, and length and params skip `<module>`.\n",
   ];
-  for (const lane of list(report.lanes)) {
-    out.push(`### ${lane.name}\n`);
-    out.push(`Owner: ${list(lane.owner).join(", ") || "unstated"}.\n`);
+  for (const group of list(report.groups)) {
+    out.push(`### ${group.name}\n`);
+    out.push(`Owner: ${list(group.owner).join(", ") || "unstated"}.\n`);
     out.push(
       table(
         [
@@ -536,7 +539,7 @@ function renderLanes(report) {
           "Max length",
           "Max params",
         ],
-        list(lane.entries).map((entry) => {
+        list(group.entries).map((entry) => {
           const max = fileMaxima(entry);
           return [
             `\`${entry.file}\``,
@@ -552,16 +555,16 @@ function renderLanes(report) {
         }),
       ),
     );
-    for (const note of list(lane.notes)) out.push(`- ${cell(note)}\n`);
+    for (const note of list(group.notes)) out.push(`- ${cell(note)}\n`);
   }
   return out;
 }
 
 function renderGaps(report) {
-  const skipped = list(report.lanes).flatMap((lane) =>
-    list(lane.skipped).map((record) => [
+  const skipped = list(report.groups).flatMap((group) =>
+    list(group.skipped).map((record) => [
       `\`${record.file}\``,
-      `skipped by the ${lane.name} analyst: ${record.reason}`,
+      `skipped by the ${group.name} analyst: ${record.reason}`,
     ]),
   );
   const gaps = list(report.gaps).map((gap) => [`\`${gap.file}\``, gap.reason]);
@@ -616,7 +619,7 @@ export function renderReport(report, inventory) {
     ...renderFiles(report, files),
     ...renderFunctions(report),
     ...renderChangeRisk(report),
-    ...renderLanes(report),
+    ...renderGroups(report),
     ...renderGaps(report),
     ...renderNotMeasured(files),
     ...renderReadingAid(),
@@ -644,7 +647,7 @@ function main(args) {
   const [input, output] = args;
   if (!input) {
     process.stderr.write(
-      "render-report.mjs: usage: render-report.mjs <report.json> [<report.md>]\n",
+      "complexity-report.mjs: usage: complexity-report.mjs <report.json> [<report.md>]\n",
     );
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 2;
@@ -657,14 +660,14 @@ function main(args) {
     inventory = readJson(inventoryPath);
   } catch (error) {
     process.stderr.write(
-      `render-report.mjs: cannot read ${input} and ${inventoryPath}: ${error.message}\n`,
+      `complexity-report.mjs: cannot read ${input} and ${inventoryPath}: ${error.message}\n`,
     );
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   const errors = validateReport(report, inventory);
   if (errors.length > 0) {
-    process.stderr.write(`render-report.mjs: ${errors.length} error(s). Nothing written\n`);
+    process.stderr.write(`complexity-report.mjs: ${errors.length} error(s). Nothing written\n`);
     for (const error of errors) process.stderr.write(`- ${error}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
@@ -672,14 +675,14 @@ function main(args) {
   const target = output ?? join(dirname(input), "report.md");
   const refusal = writeRefusal(target);
   if (refusal) {
-    process.stderr.write(`render-report.mjs: ${refusal}\n`);
+    process.stderr.write(`complexity-report.mjs: ${refusal}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }
   try {
     writeFileSync(target, renderReport(report, inventory));
   } catch (error) {
-    process.stderr.write(`render-report.mjs: cannot write ${target}: ${error.message}\n`);
+    process.stderr.write(`complexity-report.mjs: cannot write ${target}: ${error.message}\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return 1;
   }

@@ -4,6 +4,7 @@ Archived skills kept for reference. They are excluded from the active catalog an
 Entrypoints use `SKILL.md.disabled` so recursive skill installers do not discover them.
 Their shared files are frozen copies and are not updated by `sync-shared`.
 
+- [auditing-complexity](auditing-complexity/SKILL.md.disabled): retired; its complexity ranking is now the complexity lane of `improving-codebases`, which owns its scripts.
 - [bd-go](bd-go/SKILL.md.disabled): retired Beads task execution.
 - [bd-scan](bd-scan/SKILL.md.disabled): retired Beads branch scanning.
 - [limiting-shared-file-edits](limiting-shared-file-edits/SKILL.md.disabled): retired; its shared-file check is now the Shared files mode of `making-code-agent-friendly`.

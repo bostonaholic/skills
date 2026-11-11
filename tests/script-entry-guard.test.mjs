@@ -226,34 +226,46 @@ test("importing render-report.mjs through a symlinked directory has no side effe
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
-test("auditing-complexity/inventory.mjs run through a symlinked directory reaches its usage error", (t) => {
+test("improving-codebases/complexity-inventory.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "inventory.mjs"),
+    join(
+      symlinkedDir(t, "skills/engineering/improving-codebases/scripts"),
+      "complexity-inventory.mjs",
+    ),
   );
   assert.equal(run.status, 2);
-  assert.match(run.stderr, /^inventory\.mjs: usage: inventory\.mjs /);
+  assert.match(run.stderr, /^complexity-inventory\.mjs: usage: complexity-inventory\.mjs /);
 });
 
-test("importing auditing-complexity/inventory.mjs through a symlinked directory has no side effects", (t) => {
+test("importing improving-codebases/complexity-inventory.mjs through a symlinked directory has no side effects", (t) => {
   const run = importModule(
     t,
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "inventory.mjs"),
+    join(
+      symlinkedDir(t, "skills/engineering/improving-codebases/scripts"),
+      "complexity-inventory.mjs",
+    ),
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
-test("auditing-complexity/render-report.mjs run through a symlinked directory reaches its usage error", (t) => {
+test("improving-codebases/complexity-report.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "render-report.mjs"),
+    join(
+      symlinkedDir(t, "skills/engineering/improving-codebases/scripts"),
+      "complexity-report.mjs",
+    ),
   );
   assert.equal(run.status, 2);
-  assert.match(run.stderr, /^render-report\.mjs: usage: render-report\.mjs /);
+  assert.match(run.stderr, /^complexity-report\.mjs: usage: complexity-report\.mjs /);
 });
 
-test("importing auditing-complexity/render-report.mjs through a symlinked directory has no side effects", (t) => {
+test("importing improving-codebases/complexity-report.mjs through a symlinked directory has no side effects", (t) => {
   const run = importModule(
     t,
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "render-report.mjs"),
+    join(
+      symlinkedDir(t, "skills/engineering/improving-codebases/scripts"),
+      "complexity-report.mjs",
+    ),
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });

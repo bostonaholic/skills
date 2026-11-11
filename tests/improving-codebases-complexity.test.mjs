@@ -1,4 +1,4 @@
-// Acceptance tests for skills/engineering/auditing-complexity. No test creates a commit:
+// Acceptance tests for the improving-codebases complexity lane scripts. No test creates a commit:
 // the real-git cases only read this checkout, and each new repository is a `git init` with no commit.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -20,15 +20,17 @@ import {
   buildGitArgs,
   classifyStatus,
   listDirty,
-} from "../skills/engineering/auditing-complexity/scripts/inventory.mjs";
+} from "../skills/engineering/improving-codebases/scripts/complexity-inventory.mjs";
 import {
   renderReport,
   validateReport,
-} from "../skills/engineering/auditing-complexity/scripts/render-report.mjs";
+} from "../skills/engineering/improving-codebases/scripts/complexity-report.mjs";
 
 const TOP = resolve(".");
-const INVENTORY = resolve("skills/engineering/auditing-complexity/scripts/inventory.mjs");
-const RENDER = resolve("skills/engineering/auditing-complexity/scripts/render-report.mjs");
+const INVENTORY = resolve(
+  "skills/engineering/improving-codebases/scripts/complexity-inventory.mjs",
+);
+const RENDER = resolve("skills/engineering/improving-codebases/scripts/complexity-report.mjs");
 const COMMIT = "0123456789abcdef0123456789abcdef01234567";
 const COVERAGE = "coverage/lines.txt";
 
@@ -44,7 +46,8 @@ function tempDir(t) {
 function report(overrides = {}) {
   return {
     version: 1,
-    skill: "auditing-complexity",
+    skill: "improving-codebases",
+    lane: "complexity",
     scope: {
       root: "demo",
       pathspecs: ["src"],
@@ -52,7 +55,7 @@ function report(overrides = {}) {
       date: "2026-09-30",
       commit: COMMIT,
     },
-    lanes: [
+    groups: [
       {
         name: "core",
         owner: ["src"],
@@ -132,7 +135,7 @@ function entry(file, overrides = {}) {
   };
 }
 
-function lane(name, entries) {
+function group(name, entries) {
   return {
     name,
     owner: ["src"],
@@ -181,7 +184,7 @@ function covered(name, line, cyclomatic, { hit, missed }) {
 // CRAP = 4^2 x (1/4)^3 + 4 = 16/64 + 4 = 4.25. No record matches src/db.js.
 function coveredReport() {
   const audit = withCoverage(report());
-  audit.lanes[0].entries[0].hotFunctions = [
+  audit.groups[0].entries[0].hotFunctions = [
     {
       name: "route",
       line: 10,
@@ -194,19 +197,19 @@ function coveredReport() {
       coverage: { hit: [12, 20, 30], missed: [35] },
     },
   ];
-  audit.lanes[0].entries[1].hotFunctions[0].coverage = {
+  audit.groups[0].entries[1].hotFunctions[0].coverage = {
     reason: "no coverage record for this file",
   };
   return audit;
 }
 const coveredInventory = () => inventory({ coverage: COVERAGE });
 
-// 26 lane files with no hot function; src/f00.js has the fewest lines (1), so the 25-row cap omits it.
+// 26 group files with no hot function; src/f00.js has the fewest lines (1), so the 25-row cap omits it.
 const MANY_FILES = Array.from({ length: 26 }, (_, i) => `src/f${String(i).padStart(2, "0")}.js`);
 const manyFilesReport = () =>
   report({
-    lanes: [
-      lane(
+    groups: [
+      group(
         "many",
         MANY_FILES.map((file) => entry(file)),
       ),
@@ -221,8 +224,8 @@ const manyFilesInventory = () =>
 const MANY_FUNCTION_FILES = ["src/g0.js", "src/g1.js", "src/g2.js", "src/g3.js", "src/g4.js"];
 const manyFunctionsReport = () =>
   report({
-    lanes: [
-      lane(
+    groups: [
+      group(
         "many",
         MANY_FUNCTION_FILES.map((file, f) =>
           entry(file, {
@@ -242,7 +245,7 @@ const manyFunctionsInventory = () =>
   });
 const manyScoredReport = () => {
   const audit = withCoverage(manyFunctionsReport());
-  for (const fn of audit.lanes[0].entries.flatMap((e) => e.hotFunctions)) {
+  for (const fn of audit.groups[0].entries.flatMap((e) => e.hotFunctions)) {
     fn.coverage = { hit: [fn.line + 1], missed: [] };
   }
   return audit;
@@ -350,7 +353,8 @@ const afterDashes = (argv) =>
 function auditRequest(pathspecs, extraScope = {}) {
   return JSON.stringify({
     version: 1,
-    skill: "auditing-complexity",
+    skill: "improving-codebases",
+    lane: "complexity",
     scope: { root: "skills", pathspecs, exclude: [], date: "2026-09-30", ...extraScope },
   });
 }
@@ -373,7 +377,7 @@ function runRender(reportPath) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// /auditing-complexity ranks where complexity concentrates
+// The complexity lane ranks where complexity concentrates
 
 test("inventory.json is identical from the top level and from docs/", (t) => {
   const dir = tempDir(t);
@@ -411,7 +415,7 @@ test("inventory.json is identical from the top level and from docs/", (t) => {
   assert.ok(written.files["docs/style.css"]?.lines >= 1, "docs/style.css has no lines");
 });
 
-test("inventory.mjs passes git's own error text through before its own line", (t) => {
+test("complexity-inventory.mjs passes git's own error text through before its own line", (t) => {
   const dir = tempDir(t);
   const bin = join(dir, "bin");
   mkdirSync(bin);
@@ -430,7 +434,9 @@ test("inventory.mjs passes git's own error text through before its own line", (t
   assert.equal(result.status, 1, result.stderr);
   const lines = result.stderr.split("\n");
   const tool = lines.indexOf("fatal: git-inventory-sentinel: detected dubious ownership");
-  const own = lines.findIndex((line) => /^inventory\.mjs: git .+ exited 128$/.test(line));
+  const own = lines.findIndex((line) =>
+    /^complexity-inventory\.mjs: git .+ exited 128$/.test(line),
+  );
   assert.notEqual(tool, -1, `git's line is not its own line on stderr:\n${result.stderr}`);
   assert.notEqual(own, -1, `no "git <args> exited 128" line on stderr:\n${result.stderr}`);
   assert.ok(tool < own, `git's line is not before the script's line:\n${result.stderr}`);
@@ -443,9 +449,23 @@ test("validateReport rejects an inconsistent join", async (t) => {
   });
 
   await t.test("a wrong skill", () => {
-    const errors = validateReport(report({ skill: "auditing-tests" }), inventory());
+    const errors = validateReport(report({ skill: "visualizing-codebases" }), inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /skill/);
+  });
+
+  await t.test("a report with no lane", () => {
+    const broken = report();
+    delete broken.lane;
+    const errors = validateReport(broken, inventory());
+    assert.equal(errors.length, 1, errors.join("\n"));
+    assert.match(errors[0], /\blane\b/);
+  });
+
+  await t.test("a report from another lane", () => {
+    const errors = validateReport(report({ lane: "test-audit" }), inventory());
+    assert.equal(errors.length, 1, errors.join("\n"));
+    assert.match(errors[0], /\blane\b/);
   });
 
   await t.test("a wrong report.json version", () => {
@@ -500,7 +520,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
     assert.match(errors[0], /src\/api/);
   });
 
-  await t.test("a text file in no lane and no gap", () => {
+  await t.test("a text file in no group and no gap", () => {
     const withOrphan = inventory();
     withOrphan.files["src/orphan.js"] = { status: "text", lines: 10 };
     const errors = validateReport(report(), withOrphan);
@@ -516,10 +536,10 @@ test("validateReport rejects an inconsistent join", async (t) => {
     assert.match(errors[0], /src\/app\.js/);
   });
 
-  await t.test("a lane file that is not text", () => {
+  await t.test("a group file that is not text", () => {
     const broken = report();
-    broken.lanes[0].files.push("src/logo.png");
-    broken.lanes[0].skipped.push({ file: "src/logo.png", reason: "binary" });
+    broken.groups[0].files.push("src/logo.png");
+    broken.groups[0].skipped.push({ file: "src/logo.png", reason: "binary" });
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /src\/logo\.png/);
@@ -533,17 +553,17 @@ test("validateReport rejects an inconsistent join", async (t) => {
     assert.match(errors[0], /src\/logo\.png/);
   });
 
-  await t.test("a lane file with both an entry and a skipped record", () => {
+  await t.test("a group file with both an entry and a skipped record", () => {
     const broken = report();
-    broken.lanes[0].skipped.push({ file: "src/db.js", reason: "minified" });
+    broken.groups[0].skipped.push({ file: "src/db.js", reason: "minified" });
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /src\/db\.js/);
   });
 
-  await t.test("a lane file with neither an entry nor a skipped record", () => {
+  await t.test("a group file with neither an entry nor a skipped record", () => {
     const broken = report();
-    broken.lanes[0].entries.pop();
+    broken.groups[0].entries.pop();
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /src\/db\.js/);
@@ -551,7 +571,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
 
   await t.test("a negative count", () => {
     const broken = report();
-    broken.lanes[0].entries[0].fanOut = -1;
+    broken.groups[0].entries[0].fanOut = -1;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /fanOut/);
@@ -559,7 +579,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
 
   await t.test("a non-integer count", () => {
     const broken = report();
-    broken.lanes[0].entries[0].mutableState.count = 2.5;
+    broken.groups[0].entries[0].mutableState.count = 2.5;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /count/);
@@ -567,7 +587,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
 
   await t.test("a mutable-state location with an unknown kind", () => {
     const broken = report();
-    broken.lanes[0].entries[0].mutableState.locations[0].kind = "local";
+    broken.groups[0].entries[0].mutableState.locations[0].kind = "local";
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /kind/);
@@ -575,7 +595,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
 
   await t.test("a mutable-state count below its location count", () => {
     const broken = report();
-    broken.lanes[0].entries[0].mutableState.count = 0;
+    broken.groups[0].entries[0].mutableState.count = 0;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /locations/);
@@ -587,7 +607,7 @@ test("validateReport rejects an inconsistent join", async (t) => {
       const dir = tempDir(st);
       writeFileSync(
         join(dir, "report.json"),
-        JSON.stringify(report({ skill: "auditing-tests", version: 2 })),
+        JSON.stringify(report({ skill: "visualizing-codebases", version: 2 })),
       );
       writeFileSync(join(dir, "inventory.json"), JSON.stringify(inventory()));
       const run = runRender(join(dir, "report.json"));
@@ -618,8 +638,8 @@ test("renderReport ranks files by their highest cyclomatic complexity", async (t
   await t.test("equal max cyclomatic ranks by lines, most first", () => {
     const markdown = renderReport(
       report({
-        lanes: [
-          lane("core", [
+        groups: [
+          group("core", [
             entry("src/a.js", { functions: 1, hotFunctions: [hot("a", 1, 4)] }),
             entry("src/b.js", { functions: 1, hotFunctions: [hot("b", 1, 4)] }),
           ]),
@@ -635,7 +655,7 @@ test("renderReport ranks files by their highest cyclomatic complexity", async (t
 
   await t.test("equal max cyclomatic and lines rank by path", () => {
     const markdown = renderReport(
-      report({ lanes: [lane("core", [entry("src/b.js"), entry("src/a.js")])], gaps: [] }),
+      report({ groups: [group("core", [entry("src/b.js"), entry("src/a.js")])], gaps: [] }),
       inventory({ files: { "src/b.js": textFile(100), "src/a.js": textFile(100) } }),
     );
     const rows = tableRows(section(markdown, "Files"));
@@ -646,8 +666,8 @@ test("renderReport ranks files by their highest cyclomatic complexity", async (t
   await t.test("a file with no hot function ranks below one with cyclomatic 1", () => {
     const markdown = renderReport(
       report({
-        lanes: [
-          lane("core", [
+        groups: [
+          group("core", [
             entry("src/big.js"),
             entry("src/small.js", { functions: 1, hotFunctions: [hot("f", 1, 1)] }),
           ]),
@@ -675,7 +695,7 @@ test("renderReport ranks files by their highest cyclomatic complexity", async (t
 test("validateReport rejects function evidence that does not add up", async (t) => {
   await t.test("cyclomatic that is not decisions.length + 1", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions[0].cyclomatic = 4;
+    broken.groups[0].entries[0].hotFunctions[0].cyclomatic = 4;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /cyclomatic/);
@@ -683,7 +703,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("a decision line outside the function", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions[0].decisions = [12, 41];
+    broken.groups[0].entries[0].hotFunctions[0].decisions = [12, 41];
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /decision/);
@@ -691,7 +711,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("a deepestLine outside the function", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions[0].deepestLine = 9;
+    broken.groups[0].entries[0].hotFunctions[0].deepestLine = 9;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /deepestLine/);
@@ -699,7 +719,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("an endLine past the file's line count", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions[0].endLine = 121;
+    broken.groups[0].entries[0].hotFunctions[0].endLine = 121;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /endLine/);
@@ -707,8 +727,8 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("7 hot functions", () => {
     const broken = report();
-    broken.lanes[0].entries[0].functions = 9;
-    broken.lanes[0].entries[0].hotFunctions = [
+    broken.groups[0].entries[0].functions = 9;
+    broken.groups[0].entries[0].hotFunctions = [
       hot("a", 10, 1),
       hot("b", 20, 1),
       hot("c", 30, 1),
@@ -724,7 +744,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("more hot functions than functions", () => {
     const broken = report();
-    broken.lanes[0].entries[1].functions = 0;
+    broken.groups[0].entries[1].functions = 0;
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /functions/);
@@ -732,7 +752,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("a <module> that does not start at line 1", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions.push({
+    broken.groups[0].entries[0].hotFunctions.push({
       name: "<module>",
       line: 2,
       endLine: 120,
@@ -749,7 +769,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("a <module> that does not end at the file's last line", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions.push({
+    broken.groups[0].entries[0].hotFunctions.push({
       name: "<module>",
       line: 1,
       endLine: 119,
@@ -766,7 +786,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("a <module> with parameters", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions.push({
+    broken.groups[0].entries[0].hotFunctions.push({
       name: "<module>",
       line: 1,
       endLine: 120,
@@ -783,7 +803,7 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("an entry with a valid <module> passes", () => {
     const withModule = report();
-    withModule.lanes[0].entries[0].hotFunctions.push({
+    withModule.groups[0].entries[0].hotFunctions.push({
       name: "<module>",
       line: 1,
       endLine: 120,
@@ -798,8 +818,8 @@ test("validateReport rejects function evidence that does not add up", async (t) 
 
   await t.test("an entry with functions 0 and no hot functions passes", () => {
     const empty = report();
-    empty.lanes[0].entries[1].functions = 0;
-    empty.lanes[0].entries[1].hotFunctions = [];
+    empty.groups[0].entries[1].functions = 0;
+    empty.groups[0].entries[1].hotFunctions = [];
     assert.deepEqual(validateReport(empty, inventory()), []);
   });
 });
@@ -808,8 +828,8 @@ test("renderReport ranks hot functions", async (t) => {
   await t.test("rows rank by cyclomatic, with ties by file and then line", () => {
     const markdown = renderReport(
       report({
-        lanes: [
-          lane("core", [
+        groups: [
+          group("core", [
             entry("src/db.js", { functions: 1, hotFunctions: [hot("query", 3, 7)] }),
             entry("src/app.js", {
               functions: 3,
@@ -848,8 +868,8 @@ test("renderReport ranks hot functions", async (t) => {
 
   await t.test("file maxima skip <module> for length and parameters only", () => {
     const withModule = report();
-    withModule.lanes[0].entries[0].functions = 5;
-    withModule.lanes[0].entries[0].hotFunctions.push({
+    withModule.groups[0].entries[0].functions = 5;
+    withModule.groups[0].entries[0].hotFunctions.push({
       name: "<module>",
       line: 1,
       endLine: 120,
@@ -884,7 +904,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("a hot function carries coverage when no coverage file was given", () => {
     const broken = report();
-    broken.lanes[0].entries[0].hotFunctions[0].coverage = { hit: [12], missed: [20] };
+    broken.groups[0].entries[0].hotFunctions[0].coverage = { hit: [12], missed: [20] };
     const errors = validateReport(broken, inventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /coverage/);
@@ -892,7 +912,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("a hot function lacks coverage when a coverage file was given", () => {
     const broken = coveredReport();
-    delete broken.lanes[0].entries[0].hotFunctions[0].coverage;
+    delete broken.groups[0].entries[0].hotFunctions[0].coverage;
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /route/);
@@ -901,7 +921,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("a <module> that carries coverage", () => {
     const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions.push({
+    broken.groups[0].entries[0].hotFunctions.push({
       name: "<module>",
       line: 1,
       endLine: 120,
@@ -920,7 +940,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("coverage that holds a reason and line lists together", () => {
     const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions[0].coverage = {
+    broken.groups[0].entries[0].hotFunctions[0].coverage = {
       reason: "no coverage record for this file",
       hit: [12, 20, 30],
       missed: [35],
@@ -932,7 +952,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("coverage with an empty reason", () => {
     const broken = coveredReport();
-    broken.lanes[0].entries[1].hotFunctions[0].coverage = { reason: "" };
+    broken.groups[0].entries[1].hotFunctions[0].coverage = { reason: "" };
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /reason/);
@@ -941,7 +961,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
   await t.test("a coverage line outside the function", () => {
     // route spans lines 10-40.
     const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions[0].coverage = { hit: [12, 20, 30], missed: [41] };
+    broken.groups[0].entries[0].hotFunctions[0].coverage = { hit: [12, 20, 30], missed: [41] };
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /\b41\b/);
@@ -949,7 +969,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("a line in both the hit and missed lists", () => {
     const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions[0].coverage = { hit: [12, 20, 30], missed: [30] };
+    broken.groups[0].entries[0].hotFunctions[0].coverage = { hit: [12, 20, 30], missed: [30] };
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /\b30\b/);
@@ -957,7 +977,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("line lists that hold no line", () => {
     const broken = coveredReport();
-    broken.lanes[0].entries[0].hotFunctions[0].coverage = { hit: [], missed: [] };
+    broken.groups[0].entries[0].hotFunctions[0].coverage = { hit: [], missed: [] };
     const errors = validateReport(broken, coveredInventory());
     assert.equal(errors.length, 1, errors.join("\n"));
     assert.match(errors[0], /coverage/);
@@ -965,7 +985,7 @@ test("validateReport rejects coverage evidence that does not add up", async (t) 
 
   await t.test("a supplied crap is ignored, and Change risk shows the computed value", () => {
     const stray = coveredReport();
-    stray.lanes[0].entries[0].hotFunctions[0].crap = 999;
+    stray.groups[0].entries[0].hotFunctions[0].crap = 999;
     assert.deepEqual(validateReport(stray, coveredInventory()), []);
     const changeRisk = section(renderReport(stray, coveredInventory()), "Change risk");
     assert.equal(rowWith(changeRisk, "route").CRAP, "4.3");
@@ -978,8 +998,8 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
     const markdown = renderReport(
       withCoverage(
         report({
-          lanes: [
-            lane("core", [
+          groups: [
+            group("core", [
               entry("src/app.js", {
                 functions: 3,
                 hotFunctions: [
@@ -1010,8 +1030,8 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
     const markdown = renderReport(
       withCoverage(
         report({
-          lanes: [
-            lane("core", [
+          groups: [
+            group("core", [
               entry("src/b.js", {
                 functions: 2,
                 hotFunctions: [
@@ -1069,8 +1089,8 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
     const markdown = renderReport(
       withCoverage(
         report({
-          lanes: [
-            lane("core", [
+          groups: [
+            group("core", [
               entry("src/full.js", {
                 functions: 1,
                 hotFunctions: [hot("nearly", 1, 1, { endLine: 201, coverage: NEARLY_FULL })],
@@ -1091,8 +1111,8 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
       const markdown = renderReport(
         withCoverage(
           report({
-            lanes: [
-              lane("core", [
+            groups: [
+              group("core", [
                 entry("src/z.js", {
                   functions: 2,
                   hotFunctions: [
@@ -1149,7 +1169,7 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
         "Files",
         "Functions",
         "Change risk",
-        "Lanes",
+        "Groups",
         "Gaps",
         "Not measured",
       ]);
@@ -1166,8 +1186,8 @@ test("renderReport sums file CRAP into combined and average CRAP", async (t) => 
       const markdown = renderReport(
         withCoverage(
           report({
-            lanes: [
-              lane("core", [
+            groups: [
+              group("core", [
                 entry("src/a.js", {
                   functions: 2,
                   hotFunctions: [
@@ -1209,8 +1229,8 @@ test("renderReport sums file CRAP into combined and average CRAP", async (t) => 
     const markdown = renderReport(
       withCoverage(
         report({
-          lanes: [
-            lane("core", [
+          groups: [
+            group("core", [
               entry("src/c.js", {
                 functions: 1,
                 hotFunctions: [
@@ -1242,8 +1262,8 @@ test("renderReport sums file CRAP into combined and average CRAP", async (t) => 
 // Six files whose only hot function sits on each side of a cyclomatic band boundary, and one with none.
 const bandReport = () =>
   report({
-    lanes: [
-      lane("bands", [
+    groups: [
+      group("bands", [
         entry("src/cc06.js", { functions: 1, hotFunctions: [hot("f06", 1, 6)] }),
         entry("src/cc07.js", { functions: 1, hotFunctions: [hot("f07", 1, 7)] }),
         entry("src/cc09.js", { functions: 1, hotFunctions: [hot("f09", 1, 9)] }),
@@ -1272,8 +1292,8 @@ const bandInventory = () =>
 const crapBandReport = () =>
   withCoverage(
     report({
-      lanes: [
-        lane("risk", [
+      groups: [
+        group("risk", [
           entry("src/risk.js", {
             functions: 5,
             hotFunctions: [
@@ -1325,22 +1345,22 @@ test("renderReport labels each cyclomatic and CRAP value with its band", async (
   );
 
   await t.test(
-    "Lanes labels cyclomatic 6/7, 9/10, and 20/21 with the band each side of the boundary",
+    "Groups labels cyclomatic 6/7, 9/10, and 20/21 with the band each side of the boundary",
     () => {
-      const lanes = section(renderReport(bandReport(), bandInventory()), "Lanes");
-      assert.equal(rowWith(lanes, "src/cc06.js")["CC band"], "low");
-      assert.equal(rowWith(lanes, "src/cc07.js")["CC band"], "moderate");
-      assert.equal(rowWith(lanes, "src/cc09.js")["CC band"], "moderate");
-      assert.equal(rowWith(lanes, "src/cc10.js")["CC band"], "high");
-      assert.equal(rowWith(lanes, "src/cc20.js")["CC band"], "high");
-      assert.equal(rowWith(lanes, "src/cc21.js")["CC band"], "very complex");
+      const groups = section(renderReport(bandReport(), bandInventory()), "Groups");
+      assert.equal(rowWith(groups, "src/cc06.js")["CC band"], "low");
+      assert.equal(rowWith(groups, "src/cc07.js")["CC band"], "moderate");
+      assert.equal(rowWith(groups, "src/cc09.js")["CC band"], "moderate");
+      assert.equal(rowWith(groups, "src/cc10.js")["CC band"], "high");
+      assert.equal(rowWith(groups, "src/cc20.js")["CC band"], "high");
+      assert.equal(rowWith(groups, "src/cc21.js")["CC band"], "very complex");
     },
   );
 
-  await t.test("a file with no hot function shows - as its CC band in Files and Lanes", () => {
+  await t.test("a file with no hot function shows - as its CC band in Files and Groups", () => {
     const markdown = renderReport(bandReport(), bandInventory());
     assert.equal(rowWith(section(markdown, "Files"), "src/none.js")["CC band"], "-");
-    assert.equal(rowWith(section(markdown, "Lanes"), "src/none.js")["CC band"], "-");
+    assert.equal(rowWith(section(markdown, "Groups"), "src/none.js")["CC band"], "-");
   });
 
   await t.test("a CRAP of exactly 30 reads acceptable", () => {
@@ -1389,13 +1409,13 @@ test("renderReport labels each cyclomatic and CRAP value with its band", async (
   });
 });
 
-test("render-report.mjs exits 0 when a CRAP is above 60", (t) => {
+test("complexity-report.mjs exits 0 when a CRAP is above 60", (t) => {
   // 8^2 x 1^3 + 8 = 72: high risk, and still no gate.
   const dir = tempDir(t);
   const risky = withCoverage(
     report({
-      lanes: [
-        lane("core", [
+      groups: [
+        group("core", [
           entry("src/app.js", {
             functions: 1,
             hotFunctions: [covered("risky", 1, 8, { hit: 0, missed: 2 })],
@@ -1412,6 +1432,7 @@ test("render-report.mjs exits 0 when a CRAP is above 60", (t) => {
   );
   const run = runRender(join(dir, "report.json"));
   assert.equal(run.status, 0, run.stderr);
+  assert.ok(existsSync(join(dir, "report.md")), "the CLI wrote no report.md");
   assert.match(readFileSync(join(dir, "report.md"), "utf8"), /high risk/);
 });
 
@@ -1609,7 +1630,7 @@ test("renderReport lists every non-text path under Not measured with its status"
 });
 
 test("both CLIs exit 1 and write nothing", async (t) => {
-  await t.test("inventory.mjs with a malformed report.json", (st) => {
+  await t.test("complexity-inventory.mjs with a malformed report.json", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), "{ not json");
     writeFileSync(join(dir, "empty.gitconfig"), "");
@@ -1618,11 +1639,32 @@ test("both CLIs exit 1 and write nothing", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: /);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
   });
 
-  await t.test("inventory.mjs outside any work tree", (st) => {
+  await t.test("complexity-inventory.mjs with another lane's report.json", (st) => {
+    const dir = tempDir(st);
+    writeFileSync(
+      join(dir, "report.json"),
+      JSON.stringify({
+        version: 1,
+        skill: "improving-codebases",
+        lane: "test-audit",
+        scope: { root: "skills", pathspecs: ["docs/style.css"], exclude: [], date: "2026-09-30" },
+      }),
+    );
+    writeFileSync(join(dir, "empty.gitconfig"), "");
+    const run = runInventory(join(dir, "report.json"), {
+      cwd: TOP,
+      env: isolatedGitEnv(join(dir, "empty.gitconfig")),
+    });
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: /);
+    assert.equal(existsSync(join(dir, "inventory.json")), false);
+  });
+
+  await t.test("complexity-inventory.mjs outside any work tree", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), auditRequest(["."]));
     writeFileSync(join(dir, "empty.gitconfig"), "");
@@ -1631,11 +1673,11 @@ test("both CLIs exit 1 and write nothing", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig"), { GIT_CEILING_DIRECTORIES: dirname(dir) }),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /m);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: /m);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
   });
 
-  await t.test("inventory.mjs in a repository with no commit", (st) => {
+  await t.test("complexity-inventory.mjs in a repository with no commit", (st) => {
     const dir = tempDir(st);
     mkdirSync(join(dir, "repo"));
     mkdirSync(join(dir, "out"));
@@ -1650,11 +1692,11 @@ test("both CLIs exit 1 and write nothing", async (t) => {
     writeFileSync(join(dir, "out", "report.json"), auditRequest(["."]));
     const run = runInventory(join(dir, "out", "report.json"), { cwd: join(dir, "repo"), env });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /m);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: /m);
     assert.equal(existsSync(join(dir, "out", "inventory.json")), false);
   });
 
-  await t.test("inventory.mjs with a named path that matches nothing names it", (st) => {
+  await t.test("complexity-inventory.mjs with a named path that matches nothing names it", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), auditRequest(["audit-complexity-no-such-path"]));
     writeFileSync(join(dir, "empty.gitconfig"), "");
@@ -1663,11 +1705,11 @@ test("both CLIs exit 1 and write nothing", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: .*audit-complexity-no-such-path/);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: .*audit-complexity-no-such-path/);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
   });
 
-  await t.test("inventory.mjs at a symlinked inventory.json", (st) => {
+  await t.test("complexity-inventory.mjs at a symlinked inventory.json", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), auditRequest(["docs/style.css"]));
     writeFileSync(join(dir, "empty.gitconfig"), "");
@@ -1678,11 +1720,11 @@ test("both CLIs exit 1 and write nothing", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: .*inventory\.json/);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: .*inventory\.json/);
     assert.equal(readFileSync(join(dir, "victim.json"), "utf8"), "original\n");
   });
 
-  await t.test("inventory.mjs names an inventory.json it cannot write", (st) => {
+  await t.test("complexity-inventory.mjs names an inventory.json it cannot write", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), auditRequest(["docs/style.css"]));
     writeFileSync(join(dir, "empty.gitconfig"), "");
@@ -1692,20 +1734,20 @@ test("both CLIs exit 1 and write nothing", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: cannot write .*inventory\.json/);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: cannot write .*inventory\.json/);
   });
 
-  await t.test("render-report.mjs names a report.md it cannot write", (st) => {
+  await t.test("complexity-report.mjs names a report.md it cannot write", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), JSON.stringify(report()));
     writeFileSync(join(dir, "inventory.json"), JSON.stringify(inventory()));
     mkdirSync(join(dir, "report.md"));
     const run = runRender(join(dir, "report.json"));
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^render-report\.mjs: cannot write .*report\.md/);
+    assert.match(run.stderr, /^complexity-report\.mjs: cannot write .*report\.md/);
   });
 
-  await t.test("render-report.mjs at a symlinked report.md", (st) => {
+  await t.test("complexity-report.mjs at a symlinked report.md", (st) => {
     const dir = tempDir(st);
     writeFileSync(join(dir, "report.json"), JSON.stringify(report()));
     writeFileSync(join(dir, "inventory.json"), JSON.stringify(inventory()));
@@ -1713,12 +1755,12 @@ test("both CLIs exit 1 and write nothing", async (t) => {
     symlinkSync(join(dir, "victim.md"), join(dir, "report.md"));
     const run = runRender(join(dir, "report.json"));
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^render-report\.mjs: .*report\.md/);
+    assert.match(run.stderr, /^complexity-report\.mjs: .*report\.md/);
     assert.equal(readFileSync(join(dir, "victim.md"), "utf8"), "original\n");
   });
 });
 
-test("inventory.mjs checks and copies scope.coverage", async (t) => {
+test("complexity-inventory.mjs checks and copies scope.coverage", async (t) => {
   await t.test("a tracked coverage file is copied into inventory.json", (st) => {
     const dir = tempDir(st);
     writeFileSync(
@@ -1731,6 +1773,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 0, run.stderr);
+    assert.ok(existsSync(join(dir, "inventory.json")), "the CLI wrote no inventory.json");
     assert.equal(
       JSON.parse(readFileSync(join(dir, "inventory.json"), "utf8")).coverage,
       "docs/style.css",
@@ -1746,6 +1789,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 0, run.stderr);
+    assert.ok(existsSync(join(dir, "inventory.json")), "the CLI wrote no inventory.json");
     assert.equal(
       Object.hasOwn(JSON.parse(readFileSync(join(dir, "inventory.json"), "utf8")), "coverage"),
       false,
@@ -1761,7 +1805,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: .*scope\.coverage/);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: .*scope\.coverage/);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
   });
 
@@ -1777,7 +1821,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
       env: isolatedGitEnv(join(dir, "empty.gitconfig")),
     });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: .*scope\.coverage/);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: .*scope\.coverage/);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
   });
 
@@ -1795,7 +1839,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
         env: isolatedGitEnv(join(dir, "empty.gitconfig")),
       });
       assert.equal(run.status, 1, run.stderr);
-      assert.match(run.stderr, /^inventory\.mjs: .*scope\.coverage/);
+      assert.match(run.stderr, /^complexity-inventory\.mjs: .*scope\.coverage/);
       assert.equal(existsSync(join(dir, "inventory.json")), false);
     },
   );
@@ -1819,7 +1863,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
     assert.equal(run.status, 1, run.stderr);
     assert.match(
       run.stderr,
-      /^inventory\.mjs: coverage file link\.txt is a symlink or leaves the top level/,
+      /^complexity-inventory\.mjs: coverage file link\.txt is a symlink or leaves the top level/,
     );
     assert.equal(existsSync(join(dir, "out", "inventory.json")), false);
   });
@@ -1843,7 +1887,7 @@ test("inventory.mjs checks and copies scope.coverage", async (t) => {
     );
     const run = runInventory(join(dir, "out", "report.json"), { cwd: join(dir, "repo"), env });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: .*nothing\.txt/);
+    assert.match(run.stderr, /^complexity-inventory\.mjs: .*nothing\.txt/);
     assert.equal(existsSync(join(dir, "out", "inventory.json")), false);
   });
 });

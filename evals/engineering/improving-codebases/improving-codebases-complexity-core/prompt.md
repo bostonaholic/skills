@@ -8,8 +8,8 @@ append_system_prompt: |
   - node-version.txt: node --version
   - git-rev-parse-show-toplevel.txt: git rev-parse --show-toplevel
   - git-rev-parse-head.txt: git rev-parse --verify HEAD; a later git rev-parse HEAD prints the same output
-  - inventory-mjs.txt: node <skill-dir>/scripts/inventory.mjs $PWD/docs/plans/<YYYY-MM-DD>-auditing-complexity/report.json (exit 0)
-  - inventory.json: the inventory.json file that inventory.mjs wrote at $PWD/docs/plans/<YYYY-MM-DD>-auditing-complexity/inventory.json
+  - complexity-inventory-mjs.txt: node <skill-dir>/scripts/complexity-inventory.mjs $PWD/docs/plans/<YYYY-MM-DD>-improving-codebases/complexity/report.json (exit 0)
+  - inventory.json: the inventory.json file that complexity-inventory.mjs wrote at $PWD/docs/plans/<YYYY-MM-DD>-improving-codebases/complexity/inventory.json
 
   node-version.txt:
   ```text
@@ -26,9 +26,9 @@ append_system_prompt: |
   7f3c2a9e5b1d4f6a8c0e2b4d6f8a1c3e5b7d9f02
   ```
 
-  inventory-mjs.txt:
+  complexity-inventory-mjs.txt:
   ```text
-  $PWD/docs/plans/<YYYY-MM-DD>-auditing-complexity/inventory.json
+  $PWD/docs/plans/<YYYY-MM-DD>-improving-codebases/complexity/inventory.json
   ```
 
   inventory.json:
@@ -37,21 +37,13 @@ append_system_prompt: |
     "version": 1,
     "commit": "7f3c2a9e5b1d4f6a8c0e2b4d6f8a1c3e5b7d9f02",
     "pathspecs": [
-      "."
+      "src"
     ],
     "exclude": [
-      "docs/plans/<YYYY-MM-DD>-auditing-complexity"
+      "docs/plans/<YYYY-MM-DD>-improving-codebases/complexity"
     ],
     "dirty": [],
     "files": {
-      "README.md": {
-        "status": "text",
-        "lines": 5
-      },
-      "package.json": {
-        "status": "text",
-        "lines": 9
-      },
       "src/cart.js": {
         "status": "text",
         "lines": 25
@@ -77,4 +69,4 @@ append_system_prompt: |
   ```
 ---
 
-Where are the complexity hotspots in this repo? Rank them and paste the ranking in your reply.
+Rank the complexity hotspots in src/, and paste the ranking in your reply.

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Lists the tracked files and their line counts for an auditing-complexity scope and writes inventory.json beside it.
-// Usage: inventory.mjs <report.json>
+// Lists the tracked files and their line counts for an improving-codebases complexity lane scope and
+// writes inventory.json beside it.
+// Usage: complexity-inventory.mjs <report.json>
 //   exit 0  wrote <dir of report.json>/inventory.json and printed its path
 //   exit 1  wrote nothing; stderr names the failure: a git failure, a bad report.json, a pathspec
 //           that matches no tracked file, a bad coverage path or file, or an inventory.json that is
@@ -11,10 +12,10 @@ import { lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The skill file that explains each exit code.
-const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
+// The lane brief that explains each exit code.
+const DOC_PATH = fileURLToPath(new URL("../references/lanes/complexity.md", import.meta.url));
 
-const SCRIPT = "inventory.mjs";
+const SCRIPT = "complexity-inventory.mjs";
 // git's own binary test: a NUL byte in the first 8,000 bytes.
 const BINARY_PROBE_BYTES = 8000;
 const LINE_FEED = 0x0a;
@@ -128,8 +129,12 @@ function readScope(input) {
   } catch (error) {
     throw new AuditError(`cannot read ${input}: ${error.message}`);
   }
-  if (report?.skill !== "auditing-complexity" || report.version !== 1) {
-    throw new AuditError(`${input} is not an auditing-complexity version 1 report`);
+  if (
+    report?.skill !== "improving-codebases" ||
+    report.lane !== "complexity" ||
+    report.version !== 1
+  ) {
+    throw new AuditError(`${input} is not an improving-codebases complexity lane version 1 report`);
   }
   const { pathspecs, exclude } = report.scope ?? {};
   if (

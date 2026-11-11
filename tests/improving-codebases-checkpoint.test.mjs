@@ -41,6 +41,7 @@ const MACHINES_BRIEF = `---
 lane: machines
 summary: Finds implicit state machines
 makes: true
+report: findings
 evidence: state, transition, guard
 checks: model-check
 artifacts: .tla, .cfg

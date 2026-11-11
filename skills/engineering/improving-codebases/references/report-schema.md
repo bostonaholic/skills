@@ -25,7 +25,8 @@ writes nothing, so its errors are the full rule list.
     "commit": "<git rev-parse HEAD at the start>",
     "date": "<YYYY-MM-DD>",
     "paths": ["<top-level-relative scope path, or .>"],
-    "dirty": ["<path that git status --porcelain --untracked-files=no reports>"]
+    "dirty": ["<path that git status --porcelain --untracked-files=no reports>"],
+    "lanes": ["<selected lane whose report is findings>"]
   },
   "groups": [{ "id": "<group id>", "files": ["<inventory file>"] }],
   "lanes": [
@@ -105,14 +106,17 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
 - Every citation is `path:line`, split on its last colon, inside a
   `scope.paths` entry, and in range at `scope.commit`. A path under a
   `scope.dirty` entry skips the range test.
-- `report.lanes` names every registry lane and nothing else. Each lane lists
+- `scope.lanes` names the selected findings lanes: at least one, with no
+  repeat. Each entry is a registry lane whose `report` is `findings`, so a
+  report lane never joins this report.
+- `report.lanes` names exactly the `scope.lanes` entries. Each lane lists
   each group exactly once, under `ran` or `failed`. A lane with any `failed`
   group reads `partial`, else `complete`.
 - Each tracked file under `scope.paths` sits in exactly one group, or under a
   `gaps` path, which names a file or a directory.
 - `id` is `<lane>/<n>` with a positive integer `<n>`, unique in the report.
 - A finding has a `title`, at least one citation, and at least one evidence
-  item of each kind its lane declares.
+  item of each kind its lane declares. Its lane is in `scope.lanes`.
 - `outcome` is `applied`, `proposed`, `reported`, or `deferred`. Every
   outcome but `applied` needs a `reason`. Only a `makes: false` lane uses `reported`. `deferred` means the
   lane has a make step and it did not finish for this finding.

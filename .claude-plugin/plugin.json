@@ -19,7 +19,6 @@
     "./skills/engineering/addressing-pr-comments",
     "./skills/engineering/attaching-pr-screenshots",
     "./skills/engineering/auditing-agent-token-usage",
-    "./skills/engineering/auditing-complexity",
     "./skills/engineering/auditing-rails-tech-debt",
     "./skills/engineering/auditing-repo-security",
     "./skills/engineering/auditing-tests",
