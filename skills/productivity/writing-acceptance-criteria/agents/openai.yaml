@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Acceptance Criteria"
+  short_description: "Write acceptance criteria that a check can prove"
+  default_prompt: "Use $writing-acceptance-criteria to rewrite these acceptance criteria so each one has a check that can prove it true or false."
