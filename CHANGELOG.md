@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Add a Shared files mode to `making-code-agent-friendly`, replacing `limiting-shared-file-edits`: say "check shared files" or start with `shared-files`. [#186](https://github.com/bostonaholic/skills/pull/186)
+
+### Removed
+
+- Retire `limiting-shared-file-edits`: the Shared files mode of `making-code-agent-friendly` replaces it, and a copy install such as Grok Bot keeps the old directory until you delete it. [#186](https://github.com/bostonaholic/skills/pull/186)
+
 ## [0.89.0] - 2026-11-09
 
 ### Added
