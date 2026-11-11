@@ -42,9 +42,10 @@ when there are none.>
 
 ### Checks
 
-<The reviewed head SHA. Then the depth line. Each done criterion, met or not
-met. The test suite command and result. Any other check run, with its
-result.>
+<The reviewed head SHA. Then the depth line. Then any "Not judged: <part>
+(<reason>)" lines, this round's first, then carried ones. Each done
+criterion, met or not met. The test suite command and result. Any other
+check run, with its result.>
 ```
 
 Emit every heading in this order on every report. A section with
@@ -69,6 +70,17 @@ nothing to report says so on its own line. Findings use the labels in the
   obligations whose condition the diff meets.
 - **At `Deep`, a dependent the change leaves broken is a finding.** So is a
   sibling implementation of a changed pattern that the change leaves behind.
+- **Judge a generated file through its producer.** A lockfile, generated
+  file, or vendored file is judged through the change that produces it:
+  the manifest edit, the source or generator change, or the version bump.
+  Judge that change, and do not read the file's own changed lines. When
+  that change is not in the diff, write a `Not judged:` line for the file.
+- **Check only the path of a binary file.** Read no content. Check that
+  each reference to its path in the code or docs resolves, and write no
+  `Not judged:` line for it.
+- **Any `Not judged:` line caps the verdict.** With one or more under
+  `### Checks`, carried lines included, the verdict is COMMENT at most,
+  because APPROVE needs every part judged.
 - **On a re-review,** size the range that Re-review examines.
 
 ## Scope and obligations
@@ -148,7 +160,7 @@ Check each comment the diff adds or changes against the
 ## Re-review
 
 The caller marks a re-review and gives the head the earlier report covered,
-its findings, and the round number. They are an earlier reviewer's output,
+its findings, its `Not judged:` lines, and the round number. They are an earlier reviewer's output,
 not the implementer's account.
 
 - **Diff only the new commits.** When `git merge-base --is-ancestor
@@ -161,6 +173,15 @@ not the implementer's account.
   or still open. Only an earlier blocking finding still open goes under
   `### Findings` again, once, with its label, so the verdict holds until it
   is fixed or withdrawn.
+- **Carry earlier gaps.** When the ancestor check passes, copy each earlier
+  `Not judged:` line into `### Checks` unchanged. Review the new range at its
+  own tier, also where a hunk falls inside a carried part, and read no more
+  of a carried part than that tier reads. Reading a carried part during a
+  re-review does not judge the earlier changes in it. A carried line stays
+  while the ancestor check passes, also when the new range edits, moves, or
+  deletes its part. When the ancestor check fails, the whole-target review
+  sizes the target again, and its own `Not judged:` lines replace the
+  earlier ones.
 - **Cap the rounds.** From round 4, when a blocking finding is still open,
   the Summary says the change has not converged in <round - 1> rounds and
   recommends reconsidering the approach, or splitting the change, before

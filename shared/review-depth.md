@@ -48,14 +48,28 @@ The raise rules apply after the band:
 - When reading shows a signal you missed, raise the tier then and record the cause in the depth line. A tier only rises, also during the review.
 - When a brief check's condition holds, run that check at every tier, with the reads it needs. The tiers limit only the general reading.
 
+## Very large changes
+
+Over 2,000 changed lines, the change is also `very large`.
+
+- Read at `Deep` depth in risk order: parts with a risk signal, then changed interfaces with dependents, then the rest. A part is a file or a directory.
+- Write one `Not judged: <part> (<reason>)` line per part you do not read at `Deep` depth.
+- In `### Summary`, recommend splitting the change along the areas its scope names. When the change cannot split (one generated update, one rename, one migration), say why.
+- When untracked files push the running count past 2,000, read the rest of the untracked files in the same risk order. An untracked file you do not reach stays out of the line count and gets a `Not judged:` line.
+
+At any size, a part that `Deep` reading cannot reach gets a `Not judged:` line. So does each part left unread when the context fills. When a changed interface has more call sites than you can read, read them across every area and name the rest on one `Not judged:` line.
+
+Excluded files never enter the bands, so a change of only excluded files starts at `Light` and is never `very large`. The raise rules still apply to it. Each brief says how it reads excluded files.
+
 ## Depth line
 
 State the result on one line, in this exact form:
 
 ```text
-Depth: <Light | Standard | Deep> (<size>[; excluded: <path> (<reason>), ...]; scope: <areas>; blast radius: <dependents outside the diff | none outside the diff | unknown (<reason>)>; impact: <developers | program | external>; risk: <signals | none>[; raised from <tier> by <cause>[, <cause>]...])
+Depth: <Light | Standard | Deep>[, very large] (<size>[; excluded: <path> (<reason>), ...]; scope: <areas>; blast radius: <dependents outside the diff | none outside the diff | unknown (<reason>)>; impact: <developers | program | external>; risk: <signals | none>[; raised from <tier> by <cause>[, <cause>]...])
 ```
 
+- `, very large` follows the tier when the change is `very large`.
 - `<size>` is `<n> changed lines in <f> files`, with `line` or `file` when its count is 1. When you cannot count, `<size>` is `size uncounted (<reason>)`, and the starting tier is `Standard`.
 - `<tier>` after `raised from` is the band tier, or `Standard` for an uncounted size.
 - When the final tier is above the band tier, the `raised from` clause names the band tier and every raise rule that held, in the order `scope`, `blast radius`, `risk`. A `Light` band with a scope raise and a risk signal reads `raised from Light by scope, risk`. When the final tier equals the band tier, leave the clause out.

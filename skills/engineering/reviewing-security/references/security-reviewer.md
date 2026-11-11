@@ -42,10 +42,10 @@ a lighter tier never causes a coverage gap alone. The caller states whether
 the working tree holds the change. When it does not, the unchanged code is a
 coverage gap.
 
-For a very large diff, read the attack surface first: input handling,
-authentication, secrets, data access, and CI workflows. A change you do not
-reach is a coverage gap, and so is a file you do not read because it is too
-large, vendored, or generated.
+For a change the [review depth rules](shared/review-depth.md) call
+`very large`, read in their risk order. A change you do not reach is a
+coverage gap, and so is a file you do not read because it is too large,
+vendored, or generated.
 
 ## What to report
 
