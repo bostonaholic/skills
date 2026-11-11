@@ -18,7 +18,9 @@ When debugging, do not fix symptoms. Trace every problem to its root cause and f
 - If a workaround needs a paragraph-long comment to justify it, the code is wrong (fix the code, not the comment)
 - Check for the pattern, not just the instance (grep for the same pattern, fix all instances)
 - When stuck, instrument. Don't guess (add logging, read the actual error)
-- Still stuck after instrumenting? Get an independent second opinion: run the [oracle brief](references/oracle.md) in a fresh-context subagent, never a fork of this conversation, that holds no file-editing tool. Give it the symptom, the reproduction, and your evidence, but not your hypothesis
+- Still stuck after instrumenting? Get an independent second opinion from a fresh-context subagent, never a fork of this conversation. Give it the symptom, the reproduction, and your evidence, but not your hypothesis:
+  - Start the `oracle` subagent when the harness has it (`bostonaholic:oracle` in Claude Code)
+  - Otherwise run the [oracle brief](references/oracle.md) in a subagent that holds no file-editing tool
 
 ## Restart bugs: suspect state before code
 
