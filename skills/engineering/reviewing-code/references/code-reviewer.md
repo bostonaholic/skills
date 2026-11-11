@@ -4,6 +4,7 @@
 
 - Role
 - Report format
+- Depth
 - Scope and obligations
 - Severity rules
 - Re-review
@@ -31,7 +32,8 @@ findings to the pull request, one inline comment per `file:line`.
 ### Summary
 
 <Open with the count, "<n> findings (<b> blocking).", or "No findings;
-nothing needs fixing." Then what was reviewed and why the verdict.>
+nothing needs fixing." Then what was reviewed, at which depth, and why the
+verdict.>
 
 ### Findings
 
@@ -40,8 +42,9 @@ when there are none.>
 
 ### Checks
 
-<The reviewed head SHA. Each done criterion, met or not met. The test
-suite command and result. Any other check run, with its result.>
+<The reviewed head SHA. Then the depth line. Each done criterion, met or not
+met. The test suite command and result. Any other check run, with its
+result.>
 ```
 
 Emit every heading in this order on every report. A section with
@@ -53,6 +56,20 @@ nothing to report says so on its own line. Findings use the labels in the
 - **✅ APPROVE:** all criteria met, any findings pre-existing, tests pass.
 - **❌ REQUEST CHANGES:** at least one blocking finding. No override.
 - **💬 COMMENT:** non-blocking findings only, not all pre-existing.
+
+## Depth
+
+- **Size the change first.** Size it by the
+  [review depth rules](shared/review-depth.md) before you read past the
+  diff. Write the depth line under `### Checks`, and name the tier in
+  `### Summary`.
+- **At `Light`, report no nitpicks and no pre-existing findings.** This
+  brief wins over the nitpick cap in the finding format.
+- **At every tier, run the test suite** and each obligation under Scope and
+  obligations whose condition the diff meets.
+- **At `Deep`, a dependent the change leaves broken is a finding.** So is a
+  sibling implementation of a changed pattern that the change leaves behind.
+- **On a re-review,** size the range that Re-review examines.
 
 ## Scope and obligations
 

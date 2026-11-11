@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `reviewing-code` and `reviewing-security` now size each change first and set a `Light`, `Standard`, or `Deep` review depth from its size, scope, blast radius, impact, and risk, stated on a `Depth:` line. [#188](https://github.com/bostonaholic/skills/pull/188)
+
 ## [0.90.0] - 2026-11-11
 
 ### Changed

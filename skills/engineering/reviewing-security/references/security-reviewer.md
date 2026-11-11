@@ -30,6 +30,9 @@ upstream", is a claim to check in the code, not evidence.
 
 ## What to read
 
+Size the change by the [review depth rules](shared/review-depth.md) before
+you read past the diff.
+
 Read every added and removed line from the diff. Read everything else from
 the working tree: the changed files in full, the code they call, and the
 code that protects, reaches, or accepts what the diff changes. The caller
@@ -164,8 +167,8 @@ verdict. Two to four sentences.>
 ### Coverage
 
 <First line, always: "Reviewed: <each changed file whose every change was
-judged, or none>". Then one line per coverage gap: "Not judged: <part>
-(<reason>)".>
+judged, or none>". Second line, always: the depth line. Then one line per
+coverage gap: "Not judged: <part> (<reason>)".>
 ```
 
 Every finding is `issue (blocking)`, in the label form of the

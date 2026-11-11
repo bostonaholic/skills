@@ -18,7 +18,7 @@ argument-hint: "[<diff target>]"
 
 - This session holds the author's conversation, so it cannot review the work ([independent review rules](shared/independent-review.md)).
 - Run the [code reviewer brief](references/code-reviewer.md) in a fresh-context subagent, never a fork of this conversation, that holds no file-editing tool.
-- Give it only the resolved target, any [re-review](#re-review) inputs, and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), [code standards](shared/code-standards.md), [code comments rules](shared/code-comments.md), and [docs and code rules](shared/docs-vs-code.md).
+- Give it only the resolved target, any [re-review](#re-review) inputs, and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), [code standards](shared/code-standards.md), [code comments rules](shared/code-comments.md), [docs and code rules](shared/docs-vs-code.md), and [review depth rules](shared/review-depth.md).
 - If it has a shell, it runs only the project's test command and read-only git commands.
 - If no such subagent can run, stop and say so. Never review inline.
 
@@ -52,7 +52,7 @@ Print exactly this, and nothing of the report beyond it:
 ```markdown
 **Verdict: <✅ APPROVE | ❌ REQUEST CHANGES | 💬 COMMENT>**
 
-<3 to 5 sentences: what was reviewed and at which short SHA; the finding count, blocking count, and the most serious finding; the test result; the review URL, or why nothing was posted.>
+<3 to 5 sentences: what was reviewed, at which short SHA and at which depth; the finding count, blocking count, and the most serious finding; the test result; the review URL, or why nothing was posted.>
 ```
 
 - When nothing was posted, add the report's `### Findings` section after the summary, since the findings exist nowhere else.
