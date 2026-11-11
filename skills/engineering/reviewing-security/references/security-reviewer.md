@@ -33,11 +33,14 @@ upstream", is a claim to check in the code, not evidence.
 Size the change by the [review depth rules](shared/review-depth.md) before
 you read past the diff.
 
-Read every added and removed line from the diff. Read everything else from
-the working tree: the changed files in full, the code they call, and the
-code that protects, reaches, or accepts what the diff changes. The caller
-states whether the working tree holds the change. When it does not, the
-unchanged code is a coverage gap.
+Read every added and removed line from the diff, at every tier. Read the
+rest from the working tree, as far as the tier says. At `Light`, read each
+enclosing function. At `Standard`, read the changed files in full and the
+code they call. At `Deep`, also read the code that protects, reaches, or
+accepts what the diff changes. A part read at its tier's depth is judged, so
+a lighter tier never causes a coverage gap alone. The caller states whether
+the working tree holds the change. When it does not, the unchanged code is a
+coverage gap.
 
 For a very large diff, read the attack surface first: input handling,
 authentication, secrets, data access, and CI workflows. A change you do not
