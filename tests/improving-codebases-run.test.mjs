@@ -1313,6 +1313,7 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.deepEqual(readJson(fx.result).command, argv);
       assert.equal(typeof readJson(fx.result).seconds, "number");
       assert.match(readJson(fx.result).tree, /\S/);
+      assert.deepEqual(readJson(fx.result).treeChange, { head: null, refs: false, paths: [] });
     });
 
     await t.test("a non-zero exit: fail, and trace holds the log tail", (st) => {
@@ -1363,6 +1364,40 @@ describe("slice 4: refactor each machine under a test gate", () => {
       },
     );
 
+    await t.test(
+      "a child that moves HEAD, then runs past the bound: not-run, and treeChange names the new HEAD",
+      (st) => {
+        const fx = commandFixture(st);
+        const tree = git(fx.root, "rev-parse", "HEAD^{tree}");
+        const second = git(fx.root, "commit-tree", tree, "-p", "HEAD", "-m", "second");
+        const argv = [
+          process.execPath,
+          "-e",
+          "require('fs').writeFileSync('.git/HEAD', process.argv[1] + '\\n'); setInterval(() => {}, 1000);",
+          second,
+        ];
+        const body = {
+          check: "tests",
+          argv,
+          cwd: fx.root,
+          env: [],
+          result: fx.result,
+          log: fx.log,
+        };
+
+        const run = callExport(
+          script("run-bounded.mjs"),
+          "runBounded",
+          [body, { wallClockMs: 2_000 }],
+          process.env,
+        );
+
+        assert.equal(run.status, 0, run.stderr);
+        assert.equal(readJson(fx.result).status, "not-run");
+        assert.equal(readJson(fx.result).treeChange?.head?.after, second);
+      },
+    );
+
     await t.test("a run that edits a tracked file: fail, and reason names the file", (st) => {
       const fx = commandFixture(st);
       const argv = [process.execPath, "-e", "require('fs').writeFileSync('src.txt', 'two\\n')"];
@@ -1372,10 +1407,16 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(fx.result).status, "fail");
       assert.match(readJson(fx.result).reason, /src\.txt/);
+      assert.deepEqual(readJson(fx.result).treeChange, {
+        head: null,
+        refs: false,
+        paths: ["src.txt"],
+      });
     });
 
     await t.test("a run that moves HEAD: fail, and reason names HEAD", (st) => {
       const fx = commandFixture(st);
+      const first = git(fx.root, "rev-parse", "HEAD");
       const tree = git(fx.root, "rev-parse", "HEAD^{tree}");
       const second = git(fx.root, "commit-tree", tree, "-p", "HEAD", "-m", "second");
       const argv = [
@@ -1390,6 +1431,8 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(fx.result).status, "fail");
       assert.match(readJson(fx.result).reason, /HEAD/);
+      assert.equal(readJson(fx.result).treeChange?.head?.before.startsWith(first), true);
+      assert.equal(readJson(fx.result).treeChange?.head?.after, second);
     });
 
     await t.test("a run that changes a ref: fail, and reason names refs", (st) => {
@@ -1407,6 +1450,8 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(fx.result).status, "fail");
       assert.match(readJson(fx.result).reason, /refs/);
+      assert.equal(readJson(fx.result).treeChange?.refs, true);
+      assert.equal(readJson(fx.result).treeChange?.head, null);
     });
 
     await t.test("a run that writes only an untracked file: pass", (st) => {
@@ -1487,6 +1532,17 @@ describe("slice 4: refactor each machine under a test gate", () => {
       ]);
 
       assert.equal(run.status, 1, run.stderr);
+    });
+
+    await t.test("a run that deletes the checked-out branch: exit 1, and no result", (st) => {
+      const fx = commandFixture(st);
+      const argv = ["git", "update-ref", "-d", "refs/heads/main"];
+
+      const run = node(script("run-bounded.mjs"), [request(fx, argv)]);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /rev-parse/);
+      assert.equal(existsSync(fx.result), false);
     });
 
     await t.test("no arguments: exit 2", () => {

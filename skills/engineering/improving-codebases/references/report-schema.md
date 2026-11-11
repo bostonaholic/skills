@@ -58,23 +58,26 @@ writes nothing, so its errors are the full rule list.
 `run-tlc.mjs` and `run-bounded.mjs` write this shape. The renderer reads it
 and embeds it, so the model never states a result.
 
-| Field            | Rule                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| `check`          | `tests`, or the check name, such as `model-check`                                               |
-| `status`         | `pass`, `fail`, or `not-run`                                                                    |
-| `reason`         | Necessary for `not-run`                                                                         |
-| `trace`          | Necessary for `fail`: the counterexample, or the log tail for tests                             |
-| `seconds`        | Wall clock                                                                                      |
-| `command`        | The argv that ran                                                                               |
-| `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                   |
-| `spec`           | `run-tlc.mjs` only. The absolute path of the `.tla` file it checked                             |
-| `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included |
-| `tree`           | `run-bounded.mjs` only. One digest of HEAD, every ref, and the content of each tracked change   |
+| Field            | Rule                                                                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check`          | `tests`, or the check name, such as `model-check`                                                                                                                                            |
+| `status`         | `pass`, `fail`, or `not-run`                                                                                                                                                                 |
+| `reason`         | Necessary for `not-run`                                                                                                                                                                      |
+| `trace`          | Necessary for `fail`: the counterexample, or the log tail for tests                                                                                                                          |
+| `seconds`        | Wall clock                                                                                                                                                                                   |
+| `command`        | The argv that ran                                                                                                                                                                            |
+| `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                                                                                                                |
+| `spec`           | `run-tlc.mjs` only. The absolute path of the `.tla` file it checked                                                                                                                          |
+| `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included                                                                                              |
+| `tree`           | `run-bounded.mjs` only. One digest of HEAD, every ref, and the content of each tracked change                                                                                                |
+| `treeChange`     | `run-bounded.mjs` only, under every status. `head` is null or `{ before, after }`, `refs` is true when a ref changed, and `paths` lists each tracked path whose state differs, in byte order |
 
 ## Test request
 
 `run-bounded.mjs <request.json>` reads this shape and runs `argv` with no
 shell. A run that changes `tree` reads `fail`, with the change in `reason`.
+The change also lands in `treeChange`, under every status, so a timed-out
+run still records a moved HEAD.
 
 ```json
 {

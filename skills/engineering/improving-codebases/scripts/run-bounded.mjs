@@ -8,8 +8,9 @@
 // A request holds `check`, `argv`, `cwd`, `env`, `result`, and `log`. `argv` runs with no shell,
 // detached, with stdout and stderr in `log`. `env` names the variables the user passed with --env.
 // `tree` is one digest of HEAD, every ref, and the content of each tracked change, taken before
-// and after the run; a change reads fail. It covers tracked files and refs only, so a file that a
-// passing run creates stays out of `changed`.
+// and after the run; a change reads fail. `treeChange` names that change under every status, a
+// timed-out run included: `head`, `refs`, and the tracked `paths`. Both cover tracked files and
+// refs only, so a file that a passing run creates stays out of `changed`.
 // Importing this module runs nothing. Every improving-codebases script gives its child processes,
 // git included, the environment childEnv() returns.
 import { spawn, spawnSync } from "node:child_process";
@@ -113,17 +114,30 @@ export function treeState(root) {
   return { head, refs, paths, digest };
 }
 
-// Names what differs between two tree states, or returns null when nothing does.
+const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
+
+// What differs between two tree states: `head` is null or { before, after } in the head form of
+// treeState, `refs` is true when any ref changed, and `paths` lists each tracked path whose state
+// differs, in byte order. An unchanged tree reads { head: null, refs: false, paths: [] }.
 export function treeChange(before, after) {
-  const changes = [];
-  if (before.head !== after.head) changes.push(`HEAD moved from ${before.head} to ${after.head}`);
-  if (before.refs !== after.refs) changes.push("refs changed: git for-each-ref output differs");
   const paths = new Set([...Object.keys(before.paths), ...Object.keys(after.paths)]);
-  const changed = [...paths]
-    .filter((path) => (before.paths[path] ?? "unchanged") !== (after.paths[path] ?? "unchanged"))
-    .sort();
-  if (changed.length > 0) changes.push(`the run changed tracked paths: ${changed.join(", ")}`);
-  return changes.length > 0 ? changes.join("; ") : null;
+  return {
+    head: before.head === after.head ? null : { before: before.head, after: after.head },
+    refs: before.refs !== after.refs,
+    paths: [...paths]
+      .filter((path) => (before.paths[path] ?? "unchanged") !== (after.paths[path] ?? "unchanged"))
+      .sort(byteOrder),
+  };
+}
+
+// Names a treeChange in one line, or returns null when nothing changed.
+export function treeChangeReason(change) {
+  const parts = [];
+  if (change.head) parts.push(`HEAD moved from ${change.head.before} to ${change.head.after}`);
+  if (change.refs) parts.push("refs changed: git for-each-ref output differs");
+  if (change.paths.length > 0)
+    parts.push(`the run changed tracked paths: ${change.paths.join(", ")}`);
+  return parts.length > 0 ? parts.join("; ") : null;
 }
 
 function readRequest(request) {
@@ -212,8 +226,14 @@ export async function runBounded(raw, bounds) {
     closeSync(logFd);
   }
   const after = treeState(request.cwd);
-  const result = { check: request.check, command: request.argv, tree: after.digest };
   const change = treeChange(before, after);
+  const changeReason = treeChangeReason(change);
+  const result = {
+    check: request.check,
+    command: request.argv,
+    tree: after.digest,
+    treeChange: change,
+  };
   const tail = logTail(request.log);
   if (run.spawnError) {
     result.status = "not-run";
@@ -221,10 +241,10 @@ export async function runBounded(raw, bounds) {
   } else if (run.stopped) {
     result.status = "not-run";
     result.reason = `the command ran past the wall clock of ${bounds.wallClockMs} ms and was killed`;
-  } else if (change) {
+  } else if (changeReason) {
     result.status = "fail";
-    result.reason = change;
-    result.trace = tail || change;
+    result.reason = changeReason;
+    result.trace = tail || changeReason;
   } else if (run.code !== 0) {
     result.status = "fail";
     result.reason = run.signal
