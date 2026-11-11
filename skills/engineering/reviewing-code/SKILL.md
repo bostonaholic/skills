@@ -18,7 +18,7 @@ argument-hint: "[<diff target>]"
 
 - This session holds the author's conversation, so it cannot review the work ([independent review rules](shared/independent-review.md)).
 - Run the [code reviewer brief](references/code-reviewer.md) in a fresh-context subagent, never a fork of this conversation, that holds no file-editing tool.
-- Give it only the resolved target, any [re-review](#re-review) inputs, and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), [code standards](shared/code-standards.md), [code comments rules](shared/code-comments.md), and [docs and code rules](shared/docs-vs-code.md).
+- Give it only the resolved target, any [re-review](#re-review) inputs, and the paths of the brief and the files it links: [finding format](shared/findings.md), [testing rules](shared/testing.md), [code standards](shared/code-standards.md), [code comments rules](shared/code-comments.md), [docs and code rules](shared/docs-vs-code.md), and [review depth rules](shared/review-depth.md).
 - If it has a shell, it runs only the project's test command and read-only git commands.
 - If no such subagent can run, stop and say so. Never review inline.
 
@@ -40,7 +40,7 @@ argument-hint: "[<diff target>]"
 
 - Post when the target is a pull request, or a branch whose head has an open pull request. Post without asking the user.
 - Post one review on the reviewed head SHA from `### Checks`, with the verdict as its event: `APPROVE`, `REQUEST_CHANGES`, or `COMMENT`. With `gh`: `gh api repos/<owner>/<repo>/pulls/<n>/reviews` with `commit_id`, `event`, `body`, and `comments`.
-- Each finding whose `file:line` falls in the diff becomes an inline comment on that line, its body the finding verbatim. The review body is the report's `### Summary` plus every finding that cannot anchor to a diff line.
+- Each finding whose `file:line` falls in the diff becomes an inline comment on that line, its body the finding verbatim. The review body is the report's `### Summary`, every `Not judged:` line from `### Checks`, and every finding that cannot anchor to a diff line.
 - On a re-review, post inline only findings that are new this round; the body lists each earlier finding still open.
 - GitHub rejects `APPROVE` and `REQUEST_CHANGES` on the viewer's own pull request. There, post `COMMENT` and keep the verdict word in the body.
 - When the post fails, fix the cause it names once (move a rejected comment into the body) and retry. When the retry fails, print the full report and the error.
@@ -52,15 +52,16 @@ Print exactly this, and nothing of the report beyond it:
 ```markdown
 **Verdict: <✅ APPROVE | ❌ REQUEST CHANGES | 💬 COMMENT>**
 
-<3 to 5 sentences: what was reviewed and at which short SHA; the finding count, blocking count, and the most serious finding; the test result; the review URL, or why nothing was posted.>
+<3 to 5 sentences: what was reviewed, at which short SHA and at which depth; the finding count, blocking count, and the most serious finding; the test result; the review URL, or why nothing was posted.>
 ```
 
 - When nothing was posted, add the report's `### Findings` section after the summary, since the findings exist nowhere else.
 - When a [reused finding](#reused-findings) was verified, add its verification after the summary, apart from the verdict.
 - When the reviewer used a nonstandard heading, or its read-only restriction rested on its prompt rather than its tool grants, say so in one sentence of the summary.
+- When `### Checks` holds `Not judged:` lines, print them after the summary.
 
 ## Re-review
 
 - A target is a re-review only when an earlier report of this skill in this conversation covers the same PR or branch. A working-tree or pasted-diff target never is.
-- Give the reviewer the head SHA from the most recent such report's `### Checks`, its findings, and the round number: the count of those earlier reports, plus one.
+- Give the reviewer the head SHA from the most recent such report's `### Checks`, its findings, its `Not judged:` lines, and the round number: the count of those earlier reports, plus one.
 - With no recorded head, run a full review and say why.
