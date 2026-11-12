@@ -113,6 +113,27 @@ function validateScope(scope, facts, errors) {
     );
 }
 
+// scope.lanes names the findings lanes the run selected. A report lane writes its own report, so
+// it never joins this one.
+function validateScopeLanes(scope, registry, errors) {
+  const selected = list(scope.lanes);
+  if (selected.length === 0) {
+    errors.push("scope.lanes must name at least one selected findings lane");
+    return;
+  }
+  const seen = new Set();
+  for (const name of selected) {
+    if (seen.has(name)) errors.push(`scope.lanes names ${name} more than once`);
+    seen.add(name);
+    const lane = registry.get(name);
+    if (!lane) errors.push(`scope.lanes names ${name}, which is not in the registry`);
+    else if (lane.report !== "findings")
+      errors.push(
+        `scope.lanes names ${name}, whose report is ${lane.report}; only a findings lane joins this report`,
+      );
+  }
+}
+
 function validateGroups(report, facts, errors) {
   const ids = new Set();
   const placed = new Map();
@@ -139,7 +160,7 @@ function validateGroups(report, facts, errors) {
   return ids;
 }
 
-function validateLanes(report, registry, groupIds, errors) {
+function validateLanes(report, registry, selected, groupIds, errors) {
   const seen = new Set();
   for (const [index, entry] of list(report.lanes).entries()) {
     if (!isObject(entry) || !filled(entry.lane)) {
@@ -171,15 +192,21 @@ function validateLanes(report, registry, groupIds, errors) {
       else if (inRan + inFailed > 1) errors.push(`lane ${name} lists group ${id} more than once`);
     }
   }
-  for (const name of registry.keys()) {
+  for (const name of seen) {
+    if (registry.has(name) && !selected.has(name))
+      errors.push(`report.lanes names ${name}, which is not in scope.lanes`);
+  }
+  for (const name of selected) {
     if (!seen.has(name))
-      errors.push(`lane ${name} is in the registry but missing from report.lanes`);
+      errors.push(`lane ${name} is in scope.lanes but missing from report.lanes`);
   }
 }
 
 function validateFinding(finding, label, registry, scope, facts, errors) {
   const lane = registry.get(finding.lane);
   if (!lane) errors.push(`${label}: lane ${finding.lane} is not in the registry`);
+  else if (!list(scope.lanes).includes(finding.lane))
+    errors.push(`${label}: lane ${finding.lane} is not in scope.lanes`);
   const id = String(finding.id ?? "").match(FINDING_ID);
   if (!id || id[1] !== finding.lane)
     errors.push(`${label}: id must be <lane>/<n>, with this finding's lane and a positive integer`);
@@ -355,8 +382,9 @@ export function validateReport(report, lanes, facts) {
   const scope = isObject(report.scope) ? report.scope : {};
   validateScope(scope, facts, errors);
   const registry = new Map(lanes.map((lane) => [lane.lane, lane]));
+  validateScopeLanes(scope, registry, errors);
   const groupIds = validateGroups(report, facts, errors);
-  validateLanes(report, registry, groupIds, errors);
+  validateLanes(report, registry, new Set(list(scope.lanes)), groupIds, errors);
 
   const ids = new Set();
   for (const [index, finding] of list(report.findings).entries()) {

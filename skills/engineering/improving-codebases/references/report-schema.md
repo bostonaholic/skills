@@ -25,7 +25,8 @@ writes nothing, so its errors are the full rule list.
     "commit": "<git rev-parse HEAD at the start>",
     "date": "<YYYY-MM-DD>",
     "paths": ["<top-level-relative scope path, or .>"],
-    "dirty": ["<path that git status --porcelain --untracked-files=no reports>"]
+    "dirty": ["<path that git status --porcelain --untracked-files=no reports>"],
+    "lanes": ["<selected lane whose report is findings>"]
   },
   "groups": [{ "id": "<group id>", "files": ["<inventory file>"] }],
   "lanes": [
@@ -57,23 +58,26 @@ writes nothing, so its errors are the full rule list.
 `run-tlc.mjs` and `run-bounded.mjs` write this shape. The renderer reads it
 and embeds it, so the model never states a result.
 
-| Field            | Rule                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| `check`          | `tests`, or the check name, such as `model-check`                                               |
-| `status`         | `pass`, `fail`, or `not-run`                                                                    |
-| `reason`         | Necessary for `not-run`                                                                         |
-| `trace`          | Necessary for `fail`: the counterexample, or the log tail for tests                             |
-| `seconds`        | Wall clock                                                                                      |
-| `command`        | The argv that ran                                                                               |
-| `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                   |
-| `spec`           | `run-tlc.mjs` only. The absolute path of the `.tla` file it checked                             |
-| `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included |
-| `tree`           | `run-bounded.mjs` only. One digest of HEAD, every ref, and the content of each tracked change   |
+| Field            | Rule                                                                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check`          | `tests`, or the check name, such as `model-check`                                                                                                                                            |
+| `status`         | `pass`, `fail`, or `not-run`                                                                                                                                                                 |
+| `reason`         | Necessary for `not-run`                                                                                                                                                                      |
+| `trace`          | Necessary for `fail`: the counterexample, or the log tail for tests                                                                                                                          |
+| `seconds`        | Wall clock                                                                                                                                                                                   |
+| `command`        | The argv that ran                                                                                                                                                                            |
+| `distinctStates` | `run-tlc.mjs` only. A `pass` needs at least 2                                                                                                                                                |
+| `spec`           | `run-tlc.mjs` only. The absolute path of the `.tla` file it checked                                                                                                                          |
+| `inputs`         | `run-tlc.mjs` only. `{ path, sha256 }` for every `.tla` and `.cfg` it copied, siblings included                                                                                              |
+| `tree`           | `run-bounded.mjs` only. One digest of HEAD, every ref, and the content of each tracked change                                                                                                |
+| `treeChange`     | `run-bounded.mjs` only, under every status. `head` is null or `{ before, after }`, `refs` is true when a ref changed, and `paths` lists each tracked path whose state differs, in byte order |
 
 ## Test request
 
 `run-bounded.mjs <request.json>` reads this shape and runs `argv` with no
 shell. A run that changes `tree` reads `fail`, with the change in `reason`.
+The change also lands in `treeChange`, under every status, so a timed-out
+run still records a moved HEAD.
 
 ```json
 {
@@ -105,14 +109,17 @@ shell. A run that changes `tree` reads `fail`, with the change in `reason`.
 - Every citation is `path:line`, split on its last colon, inside a
   `scope.paths` entry, and in range at `scope.commit`. A path under a
   `scope.dirty` entry skips the range test.
-- `report.lanes` names every registry lane and nothing else. Each lane lists
+- `scope.lanes` names the selected findings lanes: at least one, with no
+  repeat. Each entry is a registry lane whose `report` is `findings`, so a
+  report lane never joins this report.
+- `report.lanes` names exactly the `scope.lanes` entries. Each lane lists
   each group exactly once, under `ran` or `failed`. A lane with any `failed`
   group reads `partial`, else `complete`.
 - Each tracked file under `scope.paths` sits in exactly one group, or under a
   `gaps` path, which names a file or a directory.
 - `id` is `<lane>/<n>` with a positive integer `<n>`, unique in the report.
 - A finding has a `title`, at least one citation, and at least one evidence
-  item of each kind its lane declares.
+  item of each kind its lane declares. Its lane is in `scope.lanes`.
 - `outcome` is `applied`, `proposed`, `reported`, or `deferred`. Every
   outcome but `applied` needs a `reason`. Only a `makes: false` lane uses `reported`. `deferred` means the
   lane has a make step and it did not finish for this finding.

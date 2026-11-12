@@ -17,6 +17,7 @@ export const LANE_KEYS = Object.freeze([
   "lane",
   "summary",
   "makes",
+  "report",
   "evidence",
   "checks",
   "artifacts",
@@ -65,6 +66,17 @@ function readBrief(file, stem, text) {
   if (makes !== undefined && makes !== "true" && makes !== "false")
     errors.push(`${file}: makes must be true or false, not ${makes || "empty"}`);
   if (!heading(body, "Find")) errors.push(`${file}: missing ## Find`);
+  const report = fields.get("report");
+  if (report !== undefined && report !== "findings" && report !== "own")
+    errors.push(`${file}: report must be findings or own, not ${report || "empty"}`);
+  // A report lane writes its own report, so nothing it finds may feed the main one.
+  if (report === "own") {
+    if (makes === "true") errors.push(`${file}: report is own, so makes must be false`);
+    if (!heading(body, "Report"))
+      errors.push(`${file}: report is own, so it needs ## Report; missing ## Report`);
+    if ([...LIST_KEYS].some((key) => splitList(fields.get(key) ?? "").length > 0))
+      errors.push(`${file}: report is own, so evidence, checks, and artifacts stay empty`);
+  }
   if (makes === "true") {
     if (!heading(body, "Make"))
       errors.push(`${file}: makes is true, so it needs ## Make; missing ## Make`);
@@ -79,6 +91,7 @@ function readBrief(file, stem, text) {
       lane: stem,
       summary: value("summary"),
       makes: makes === "true",
+      report,
       evidence: value("evidence"),
       checks: value("checks"),
       artifacts: value("artifacts"),

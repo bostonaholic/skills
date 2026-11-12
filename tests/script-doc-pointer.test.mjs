@@ -370,7 +370,7 @@ const ROWS = [
     exit: 1,
     target: "skills/engineering/summarizing-friction-logs/SKILL.md",
   },
-  // modernizing-prs, redoing-implementations
+  // modernizing-prs, redesigning-code
   {
     label: "prepare-rebase.sh",
     script: "skills/engineering/modernizing-prs/scripts/prepare-rebase.sh",
@@ -389,11 +389,11 @@ const ROWS = [
   },
   {
     label: "save-and-reset-attempt.sh",
-    script: "skills/engineering/redoing-implementations/scripts/save-and-reset-attempt.sh",
+    script: "skills/engineering/redesigning-code/scripts/save-and-reset-attempt.sh",
     interpreter: "bash",
     args: none,
     exit: 3,
-    target: "skills/engineering/redoing-implementations/SKILL.md",
+    target: "skills/engineering/redesigning-code/SKILL.md",
   },
   // grooming-backlogs
   {
@@ -602,12 +602,12 @@ const ROWS = [
   },
   // code audits
   {
-    label: "inventory.mjs",
-    script: "skills/engineering/auditing-complexity/scripts/inventory.mjs",
+    label: "improving-codebases complexity-inventory.mjs",
+    script: "skills/engineering/improving-codebases/scripts/complexity-inventory.mjs",
     interpreter: "node",
     args: none,
     exit: 2,
-    target: "skills/engineering/auditing-complexity/SKILL.md",
+    target: "skills/engineering/improving-codebases/references/lanes/complexity.md",
   },
   {
     label: "root shared/scripts/contention.mjs",
@@ -626,23 +626,23 @@ const ROWS = [
     target: "skills/engineering/making-code-agent-friendly/shared/contention.md",
   },
   {
-    label: "auditing-complexity render-report.mjs",
-    script: "skills/engineering/auditing-complexity/scripts/render-report.mjs",
+    label: "improving-codebases complexity-report.mjs",
+    script: "skills/engineering/improving-codebases/scripts/complexity-report.mjs",
     interpreter: "node",
     args: (dir) => {
       write(dir, "audit/inventory.json", "{}\n");
       return [write(dir, "audit/report.json", "{}\n")];
     },
     exit: 1,
-    target: "skills/engineering/auditing-complexity/SKILL.md",
+    target: "skills/engineering/improving-codebases/references/lanes/complexity.md",
   },
   {
-    label: "auditing-tests render-report.mjs",
-    script: "skills/engineering/auditing-tests/scripts/render-report.mjs",
+    label: "improving-codebases test-audit-report.mjs",
+    script: "skills/engineering/improving-codebases/scripts/test-audit-report.mjs",
     interpreter: "node",
     args: (dir) => [write(dir, "audit/report.json", "{}\n")],
     exit: 1,
-    target: "skills/engineering/auditing-tests/SKILL.md",
+    target: "skills/engineering/improving-codebases/references/lanes/test-audit.md",
   },
   {
     label: "visualizing-codebases build-c4-site.mjs",

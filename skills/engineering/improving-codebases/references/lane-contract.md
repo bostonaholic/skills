@@ -13,6 +13,7 @@ In Inline mode, read both before you run the section a step names.
 - [Brief format](#brief-format)
 - [Status line](#status-line)
 - [Find return](#find-return)
+- [Report lanes](#report-lanes)
 - [Make return](#make-return)
 - [Review return](#review-return)
 
@@ -29,14 +30,15 @@ A brief is `references/lanes/<lane>.md`. Its frontmatter is the lane's whole
 contract with the scripts, and `scripts/list-lanes.mjs` rejects a brief that
 breaks it.
 
-| Key         | Value                  | Effect                                                                  |
-| ----------- | ---------------------- | ----------------------------------------------------------------------- |
-| `lane`      | the file stem          | Names the lane                                                          |
-| `summary`   | one line               | Shown in the reply and the report                                       |
-| `makes`     | `true` or `false`      | `true` needs `## Make` and `## Review` sections                         |
-| `evidence`  | comma list of kinds    | Every finding needs at least one evidence item of each kind             |
-| `checks`    | comma list of names    | Every `applied` or `proposed` finding carries a result for each name    |
-| `artifacts` | comma list of suffixes | Every `applied` or `proposed` finding names a file with a listed suffix |
+| Key         | Value                  | Effect                                                                                                                              |
+| ----------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `lane`      | the file stem          | Names the lane                                                                                                                      |
+| `summary`   | one line               | Shown in the reply and the report                                                                                                   |
+| `makes`     | `true` or `false`      | `true` needs `## Make` and `## Review` sections                                                                                     |
+| `report`    | `findings` or `own`    | `own` writes the lane's own report: it needs `makes: false`, a `## Report` section, and empty `evidence`, `checks`, and `artifacts` |
+| `evidence`  | comma list of kinds    | Every finding needs at least one evidence item of each kind                                                                         |
+| `checks`    | comma list of names    | Every `applied` or `proposed` finding carries a result for each name                                                                |
+| `artifacts` | comma list of suffixes | Every `applied` or `proposed` finding names a file with a listed suffix                                                             |
 
 `checks` and `artifacts` may be empty. Every brief has a `## Find` section,
 which says what a candidate's `subject` cites.
@@ -78,6 +80,16 @@ and cite each one inside the scope.
 `subject` is a merge key for the merge step only. It may sit outside the
 scope, and it never reaches `report.json`. Two returns that cite one
 `subject` describe one finding.
+
+## Report lanes
+
+A lane with `report: own` writes its own report under `<out>/<lane>/` and
+never joins the main `report.json`.
+
+- The main session runs its `## Report` section.
+- A find subagent returns the status line, then the JSON block that the
+  brief's `## Find` defines. That block replaces the candidates shape.
+- The data rule binds, as for every lane.
 
 ## Make return
 

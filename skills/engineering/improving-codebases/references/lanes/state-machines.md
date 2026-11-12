@@ -2,6 +2,7 @@
 lane: state-machines
 summary: Finds implicit state machines, specs each one in TLA+, and checks the spec with TLC
 makes: true
+report: findings
 evidence: state, transition, guard
 checks: model-check
 artifacts: .tla, .cfg

@@ -382,6 +382,7 @@ const WIDGETS_BRIEF = `---
 lane: widgets
 summary: Finds widgets
 makes: false
+report: findings
 evidence: state, transition
 checks:
 artifacts:
@@ -396,6 +397,7 @@ const GADGETS_BRIEF = `---
 lane: gadgets
 summary: Finds gadgets
 makes: false
+report: findings
 evidence: guard
 checks:
 artifacts:
@@ -404,6 +406,26 @@ artifacts:
 ## Find
 
 A candidate is a gadget.
+`;
+
+// A report lane: it writes its own report, so it declares no evidence, check, or artifact kind.
+const AUDITS_BRIEF = `---
+lane: audits
+summary: Audits widgets into its own report
+makes: false
+report: own
+evidence:
+checks:
+artifacts:
+---
+
+## Find
+
+A candidate is a widget to audit.
+
+## Report
+
+Write audits/report.json and audits/report.md.
 `;
 
 // A directory holding scripts/list-lanes.mjs beside references/lanes/ with `briefs` in it.
@@ -459,6 +481,7 @@ describe("slice 1: report implicit state machines", () => {
 lane: widgets
 summary: Finds widgets
 makes: false
+report: findings
 evidence: state, transition
 artifacts:
 ---
@@ -481,6 +504,7 @@ A candidate is a widget.
 lane: gizmos
 summary: Finds widgets
 makes: false
+report: findings
 evidence: state, transition
 checks:
 artifacts:
@@ -504,6 +528,7 @@ A candidate is a widget.
 lane: widgets
 summary: Finds widgets
 makes: yes
+report: findings
 evidence: state, transition
 checks:
 artifacts:
@@ -527,6 +552,7 @@ A candidate is a widget.
 lane: widgets
 summary: Finds widgets
 makes: false
+report: findings
 evidence: state, transition
 checks:
 artifacts:
@@ -550,6 +576,7 @@ A candidate is a widget.
 lane: widgets
 summary: Finds widgets
 makes: true
+report: findings
 evidence: state, transition
 checks: model-check
 artifacts: .tla, .cfg
@@ -577,6 +604,7 @@ Refute each claim.
 lane: widgets
 summary: Finds widgets
 makes: true
+report: findings
 evidence: state, transition
 checks: model-check
 artifacts: .tla, .cfg
@@ -598,6 +626,183 @@ Write a spec, then refactor.
       assert.match(run.stderr, /missing ## Review/);
     });
 
+    await t.test("a report that is neither findings nor own: exit 1", (st) => {
+      const dir = laneRegistry(st, {
+        "widgets.md": `---
+lane: widgets
+summary: Finds widgets
+makes: false
+report: maybe
+evidence: state, transition
+checks:
+artifacts:
+---
+
+## Find
+
+A candidate is a widget.
+`,
+      });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /report must be findings or own, not maybe/);
+    });
+
+    await t.test("a report: own brief with makes: true: exit 1", (st) => {
+      const dir = laneRegistry(st, {
+        "audits.md": `---
+lane: audits
+summary: Audits widgets into its own report
+makes: true
+report: own
+evidence:
+checks:
+artifacts:
+---
+
+## Find
+
+A candidate is a widget to audit.
+
+## Make
+
+Fix each widget.
+
+## Review
+
+Refute each fix.
+
+## Report
+
+Write audits/report.json and audits/report.md.
+`,
+      });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /report is own, so makes must be false/);
+    });
+
+    await t.test("a report: own brief with an evidence kind: exit 1", (st) => {
+      const dir = laneRegistry(st, {
+        "audits.md": `---
+lane: audits
+summary: Audits widgets into its own report
+makes: false
+report: own
+evidence: state
+checks:
+artifacts:
+---
+
+## Find
+
+A candidate is a widget to audit.
+
+## Report
+
+Write audits/report.json and audits/report.md.
+`,
+      });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /report is own, so evidence, checks, and artifacts stay empty/);
+    });
+
+    await t.test("a report: own brief with a check: exit 1", (st) => {
+      const dir = laneRegistry(st, {
+        "audits.md": `---
+lane: audits
+summary: Audits widgets into its own report
+makes: false
+report: own
+evidence:
+checks: model-check
+artifacts:
+---
+
+## Find
+
+A candidate is a widget to audit.
+
+## Report
+
+Write audits/report.json and audits/report.md.
+`,
+      });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /report is own, so evidence, checks, and artifacts stay empty/);
+    });
+
+    await t.test("a report: own brief with an artifact kind: exit 1", (st) => {
+      const dir = laneRegistry(st, {
+        "audits.md": `---
+lane: audits
+summary: Audits widgets into its own report
+makes: false
+report: own
+evidence:
+checks:
+artifacts: .tla
+---
+
+## Find
+
+A candidate is a widget to audit.
+
+## Report
+
+Write audits/report.json and audits/report.md.
+`,
+      });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /report is own, so evidence, checks, and artifacts stay empty/);
+    });
+
+    await t.test("a report: own brief with no ## Report: exit 1", (st) => {
+      const dir = laneRegistry(st, {
+        "audits.md": `---
+lane: audits
+summary: Audits widgets into its own report
+makes: false
+report: own
+evidence:
+checks:
+artifacts:
+---
+
+## Find
+
+A candidate is a widget to audit.
+`,
+      });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /report is own, so it needs ## Report; missing ## Report/);
+    });
+
+    await t.test("a valid report: own brief appears in the JSON with report own", (st) => {
+      const dir = laneRegistry(st, { "audits.md": AUDITS_BRIEF });
+
+      const run = listLanes(dir);
+
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(JSON.parse(run.stdout)[0].report, "own");
+    });
+
     await t.test("an empty references/lanes/: exit 1", (st) => {
       const dir = laneRegistry(st, {});
 
@@ -613,6 +818,116 @@ Write a spec, then refactor.
       const run = listLanes(dir, "stray");
 
       assert.equal(run.status, 2, run.stderr);
+    });
+  });
+
+  test("render-report.mjs checks report.lanes against scope.lanes", async (t) => {
+    // widgets and gadgets are findings lanes. audits writes its own report, so it never joins the
+    // main one. The report below selects widgets alone and is valid; each row changes it.
+    const skill = tempDir(t, "improving-codebases-skill-");
+    script("render-report.mjs");
+    cpSync(SCRIPTS, join(skill, "scripts"), { recursive: true });
+    write(skill, "references/lanes/widgets.md", WIDGETS_BRIEF);
+    write(skill, "references/lanes/gadgets.md", GADGETS_BRIEF);
+    write(skill, "references/lanes/audits.md", AUDITS_BRIEF);
+    const root = fixtureRepo(t, { "src/widget.js": 'let status = "idle";\n' });
+    const commit = git(root, "rev-parse", "HEAD");
+    const finding = (lane) => ({
+      id: `${lane}/1`,
+      lane,
+      title: "status moves from idle with no declared table",
+      citations: ["src/widget.js:1"],
+      evidence: [
+        { kind: "state", name: "idle", citation: "src/widget.js:1" },
+        { kind: "transition", name: "start", citation: "src/widget.js:1" },
+        { kind: "guard", name: 'status === "idle"', citation: "src/widget.js:1" },
+      ],
+      outcome: "reported",
+      reason: "the lane has no make step",
+    });
+    const report = ({
+      scopeLanes = ["widgets"],
+      reportLanes = ["widgets"],
+      findings = [finding("widgets")],
+    } = {}) => ({
+      version: 1,
+      skill: "improving-codebases",
+      scope: { root, commit, date: "2026-11-11", paths: ["."], dirty: [], lanes: scopeLanes },
+      groups: [{ id: "group-1", files: ["src/widget.js"] }],
+      lanes: reportLanes.map((lane) => ({ lane, ran: ["group-1"], failed: [] })),
+      gaps: [],
+      findings,
+    });
+    const render = (st, value) => {
+      const run = tempDir(st, "improving-codebases-run-");
+      return node(join(skill, "scripts", "render-report.mjs"), [
+        writeJson(join(run, "report.json"), value),
+        join(run, "out"),
+      ]);
+    };
+
+    await t.test("a report lane and an unselected findings lane in the registry: exit 0", (st) => {
+      const run = render(st, report());
+
+      assert.equal(run.status, 0, run.stderr);
+    });
+
+    await t.test("no scope.lanes: exit 1", (st) => {
+      const value = report({ reportLanes: [], findings: [] });
+      delete value.scope.lanes;
+
+      const run = render(st, value);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes/);
+    });
+
+    await t.test("an empty scope.lanes: exit 1", (st) => {
+      const run = render(st, report({ scopeLanes: [], reportLanes: [], findings: [] }));
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes/);
+    });
+
+    await t.test("a scope.lanes entry repeated: exit 1", (st) => {
+      const run = render(st, report({ scopeLanes: ["widgets", "widgets"] }));
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes/);
+    });
+
+    await t.test("a scope.lanes entry absent from the registry: exit 1", (st) => {
+      const run = render(
+        st,
+        report({ scopeLanes: ["widgets", "gizmos"], reportLanes: ["widgets", "gizmos"] }),
+      );
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes[^\n]*gizmos|gizmos[^\n]*scope\.lanes/);
+    });
+
+    await t.test("a report lane in scope.lanes: exit 1", (st) => {
+      const run = render(
+        st,
+        report({ scopeLanes: ["widgets", "audits"], reportLanes: ["widgets", "audits"] }),
+      );
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes[^\n]*audits|audits[^\n]*scope\.lanes/);
+    });
+
+    await t.test("report.lanes names a findings lane that scope.lanes omits: exit 1", (st) => {
+      const run = render(st, report({ reportLanes: ["widgets", "gadgets"] }));
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes[^\n]*gadgets|gadgets[^\n]*scope\.lanes/);
+    });
+
+    await t.test("a finding of a lane that scope.lanes omits: exit 1", (st) => {
+      const run = render(st, report({ findings: [finding("gadgets")] }));
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /scope\.lanes[^\n]*gadgets|gadgets[^\n]*scope\.lanes/);
     });
   });
 });
@@ -998,6 +1313,7 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.deepEqual(readJson(fx.result).command, argv);
       assert.equal(typeof readJson(fx.result).seconds, "number");
       assert.match(readJson(fx.result).tree, /\S/);
+      assert.deepEqual(readJson(fx.result).treeChange, { head: null, refs: false, paths: [] });
     });
 
     await t.test("a non-zero exit: fail, and trace holds the log tail", (st) => {
@@ -1048,6 +1364,40 @@ describe("slice 4: refactor each machine under a test gate", () => {
       },
     );
 
+    await t.test(
+      "a child that moves HEAD, then runs past the bound: not-run, and treeChange names the new HEAD",
+      (st) => {
+        const fx = commandFixture(st);
+        const tree = git(fx.root, "rev-parse", "HEAD^{tree}");
+        const second = git(fx.root, "commit-tree", tree, "-p", "HEAD", "-m", "second");
+        const argv = [
+          process.execPath,
+          "-e",
+          "require('fs').writeFileSync('.git/HEAD', process.argv[1] + '\\n'); setInterval(() => {}, 1000);",
+          second,
+        ];
+        const body = {
+          check: "tests",
+          argv,
+          cwd: fx.root,
+          env: [],
+          result: fx.result,
+          log: fx.log,
+        };
+
+        const run = callExport(
+          script("run-bounded.mjs"),
+          "runBounded",
+          [body, { wallClockMs: 2_000 }],
+          process.env,
+        );
+
+        assert.equal(run.status, 0, run.stderr);
+        assert.equal(readJson(fx.result).status, "not-run");
+        assert.equal(readJson(fx.result).treeChange?.head?.after, second);
+      },
+    );
+
     await t.test("a run that edits a tracked file: fail, and reason names the file", (st) => {
       const fx = commandFixture(st);
       const argv = [process.execPath, "-e", "require('fs').writeFileSync('src.txt', 'two\\n')"];
@@ -1057,10 +1407,16 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(fx.result).status, "fail");
       assert.match(readJson(fx.result).reason, /src\.txt/);
+      assert.deepEqual(readJson(fx.result).treeChange, {
+        head: null,
+        refs: false,
+        paths: ["src.txt"],
+      });
     });
 
     await t.test("a run that moves HEAD: fail, and reason names HEAD", (st) => {
       const fx = commandFixture(st);
+      const first = git(fx.root, "rev-parse", "HEAD");
       const tree = git(fx.root, "rev-parse", "HEAD^{tree}");
       const second = git(fx.root, "commit-tree", tree, "-p", "HEAD", "-m", "second");
       const argv = [
@@ -1075,6 +1431,8 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(fx.result).status, "fail");
       assert.match(readJson(fx.result).reason, /HEAD/);
+      assert.equal(readJson(fx.result).treeChange?.head?.before.startsWith(first), true);
+      assert.equal(readJson(fx.result).treeChange?.head?.after, second);
     });
 
     await t.test("a run that changes a ref: fail, and reason names refs", (st) => {
@@ -1092,6 +1450,8 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 0, run.stderr);
       assert.equal(readJson(fx.result).status, "fail");
       assert.match(readJson(fx.result).reason, /refs/);
+      assert.equal(readJson(fx.result).treeChange?.refs, true);
+      assert.equal(readJson(fx.result).treeChange?.head, null);
     });
 
     await t.test("a run that writes only an untracked file: pass", (st) => {
@@ -1174,6 +1534,17 @@ describe("slice 4: refactor each machine under a test gate", () => {
       assert.equal(run.status, 1, run.stderr);
     });
 
+    await t.test("a run that deletes the checked-out branch: exit 1, and no result", (st) => {
+      const fx = commandFixture(st);
+      const argv = ["git", "update-ref", "-d", "refs/heads/main"];
+
+      const run = node(script("run-bounded.mjs"), [request(fx, argv)]);
+
+      assert.equal(run.status, 1, run.stderr);
+      assert.match(run.stderr, /rev-parse/);
+      assert.equal(existsSync(fx.result), false);
+    });
+
     await t.test("no arguments: exit 2", () => {
       const run = node(script("run-bounded.mjs"), []);
 
@@ -1252,6 +1623,7 @@ NoSkip == ~(prev = "waiting" /\ s = "delivered")
 lane: machines
 summary: Finds implicit state machines
 makes: true
+report: findings
 evidence: state, transition, guard
 checks: model-check
 artifacts: .tla, .cfg
@@ -1315,7 +1687,7 @@ Refute each claim.
     const report = (findings) => ({
       version: 1,
       skill: "improving-codebases",
-      scope: { root, commit, date: "2026-11-06", paths: ["."], dirty: [] },
+      scope: { root, commit, date: "2026-11-06", paths: ["."], dirty: [], lanes: ["machines"] },
       groups: [{ id: "group-1", files: ["src/orders.js", "test/orders.test.mjs"] }],
       lanes: [{ lane: "machines", ran: ["group-1"], failed: [] }],
       gaps: [],
