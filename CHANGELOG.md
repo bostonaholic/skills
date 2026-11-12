@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `redesigning-code`, an explicit-invocation skill with Redo and Redesign modes: run `/redesigning-code redo` or `/redesigning-code redesign <requirement>`. [#192](https://github.com/bostonaholic/skills/pull/192)
+
+### Changed
+
+- Add complexity and test-audit lanes to `improving-codebases`, replacing `auditing-complexity` and `auditing-tests`: say "find complexity hotspots" or "audit the tests", or pass `--lane`. Reports now go to `docs/plans/<date>-improving-codebases/<lane>/`. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Add an Untangle mode to `improving-codebases`, replacing `untangling-codebases`: say "untangle this codebase" or start with `untangle`. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Run the test audit's baseline through the bounded runner of `improving-codebases`, with only an allowlisted environment plus the `--env` names you pass. A suite that moves HEAD or a ref, or a runner that ends with an error, now stops the run. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Resolve a relative `--out` for `improving-codebases` against the repository top level, as the complexity audit did. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Verify at most 30 consolidate or delete candidates per test audit, and keep the rest at retain. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Stop an `improving-codebases` run before any write when a selected complexity or test-audit directory under the output directory is a symlink or holds a report file without that lane's tag. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Rename the `lanes` key of the complexity and test-audit reports to `groups`. [#192](https://github.com/bostonaholic/skills/pull/192)
+
+### Fixed
+
+- Stop an `improving-codebases` run when its test baseline moves HEAD or a ref and then times out. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Stop an `improving-codebases` run when the bounded test runner ends with an error or writes no result, because the tree state after the tests is then unknown. [#192](https://github.com/bostonaholic/skills/pull/192)
+
+### Removed
+
+- Retire `auditing-complexity`, `auditing-tests`, and `untangling-codebases`: the lanes and Untangle mode of `improving-codebases` replace them, and a copy install such as Grok Bot keeps the old directories until you delete them. [#192](https://github.com/bostonaholic/skills/pull/192)
+- Retire `redoing-implementations` and `redesigning-from-first-principles`: the Redo and Redesign modes of `redesigning-code` replace them, and a copy install keeps the old directories until you delete them. [#192](https://github.com/bostonaholic/skills/pull/192)
+
 ## [0.92.0] - 2026-11-11
 
 ### Added
@@ -14,7 +38,6 @@
 
 - `reviewing-code` and `reviewing-security` now size each change first and set a `Light`, `Standard`, or `Deep` review depth from its size, scope, blast radius, impact, and risk, stated on a `Depth:` line. Test lines do not count toward size. [#188](https://github.com/bostonaholic/skills/pull/188)
 - `reviewing-code` now caps the verdict at COMMENT when a part of the change is not judged, posts and prints each `Not judged:` line, carries those lines into later review rounds, and recommends a split for a very large change. [#188](https://github.com/bostonaholic/skills/pull/188)
-
 ## [0.90.0] - 2026-11-11
 
 ### Changed
