@@ -156,6 +156,9 @@ test("categorized inputs retain names, source paths, calls, and invocation label
     assert.ok(html.includes(`https://github.com/bostonaholic/skills/tree/main/skills/${dir}`));
   }
   assert.ok(html.includes("Explicit invocation only."));
+  assert.ok(html.includes("<p>Usage: <code>/alpha</code></p>"), html);
+  assert.ok(html.includes("<p>Usage: <code>/beta</code>, or say &quot;run beta&quot;</p>"), html);
+  assert.ok(html.includes("<p>Usage: say &quot;run zeta&quot;</p>"), html);
   assert.ok(html.includes("--skill beta"));
 });
 
