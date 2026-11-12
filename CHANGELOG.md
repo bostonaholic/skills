@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `grooming-backlogs`, `composing-agent-prompts`, `defining-problems`, `hillclimbing`, and `proving-claims` now call `writing-acceptance-criteria` where they write or sharpen criteria. [#193](https://github.com/bostonaholic/skills/pull/193)
+
 ## [0.92.0] - 2026-11-11
 
 ### Added

@@ -80,5 +80,10 @@ Default layout; adapt headings to the problem, but keep every section.
 ## Candidate solutions (not yet evaluated)
 ```
 
-After the user confirms, stop. What comes next, a design, a spike, or
+After the user confirms, offer in one line to turn **Success looks like**
+into acceptance criteria, then stop. What comes next, a design, a spike, or
 dropping the work, is the user's call.
+
+If they accept, call the Skill tool with `writing-acceptance-criteria` on that
+section, per the [skill call rules](shared/skill-calls.md); if it is not
+installed, say so.
