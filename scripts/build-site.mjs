@@ -71,7 +71,13 @@ function installHtml() {
 
 function sectionHtml(skill) {
   const id = escapeHtml(skill.name);
-  const usage = [`/${skill.name}`, skill.argumentHint].filter(Boolean).join(" ");
+  const command = [`/${skill.name}`, skill.argumentHint].filter(Boolean).join(" ");
+  const usage = [
+    !skill.modelOnly && `<code>${escapeHtml(command)}</code>`,
+    !skill.userInvoked && `say ${escapeHtml(`"${skill.say}"`)}`,
+  ]
+    .filter(Boolean)
+    .join(", or ");
   const calls = skill.calls.map(
     (name) => `<a href="#${escapeHtml(name)}"><code>${escapeHtml(name)}</code></a>`,
   );
@@ -80,7 +86,7 @@ function sectionHtml(skill) {
     `  <h4><a href="#${id}">${escapeHtml(skill.displayName)}</a> <code>${id}</code></h4>`,
     `  <p>${escapeHtml(skill.summary)}.</p>`,
     `  <p class="muted">${escapeHtml(skill.description)}</p>`,
-    `  <p>Usage: <code>${escapeHtml(usage)}</code></p>`,
+    `  <p>Usage: ${usage}</p>`,
     ...(skill.userInvoked ? ["  <p>Explicit invocation only.</p>"] : []),
     ...(calls.length ? [`  <p>Calls: ${calls.join(", ")}.</p>`] : []),
     `  <pre><code>${escapeHtml(NPX_ADD_SKILL.replace("<name>", skill.name))}</code></pre>`,
