@@ -78,6 +78,13 @@ Smaller verified scope beats bigger promised impact.
   acceptance criteria, a **Decisions** section settling every open design
   question (picked by the [decision rules](shared/decisions.md)), and numbered
   **Verification Steps** an implementer can run.
+- Write the acceptance criteria by calling the Skill tool with
+  `writing-acceptance-criteria`, per the [skill call rules](shared/skill-calls.md);
+  if it is not installed, give each criterion one observable outcome and the
+  result that would make it false.
+- Each criterion's check joins the Verification Steps, so the criteria stay
+  readable for the tracker's audience. Its assumptions and open questions
+  become questions in `plan.md`.
 - An item with an open blocker or an unsettled design question is never moved
   to Ready.
 

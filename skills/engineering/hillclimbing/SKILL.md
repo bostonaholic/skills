@@ -16,6 +16,11 @@ description: Iterates toward a goal one measured change at a time, keeping what 
 If a criterion cannot be made checkable, ask once, now, and propose a check.
 This is the only planned question.
 
+Draft that check by calling the Skill tool with `writing-acceptance-criteria`
+on the criterion, per the [skill call rules](shared/skill-calls.md), and fold
+its assumptions and open questions into the one question. If it is not
+installed, propose the check yourself.
+
 Run the check and guardrails for a baseline. If the check already passes,
 report that and stop. Keep the record and iteration log in a progress file
 outside the working tree, and reread it after a context reset.

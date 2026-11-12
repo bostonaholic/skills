@@ -36,6 +36,10 @@ description; if that is ambiguous, ask one question before emitting.
   work it must not absorb.
 - **The template.** Use [the prompt template](references/prompt-template.md),
   with its section headings verbatim.
+- **Provable acceptance criteria.** Write the template's Acceptance criteria
+  section by calling the Skill tool with `writing-acceptance-criteria`; if that
+  skill is not installed, phrase each criterion as a check that passes or
+  fails. Its assumptions and open questions join this prompt's open questions.
 
 Before emitting, compress the draft: call the Skill tool with
 `improving-prompts` on it. If that skill is not installed, merge each group of
