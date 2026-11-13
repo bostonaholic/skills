@@ -14,6 +14,11 @@
 
 - Keep each watch cycle's sleep under Claude Code's default background limit, so the watch skills poll every cycle instead of being killed first. [#196](https://github.com/bostonaholic/skills/pull/196)
 
+### Fixed
+
+- `landing-prs` queues a green PR that is behind a base with a merge queue instead of rebasing it again. [#197](https://github.com/bostonaholic/skills/pull/197)
+- `landing-prs` waits for checks to attach to a head pushed moments before the CI gate instead of failing with no checks reported. [#197](https://github.com/bostonaholic/skills/pull/197)
+
 ## [0.94.0] - 2026-11-13
 
 ### Changed
