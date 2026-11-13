@@ -17,12 +17,15 @@
 #   owner, repo   its owner and repository segments
 #   number        its PR number
 #   repo-spec     gh's own [HOST/]OWNER/REPO form, for every later --repo
-#   entries-file  the --entries path, or empty when none was given
+#   entries-file  the --entries path, else the path an entries-file already
+#                 in <run-dir> names, else empty. An existing one is kept, so
+#                 the caller may write it before or after this runs
 #
 # Exit codes:
 #
 #   0  resolved
-#   1  refused — a malformed, repeated, or unresolvable argument, or no PR for
+#   1  refused — a malformed, repeated, or unresolvable argument, an --entries
+#      path other than the one an existing entries-file names, or no PR for
 #      the current branch. Nothing ran against the network that could change
 #      anything, and nothing is written
 #   2  fault — wrong argument count, a run directory that is not one, or `gh`
@@ -113,6 +116,17 @@ done
 
 if [ -n "$PENDING" ]; then
   die 1 "--entries needs a path"
+fi
+
+EXISTING_ENTRIES=''
+if [ -f "$RUN_DIR/entries-file" ]; then
+  EXISTING_ENTRIES="$(<"$RUN_DIR/entries-file")"
+fi
+if [ -n "$EXISTING_ENTRIES" ]; then
+  if [ -n "$ENTRIES_FILE" ] && [ "$ENTRIES_FILE" != "$EXISTING_ENTRIES" ]; then
+    die 1 "--entries names $ENTRIES_FILE but the run's entries-file already names $EXISTING_ENTRIES"
+  fi
+  ENTRIES_FILE="$EXISTING_ENTRIES"
 fi
 
 # --- Validate the PR token alone --------------------------------------------

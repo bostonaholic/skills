@@ -1,7 +1,9 @@
 // Fails when the attaching-pr-screenshots scripts stop resolving the current
 // branch's PR with no PR token, stop refusing a bad entries file before any `gh`
 // call, stop treating a missing tool as a fault, stop exiting 3 when `gh pr edit`
-// cannot attach, or print a refusal prefix other than `refused:`.
+// cannot attach, print a refusal prefix other than `refused:`, refuse or
+// delete a footer paragraph or a trailing link reference definition, or drop
+// an entries-file written before resolve-pr.sh ran.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -807,4 +809,132 @@ test("upload.sh passes jq's and file's own error text through", async (t) => {
       );
     },
   );
+});
+
+const FOOTER = "_Opened by the release bot._";
+const LINK_DEFINITION = "[ABC-123]: https://tracker.example/browse/ABC-123";
+const NEW_SECTION = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n`;
+
+test("splice keeps any footer paragraph below a Screenshots section that ends the body", () => {
+  for (const footer of [
+    FOOTER,
+    "🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+  ]) {
+    const body = `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\n${footer}\n`;
+    assert.equal(spliceModule.bodyRefusal(body), "");
+    const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+    assert.equal(result.reason, "");
+    assert.equal(
+      result.body,
+      `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${footer}\n`,
+    );
+  }
+});
+
+test("splice inserts the Screenshots section above a footer set off by a thematic break", () => {
+  for (const rule of ["---", "***", "___", "- - -"]) {
+    const body = `## Summary\n\nBody.\n\n${rule}\n\n${FOOTER}\n`;
+    const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+    assert.equal(result.reason, "");
+    assert.equal(
+      result.body,
+      `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${rule}\n\n${FOOTER}\n`,
+    );
+    assert.equal(spliceModule.bodyRefusal(result.body), "");
+  }
+});
+
+test("splice reads a thematic break followed by a heading, or a setext underline, as no footer", () => {
+  const separator = `## Summary\n\nBody.\n\n---\n\n## Notes\n\nMore.\n`;
+  assert.equal(
+    spliceModule.splice(separator, NEW_SECTION, { landed: 1 }).body,
+    `${separator}\n${NEW_SECTION}`,
+  );
+  const setext = `## Summary\n\nBody.\n\nNotes\n---\n\nMore.\n`;
+  assert.equal(
+    spliceModule.splice(setext, NEW_SECTION, { landed: 1 }).body,
+    `${setext}\n${NEW_SECTION}`,
+  );
+});
+
+test("splice keeps every trailing paragraph it did not write, and a break-led footer, on a replace", () => {
+  const cases = [
+    [
+      `## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\n`,
+      `First note.\n\nSecond note.\n`,
+    ],
+    [`## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\n`, `---\n\n${FOOTER}\n`],
+    ["## Screenshots\n", "Reviewer: do not ship.\n"],
+  ];
+  for (const [section, kept] of cases) {
+    const body = `## Summary\n\nBody.\n\n${section}${kept}`;
+    assert.equal(spliceModule.bodyRefusal(body), "");
+    const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+    assert.equal(result.reason, "");
+    assert.equal(result.body, `## Summary\n\nBody.\n\n${NEW_SECTION}\n${kept}`);
+  }
+});
+
+test("splice reads a break as a footer only at column zero and with none of its own images below", () => {
+  const inside = `## Screenshots\n\n**a**\n![screenshot-01](${ASSET})\n\n---\n\n**b**\n![screenshot-02](${ASSET})\n`;
+  assert.match(spliceModule.bodyRefusal(inside), /line this skill did not write/);
+  const listed = "## Summary\n\n- item\n\n  ---\n\n  continued item text\n";
+  assert.equal(
+    spliceModule.splice(listed, NEW_SECTION, { landed: 1 }).body,
+    `${listed}\n${NEW_SECTION}`,
+  );
+  const underParagraph = `## Summary\n\nBody.\n***\n\n${FOOTER}\n`;
+  assert.equal(
+    spliceModule.splice(underParagraph, NEW_SECTION, { landed: 1 }).body,
+    `## Summary\n\nBody.\n\n${NEW_SECTION}\n***\n\n${FOOTER}\n`,
+  );
+});
+
+test("splice keeps a trailing link reference definition and the footer above it", () => {
+  const body = `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\n${FOOTER}\n\n${LINK_DEFINITION}\n`;
+  assert.equal(spliceModule.bodyRefusal(body), "");
+  const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+  assert.equal(result.reason, "");
+  assert.equal(
+    result.body,
+    `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${FOOTER}\n\n${LINK_DEFINITION}\n`,
+  );
+});
+
+test("splice still refuses text it would delete or that sits between its own lines", () => {
+  const joined = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n${LINK_DEFINITION}\n\n## Notes\n\nMore.\n`;
+  assert.match(spliceModule.bodyRefusal(joined), /line this skill did not write/);
+  const between = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\nReviewer: the next shot is stale.\n\n**home**\n![screenshot-02](${ASSET_2})\n`;
+  assert.match(spliceModule.bodyRefusal(between), /line this skill did not write/);
+  const foreignImage = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\nOld shot:\n\n![before](${ASSET_2})\n\n${FOOTER}\n`;
+  assert.match(spliceModule.bodyRefusal(foreignImage), /image this skill did not write/);
+  const referenceImage = `## Summary\n\n![shot][ABC-123]\n\n${LINK_DEFINITION}\n`;
+  assert.match(spliceModule.bodyRefusal(referenceImage), /reference-style image/);
+  const section = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${LINK_DEFINITION}\n`;
+  assert.match(
+    spliceModule.splice("Body.\n", section, { landed: 1 }).reason,
+    /the section carries a link reference definition/,
+  );
+});
+
+test("resolve-pr.sh keeps an entries-file written before it ran, and refuses a conflicting --entries", (t) => {
+  const dir = scratch(t);
+  const { bin } = fakeBin(dir, {
+    cases: `  "pr view 42 --json url --jq .url") echo https://github.com/org/repo/pull/42 ;;`,
+  });
+  const runDir = join(dir, "run");
+  mkdirSync(runDir);
+  writeFileSync(join(runDir, "entries-file"), "/tmp/written-first.json\n");
+
+  const kept = run("resolve-pr.sh", ["42", runDir], bin);
+  assert.equal(kept.status, 0, kept.stderr);
+  assert.equal(readFileSync(join(runDir, "entries-file"), "utf8"), "/tmp/written-first.json\n");
+
+  const same = run("resolve-pr.sh", ["42 --entries /tmp/written-first.json", runDir], bin);
+  assert.equal(same.status, 0, same.stderr);
+
+  const conflicting = run("resolve-pr.sh", ["42 --entries /tmp/other.json", runDir], bin);
+  assert.equal(conflicting.status, 1);
+  assert.match(conflicting.stderr, /entries-file already names \/tmp\/written-first\.json/);
+  assert.equal(readFileSync(join(runDir, "entries-file"), "utf8"), "/tmp/written-first.json\n");
 });

@@ -30,11 +30,11 @@
  * wrong transform deletes text nobody can recover. So the scan below models a
  * closed set of markdown constructs — fenced blocks, block-level HTML
  * comments, ATX headings indented up to three spaces, setext headings, ticket
- * references, and standalone INLINE image lines — and **refuses any body
- * carrying a construct outside that set** rather than guessing at its
- * boundaries. A raw HTML tag in ANY position — line
+ * references, link reference definitions, thematic breaks, and standalone
+ * INLINE image lines — and **refuses any body carrying a construct outside that set**
+ * rather than guessing at its boundaries. A raw HTML tag in ANY position — line
  * start, list item, or mid-sentence — and every non-inline image form —
- * `<img>`, `<picture>`, `![alt][ref]`, `[ref]: <url>`, a bare auto-embedded
+ * `<img>`, `<picture>`, `![alt][ref]`, a bare auto-embedded
  * URL — are outside the set and fault, because the scan can neither find their
  * boundaries nor count them as images it would delete. The scan covers the
  * WHOLE body, not only the Screenshots section. Widening the set is a code
@@ -43,8 +43,10 @@
  *
  * The same default governs the section a replace would delete: its only
  * permitted contents are the shapes this skill's own renderer emits, so a
- * sentence somebody else typed under the heading is a refusal rather than a
- * silent deletion.
+ * sentence somebody else typed among them is a refusal rather than a silent
+ * deletion. Text that starts its own paragraph after the last emitted line,
+ * such as a footer whatever tool appended it, ends the replace instead and is
+ * kept byte-identical below the new section.
  *
  * The CLI guard at the bottom runs only on direct execution, so a test import
  * has no side effects. Exit 0 writes the body on stdout (`--check` writes
@@ -90,6 +92,17 @@ const ANCHORS = ["## How to Verify", "## Review notes", "## References"];
  * optional `:` covers the `Fixes: #123` form.
  */
 const TICKET_REFERENCE = /^(?:Close[sd]?|Fix(?:es|ed)?|Resolve[sd]?|Part of|Refs?):?\s+\S/i;
+
+/**
+ * A thematic break (CommonMark §4.1) at column zero. The last one with no
+ * section heading below it opens the body's footer, which trails with the
+ * closing lines, so an inserted section lands above it. A footer with no break
+ * above it reads as text in the last section; the replace bound keeps it all
+ * the same. Indentation is excluded because an indented break may sit inside
+ * a list item the flat scan cannot see, and inserting above it would split
+ * the item.
+ */
+const THEMATIC_BREAK = /^([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 
 /** The heading this skill owns, by title. */
 const SCREENSHOTS_TITLE = "Screenshots";
@@ -209,7 +222,16 @@ const HTML_IMAGE = new RegExp(
  */
 const REFERENCE_IMAGE = /!\[[^\]]*\](?!\()/;
 
-/** A link reference definition, the other half of a reference-style image. */
+/**
+ * A link reference definition, the other half of a reference-style image. The
+ * body may carry one, because `REFERENCE_IMAGE` refuses every image that could
+ * use it and a definition renders nothing itself: an issue-tracker integration
+ * can append `[ABC-123]: https://…` to every PR body it links and re-add it
+ * after each edit, so refusing it refuses those repositories outright. It
+ * trails with the closing lines, and anywhere a replace would delete it it is
+ * a line this skill did not write. The section refuses one, as the backstop
+ * for the `[` escape in `write-body.mjs`.
+ */
 const LINK_REFERENCE = /^ {0,3}\[[^\]]*\]:[ \t]*\S/;
 
 /**
@@ -434,10 +456,6 @@ function unmodeled(line) {
       "carries a reference-style image, whose target this transform cannot see",
     ) ??
     hit(
-      LINK_REFERENCE,
-      "carries a link reference definition, which this transform does not model",
-    ) ??
-    hit(
       BARE_IMAGE_URL,
       "carries a bare auto-embedded image URL, which this transform does not model",
     )
@@ -609,20 +627,25 @@ function standaloneRun(lines, doc, index) {
 
 /**
  * Rule 1. The index of the last line of `content`: everything below it is the
- * maximal trailing run of blank lines, footer sections, ticket-reference
- * lines, and standalone absolute-URL image runs, in any order. Returns -1 when
- * the whole body is that run.
+ * footer below the last thematic break that no section heading follows, then
+ * the maximal trailing run above it of blank lines, footer sections,
+ * ticket-reference lines, link reference definitions, and standalone
+ * absolute-URL image runs, in any order. Returns -1 when the whole body is
+ * that run.
  *
  * The image runs are in there so the crash tail survives the splice by
  * construction: it leaves `content` before rule 2 chooses what to replace, and
  * rule 3 re-emits it byte-identical below the new section.
  */
 function contentEnd(lines, doc) {
-  let index = lines.length - 1;
+  let index = footerBreak(lines, doc) - 1;
   for (;;) {
     while (index >= 0 && !doc.mask[index] && lines[index].trim() === "") index--;
     if (index < 0) return -1;
-    if (!doc.mask[index] && TICKET_REFERENCE.test(lines[index])) {
+    if (
+      !doc.mask[index] &&
+      (TICKET_REFERENCE.test(lines[index]) || LINK_REFERENCE.test(lines[index]))
+    ) {
       index--;
       continue;
     }
@@ -641,6 +664,29 @@ function contentEnd(lines, doc) {
 }
 
 /**
+ * The index of the thematic break that opens the body's footer, or
+ * `lines.length` when there is none. A break with a section heading below it
+ * separates sections rather than opening a footer, and one with this skill's
+ * own image or video below it sits inside its section, where lifting the rest
+ * out would leave an old screenshot no replace reaches. A dash line directly
+ * under a non-blank line may be a setext underline, so it is not a break here.
+ */
+function footerBreak(lines, doc) {
+  let ownBelow = false;
+  for (let index = lines.length - 1; index >= 0; index--) {
+    if (doc.boundary[index]) return lines.length;
+    if (doc.mask[index]) continue;
+    if (OWN_IMAGE.test(lines[index].trim()) || ownVideoLine(lines, index)) ownBelow = true;
+    const setext =
+      SETEXT_UNDERLINE.test(lines[index]) && index > 0 && lines[index - 1].trim() !== "";
+    if (THEMATIC_BREAK.test(lines[index]) && !setext) {
+      return ownBelow ? lines.length : index;
+    }
+  }
+  return lines.length;
+}
+
+/**
  * Rule 2's replace bound: the first line below `start` that is either the next
  * section boundary or a ticket-reference line, whichever comes first. The
  * second half is what keeps a closing line alive when a crash tail collapsed
@@ -652,6 +698,30 @@ function replaceEnd(lines, doc, start, limit) {
     if (doc.boundary[index] || TICKET_REFERENCE.test(lines[index])) return index;
   }
   return limit;
+}
+
+/**
+ * Where the replace of the section opening at `start` stops, inside `stop`
+ * from `replaceEnd`: at the first line this skill did not write when that line
+ * starts a paragraph and no line it did write follows before `stop`, else at
+ * `stop`. Returns `{ end }`, or `{ foreign }` with the index of a line the
+ * replace would have to delete. Everything from `end` on is kept, so a footer
+ * typed or appended below the section survives without this transform knowing
+ * its wording.
+ */
+function ownedEnd(lines, start, stop) {
+  const first = ATX_HEADING.test(lines[start]) ? start + 1 : start + 2; // setext takes two lines
+  let trailing = -1;
+  for (let index = first; index < stop; index++) {
+    if (ownSectionLine(lines, index)) {
+      if (trailing >= 0 && lines[index].trim() !== "") return { foreign: trailing };
+      continue;
+    }
+    if (trailing >= 0) continue;
+    if (index > first && lines[index - 1].trim() !== "") return { foreign: index };
+    trailing = index;
+  }
+  return { end: trailing >= 0 ? trailing : stop };
 }
 
 /** The index of the first anchor heading in `content`, or -1. */
@@ -764,19 +834,19 @@ export function bodyRefusal(body) {
 
   // Prose is the shape "never delete what you did not write" misses by
   // enumeration. Images, comments, HTML containers, and unmodeled shapes each
-  // have a rule above; a sentence a reviewer typed under the heading is in
-  // none of them, so without this loop `Reviewer note: the second shot is
-  // stale` is replaced away with exit 0.
+  // have a rule above; a sentence a reviewer typed between this skill's lines
+  // is in none of them, so without this check `Reviewer note: the second shot
+  // is stale` is replaced away with exit 0.
   // The whole vocabulary this skill emits is `ownSectionLine`, so anything else
   // in the range a replace deletes is somebody else's text — including a
   // blockquote or a bold line, which shape alone claims and provenance does
-  // not.
-  const first = ATX_HEADING.test(lines[start]) ? start + 1 : start + 2; // setext takes two lines
-  for (let index = first; index < stop; index++) {
-    if (ownSectionLine(lines, index)) continue;
+  // not. `ownedEnd` stops the range above such text when it trails as its own
+  // paragraphs, and names it when it cannot.
+  const owned = ownedEnd(lines, start, stop);
+  if (owned.foreign !== undefined) {
     return at(
-      index,
-      lines[index],
+      owned.foreign,
+      lines[owned.foreign],
       "the Screenshots section holds a line this skill did not write, so replacing it would delete it",
     );
   }
@@ -816,6 +886,11 @@ export function splice(body, section, options = {}) {
 
   const sectionScan = scan(sectionText.split("\n"));
   if (sectionScan.fault) return refuse(`the section ${sectionScan.fault}`);
+  if (sectionText.split("\n").some((line) => LINK_REFERENCE.test(line))) {
+    return refuse(
+      "the section carries a link reference definition, which must never reach a public body",
+    );
+  }
   if (SECTION_HTML.test(sectionText)) {
     return refuse("the section carries unescaped raw HTML, which must never reach a public body");
   }
@@ -862,7 +937,7 @@ export function splice(body, section, options = {}) {
 
   const start = found[0];
   if (start !== undefined) {
-    const stop = replaceEnd(lines, doc, start, contentCount);
+    const { end: stop } = ownedEnd(lines, start, replaceEnd(lines, doc, start, contentCount));
     existing = lines.slice(start, stop).join("\n");
     const tail = lines.slice(stop, contentCount);
     const head = lines.slice(0, start);
