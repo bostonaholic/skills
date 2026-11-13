@@ -57,7 +57,7 @@ Publish only when the request asks to open, push, or update PRs, or the reposito
 2. Run `compare <record>` right before the push. Exit 5 stops the run with nothing pushed.
 3. Run `GH_FORCE_TTY= GH_STACK_NO_ATOMIC= gh stack submit --auto --remote <remote> > <out-file>`. Add `--open` only when the user asks for ready PRs.
 4. Run `after-submit <record>`. Exit 6 or 9: recovery.
-5. Rewrite each new PR's title and body, which `--auto` fills from templates and commits. Write both with the file-writing tool, then run `gh pr edit <n> --repo <repo> --title "$(cat <title-file>)" --body-file <body-file>`.
+5. Rewrite each new PR's title and body, which `--auto` fills from templates and commits. Each body carries the stack table [commands](references/commands.md#pr-text) describes; rewrite that table in the stack's older open PRs too. Write both with the file-writing tool, then run `gh pr edit <n> --repo <repo> --title "$(cat <title-file>)" --body-file <body-file>`.
 6. Never `gh pr create` a layer, and never `gh pr edit --base` a stacked PR.
 
 ## Update a pushed stack

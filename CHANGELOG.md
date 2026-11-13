@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.95.0] - 2026-11-13
+
+### Changed
+
+- `stacking-prs` adds a `## Stack` table of every PR in the stack, in merge order, to each stacked PR body and rewrites it in every open PR when the stack changes. [#199](https://github.com/bostonaholic/skills/pull/199)
+
 ## [0.94.1] - 2026-11-13
 
 ### Fixed
@@ -1169,5 +1175,7 @@
 
 [0.94.0]: https://github.com/bostonaholic/skills/compare/v0.93.0...v0.94.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.94.1...HEAD
 [0.94.1]: https://github.com/bostonaholic/skills/compare/v0.94.0...v0.94.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.95.0...HEAD
+[0.95.0]: https://github.com/bostonaholic/skills/compare/v0.94.1...v0.95.0
