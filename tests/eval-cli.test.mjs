@@ -19,7 +19,9 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import {
   badGraderRegexes,
+  baselinePath,
   discoverCases,
+  ownCases,
   parseArgs,
   planCommands,
   selectCases,
@@ -64,6 +66,7 @@ test("defaults to Sonnet, --runs 1, -j 4, a Haiku judge, both tags, and no publi
     scaffold: true,
     keepTemp: true,
     publish: false,
+    recordBaseline: false,
     check: false,
     dryRun: false,
     passthrough: [],
@@ -95,6 +98,29 @@ test("every default has a flag that overrides it", (t) => {
 
 test("defaults to --runs 3 when a target is named", () => {
   assert.equal(parseArgs(["alpha"]).runs, 3);
+});
+
+test("--record-baseline needs --runs 3 and names the per-model baseline file", () => {
+  assert.equal(parseArgs(["--record-baseline", "--runs", "3"]).recordBaseline, true);
+  assert.equal(parseArgs(["alpha", "--record-baseline"]).recordBaseline, true);
+  assert.throws(() => parseArgs(["--record-baseline"]), /--record-baseline needs --runs 3/);
+  assert.equal(baselinePath("opus"), join("evals", "baselines", "opus.json"));
+});
+
+test("a baseline comparison lists only the cases this run holds", () => {
+  assert.deepEqual(
+    ownCases([
+      "a control 3/3 $0.1000 treatment 2/3 $0.1200 cost +20% pass -33.3pts",
+      "b only in control",
+      "c only in treatment",
+      "total control 3/3 $0.1000 treatment 2/3 $0.1200 cost +20% pass -33.3pts",
+    ]),
+    [
+      "a control 3/3 $0.1000 treatment 2/3 $0.1200 cost +20% pass -33.3pts",
+      "c only in treatment",
+      "total control 3/3 $0.1000 treatment 2/3 $0.1200 cost +20% pass -33.3pts",
+    ],
+  );
 });
 
 test("passes arguments after -- through unchanged", () => {

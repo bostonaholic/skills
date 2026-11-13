@@ -27,6 +27,7 @@ test in `npm test`. The rest are review criteria.
     - Verdicts
     - Cost and pass rate
     - Comparing two variants
+    - Baselines
     - Before and after a skill edit
     - Traces and the G3 review
     - Handoff eval
@@ -153,7 +154,9 @@ difference between them.
 `npm run eval` wraps the commands on this page with their required flags.
 It runs the `readonly` and `bash` tags as separate commands, writes each
 to `evals/results/<timestamp>-<model>-<tag>/`, and runs the verdict script
-and the [cost comparison](#cost-and-pass-rate) on each result. It exits 1 if any case fails or is incomplete. A live run
+and the [cost comparison](#cost-and-pass-rate) on each result. When the
+model has a [baseline](#baselines), it also compares the baseline with the
+result. It exits 1 if any case fails or is incomplete. A live run
 or `--check` starts only through `npm run eval`. Started from
 `node scripts/eval.mjs`, `npm test`, or CI, it exits 2 before `claude`
 starts. `--dry-run` and `--help` run anywhere.
@@ -164,13 +167,15 @@ npm run eval                              # whole suite, Sonnet, --runs 1, recor
 npm run eval -- reviewing-code            # one skill's cases, --runs 3, before-and-after cap
 npm run eval -- reviewing-code-core --model opus
 npm run eval -- reviewing-code --dry-run  # print the claude commands only
+npm run eval -- reviewing-code --record-baseline  # also record evals/baselines/sonnet.json
 npm run eval:handoff                      # handoff eval for making-code-agent-friendly
 ```
 
 Every default has a flag that overrides it: `--runs 1|3`, `--max-cost-usd
 <usd>` (per command), `-j <n>`, `--judge-model <model>`, `--tag
 readonly|bash`, `--threshold <0..1>`, `--no-scaffold`, `--no-keep-temp`, and
-`--publish`. `npm run eval -- --help` lists them with their defaults.
+`--publish`. `--record-baseline` has no default to override and needs
+`--runs 3`. `npm run eval -- --help` lists them with their defaults.
 Arguments after a second `--` go to every `claude` command, so an agent
 session passes `npm run eval -- <target> -- --trust-plugin`. The sections
 below explain each default and the triage the wrapper does not do.
@@ -440,6 +445,45 @@ its cost, such as a fresh-context reviewer against same-session self-review:
    `--runs 3`, one run moves a case's pass rate by 33 points, so read the
    total line, and rerun before deciding on a small difference.
 
+#### Baselines
+
+`evals/baselines/<model>.json` holds the committed scores for Haiku, Sonnet,
+and Opus. Each file is a trimmed `aggregate-result.json`: per case, the
+`recordedAt` time, Claude Code version, judge model, and the runs of both
+arms with only the fields the verdict and compare scripts read. Together with
+a new run it gives three scores per case:
+
+- No skill: the baseline's without-arm.
+  `node scripts/eval-compare.mjs evals/baselines/<model>.json` prints it
+  beside the with-arm.
+- Before: the baseline's with-arm.
+- After: the new run's with-arm. When the model has a baseline, `npm run eval`
+  prints `eval-compare.mjs <baseline> <result>` for the cases the run holds,
+  baseline as control.
+
+Record with `npm run eval -- <skill> --record-baseline` once an edit is
+final, or with
+`node scripts/eval-baseline.mjs evals/baselines/<model>.json <aggregate-result.json>...`.
+Recording needs `--runs 3` results with the without-arm, which the CLI runs by
+default. It replaces the entry of each complete case and keeps every other
+entry. An incomplete case keeps its old entry. The file's git history holds
+the earlier scores.
+
+A PR that changes a skill's runtime files, its `SKILL.md`, `references/`,
+`scripts/`, or `shared/` copies, includes its new scores:
+
+1. Record the after results on Haiku, Sonnet, and Opus for the edited skill,
+   its callers, and its siblings.
+2. Commit the changed `evals/baselines/<model>.json` files in the PR.
+3. Add an `## Eval scores` section to the PR body with one fenced block per
+   model, holding the baseline comparison lines that model's run printed.
+
+CI runs `node scripts/check-eval-baselines.mjs <base>` on every PR. For each
+skill with a changed runtime file, it checks that every case of that skill
+has a newly recorded entry in all three baseline files. A missing score is a
+warning on the PR, so it never blocks the merge. It does not check callers,
+siblings, or the PR body.
+
 #### Before and after a skill edit
 
 Run these steps on each model. Caps per command are Haiku $5, Sonnet $10, and
@@ -457,8 +501,10 @@ Opus $30.
      Read the edited skill's `description:` for the second kind. A widened
      description can take a sibling's requests, and the sibling's `trigger`
      case then fails.
-2. Before the edit, run both commands for the edited skill and for each
-   caller, with `--case '<skill>-*'`. Add `--keep-temp` for a caller. For a
+2. The committed [baseline](#baselines) is the before run for each case it
+   holds on that model. Run the commands below before the edit only for a
+   skill with a case the baseline lacks. Run both commands for the edited
+   skill and for each caller, with `--case '<skill>-*'`. Add `--keep-temp` for a caller. For a
    sibling, run only the `readonly` command.
 
    ```sh
@@ -478,7 +524,8 @@ Opus $30.
 4. Make the edit, then run the same commands and the verdict script again.
 5. Compare the per-case verdicts of every case, caller and sibling cases
    included. A case that passed before and fails after blocks the edit. A
-   case still incomplete after its reruns also blocks the edit.
+   case still incomplete after its reruns also blocks the edit. Once the edit
+   is final, record the after results with `--record-baseline`.
 6. Read the kept traces of each caller's cases. A caller case covers the
    edited skill only when its trace shows a `Skill` call to that skill. If no
    case of a caller shows that call, list "caller path not exercised" for that

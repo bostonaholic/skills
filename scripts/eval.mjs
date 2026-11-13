@@ -7,7 +7,9 @@
 // the Edit, git, and npm test grants. A tag with no selected case is skipped. Each command writes
 // to evals/results/<timestamp>-<model>-<tag>/, and scripts/eval-verdict.mjs then prints one line
 // per case; a selected case with no line prints as incomplete. scripts/eval-compare.mjs then prints
-// each case's pass rate and mean cost without and with the skills.
+// each case's pass rate and mean cost without and with the skills. When evals/baselines/<model>.json
+// exists, it prints them again from that baseline's with-arm to this run's, for the cases this run
+// holds. --record-baseline (needs --runs 3) then records the results with scripts/eval-baseline.mjs.
 // --check runs the free load check ($0 cap) and compiles every grader regex. It starts no run.
 // --dry-run prints the commands and runs nothing. Arguments after -- go to every claude command.
 // A run or --check starts claude only under `npm run eval`; anywhere else it exits 2 first.
@@ -29,6 +31,7 @@ const USAGE = `usage: npm run eval -- [<skill>|<case>] [options] [-- <claude fla
   --no-scaffold        skip each case's scaffold.sh (default runs it)
   --no-keep-temp       delete run directories and traces (default keeps them)
   --publish            publish the HTML report to claude.ai (default local only)
+  --record-baseline    record results in evals/baselines/<model>.json (needs --runs 3)
   --check              free load check and grader regex compile; starts no run
   --dry-run            print the claude commands and run nothing`;
 const EVALS_DIR = "evals";
@@ -45,6 +48,7 @@ const DEFAULTS = {
   scaffold: true,
   keepTemp: true,
   publish: false,
+  recordBaseline: false,
   check: false,
   dryRun: false,
   passthrough: [],
@@ -86,6 +90,7 @@ export function parseArgs(args) {
     else if (arg === "--no-scaffold") options.scaffold = false;
     else if (arg === "--no-keep-temp") options.keepTemp = false;
     else if (arg === "--publish") options.publish = true;
+    else if (arg === "--record-baseline") options.recordBaseline = true;
     else if (arg === "--check") options.check = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "-h" || arg === "--help") return { help: true };
@@ -95,6 +100,8 @@ export function parseArgs(args) {
   }
   options.runs ??= options.target === undefined ? 1 : 3;
   if (![1, 3].includes(options.runs)) throw new UsageError("--runs must be 1 or 3");
+  if (options.recordBaseline && options.runs !== 3)
+    throw new UsageError("--record-baseline needs --runs 3");
   if (!Number.isInteger(options.jobs) || options.jobs < 1 || options.jobs > 8)
     throw new UsageError("-j must be an integer from 1 to 8");
   if (!options.tags.every((tag) => TAGS.includes(tag)))
@@ -228,7 +235,38 @@ function runCheck(commands, selected) {
   return ok && problems.length === 0;
 }
 
-function runEvals(commands, runs) {
+export function baselinePath(model) {
+  return join(EVALS_DIR, "baselines", `${model}.json`);
+}
+
+// Drops the baseline cases this run did not select, so a scoped run lists only its own cases.
+export function ownCases(compareLines) {
+  return compareLines.filter((line) => !line.endsWith(" only in control"));
+}
+
+// Prints the baseline -> this run comparison, then records the run when asked. False on an error.
+function runBaseline(tag, resultPath, { model, recordBaseline }) {
+  const path = baselinePath(model);
+  if (existsSync(path)) {
+    const compare = spawnSync(process.execPath, ["scripts/eval-compare.mjs", path, resultPath], {
+      encoding: "utf8",
+    });
+    if (compare.status !== 0) {
+      console.error(compare.stderr.trim());
+      return false;
+    }
+    console.log(`\n== ${tag} pass rate and mean cost, baseline -> this run (${path}):`);
+    for (const line of ownCases(compare.stdout.split("\n").filter(Boolean))) console.log(line);
+  } else console.log(`\n== no baseline at ${path}; --record-baseline records one`);
+  if (!recordBaseline) return true;
+  const record = spawnSync(process.execPath, ["scripts/eval-baseline.mjs", path, resultPath], {
+    stdio: "inherit",
+  });
+  return record.status === 0;
+}
+
+function runEvals(commands, options) {
+  const { runs } = options;
   let ok = true;
   for (const { tag, cases, outputDir, args } of commands) {
     console.log(`\n== ${tag}: ${cases.length} case(s) -> ${outputDir}`);
@@ -265,6 +303,7 @@ function runEvals(commands, runs) {
     }
     console.log(`\n== ${tag} pass rate and mean cost, without -> with the skills:`);
     process.stdout.write(cost.stdout);
+    if (!runBaseline(tag, resultPath, options)) ok = false;
   }
   return ok;
 }
@@ -287,7 +326,7 @@ function main(args) {
     throw new UsageError(
       `start claude only through npm run ${NPM_SCRIPT}, never from npm test or CI (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
     );
-  const ok = options.check ? runCheck(commands, selected) : runEvals(commands, options.runs);
+  const ok = options.check ? runCheck(commands, selected) : runEvals(commands, options);
   return ok ? 0 : 1;
 }
 
