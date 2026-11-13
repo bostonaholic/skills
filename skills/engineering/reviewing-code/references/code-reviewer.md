@@ -89,10 +89,6 @@ guessed range. Take done criteria from the plan file, issue references, or
 commit messages the branch carries; with none, review on correctness and
 quality.
 
-- **Never run the test suite.** The author runs the tests while building,
-  and CI reports failures. Read each changed test instead: one that asserts
-  the wrong behavior, or that cannot fail when the behavior breaks, is a
-  finding. This brief wins over any test run the testing rules describe.
 - **Every rule reaches every surface.** When the changed code or prose has
   more than one way in (two entry modes, a path documented as usable alone,
   a split across turns or processes), check that each new rule holds on
