@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep each watch cycle's sleep under Claude Code's default background limit, so the watch skills poll every cycle instead of being killed first. [#196](https://github.com/bostonaholic/skills/pull/196)
+
 ## [0.94.0] - 2026-11-13
 
 ### Changed
