@@ -39,8 +39,8 @@ Drop the depth token before reading the subject.
 - Lead with a one-sentence summary that a developer with no context on this area understands.
 - Use concrete nouns ("the order history page", "the login screen"), not abstract ones ("the component", "the module").
 - Use an everyday analogy only when one fits naturally.
-- Follow with 3 to 6 sentences that answer the implicit follow-ups: what the situation was before, what changed, and why.
-- The whole Brief reply is the lead plus those sentences, at most seven sentences in one or two paragraphs, with no headings, bold labels, or bullet lists. Count the sentences before replying.
+- Follow with a short paragraph or two that answers the implicit follow-ups: what the situation was before, what changed, and why.
+- The whole Brief reply is the lead plus that paragraph or two, with no headings, bold labels, or bullet lists.
 - Write more only on request.
 - Spell out and define an unavoidable term or acronym inline at its first use, as in "the SLA (service-level agreement) checker".
 - Cover what and why, not how.

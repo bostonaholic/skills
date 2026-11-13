@@ -50,8 +50,8 @@ genuinely blocked; otherwise state assumptions and proceed.
 
 ## 3. Communication style
 
-- Cap length with a number ("fewer than 4 lines"), not an adjective ("be
-  concise").
+- State length as the audience's need ("replies answer only what was
+  asked"); use a number only where a downstream system enforces a limit.
 - Ban the specific filler the product must avoid: preamble, recap, emojis.
 - Keep code readable even when prose is terse.
 - Omit "be helpful and friendly" and generic formatting rules; include only

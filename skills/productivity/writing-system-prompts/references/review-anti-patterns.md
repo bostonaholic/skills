@@ -9,7 +9,7 @@ Flag each of these present in a prompt under review:
 | Marketing language                 | Changes no behavior                           | Cut                                 |
 | Defensive disclaimers              | Undermine confidence                          | Cut                                 |
 | Rules about default behavior       | Reinforce what is already true                | Cut                                 |
-| Vague personality directives       | Not testable                                  | Concrete caps and rules             |
+| Vague personality directives       | Not testable                                  | Audience and outcome framing        |
 | Nested conditionals for rare cases | Hard to follow                                | Examples instead                    |
 | No examples                        | Leaves length, tone, and tool use to chance   | Add 3-10 examples                   |
 | Emphatic keywords on many rules    | Over-applied rules; real priorities blur      | Plain imperatives with reasons      |

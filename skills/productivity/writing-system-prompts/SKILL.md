@@ -34,8 +34,8 @@ and good and bad examples.
 
 - A specific role, not "AI assistant".
 - Explicit completion criteria: when to stop, and when to ask instead.
-- Response length capped with a number ("fewer than 4 lines"), never an
-  adjective ("be concise").
+- Response length stated as audience and outcome ("answers only what was
+  asked, scannable"); a number only for a hard downstream limit.
 - A retry limit with an escalation path for agents.
 - Constraints on security-critical and destructive actions, each with its
   reason, stated once.

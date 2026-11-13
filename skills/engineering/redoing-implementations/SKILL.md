@@ -13,14 +13,14 @@ reimplement it from scratch with the simplest design that meets them.
    complexity (the constraints and edge cases discovered) from the
    accidental. If the current implementation is already the minimum design
    a senior engineer with full context would accept, say so and stop; never
-   rewrite for its own sake. Otherwise describe the new approach in 3 to 5
-   sentences: fewer moving parts, less indirection.
+   rewrite for its own sake. Otherwise describe the new approach briefly:
+   fewer moving parts, less indirection.
 2. **Get approval.** Open the reply with the step 1 design as one
-   paragraph of 3 to 5 sentences that holds only the design; count them
-   before replying. After the paragraph, a list or code sketch gives what
-   changes, why it is better, and every further detail (edge cases, line
-   numbers, ordering). List the files the attempt touched in two groups:
-   tracked files it changed or committed, and untracked files it created.
+   short paragraph that holds only the design. After the paragraph, a
+   list or code sketch gives what changes, why it is better, and every
+   further detail (edge cases, line numbers, ordering). List the files the
+   attempt touched in two groups: tracked files it changed or committed,
+   and untracked files it created.
    Step 4 resets or deletes exactly these. Keep every touched file in one of
    the two groups; to propose keeping one out of the save and reset, ask
    after the lists. Wait for approval.

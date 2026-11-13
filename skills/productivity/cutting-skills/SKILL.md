@@ -48,14 +48,14 @@ agent-agnostic, and a short, checklist-shaped `SKILL.md` with detail in
   correct.
 - The richest cuts, in order: restatements of linked material; padded Markdown
   tables, which become lists with the same words; intros restating the
-  description; rationale behind rules; then generic engineering advice. Also
+  description; rationale a rule already implies; then generic engineering advice. Also
   delete procedure the model already follows, checklists and completion
   ceremony, subagent dispatch mechanics, repeated summaries, report templates
   no parser or user preference needs, and history that does not change
   execution.
 - Keep verbatim any exact format, value, or edge case the user cares about.
   A model drops a loose summary of one, so a paraphrase is a silent cut.
-- A typical skill bottoms out around 25-30% smaller. What remains is commands,
+- What remains is commands,
   guards, parsed templates, and graded behavior; never compress guards or
   instructions into dense slogans to hit a number. A target that needs cuts
   into Keep-class material is blocked, proven by that classification.
