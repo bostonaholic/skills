@@ -53,6 +53,8 @@ Run `node "<skill-dir>/scripts/ci-gate.mjs" <URL>` in the background and act on 
 exit code:
 
 - `0` (`merge`): go to Merge with its `HEAD`.
+- `12` (`enqueue`): the base's merge queue retests the PR against the latest
+  base, so go to Merge with its `HEAD` without rebasing; there `5` means queued.
 - `10` (`rebase`): re-run [Before pushing](#before-pushing), rebase, push,
   and re-run the gate. After three rebases in one run, stop: "base keeps
   moving".

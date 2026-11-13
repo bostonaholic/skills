@@ -18,11 +18,16 @@
  *      after that means no CI, and the watch is skipped.
  *   2. Watch: `gh pr checks --watch --fail-fast`, killed at the cap. Its
  *      exit 0 is not the verdict: it exits once nothing is pending right now,
- *      which can be before a gated job spawns.
+ *      which can be before a gated job spawns. When it fails while the head
+ *      has no checks, as a head pushed moments ago does, settle and watch
+ *      once more; still no checks is fail.
  *   3. Gate on `mergeStateStatus`:
  *      CLEAN, HAS_HOOKS  read the compare API's behind_by, since GitHub
  *                        reports BEHIND only when branch protection requires
- *                        an up-to-date branch. 0 is merge, above 0 rebase
+ *                        an up-to-date branch. 0 is merge. Above 0 is enqueue
+ *                        when GraphQL's PullRequest.isMergeQueueEnabled says
+ *                        the base has a merge queue, which tests the PR
+ *                        against the latest base itself; otherwise rebase
  *      BEHIND            rebase
  *      UNSTABLE          watch once more and re-read; a second UNSTABLE is
  *                        unstable
@@ -32,7 +37,7 @@
  * Stdout, one KEY=VALUE line each, in this order, each printed only when
  * known:
  *
- *   VERDICT=merge|rebase|unstable|fail|timeout|stop|error
+ *   VERDICT=merge|enqueue|rebase|unstable|fail|timeout|stop|error
  *   STATUS=<mergeStateStatus>
  *   HEAD=<headRefOid>          the oid to pass to merge.sh
  *   BEHIND_BY=<n>              from the compare API
@@ -41,13 +46,16 @@
  * Exit codes:
  *
  *   0    merge: the gate passed
- *   1    fail: a check failed (FAILED names it, or none when gh lists none)
+ *   1    fail: a check failed (FAILED names it, or none when gh lists none),
+ *        or no check attached to the head after the wait
  *   2    usage: wrong arguments or a malformed URL. Nothing ran
  *   3    stop: a merge state the gate does not merge on, such as BLOCKED,
  *        DIRTY, or DRAFT, or UNKNOWN twice
  *   4    error: a gh read failed or printed malformed JSON; stderr names it
  *   10   rebase: the base moved
  *   11   unstable: UNSTABLE twice
+ *   12   enqueue: the base moved, but its merge queue retests the PR against
+ *        it, so merge.sh can queue this head
  *   124  timeout: the cap passed before CI finished
  *   127  gh is missing
  */
@@ -79,6 +87,7 @@ const EXIT = {
   error: 4,
   rebase: 10,
   unstable: 11,
+  enqueue: 12,
   timeout: 124,
   missing: 127,
 };
@@ -149,10 +158,12 @@ function readPr(url, fields) {
   return ghJson(["pr", "view", url, "--json", fields]);
 }
 
+const SETTLE_FIELDS = "mergeStateStatus,statusCheckRollup";
+
 async function settle(url, pollSeconds) {
   let view;
   for (let poll = 1; poll <= SETTLE_POLLS; poll++) {
-    view = await readPr(url, "mergeStateStatus,statusCheckRollup");
+    view = await readPr(url, SETTLE_FIELDS);
     const checks = view.statusCheckRollup ?? [];
     if (view.mergeStateStatus !== "UNKNOWN" && checks.length > 0) return checks.length;
     if (poll < SETTLE_POLLS) await sleep(pollSeconds * 1000);
@@ -161,13 +172,22 @@ async function settle(url, pollSeconds) {
 }
 
 // Resolves when CI finished green; throws a GateError for a failure or the cap.
-async function watch(url, deadline) {
+async function watch(url, { deadline, pollSeconds }, { retryWithoutChecks = true } = {}) {
   const result = await runGh(
     ["pr", "checks", url, "--watch", "--fail-fast", "--interval", String(WATCH_INTERVAL_SECONDS)],
     { deadline, captureStdout: false },
   );
   if (result.timedOut) throw new GateError("timeout", "CI wait timed out");
   if (result.code === 0) return;
+  // A push between the settle and the watch leaves a new head that GitHub has not
+  // attached checks to yet, and gh pr checks fails on a head with none.
+  if (((await readPr(url, SETTLE_FIELDS)).statusCheckRollup ?? []).length === 0) {
+    if (retryWithoutChecks && (await settle(url, pollSeconds)) > 0) {
+      return watch(url, { deadline, pollSeconds }, { retryWithoutChecks: false });
+    }
+    writeToolError(result.stderr);
+    throw new GateError("fail", "no checks reported on the PR head after waiting for them");
+  }
   process.stderr.write(result.stderr);
   // `gh pr checks --json` exits nonzero while a check fails or is pending, so read
   // stdout whatever the exit code.
@@ -203,9 +223,35 @@ async function behindBy({ host, owner, repo }, base, head) {
   return Number(count);
 }
 
+async function mergeQueueEnabled({ host, owner, repo, number }) {
+  const result = await runGh([
+    "api",
+    "graphql",
+    "--hostname",
+    host,
+    "-f",
+    "query=query($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { isMergeQueueEnabled } } }",
+    "-f",
+    `owner=${owner}`,
+    "-f",
+    `name=${repo}`,
+    "-F",
+    `number=${number}`,
+    "--jq",
+    ".data.repository.pullRequest.isMergeQueueEnabled",
+  ]);
+  const enabled = result.stdout.trim();
+  if (result.code !== 0 || !["true", "false"].includes(enabled)) {
+    writeToolError(result.stderr);
+    throw new GateError("error", `could not read whether PR #${number}'s base has a merge queue`);
+  }
+  return enabled === "true";
+}
+
 async function gate(pullRequest, { deadline, pollSeconds }, report) {
+  const timing = { deadline, pollSeconds };
   const checks = await settle(pullRequest.url, pollSeconds);
-  if (checks > 0) await watch(pullRequest.url, deadline);
+  if (checks > 0) await watch(pullRequest.url, timing);
 
   let unknownSeen = false;
   let unstableSeen = false;
@@ -217,13 +263,14 @@ async function gate(pullRequest, { deadline, pollSeconds }, report) {
       case "CLEAN":
       case "HAS_HOOKS":
         report.BEHIND_BY = await behindBy(pullRequest, view.baseRefName, view.headRefOid);
-        return report.BEHIND_BY === 0 ? "merge" : "rebase";
+        if (report.BEHIND_BY === 0) return "merge";
+        return (await mergeQueueEnabled(pullRequest)) ? "enqueue" : "rebase";
       case "BEHIND":
         return "rebase";
       case "UNSTABLE":
         if (unstableSeen) return "unstable";
         unstableSeen = true;
-        await watch(pullRequest.url, deadline);
+        await watch(pullRequest.url, timing);
         break;
       case "UNKNOWN":
         if (unknownSeen) return "stop";
@@ -245,8 +292,8 @@ function parseArgs(argv) {
   } else if (rest.length !== 0) {
     return null;
   }
-  const [, host, owner, repo] = match;
-  return { pullRequest: { url, host, owner, repo }, capSeconds };
+  const [, host, owner, repo, number] = match;
+  return { pullRequest: { url, host, owner, repo, number }, capSeconds };
 }
 
 function sleep(ms) {
