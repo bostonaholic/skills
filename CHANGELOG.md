@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.97.0] - 2026-11-13
+
 ### Fixed
 
 - `attaching-pr-screenshots` keeps any footer paragraph below the Screenshots section instead of refusing to replace it. [#198](https://github.com/bostonaholic/skills/pull/198)
@@ -1193,5 +1195,7 @@
 
 [0.95.0]: https://github.com/bostonaholic/skills/compare/v0.94.1...v0.95.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.96.0...HEAD
 [0.96.0]: https://github.com/bostonaholic/skills/compare/v0.95.0...v0.96.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.97.0...HEAD
+[0.97.0]: https://github.com/bostonaholic/skills/compare/v0.96.0...v0.97.0
