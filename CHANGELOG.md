@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.96.0] - 2026-11-13
+
 ### Fixed
 
 - `landing-prs` queues a green PR that is behind a base with a merge queue instead of rebasing it again. [#197](https://github.com/bostonaholic/skills/pull/197)
@@ -1182,5 +1184,7 @@
 
 [0.94.1]: https://github.com/bostonaholic/skills/compare/v0.94.0...v0.94.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.95.0...HEAD
 [0.95.0]: https://github.com/bostonaholic/skills/compare/v0.94.1...v0.95.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.96.0...HEAD
+[0.96.0]: https://github.com/bostonaholic/skills/compare/v0.95.0...v0.96.0
