@@ -22,11 +22,13 @@ slots:
   interval and then runs the consumer's poll command:
 
   ```bash
-  sleep 1860; <the poll command>
+  sleep 1740; <the poll command>
   ```
 
   Run it with `run_in_background: true` and rely on the completion
-  notification.
+  notification. Keep the sleep under the harness's background-call limit:
+  Claude Code kills a background call at 1,800 seconds unless the call
+  sets a longer `timeout`, and a killed call never polls.
 
 - **Soft cap: 3 cycles** (~90 minutes). At cycle 3, if nothing has
   stopped the loop already, end the interactive session — do not sleep
@@ -34,7 +36,7 @@ slots:
   command that re-arms the watch on the same PR (the skill's own command
   with the PR number). Re-arming happens only on explicit user request;
   the loop does not re-arm itself.
-- The bound is the invariant, not the interval: 3 cycles at ~31 minutes.
+- The bound is the invariant, not the interval: 3 cycles at ~29 minutes.
   Where a harness offers no background execution, say so and chunk the
   wait into foreground sleeps sized under that harness's ceiling — the
   cycle count is what must hold.
