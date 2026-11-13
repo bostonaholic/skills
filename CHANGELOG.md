@@ -23,8 +23,9 @@
 
 ### Fixed
 
-- `attaching-pr-screenshots` keeps an agent's "Generated with" footer below the Screenshots section instead of refusing or inserting under it. [#198](https://github.com/bostonaholic/skills/pull/198)
-- `attaching-pr-screenshots` accepts PR bodies carrying a link reference definition, such as the Jira link the Atlassian GitHub app adds. [#198](https://github.com/bostonaholic/skills/pull/198)
+- `attaching-pr-screenshots` keeps any footer paragraph below the Screenshots section instead of refusing to replace it. [#198](https://github.com/bostonaholic/skills/pull/198)
+- `attaching-pr-screenshots` inserts the Screenshots section above a footer set off by a thematic break (`---`). [#198](https://github.com/bostonaholic/skills/pull/198)
+- `attaching-pr-screenshots` accepts PR bodies carrying a link reference definition, such as the issue link a tracker integration appends. [#198](https://github.com/bostonaholic/skills/pull/198)
 - `attaching-pr-screenshots` keeps an entries file written before the PR is resolved. [#198](https://github.com/bostonaholic/skills/pull/198)
 
 ## [0.94.0] - 2026-11-13
