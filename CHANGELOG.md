@@ -21,6 +21,12 @@
 
 - Keep each watch cycle's sleep under Claude Code's default background limit, so the watch skills poll every cycle instead of being killed first. [#196](https://github.com/bostonaholic/skills/pull/196)
 
+### Fixed
+
+- `attaching-pr-screenshots` keeps an agent's "Generated with" footer below the Screenshots section instead of refusing or inserting under it. [#198](https://github.com/bostonaholic/skills/pull/198)
+- `attaching-pr-screenshots` accepts PR bodies carrying a link reference definition, such as the Jira link the Atlassian GitHub app adds. [#198](https://github.com/bostonaholic/skills/pull/198)
+- `attaching-pr-screenshots` keeps an entries file written before the PR is resolved. [#198](https://github.com/bostonaholic/skills/pull/198)
+
 ## [0.94.0] - 2026-11-13
 
 ### Changed
