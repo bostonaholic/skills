@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `reviewing-code` no longer runs the test suite. It reads each changed test for the behavior it asserts and for whether it can fail, and APPROVE no longer needs a passing suite. [#194](https://github.com/bostonaholic/skills/pull/194)
+
 ## [0.93.0] - 2026-11-12
 
 ### Changed
