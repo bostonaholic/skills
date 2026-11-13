@@ -2,7 +2,8 @@
 // closed, fork, or wrong-branch PR, a push that misses the PR head, a remote head the branch
 // lacks, or a dirty tree it would rebase, or miscounting BEHIND or MERGES; ci-gate.mjs
 // returning merge before CI finishes, on a stale base, on a second UNSTABLE, or on an
-// unnamed state, or waiting past its cap; merge.sh merging without the head guard or the
+// unnamed state, or waiting past its cap, returning rebase for a PR a merge queue can take,
+// or failing a head pushed before its checks attach; merge.sh merging without the head guard or the
 // "(#n)" subject, or calling a queued PR merged.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -332,6 +333,7 @@ const SETTLE = "mergeStateStatus,statusCheckRollup";
 const GATE = "mergeStateStatus,headRefOid,baseRefName";
 const WATCH = "--watch";
 const COMPARE = "compare/";
+const QUEUE = "isMergeQueueEnabled";
 
 test("ci-gate.mjs exits 2 on a malformed URL or option before any gh call", (t) => {
   for (const args of [
@@ -412,9 +414,79 @@ test("ci-gate.mjs returns rebase on BEHIND, or on CLEAN with the base ahead", (t
     [WATCH, [{}]],
     [GATE, [view("CLEAN")]],
     [COMPARE, [{ out: "3\n" }]],
+    [QUEUE, [{ out: "false\n" }]],
   ]);
   assert.equal(stale.result.status, 10);
   assert.deepEqual(stale.out, { VERDICT: "rebase", STATUS: "CLEAN", HEAD: OID, BEHIND_BY: "3" });
+});
+
+test("ci-gate.mjs returns enqueue, not rebase, for a green PR behind a base with a merge queue", (t) => {
+  for (const status of ["CLEAN", "HAS_HOOKS"]) {
+    const { result, calls, out } = ciGate(t, [
+      [SETTLE, [settled(status)]],
+      [WATCH, [{}]],
+      [GATE, [view(status)]],
+      [COMPARE, [{ out: "3\n" }]],
+      [QUEUE, [{ out: "true\n" }]],
+    ]);
+    assert.equal(result.status, 12, result.stderr);
+    assert.deepEqual(out, { VERDICT: "enqueue", STATUS: status, HEAD: OID, BEHIND_BY: "3" });
+    const query = calls.find((call) => call.join(" ").includes(QUEUE));
+    assert.deepEqual(query.slice(0, 4), ["api", "graphql", "--hostname", "github.example"]);
+    for (const field of ["owner=acme", "name=api", "number=42"]) assert.ok(query.includes(field));
+  }
+});
+
+test("ci-gate.mjs never enqueues a conflicting or base-blocked PR on a merge-queue base", (t) => {
+  for (const status of ["DIRTY", "BEHIND"]) {
+    const { result, out, count } = ciGate(t, [
+      [SETTLE, [settled(status)]],
+      [WATCH, [{}]],
+      [GATE, [view(status)]],
+      [QUEUE, [{ out: "true\n" }]],
+    ]);
+    assert.notEqual(out.VERDICT, "enqueue", status);
+    assert.equal(count(QUEUE), 0, status);
+    assert.equal(result.status, status === "DIRTY" ? 3 : 10, status);
+  }
+});
+
+test("ci-gate.mjs exits 4 when the merge queue read fails", (t) => {
+  const { result, out } = ciGate(t, [
+    [SETTLE, [settled("CLEAN")]],
+    [WATCH, [{}]],
+    [GATE, [view("CLEAN")]],
+    [COMPARE, [{ out: "3\n" }]],
+    [QUEUE, [{ err: "HTTP 502\n", code: 1 }]],
+  ]);
+  assert.equal(result.status, 4);
+  assert.equal(out.VERDICT, "error");
+  assert.match(result.stderr, /merge queue/);
+});
+
+test("ci-gate.mjs waits for checks that vanish when a push lands mid-watch, then watches again", (t) => {
+  const noChecks = view("CLEAN", { statusCheckRollup: [] });
+  const { result, count } = ciGate(t, [
+    [SETTLE, [settled("CLEAN"), noChecks, noChecks, settled("CLEAN")]],
+    [WATCH, [{ code: 1, err: "no checks reported on the 'feature' branch\n" }, {}]],
+    [GATE, [view("CLEAN")]],
+    [COMPARE, [{ out: "0\n" }]],
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(count(WATCH), 2);
+  assert.equal(count(SETTLE), 4);
+});
+
+test("ci-gate.mjs fails naming no checks when none attach after the wait", (t) => {
+  const { result, count } = ciGate(t, [
+    [SETTLE, [settled("CLEAN"), view("CLEAN", { statusCheckRollup: [] })]],
+    [WATCH, [{ code: 1, err: "no checks reported on the 'feature' branch\n" }]],
+  ]);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, "VERDICT=fail\n");
+  assert.match(result.stderr, /no checks reported/);
+  assert.equal(count(WATCH), 1);
+  assert.equal(count(SETTLE), 1 + 1 + 12);
 });
 
 test("ci-gate.mjs exits 1 naming each failing check when the watch fails", (t) => {
