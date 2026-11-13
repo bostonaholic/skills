@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `stacking-prs` adds a `## Stack` table of every PR in the stack, in merge order, to each stacked PR body and rewrites it in every open PR when the stack changes. [#199](https://github.com/bostonaholic/skills/pull/199)
+
 ## [0.94.1] - 2026-11-13
 
 ### Fixed
