@@ -1,7 +1,9 @@
 // Fails when the attaching-pr-screenshots scripts stop resolving the current
 // branch's PR with no PR token, stop refusing a bad entries file before any `gh`
 // call, stop treating a missing tool as a fault, stop exiting 3 when `gh pr edit`
-// cannot attach, or print a refusal prefix other than `refused:`.
+// cannot attach, print a refusal prefix other than `refused:`, refuse a body
+// that ends with an agent footer or a Jira link reference definition, or drop
+// an entries-file written before resolve-pr.sh ran.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -807,4 +809,75 @@ test("upload.sh passes jq's and file's own error text through", async (t) => {
       );
     },
   );
+});
+
+const AGENT_FOOTER = "🤖 Generated with [Claude Code](https://claude.com/claude-code)";
+const JIRA_LINK = "[RELENG-1068]: https://block.atlassian.net/browse/RELENG-1068";
+const NEW_SECTION = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n`;
+
+test("splice keeps an agent footer below a Screenshots section that ends the body", () => {
+  const body = `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\n${AGENT_FOOTER}\n`;
+  assert.equal(spliceModule.bodyRefusal(body), "");
+  const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+  assert.equal(result.reason, "");
+  assert.equal(
+    result.body,
+    `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${AGENT_FOOTER}\n`,
+  );
+});
+
+test("splice inserts the Screenshots section above an agent footer", () => {
+  const body = `## Summary\n\nBody.\n\n${AGENT_FOOTER}\n`;
+  const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+  assert.equal(result.reason, "");
+  assert.equal(
+    result.body,
+    `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${AGENT_FOOTER}\n`,
+  );
+  assert.equal(spliceModule.bodyRefusal(result.body), "");
+});
+
+test("splice keeps a trailing Jira link reference definition and the footer above it", () => {
+  const body = `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n\n${AGENT_FOOTER}\n\n${JIRA_LINK}\n`;
+  assert.equal(spliceModule.bodyRefusal(body), "");
+  const result = spliceModule.splice(body, NEW_SECTION, { landed: 1 });
+  assert.equal(result.reason, "");
+  assert.equal(
+    result.body,
+    `## Summary\n\nBody.\n\n## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${AGENT_FOOTER}\n\n${JIRA_LINK}\n`,
+  );
+});
+
+test("splice still refuses a link reference definition it would delete or a reference image", () => {
+  const inside = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET})\n${JIRA_LINK}\n\n## Notes\n\nMore.\n`;
+  assert.match(spliceModule.bodyRefusal(inside), /line this skill did not write/);
+  const referenceImage = `## Summary\n\n![shot][RELENG-1068]\n\n${JIRA_LINK}\n`;
+  assert.match(spliceModule.bodyRefusal(referenceImage), /reference-style image/);
+  const section = `## Screenshots\n\n**login**\n![screenshot-01](${ASSET_2})\n\n${JIRA_LINK}\n`;
+  assert.match(
+    spliceModule.splice("Body.\n", section, { landed: 1 }).reason,
+    /the section carries a link reference definition/,
+  );
+});
+
+test("resolve-pr.sh keeps an entries-file written before it ran, and refuses a conflicting --entries", (t) => {
+  const dir = scratch(t);
+  const { bin } = fakeBin(dir, {
+    cases: `  "pr view 42 --json url --jq .url") echo https://github.com/org/repo/pull/42 ;;`,
+  });
+  const runDir = join(dir, "run");
+  mkdirSync(runDir);
+  writeFileSync(join(runDir, "entries-file"), "/tmp/written-first.json\n");
+
+  const kept = run("resolve-pr.sh", ["42", runDir], bin);
+  assert.equal(kept.status, 0, kept.stderr);
+  assert.equal(readFileSync(join(runDir, "entries-file"), "utf8"), "/tmp/written-first.json\n");
+
+  const same = run("resolve-pr.sh", ["42 --entries /tmp/written-first.json", runDir], bin);
+  assert.equal(same.status, 0, same.stderr);
+
+  const conflicting = run("resolve-pr.sh", ["42 --entries /tmp/other.json", runDir], bin);
+  assert.equal(conflicting.status, 1);
+  assert.match(conflicting.stderr, /entries-file already names \/tmp\/written-first\.json/);
+  assert.equal(readFileSync(join(runDir, "entries-file"), "utf8"), "/tmp/written-first.json\n");
 });

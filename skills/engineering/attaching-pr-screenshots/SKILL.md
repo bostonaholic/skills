@@ -43,7 +43,8 @@ exit codes. Exit 2 from any script is a fault: report it and stop (in step 5, go
    lines mid-run: they strand this run's outputs.
 
 2. **Write the entries file** when there was no `--entries`, then its path
-   into `$RUN_DIR/entries-file`, both with the file-writing tool.
+   into `$RUN_DIR/entries-file`, both with the file-writing tool. Either side
+   of step 1 works: `resolve-pr.sh` keeps an existing `entries-file`.
 
    ```json
    { "root": "/abs/dir/the/images/live/in",

@@ -30,11 +30,11 @@
  * wrong transform deletes text nobody can recover. So the scan below models a
  * closed set of markdown constructs — fenced blocks, block-level HTML
  * comments, ATX headings indented up to three spaces, setext headings, ticket
- * references, and standalone INLINE image lines — and **refuses any body
- * carrying a construct outside that set** rather than guessing at its
- * boundaries. A raw HTML tag in ANY position — line
+ * references, link reference definitions, agent footers, and standalone INLINE
+ * image lines — and **refuses any body carrying a construct outside that set**
+ * rather than guessing at its boundaries. A raw HTML tag in ANY position — line
  * start, list item, or mid-sentence — and every non-inline image form —
- * `<img>`, `<picture>`, `![alt][ref]`, `[ref]: <url>`, a bare auto-embedded
+ * `<img>`, `<picture>`, `![alt][ref]`, a bare auto-embedded
  * URL — are outside the set and fault, because the scan can neither find their
  * boundaries nor count them as images it would delete. The scan covers the
  * WHOLE body, not only the Screenshots section. Widening the set is a code
@@ -90,6 +90,14 @@ const ANCHORS = ["## How to Verify", "## Review notes", "## References"];
  * optional `:` covers the `Fixes: #123` form.
  */
 const TICKET_REFERENCE = /^(?:Close[sd]?|Fix(?:es|ed)?|Resolve[sd]?|Part of|Refs?):?\s+\S/i;
+
+/**
+ * The attribution line a coding agent appends as the last line of every PR it
+ * opens. Unless it trails with the closing lines, a section inserted into a
+ * body without one lands below it, and every later replace of that section
+ * then refuses to delete it.
+ */
+const AGENT_FOOTER = /^🤖 Generated with \S/u;
 
 /** The heading this skill owns, by title. */
 const SCREENSHOTS_TITLE = "Screenshots";
@@ -209,7 +217,16 @@ const HTML_IMAGE = new RegExp(
  */
 const REFERENCE_IMAGE = /!\[[^\]]*\](?!\()/;
 
-/** A link reference definition, the other half of a reference-style image. */
+/**
+ * A link reference definition, the other half of a reference-style image. The
+ * body may carry one, because `REFERENCE_IMAGE` refuses every image that could
+ * use it and a definition renders nothing itself: the Atlassian GitHub app
+ * appends `[RELENG-1068]: https://…` to every PR body it links and re-adds it
+ * after each edit, so refusing it refuses those repositories outright. It
+ * trails with the closing lines, and anywhere a replace would delete it it is
+ * a line this skill did not write. The section refuses one, as the backstop
+ * for the `[` escape in `write-body.mjs`.
+ */
 const LINK_REFERENCE = /^ {0,3}\[[^\]]*\]:[ \t]*\S/;
 
 /**
@@ -434,10 +451,6 @@ function unmodeled(line) {
       "carries a reference-style image, whose target this transform cannot see",
     ) ??
     hit(
-      LINK_REFERENCE,
-      "carries a link reference definition, which this transform does not model",
-    ) ??
-    hit(
       BARE_IMAGE_URL,
       "carries a bare auto-embedded image URL, which this transform does not model",
     )
@@ -610,8 +623,9 @@ function standaloneRun(lines, doc, index) {
 /**
  * Rule 1. The index of the last line of `content`: everything below it is the
  * maximal trailing run of blank lines, footer sections, ticket-reference
- * lines, and standalone absolute-URL image runs, in any order. Returns -1 when
- * the whole body is that run.
+ * lines, agent footers, link reference definitions, and standalone
+ * absolute-URL image runs, in any order. Returns -1 when the whole body is
+ * that run.
  *
  * The image runs are in there so the crash tail survives the splice by
  * construction: it leaves `content` before rule 2 chooses what to replace, and
@@ -622,7 +636,12 @@ function contentEnd(lines, doc) {
   for (;;) {
     while (index >= 0 && !doc.mask[index] && lines[index].trim() === "") index--;
     if (index < 0) return -1;
-    if (!doc.mask[index] && TICKET_REFERENCE.test(lines[index])) {
+    if (
+      !doc.mask[index] &&
+      (TICKET_REFERENCE.test(lines[index]) ||
+        AGENT_FOOTER.test(lines[index]) ||
+        LINK_REFERENCE.test(lines[index]))
+    ) {
       index--;
       continue;
     }
@@ -816,6 +835,11 @@ export function splice(body, section, options = {}) {
 
   const sectionScan = scan(sectionText.split("\n"));
   if (sectionScan.fault) return refuse(`the section ${sectionScan.fault}`);
+  if (sectionText.split("\n").some((line) => LINK_REFERENCE.test(line))) {
+    return refuse(
+      "the section carries a link reference definition, which must never reach a public body",
+    );
+  }
   if (SECTION_HTML.test(sectionText)) {
     return refuse("the section carries unescaped raw HTML, which must never reach a public body");
   }
