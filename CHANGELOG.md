@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.94.0] - 2026-11-13
+
 ### Changed
 
 - `reviewing-code` no longer runs the test suite, and APPROVE no longer needs a passing suite. [#194](https://github.com/bostonaholic/skills/pull/194)
@@ -1157,5 +1159,7 @@
 
 [0.92.0]: https://github.com/bostonaholic/skills/compare/v0.91.0...v0.92.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.93.0...HEAD
 [0.93.0]: https://github.com/bostonaholic/skills/compare/v0.92.0...v0.93.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.94.0...HEAD
+[0.94.0]: https://github.com/bostonaholic/skills/compare/v0.93.0...v0.94.0
