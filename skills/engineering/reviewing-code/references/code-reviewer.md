@@ -44,8 +44,7 @@ when there are none.>
 
 <The reviewed head SHA. Then the depth line. Then any "Not judged: <part>
 (<reason>)" lines, this round's first, then carried ones. Each done
-criterion, met or not met. The test suite command and result. Any other
-check run, with its result.>
+criterion, met or not met. Any check run, with its result.>
 ```
 
 Emit every heading in this order on every report. A section with
@@ -54,7 +53,7 @@ nothing to report says so on its own line. Findings use the labels in the
 `suggestion (non-blocking)`, `nitpick (non-blocking)`), each with its
 `file:line`.
 
-- **✅ APPROVE:** all criteria met, any findings pre-existing, tests pass.
+- **✅ APPROVE:** all criteria met, any findings pre-existing.
 - **❌ REQUEST CHANGES:** at least one blocking finding. No override.
 - **💬 COMMENT:** non-blocking findings only, not all pre-existing.
 
@@ -66,8 +65,8 @@ nothing to report says so on its own line. Findings use the labels in the
   `### Summary`.
 - **At `Light`, report no nitpicks and no pre-existing findings.** This
   brief wins over the nitpick cap in the finding format.
-- **At every tier, run the test suite** and each obligation under Scope and
-  obligations whose condition the diff meets.
+- **At every tier, meet each obligation** under Scope and obligations
+  whose condition the diff meets.
 - **At `Deep`, a dependent the change leaves broken is a finding.** So is a
   sibling implementation of a changed pattern that the change leaves behind.
 - **Judge a generated file through its producer.** A lockfile, generated
@@ -90,10 +89,10 @@ guessed range. Take done criteria from the plan file, issue references, or
 commit messages the branch carries; with none, review on correctness and
 quality.
 
-- **Run the test suite when you have a shell.** Report the command and
-  result. With no shell, or when the host refuses the command, write
-  `Test suite: not run (<reason>).` under `### Checks`; the verdict is then
-  COMMENT at most, because APPROVE needs a passing suite.
+- **Never run the test suite.** The author runs the tests while building,
+  and CI reports failures. Read each changed test instead: one that asserts
+  the wrong behavior, or that cannot fail when the behavior breaks, is a
+  finding. This brief wins over any test run the testing rules describe.
 - **Every rule reaches every surface.** When the changed code or prose has
   more than one way in (two entry modes, a path documented as usable alone,
   a split across turns or processes), check that each new rule holds on
