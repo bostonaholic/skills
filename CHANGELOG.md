@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.102.0] - 2026-11-14
+
 ### Changed
 
 - `learning-from-mistakes` proposes the highest check that makes a project mistake impossible (architecture, types, lint, test), proves it fails on the real mistake, and treats an unenforced existing rule as a repeat. [#207](https://github.com/bostonaholic/skills/pull/207)
@@ -1233,5 +1235,7 @@
 
 [0.100.0]: https://github.com/bostonaholic/skills/compare/v0.99.0...v0.100.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.101.0...HEAD
 [0.101.0]: https://github.com/bostonaholic/skills/compare/v0.100.0...v0.101.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.102.0...HEAD
+[0.102.0]: https://github.com/bostonaholic/skills/compare/v0.101.0...v0.102.0
