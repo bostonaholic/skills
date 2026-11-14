@@ -145,7 +145,7 @@ names no runner. It never quotes a source line into a public tracker.
 Use this skeleton. Keep every field; adapt the wording inside the brackets.
 
 ````markdown
-# Retro plan
+# Reflection plan
 
 Prompt: <run cache>/prompt.md, or none
 Sources: <run cache>/sources.md, plus <run cache>/transcript.jsonl when read

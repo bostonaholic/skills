@@ -1,4 +1,4 @@
-// Fails when retro's prompt-driven modes stop holding their contracts: a named
+// Fails when reflecting's prompt-driven modes stop holding their contracts: a named
 // transcript file must normalize into the run cache's sources/ without
 // overwriting another source, an unreadable one must fail by name, and an
 // arbitrary repo path must pass the allowlist and containment guard.
@@ -18,13 +18,13 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { isValidRepoPath } from "../skills/productivity/running-retros/scripts/write-target.mjs";
+import { isValidRepoPath } from "../skills/productivity/reflecting/scripts/write-target.mjs";
 
-const SCRIPTS = resolve("skills/productivity/running-retros/scripts");
+const SCRIPTS = resolve("skills/productivity/reflecting/scripts");
 const SHARED_SCRIPTS = resolve("shared/scripts");
 
 function scratchDir(t) {
-  const root = mkdtempSync(join(tmpdir(), "retro-resources-"));
+  const root = mkdtempSync(join(tmpdir(), "reflecting-resources-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   return root;
 }
