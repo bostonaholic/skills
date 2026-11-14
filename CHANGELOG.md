@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.100.0] - 2026-11-14
+
 ### Fixed
 
 - `stacking-prs` writes every PR number in a PR body as a full link, so a stack table's own-PR row renders as a link instead of plain text. [#202](https://github.com/bostonaholic/skills/pull/202)
@@ -1217,5 +1219,7 @@
 
 [0.98.0]: https://github.com/bostonaholic/skills/compare/v0.97.0...v0.98.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.99.0...HEAD
 [0.99.0]: https://github.com/bostonaholic/skills/compare/v0.98.0...v0.99.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.100.0...HEAD
+[0.100.0]: https://github.com/bostonaholic/skills/compare/v0.99.0...v0.100.0
