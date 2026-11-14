@@ -2,13 +2,14 @@
 name: attaching-pr-screenshots
 description: Uploads local images and short videos (mp4, mov, webm) through GitHub's attachment pipeline and writes one verified Screenshots section into a PR body. Use when the user says "attach screenshots to the PR", or when the user explicitly asks to add or attach screenshots to a PR. Never infer from local images. Not for capturing screenshots; use capturing-screenshots.
 effort: medium
-argument-hint: "[<pr-number-or-url>] [--entries <path>]"
+argument-hint: "[<pr-number-or-url>] [--entries <path> | --copy-from <result.json>]"
 ---
 
 # Attaching PR screenshots
 
 The scripts own every guard and body transform; run them and act on their
 exit codes. Exit 2 from any script is a fault: report it and stop (in step 5, go on to step 6).
+With `--copy-from <result.json>`, follow [copy mode](references/copy-mode.md) instead of the procedure.
 
 ## Hard rules
 
@@ -96,5 +97,6 @@ exit codes. Exit 2 from any script is a fault: report it and stop (in step 5, go
    ```
 
    It prints `outcome <value>`, plus `failed <assertion>` on exit 1
-   (`unverified`): never retry, rewrite, or revert the body. Report the outcome
-   and each failure.
+   (`unverified`): never retry, rewrite, or revert the body. Report the outcome,
+   each failure, and the absolute path of `$RUN_DIR/result.json`, which
+   `--copy-from` reads.

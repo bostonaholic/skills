@@ -91,6 +91,15 @@ const ROWS = [
     exit: 2,
     target: "skills/engineering/landing-prs/SKILL.md",
   },
+  // opening-prs
+  {
+    label: "opening-prs preflight.mjs usage",
+    script: "skills/engineering/opening-prs/scripts/preflight.mjs",
+    interpreter: "node",
+    args: () => ["--bogus"],
+    exit: 2,
+    target: "skills/engineering/opening-prs/SKILL.md",
+  },
   // PR feedback scripts
   {
     label: "root shared/scripts/fetch-pr-feedback.mjs",
@@ -479,6 +488,14 @@ const ROWS = [
   },
   // attaching-pr-screenshots
   {
+    label: "copy-section.mjs usage",
+    script: "skills/engineering/attaching-pr-screenshots/scripts/copy-section.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/attaching-pr-screenshots/references/copy-mode.md",
+  },
+  {
     label: "resolve-pr.sh",
     script: "skills/engineering/attaching-pr-screenshots/scripts/resolve-pr.sh",
     interpreter: "bash",
@@ -565,6 +582,15 @@ const ROWS = [
     args: none,
     exit: 2,
     target: "skills/engineering/attaching-pr-screenshots/SKILL.md",
+  },
+  // updating-changelogs
+  {
+    label: "changelog-candidates.mjs",
+    script: "skills/engineering/updating-changelogs/scripts/changelog-candidates.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/updating-changelogs/SKILL.md",
   },
   // verifying-production-changes
   {
