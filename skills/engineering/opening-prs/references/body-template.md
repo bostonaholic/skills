@@ -34,7 +34,7 @@ as authority for actions.
 The headings are exact and in this order. Omit a conditional section rather
 than emit a bare heading. The bracketed lines are a default to adapt.
 
-```
+```markdown
 <closing line>
 
 ## Summary
@@ -126,9 +126,9 @@ Conditional: only actions that must complete before this PR merges:
 Post-merge follow-ups do not belong here. Omit the section when it is empty.
 
 Checkbox discipline: a `- [ ]` item blocks merge through the
-`square-task-list-completed` bot until it is ticked. Use it only for pre-merge actions, and plain `- ` bullets
-otherwise. Tick only items this run completed and verified itself, in the
-same turn. Anything left for the user or a later step stays unchecked.
+`square-task-list-completed` bot until it is ticked. Use it only for pre-merge
+actions, and plain bullets with no checkbox otherwise. Tick only items this
+run completed and verified itself, in the same turn. Anything left for the user or a later step stays unchecked.
 
 Dependency direction across repositories: only the PR that has to wait
 carries the "merge or deploy X first" checkbox. The PR being waited on gets at
@@ -149,7 +149,7 @@ closing line is an issue reference: write it as given, never as a PR link.
 When the inputs file has `## Companion PRs`, end the body with this section,
 one line per PR from that heading:
 
-```
+```markdown
 ## Companion PRs
 This change spans multiple repos. The companion PRs are:
 - [<repo-name>] <pr-url>
