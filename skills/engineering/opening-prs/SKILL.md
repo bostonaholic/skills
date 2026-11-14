@@ -27,7 +27,9 @@ argument-hint: "[<pr-number-or-url>] [--inputs <path>]"
 
 2. **Write the title and body** per the
    [body template](references/body-template.md), with every PR number and
-   any `## Stack` table as [PR body rules](shared/pr-body-rules.md) say.
+   any `## Stack` table as [PR body rules](shared/pr-body-rules.md) say. In
+   open mode, first find the base branch per
+   [open and refresh](references/open-and-refresh.md#base-branch).
 3. **Push, then open or refresh** per
    [open and refresh](references/open-and-refresh.md), which also says how
    each inputs heading is used and what a refresh keeps byte-identical.

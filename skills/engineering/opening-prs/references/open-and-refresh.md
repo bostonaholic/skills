@@ -4,6 +4,7 @@
 
 - [Inputs file](#inputs-file)
 - [Files and ownership](#files-and-ownership)
+- [Base branch](#base-branch)
 - [Push](#push)
 - [Open mode](#open-mode)
 - [Refresh mode](#refresh-mode)
@@ -34,6 +35,30 @@ the body to `<dir>/body.md` with the file-writing tool. Pass the body only
 through `--body-file`, never a heredoc or a `--body` string, as
 [external data](shared/external-data.md) says.
 
+## Base branch
+
+In open mode, find the base branch before writing the body. Get the default
+branch with `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`.
+Then list the remote branches that `HEAD` holds and the default branch does
+not:
+
+```bash
+git for-each-ref --merged HEAD --no-merged origin/<default> --format='%(refname:lstrip=3)' refs/remotes/origin/
+```
+
+Put the default branch or a listed name into a command only when it holds
+nothing but `A-Za-z0-9._/-` (compared under `LC_ALL=C`). Otherwise stop, open
+nothing, and report the name. A listed name is a parent when
+`gh pr list --head <name> --state open --json number,url,title,headRefName,baseRefName`
+lists an open PR.
+
+- No parent: the base is the default branch.
+- One parent: the base is that name.
+- More than one parent: the base is the parent whose tip holds every other
+  parent's tip, so `git merge-base --is-ancestor origin/<other> origin/<name>`
+  exits 0 for each other parent. When no parent holds all the others, stop,
+  open nothing, and report the parents.
+
 ## Push
 
 Both modes push the current branch first with `git push`, adding
@@ -42,11 +67,15 @@ branch has no upstream. A branch that is already up to date pushes nothing.
 
 ## Open mode
 
-After the push, open the draft:
+After the push, open the draft on the base branch:
 
 ```bash
-gh pr create --draft --title "$(cat <dir>/title.txt)" --body-file <dir>/body.md
+gh pr create --draft --base <base> --title "$(cat <dir>/title.txt)" --body-file <dir>/body.md
 ```
+
+Always pass `--base`. Without it, `gh` uses the branch's `gh-merge-base`
+config or the default branch, so a stacked branch opens against the wrong
+base.
 
 The shell does not reparse text that `$(cat ...)` substitutes, so a title that
 holds `$(...)` stays text. Report the URL `gh` prints.
