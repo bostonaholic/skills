@@ -583,6 +583,15 @@ const ROWS = [
     exit: 2,
     target: "skills/engineering/attaching-pr-screenshots/SKILL.md",
   },
+  // updating-changelogs
+  {
+    label: "changelog-candidates.mjs",
+    script: "skills/engineering/updating-changelogs/scripts/changelog-candidates.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/updating-changelogs/SKILL.md",
+  },
   // verifying-production-changes
   {
     label: "deploy-gate.sh",

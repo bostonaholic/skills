@@ -1,0 +1,4 @@
+interface:
+  display_name: "Updating Changelogs"
+  short_description: "Add Unreleased bullets to an existing CHANGELOG.md"
+  default_prompt: "Use $updating-changelogs to add changelog entries for the commits since the last release."
