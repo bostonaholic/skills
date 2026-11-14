@@ -3,7 +3,7 @@
 ## Open the run cache
 
 Open it as [session transcripts](shared/session-transcripts.md) says, with
-`running-retros` as the skill name, and print its path. With a prompt, write
+`reflecting` as the skill name, and print its path. With a prompt, write
 it to `<run cache>/prompt.md` now.
 
 A **run** is one invocation plus every later turn that answers its approval

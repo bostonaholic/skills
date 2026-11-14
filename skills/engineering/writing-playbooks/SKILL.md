@@ -1,6 +1,6 @@
 ---
 name: writing-playbooks
-description: Writes a playbook an on-call agent can run from the session that resolved an alert or incident. Use when the user says "write the playbook", "turn this into a playbook", or "make a runbook for this". Not for session learnings; use running-retros.
+description: Writes a playbook an on-call agent can run from the session that resolved an alert or incident. Use when the user says "write the playbook", "turn this into a playbook", or "make a runbook for this". Not for session learnings; use reflecting.
 ---
 
 # Writing playbooks

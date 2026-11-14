@@ -1,4 +1,4 @@
-// Fails when running-retros' apply and gather scripts stop holding their
+// Fails when reflecting' apply and gather scripts stop holding their
 // contracts: check-edit-target.sh must apply an edit only to a tracked, clean
 // file at its pre-image and a creation only at a free path; file-issue.sh must
 // refuse a repo.txt that is not owner/name, pass every value to gh by file or
@@ -25,13 +25,13 @@ import test from "node:test";
 import {
   declaredCwd,
   newestFirst,
-} from "../skills/productivity/running-retros/scripts/list-sessions.mjs";
+} from "../skills/productivity/reflecting/scripts/list-sessions.mjs";
 
-const SCRIPTS = resolve("skills/productivity/running-retros/scripts");
+const SCRIPTS = resolve("skills/productivity/reflecting/scripts");
 const BASH = spawnSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
 
 function scratch(t) {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "running-retros-")));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "reflecting-")));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }

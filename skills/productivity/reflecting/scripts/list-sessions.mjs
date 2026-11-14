@@ -147,7 +147,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   }
 
   // Without the host's id for this session it cannot be left out, and listing
-  // it would feed the session being retro'd back in as a past one.
+  // it would feed the session being reflected on back in as a past one.
   if (!sessionId) {
     fail(
       "no-session-id",
