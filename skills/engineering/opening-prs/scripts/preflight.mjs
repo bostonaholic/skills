@@ -17,10 +17,12 @@
  *
  * Checks, in order: the arguments; the inputs file, when named, reads and
  * holds at most one line exactly `## Closing line` with at most one non-empty
- * line under it; the current branch (a detached HEAD refuses); the default
+ * line under it; the current branch (a detached HEAD, or a name outside
+ * `[A-Za-z0-9._/-]`, refuses); the default
  * branch from `gh repo view`; the `gh stack` layer check, where a non-zero
  * `gh stack view --json` means the branch is in no stack; and, with no PR
- * argument only, `gh pr list --head <branch> --state open --json url`.
+ * argument only, `gh pr list --head <branch> --state open --json url`, whose
+ * one URL must match the PR argument's URL form.
  *
  * Stdout, on exit 0 only, one KEY=VALUE line each, in this order:
  *
@@ -50,6 +52,9 @@ const USAGE = "usage: preflight.mjs [<pr-number-or-url>] [--inputs <path>]";
 const CLOSING_HEADING = "## Closing line";
 const PR_ARGUMENT =
   /^(?:\d+|https:\/\/[A-Za-z0-9.-]+\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/pull\/\d+)$/;
+// The skill puts the branch into `git push` and `gh pr list` command text, so
+// it holds only these ASCII characters. Git already refuses a leading `-`.
+const BRANCH_NAME = /^[A-Za-z0-9._/-]+$/;
 
 /**
  * The reason an inputs file's `## Closing line` heading is unusable, or "".
@@ -154,6 +159,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   const branch = run("git", ["branch", "--show-current"]).trim();
   if (branch === "") refuse("HEAD is detached; check out the branch to push");
+  if (!BRANCH_NAME.test(branch)) {
+    refuse(`branch \`${branch}\` is outside the allowed characters [A-Za-z0-9._/-]; rename it`);
+  }
 
   const defaultBranch = json("gh", ["repo", "view", "--json", "defaultBranchRef"])?.defaultBranchRef
     ?.name;
@@ -185,6 +193,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     if (!Array.isArray(open)) fault("gh pr list printed no list");
     decision = decideMode(open.map((row) => row?.url).filter((url) => typeof url === "string"));
     if (decision.refusal) refuse(decision.refusal);
+    if (decision.pr !== undefined && !PR_ARGUMENT.test(decision.pr)) {
+      refuse(`the open PR URL \`${decision.pr}\` is not a plain pull request URL`);
+    }
   }
 
   const lines = [`BRANCH=${branch}`, `MODE=${decision.mode}`];

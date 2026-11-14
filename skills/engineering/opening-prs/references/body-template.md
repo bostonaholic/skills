@@ -163,6 +163,10 @@ The PR is stacked when its base branch is another open PR's head branch, or
 another open PR's base branch is its head branch. Follow both directions,
 `gh pr list --head <branch> --state open` and
 `gh pr list --base <branch> --state open`, to find every PR in the stack.
+Start from the preflight's `BRANCH`. Put a branch name read from another PR
+into these commands only when it holds nothing but `A-Za-z0-9._/-` (compared
+under `LC_ALL=C`); otherwise stop the lookup, write no `## Stack` table, and
+report the name.
 Write the table and every PR number as [PR body rules](shared/pr-body-rules.md)
 say.
 
