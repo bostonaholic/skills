@@ -2,4 +2,4 @@
 type: llm
 ---
 
-PASS if the reply gives one concrete suggestion for the flaky upload test. FAIL if it applies `testing-the-premise`'s procedure instead: it writes down a shared premise, asks for a list of failed fixes, or plans a rerunnable observation before any suggestion (SKILL.md:14-34).
+PASS if the reply gives at least one concrete suggestion for the flaky upload test. A suggestion to rerun or instrument the test counts as a suggestion. FAIL if it applies `testing-the-premise`'s procedure instead: it writes down a premise that the failed fixes share, or asks for the list of failed fixes before suggesting anything (SKILL.md:14-34).
