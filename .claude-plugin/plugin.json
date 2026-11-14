@@ -41,6 +41,7 @@
     "./skills/engineering/making-code-agent-friendly",
     "./skills/engineering/merging-dependabot-prs",
     "./skills/engineering/modernizing-prs",
+    "./skills/engineering/opening-prs",
     "./skills/engineering/prototyping-ui",
     "./skills/engineering/proving-claims",
     "./skills/engineering/redesigning-from-first-principles",

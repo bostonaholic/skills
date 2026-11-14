@@ -1,0 +1,4 @@
+interface:
+  display_name: "Opening PRs"
+  short_description: "Open a draft PR or refresh its body after a push"
+  default_prompt: "Use $opening-prs to open a draft PR for the current branch or refresh its body."
