@@ -1,6 +1,6 @@
 ---
 tags: [bash]
-allowed_tools: [Read, Grep, Glob, Skill, TodoWrite, Edit, Write, Bash]
+allowed_tools: [Read, Grep, Glob, Skill, TodoWrite, Edit, Bash]
 max_turns: 40
 timeout_seconds: 600
 ---

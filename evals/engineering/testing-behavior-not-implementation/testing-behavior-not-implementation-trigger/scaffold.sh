@@ -28,5 +28,11 @@ export async function checkout(items, payments) {
 }
 EOF_2
 
+cat >test/cart.test.js <<'EOF_3'
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { checkout } from "../src/cart.js";
+EOF_3
+
 git init -q
 git add -A
