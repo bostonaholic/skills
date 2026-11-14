@@ -26,10 +26,10 @@ If no correction is clear, ask which one to codify.
   what to use instead, then a test. If the pattern is already common, fail only
   when a change adds more. Prove the check fails on the real mistake. End the
   rule with `Enforced by <check>.`; with no check, say why each level fails.
-- **Overlap**: if the rule already exists and a check already catches the
-  mistake, stop and say where. If it exists with nothing enforcing it, the
-  mistake is a repeat: propose the check instead of a second rule. If a related
-  rule exists, refine it instead of adding a duplicate.
+- **Overlap**: if the rule exists and a check already catches the mistake,
+  stop and name its file and section. If it exists with nothing enforcing it,
+  the mistake is a repeat: propose the check instead of a second rule. If a
+  related rule exists, refine it instead of adding a duplicate.
 - **Approval**: show the rule (or the old and new text of a refined rule), the
   file path, and the section: an existing section that fits, or else a new
   `## Learned Rules` section. Never propose any other new heading. Show any
