@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-11-14
+
 ### Fixed
 
 - `visualizing-codebases` keeps types split out of a file, such as its errors, in that file's component instead of giving their directory a new one. [#201](https://github.com/bostonaholic/skills/pull/201)
@@ -1209,5 +1211,7 @@
 
 [0.97.0]: https://github.com/bostonaholic/skills/compare/v0.96.0...v0.97.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.98.0...HEAD
 [0.98.0]: https://github.com/bostonaholic/skills/compare/v0.97.0...v0.98.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.99.0...HEAD
+[0.99.0]: https://github.com/bostonaholic/skills/compare/v0.98.0...v0.99.0
