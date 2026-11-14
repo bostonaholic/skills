@@ -117,18 +117,22 @@ gh-stack footer. Rewrite each new PR's title and body:
   The shell does not reparse text that `$(cat ...)` substitutes, so a title
   that holds `$(...)` stays text. A quoted title literal would run it.
 - Every stacked PR body carries a `## Stack` table of every PR in the stack,
-  bottom (merges first) to top, with columns `Order`, `PR` (`#<n>`), and
-  `Concern`. Bold this PR's row. When the stack gains, loses, or reorders a
-  PR, rewrite the table in every open PR of the stack.
+  bottom (merges first) to top, with columns `Order`, `PR`
+  (`[#<n>](<pr-url>)`), and `Concern`. Bold this PR's row. When the stack
+  gains, loses, or reorders a PR, rewrite the table in every open PR of the
+  stack.
+- Write every PR number in a body as a full link, `[#<n>](<pr-url>)`, never a
+  bare `#<n>`. GitHub does not autolink a PR's own number inside its body, so a
+  bare self-reference renders as plain text.
 
 ```markdown
 ## Stack
 
-| Order | PR       | Concern                          |
-| ----- | -------- | -------------------------------- |
-| 1     | #101     | Add the parser                   |
-| **2** | **#102** | **Wire the parser into the CLI** |
-| 3     | #103     | Document the new flag            |
+| Order | PR                                                 | Concern                          |
+| ----- | -------------------------------------------------- | -------------------------------- |
+| 1     | [#101](https://github.com/owner/repo/pull/101)     | Add the parser                   |
+| **2** | **[#102](https://github.com/owner/repo/pull/102)** | **Wire the parser into the CLI** |
+| 3     | [#103](https://github.com/owner/repo/pull/103)     | Document the new flag            |
 ```
 
 ## The script
