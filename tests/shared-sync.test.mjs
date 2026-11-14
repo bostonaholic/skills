@@ -95,8 +95,6 @@ const SINGLE_READER = Object.freeze({
     "read only by making-code-agent-friendly; moving it into that skill's scripts/ is deferred",
   "shared/verified-results.md":
     "read only by improving-codebases; the design keeps it shared, and moving it is deferred",
-  "shared/writing.md":
-    "read only by opening-prs until writing-commit-messages and updating-changelogs link it",
 });
 
 test("every root shared/ file has more than one reader unless SINGLE_READER names it", () => {
