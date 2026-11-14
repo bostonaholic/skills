@@ -91,6 +91,15 @@ const ROWS = [
     exit: 2,
     target: "skills/engineering/landing-prs/SKILL.md",
   },
+  // opening-prs
+  {
+    label: "opening-prs preflight.mjs usage",
+    script: "skills/engineering/opening-prs/scripts/preflight.mjs",
+    interpreter: "node",
+    args: () => ["--bogus"],
+    exit: 2,
+    target: "skills/engineering/opening-prs/SKILL.md",
+  },
   // PR feedback scripts
   {
     label: "root shared/scripts/fetch-pr-feedback.mjs",
