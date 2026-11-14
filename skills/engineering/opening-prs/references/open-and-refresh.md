@@ -49,8 +49,9 @@ git for-each-ref --merged HEAD --no-merged origin/<default> --format='%(refname:
 Put the default branch or a listed name into a command only when it holds
 nothing but `A-Za-z0-9._/-` (compared under `LC_ALL=C`). Otherwise stop, open
 nothing, and report the name. A listed name is a parent when
-`gh pr list --head <name> --state open --json number,url,title,headRefName,baseRefName`
-lists an open PR.
+`gh pr list --head <name> --state open --json number,url,title,headRefName,baseRefName,isCrossRepository`
+lists an open PR with `isCrossRepository` false. `--head` matches the branch
+name in every fork, so a fork's PR is never a parent.
 
 - No parent: the base is the default branch.
 - One parent: the base is that name.

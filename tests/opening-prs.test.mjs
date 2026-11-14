@@ -1,8 +1,8 @@
 // Fails when opening-prs's preflight.mjs picks the wrong mode or lets a bad run through to the
 // push: when it opens a second PR on a branch that already heads one, refreshes a PR other than
 // the one named, accepts a repeated or multi-line `## Closing line`, misses an unreadable inputs
-// file, the default branch, a gh stack layer, or a branch that heads two open PRs, or calls
-// `gh pr create` or `gh pr edit` before it decides.
+// file, the default branch, a gh stack layer, or a branch that heads two open PRs, counts a fork's
+// PR on a branch of the same name, or calls `gh pr create` or `gh pr edit` before it decides.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -34,8 +34,9 @@ function scratch(t) {
 // A PATH directory holding the host's git and a fake `gh` that logs each call. `gh repo view`
 // names `main` as the default branch. `gh stack view --json` prints `stack` when given, else
 // exits 1, as gh stack does on a branch in no stack. `gh pr list` with `--head <branch>` prints
-// `openPrs`; without it, it also lists another branch's open PR, as GitHub does.
-function fakeBin(dir, { branch, stack, openPrs }) {
+// `openPrs`, then `forkPrs` marked `isCrossRepository`, since `--head` matches the branch name in
+// every fork; without it, it also lists another branch's open PR, as GitHub does.
+function fakeBin(dir, { branch, stack, openPrs, forkPrs = [] }) {
   const bin = join(dir, "bin");
   mkdirSync(bin);
   symlinkSync(GIT, join(bin, "git"));
@@ -46,7 +47,10 @@ function fakeBin(dir, { branch, stack, openPrs }) {
     nameWithOwner: "acme/web",
     url: "https://github.com/acme/web",
   });
-  const headPrs = JSON.stringify(openPrs.map((url) => ({ url })));
+  const headPrs = JSON.stringify([
+    ...openPrs.map((url) => ({ url })),
+    ...forkPrs.map((url) => ({ url, isCrossRepository: true })),
+  ]);
   const repoPrs = JSON.stringify([...openPrs, OTHER_BRANCH_PR].map((url) => ({ url })));
   const stackArm = stack
     ? `printf '%s\\n' '${JSON.stringify(stack)}'`
@@ -247,6 +251,41 @@ describe("preflight refuses a branch or PR URL outside its character allowlist",
       assert.match(result.stderr, row.refusal);
       assert.equal(result.stdout, "");
       if (row.ghCalls !== undefined) assert.equal(ghCalls, row.ghCalls);
+    });
+  }
+});
+
+// Fails when preflight counts an open PR from a fork whose branch has this branch's name: refresh
+// mode would then rewrite another author's PR body. `gh pr list --head` matches the name only.
+describe("preflight ignores a fork's open PR on a branch of the same name", () => {
+  const FORK_PR = "https://github.com/acme/web/pull/9";
+  for (const row of [
+    {
+      name: "a fork PR alone decides open mode",
+      openPrs: [],
+      decision: { BRANCH: "feature/login", MODE: "open" },
+    },
+    {
+      name: "a fork PR beside this repository's PR decides refresh mode on this repository's PR",
+      openPrs: ["https://github.com/acme/web/pull/7"],
+      decision: {
+        BRANCH: "feature/login",
+        MODE: "refresh",
+        PR: "https://github.com/acme/web/pull/7",
+      },
+    },
+  ]) {
+    it(row.name, (t) => {
+      const { result, ghCalls } = runPreflight(t, {
+        ...row,
+        branch: "feature/login",
+        args: () => [],
+        stack: null,
+        forkPrs: [FORK_PR],
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(decision(result.stdout), row.decision);
+      assert.doesNotMatch(ghCalls, /^pr (create|edit)\b/m);
     });
   }
 });

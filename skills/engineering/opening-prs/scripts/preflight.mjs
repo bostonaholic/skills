@@ -21,13 +21,16 @@
  * `[A-Za-z0-9._/-]`, refuses); the default
  * branch from `gh repo view`; the `gh stack` layer check, where a non-zero
  * `gh stack view --json` means the branch is in no stack; and, with no PR
- * argument only, `gh pr list --head <branch> --state open --json url`, whose
- * one URL must match the PR argument's URL form.
+ * argument only, `gh pr list --head <branch> --state open --json
+ * url,isCrossRepository`. `--head` matches the branch name in every fork, so
+ * the lookup drops each fork's PR (`isCrossRepository` true). The one URL
+ * left must match the PR argument's URL form.
  *
  * Stdout, on exit 0 only, one KEY=VALUE line each, in this order:
  *
  *   BRANCH  the current branch
- *   MODE    `open` when no open PR heads the branch, else `refresh`
+ *   MODE    `open` when no open PR from this repository heads the branch,
+ *           else `refresh`
  *   PR      refresh mode only: the PR argument, or the one open PR's URL
  *
  * Requires `git`, and `gh` authenticated for the repository's host.
@@ -189,9 +192,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
 
   let decision = { mode: "refresh", pr: args.pr };
   if (args.pr === undefined) {
-    const open = json("gh", ["pr", "list", "--head", branch, "--state", "open", "--json", "url"]);
+    const open = json("gh", [
+      "pr",
+      "list",
+      "--head",
+      branch,
+      "--state",
+      "open",
+      "--json",
+      "url,isCrossRepository",
+    ]);
     if (!Array.isArray(open)) fault("gh pr list printed no list");
-    decision = decideMode(open.map((row) => row?.url).filter((url) => typeof url === "string"));
+    // A fork's PR is another author's branch with this name: never this branch's PR.
+    const own = open.filter((row) => row?.isCrossRepository !== true);
+    decision = decideMode(own.map((row) => row?.url).filter((url) => typeof url === "string"));
     if (decision.refusal) refuse(decision.refusal);
     if (decision.pr !== undefined && !PR_ARGUMENT.test(decision.pr)) {
       refuse(`the open PR URL \`${decision.pr}\` is not a plain pull request URL`);

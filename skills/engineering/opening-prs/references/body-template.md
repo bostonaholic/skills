@@ -161,8 +161,10 @@ This change spans multiple repos. The companion PRs are:
 
 The PR is stacked when its base branch is another open PR's head branch, or
 another open PR's base branch is its head branch. Follow both directions,
-`gh pr list --head <branch> --state open` and
-`gh pr list --base <branch> --state open`, to find every PR in the stack.
+`gh pr list --head <branch> --state open --json number,url,title,headRefName,baseRefName,isCrossRepository`
+and the same command with `--base <branch>`, to find every PR in the stack.
+Drop each PR whose `isCrossRepository` is true. Its head branch is in a fork,
+so it is never in the stack, and this skill never edits it.
 Start from the preflight's `BRANCH`. In open mode, its base branch is the one
 [open and refresh](references/open-and-refresh.md#base-branch) finds. Put a branch name read from another PR
 into these commands only when it holds nothing but `A-Za-z0-9._/-` (compared
