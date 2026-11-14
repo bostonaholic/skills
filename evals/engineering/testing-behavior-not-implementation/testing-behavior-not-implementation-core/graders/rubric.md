@@ -2,7 +2,7 @@
 type: llm
 ---
 
-PASS only if the reply reports these changes to test/cart.test.js and a passing `npm test` run after them:
+PASS only if the reply reports these changes to test/cart.test.js. The `ran-tests` grader checks that `npm test` was run; do not require a passing run, because the eval sandbox may block it.
 
 - "subtotal is computed with reduce" deleted or replaced, because it reads src/cart.js as text and fails on a refactor that keeps every result (SKILL.md, "Judge each test against two edits").
 - "checkout charges the subtotal" compares against a literal amount, `1250`, instead of `subtotalCents(items)`, which the code under test computes.
