@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add testing-behavior-not-implementation, which checks that each test a change writes or keeps fails when observable behavior breaks and passes when only internals change. [#206](https://github.com/bostonaholic/skills/pull/206)
+
 ## [0.100.0] - 2026-11-14
 
 ### Fixed
