@@ -158,6 +158,28 @@ test("importing write-body.mjs through a symlinked directory has no side effects
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
 
+test("copy-section.mjs run through a symlinked directory reaches its usage error", (t) => {
+  const run = runScript(
+    join(
+      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
+      "copy-section.mjs",
+    ),
+  );
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /^copy-section\.mjs: usage: copy-section\.mjs /);
+});
+
+test("importing copy-section.mjs through a symlinked directory has no side effects", (t) => {
+  const run = importModule(
+    t,
+    join(
+      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
+      "copy-section.mjs",
+    ),
+  );
+  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+});
+
 test("write-result.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
     join(

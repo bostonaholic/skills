@@ -488,6 +488,14 @@ const ROWS = [
   },
   // attaching-pr-screenshots
   {
+    label: "copy-section.mjs usage",
+    script: "skills/engineering/attaching-pr-screenshots/scripts/copy-section.mjs",
+    interpreter: "node",
+    args: none,
+    exit: 2,
+    target: "skills/engineering/attaching-pr-screenshots/references/copy-mode.md",
+  },
+  {
     label: "resolve-pr.sh",
     script: "skills/engineering/attaching-pr-screenshots/scripts/resolve-pr.sh",
     interpreter: "bash",
