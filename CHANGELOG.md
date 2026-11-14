@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add testing-the-premise, which writes down the premise that repeated failed fixes share and tests it with a rerunnable observation before the next fix. [#204](https://github.com/bostonaholic/skills/pull/204)
+- Add scripting-the-work, which builds a codemod, script, generator, query, or check that does or proves non-trivial work instead of hand edits. [#204](https://github.com/bostonaholic/skills/pull/204)
+
 ## [0.100.0] - 2026-11-14
 
 ### Fixed
