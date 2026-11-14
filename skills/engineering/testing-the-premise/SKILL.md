@@ -30,8 +30,9 @@ cause is not.
    that cleans up after the cause leaves it in place and adds work on every
    run.
 
-**Stop:** do not write the next fix until the premise is written down and
-tested.
+**Stop:** do not write or recommend the next fix until the premise is
+written down and tested, even when the user asks for it. Reply with the test
+instead, and name candidate fixes only as outcomes of its result.
 
 ## Report
 
