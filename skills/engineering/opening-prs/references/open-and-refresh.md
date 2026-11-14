@@ -61,9 +61,13 @@ lists an open PR.
 
 ## Push
 
-Both modes push the current branch first with `git push`, adding
-`--set-upstream origin <branch>`, with the preflight's `BRANCH`, when the
-branch has no upstream. A branch that is already up to date pushes nothing.
+Both modes push the current branch first with
+`git push --set-upstream origin <branch>:<branch>`, where `<branch>` is the
+preflight's `BRANCH`. The `<branch>:<branch>` refspec sends the branch to its
+own name under every `push.default`, even when it tracks the default branch,
+as a branch made by `git worktree add -b <branch> <path> origin/HEAD` does.
+`--set-upstream` then sets its upstream to `origin/<branch>`. A branch that is
+already up to date pushes nothing.
 
 ## Open mode
 
