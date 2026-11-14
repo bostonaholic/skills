@@ -956,8 +956,10 @@ const COPY_BODY =
   COPY_FOOTER;
 
 // Runs copy-section.mjs on COPY_TARGET with a home result.json holding `section`. The first
-// `gh pr view --json body` answers `firstBody`; every later read answers `laterBody`.
-function copyRun(t, { section, firstBody, laterBody = firstBody }) {
+// `gh pr view --json body` answers `firstBody`; every later read answers `laterBody`. With
+// `storedBody`, the read-back answers that body with an empty `body_html`, and POST /markdown
+// renders the section only when the text it was sent holds the asset URL.
+function copyRun(t, { section, firstBody, laterBody = firstBody, storedBody }) {
   const dir = scratch(t);
   const tmp = join(dir, "tmp");
   mkdirSync(tmp);
@@ -989,7 +991,15 @@ function copyRun(t, { section, firstBody, laterBody = firstBody }) {
     `<h2>Screenshots</h2><p><strong>login</strong></p><p><img alt="screenshot-01" src="${COPY_ASSET}"></p>`,
   );
   const pull = join(dir, "pull.json");
-  writeFileSync(pull, JSON.stringify({ body: "", body_html: readFileSync(html, "utf8") }));
+  writeFileSync(
+    pull,
+    JSON.stringify(
+      storedBody === undefined
+        ? { body: "", body_html: readFileSync(html, "utf8") }
+        : { body: storedBody, body_html: "" },
+    ),
+  );
+  const sent = join(dir, "markdown-input.json");
   const { bin, log } = fakeBin(dir, {
     tools: ["bash", "cat", "jq", "mktemp", "rm", "node"],
     cases: [
@@ -997,6 +1007,7 @@ function copyRun(t, { section, firstBody, laterBody = firstBody }) {
       `  "pr view 9 --repo ghe.example.com/acme/api --json body"*) n=$(( $(<'${reads}') + 1 )); echo "$n" >'${reads}'; if [ "$n" = 1 ]; then cat '${first}'; else cat '${later}'; fi ;;`,
       `  "pr edit 9 --repo ghe.example.com/acme/api --body-file "*) cat "\${@: -1}" >'${written}' ;;`,
       `  "api --hostname ghe.example.com "*"--jq"*) cat '${html}' ;;`,
+      `  "api --hostname ghe.example.com --method POST markdown --input -") input=$(cat); printf '%s' "$input" >'${sent}'; case "$input" in *'${COPY_ASSET}'*) cat '${html}' ;; *) echo '<p>Body.</p>' ;; esac ;;`,
       `  "api --hostname ghe.example.com "*) cat '${pull}' ;;`,
     ].join("\n"),
   });
@@ -1009,6 +1020,7 @@ function copyRun(t, { section, firstBody, laterBody = firstBody }) {
     result,
     ghCalls: readFileSync(log, "utf8"),
     written: () => readFileSync(written, "utf8"),
+    sent: () => JSON.parse(readFileSync(sent, "utf8")),
   };
 }
 
@@ -1055,4 +1067,30 @@ test("copy mode writes the home section once into the target PR", (t) => {
     `the section is not above How to Verify:\n${body}`,
   );
   assert.ok(body.endsWith(COPY_FOOTER), `the footer sections changed:\n${body}`);
+});
+
+test("copy mode renders the stored body through POST /markdown when body_html is empty", async (t) => {
+  for (const row of [
+    {
+      name: "a stored body that holds the section",
+      storedBody: `${COPY_SECTION}\n${COPY_BODY}`,
+      stdout: "written\n",
+    },
+    {
+      name: "a stored body the edit did not reach",
+      storedBody: COPY_BODY,
+      stdout: "written\nunverified the rendered body has no Screenshots heading\n",
+    },
+  ]) {
+    await t.test(row.name, (st) => {
+      const { result, sent } = copyRun(st, {
+        section: COPY_SECTION,
+        firstBody: COPY_BODY,
+        storedBody: row.storedBody,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, row.stdout);
+      assert.deepEqual(sent(), { text: row.storedBody, mode: "gfm", context: "acme/api" });
+    });
+  }
 });
