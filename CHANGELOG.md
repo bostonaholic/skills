@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `stacking-prs` writes every PR number in a PR body as a full link, so a stack table's own-PR row renders as a link instead of plain text. [#202](https://github.com/bostonaholic/skills/pull/202)
+
 ## [0.99.0] - 2026-11-14
 
 ### Fixed
