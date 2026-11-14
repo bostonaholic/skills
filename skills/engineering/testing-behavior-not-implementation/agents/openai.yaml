@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing Behavior, Not Implementation"
+  short_description: "Assert observable behavior, not internals, in tests"
+  default_prompt: "Use $testing-behavior-not-implementation to make each test assert observable behavior, not internals."
