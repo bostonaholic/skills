@@ -37,8 +37,8 @@ through `--body-file`, never a heredoc or a `--body` string, as
 ## Push
 
 Both modes push the current branch first with `git push`, adding
-`--set-upstream origin <branch>` when the branch has no upstream. A branch
-that is already up to date pushes nothing.
+`--set-upstream origin <branch>`, with the preflight's `BRANCH`, when the
+branch has no upstream. A branch that is already up to date pushes nothing.
 
 ## Open mode
 

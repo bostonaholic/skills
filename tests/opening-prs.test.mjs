@@ -222,3 +222,31 @@ describe("preflight decides open, refresh, or refuse before the push", () => {
     });
   }
 });
+
+// Fails when preflight prints a branch name or an open PR URL that holds shell syntax: the skill
+// puts both into `git push`, `gh pr list`, `gh pr view`, and `gh pr edit` command text.
+describe("preflight refuses a branch or PR URL outside its character allowlist", () => {
+  for (const row of [
+    {
+      name: "a branch name with command substitution refuses before any gh call",
+      branch: "feature/$(id)`id`;id",
+      openPrs: [],
+      refusal: /^refused: branch `feature\/\$\(id\)`id`;id` is outside the allowed characters/m,
+      ghCalls: "",
+    },
+    {
+      name: "an open PR URL with shell syntax refuses",
+      branch: "feature/login",
+      openPrs: ["https://github.com/acme/web/pull/7;touch pwned"],
+      refusal: /^refused: the open PR URL `https:\/\/github\.com\/acme\/web\/pull\/7;touch pwned`/m,
+    },
+  ]) {
+    it(row.name, (t) => {
+      const { result, ghCalls } = runPreflight(t, { ...row, args: () => [], stack: null });
+      assert.equal(result.status, 1, `exit code; stderr:\n${result.stderr}`);
+      assert.match(result.stderr, row.refusal);
+      assert.equal(result.stdout, "");
+      if (row.ghCalls !== undefined) assert.equal(ghCalls, row.ghCalls);
+    });
+  }
+});
