@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: scripting-the-work-guard
+context:
+  scaffold_script: scaffold.sh
