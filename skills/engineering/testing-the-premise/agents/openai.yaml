@@ -1,0 +1,6 @@
+interface:
+  display_name: "Testing the Premise"
+  short_description: "Test the premise repeated failed fixes share"
+  default_prompt: "Use $testing-the-premise to write down and test the premise the failed fixes share before writing another fix."
+policy:
+  allow_implicit_invocation: false
