@@ -8,6 +8,7 @@
 - [Push](#push)
 - [Open mode](#open-mode)
 - [Refresh mode](#refresh-mode)
+- [Stack tables](#stack-tables)
 - [Errors](#errors)
 
 ## Inputs file
@@ -85,6 +86,19 @@ base.
 The shell does not reparse text that `$(cat ...)` substitutes, so a title that
 holds `$(...)` stays text. Report the URL `gh` prints.
 
+When the body has a `## Stack` table, it has no row for this PR yet, because
+the PR had no number before `gh pr create`. Take `<n>` from the last path
+segment of the URL `gh` prints, and put it into a command only when it holds
+nothing but digits. Add this PR's bold row, `[#<n>](<pr-url>)`,
+in merge order, as [PR body rules](shared/pr-body-rules.md) say. Then write
+the body once more:
+
+```bash
+gh pr edit <n> --body-file <dir>/body.md
+```
+
+Then update the other PRs of the stack, as [Stack tables](#stack-tables) says.
+
 ## Refresh mode
 
 Read the PR's title and body with
@@ -108,7 +122,31 @@ Write the body once:
 gh pr edit <pr> --body-file <dir>/body.md
 ```
 
+Then update the other PRs of the stack, as [Stack tables](#stack-tables) says.
+
+## Stack tables
+
+When the stack gains, loses, or reorders a PR, every open PR of the stack
+needs the new table, as [PR body rules](shared/pr-body-rules.md) say. After
+the open or the refresh, when this body has a `## Stack` table, do these steps
+for each other PR in that table:
+
+1. Read its body with `gh pr view <n> --json body --jq .body`, and write it to
+   `<dir>/stack-<n>.md`.
+2. When its `## Stack` table lists the same PRs in the same order as this
+   body's table, skip the PR.
+3. Otherwise, put this body's table in place of its table, with that PR's row
+   bold and no other row bold. When it has no `## Stack` section, add one
+   where the [body template](references/body-template.md#template) puts it.
+   Keep every other line byte-identical.
+4. Write the body once with `gh pr edit <n> --body-file <dir>/stack-<n>.md`.
+
+`<n>` is the PR's `number` from the stack lookup in the
+[body template](references/body-template.md#stack). Put it into a command only
+when it holds nothing but digits.
+
 ## Errors
 
-Report each `git push`, `gh pr create`, and `gh pr edit` error verbatim and
-stop. Never retry.
+Report each `git push`, `gh pr create`, `gh pr view`, and `gh pr edit` error
+verbatim and stop. Never retry. After `gh pr create` prints a URL, every error
+report also gives that URL.

@@ -171,7 +171,9 @@ into these commands only when it holds nothing but `A-Za-z0-9._/-` (compared
 under `LC_ALL=C`); otherwise stop the lookup, write no `## Stack` table, and
 report the name.
 Write the table and every PR number as [PR body rules](shared/pr-body-rules.md)
-say.
+say. In open mode, leave out this PR's row: the PR has no number until
+`gh pr create` runs, and
+[open and refresh](references/open-and-refresh.md#open-mode) adds the row.
 
 ## Screenshots
 

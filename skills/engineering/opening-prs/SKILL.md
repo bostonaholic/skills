@@ -33,7 +33,8 @@ argument-hint: "[<pr-number-or-url>] [--inputs <path>]"
 3. **Push, then open or refresh** per
    [open and refresh](references/open-and-refresh.md), which also says how
    each inputs heading is used and what a refresh keeps byte-identical.
-4. **Report** the PR URL, the title, and `opened` or `refreshed`.
+4. **Report** the PR URL, the title, `opened` or `refreshed`, and the URL of
+   each other stack PR whose `## Stack` table the run rewrote.
 
 ## Rules
 
