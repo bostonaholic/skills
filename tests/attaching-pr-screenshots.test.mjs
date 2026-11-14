@@ -955,11 +955,13 @@ const COPY_BODY =
   "## How to Verify\n\n- `npm test`: the export endpoint returns the CSV header row.\n\n" +
   COPY_FOOTER;
 
+const GH_UNRESOLVED = "GraphQL: Could not resolve to a PullRequest with the number of 9.";
+
 // Runs copy-section.mjs on COPY_TARGET with a home result.json holding `section`. The first
 // `gh pr view --json body` answers `firstBody`; every later read answers `laterBody`. With
 // `storedBody`, the read-back answers that body with an empty `body_html`, and POST /markdown
 // renders the section only when the text it was sent holds the asset URL.
-function copyRun(t, { section, firstBody, laterBody = firstBody, storedBody }) {
+function copyRun(t, { section, firstBody, laterBody = firstBody, storedBody, unresolved = false }) {
   const dir = scratch(t);
   const tmp = join(dir, "tmp");
   mkdirSync(tmp);
@@ -1003,7 +1005,9 @@ function copyRun(t, { section, firstBody, laterBody = firstBody, storedBody }) {
   const { bin, log } = fakeBin(dir, {
     tools: ["bash", "cat", "jq", "mktemp", "rm", "node"],
     cases: [
-      `  "pr view 9 --repo ghe.example.com/acme/api --json url --jq .url") echo ${COPY_TARGET} ;;`,
+      unresolved
+        ? `  "pr view 9 --repo ghe.example.com/acme/api --json url --jq .url") echo "${GH_UNRESOLVED}" >&2; exit 1 ;;`
+        : `  "pr view 9 --repo ghe.example.com/acme/api --json url --jq .url") echo ${COPY_TARGET} ;;`,
       `  "pr view 9 --repo ghe.example.com/acme/api --json body"*) n=$(( $(<'${reads}') + 1 )); echo "$n" >'${reads}'; if [ "$n" = 1 ]; then cat '${first}'; else cat '${later}'; fi ;;`,
       `  "pr edit 9 --repo ghe.example.com/acme/api --body-file "*) cat "\${@: -1}" >'${written}' ;;`,
       `  "api --hostname ghe.example.com "*"--jq"*) cat '${html}' ;;`,
@@ -1050,6 +1054,21 @@ test("copy mode refuses and leaves the target body byte-identical", async (t) =>
       assert.doesNotMatch(ghCalls, /^pr edit /m);
     });
   }
+});
+
+test("copy mode forwards every resolve-pr.sh stderr line before its own refusal", (t) => {
+  const { result, ghCalls } = copyRun(t, {
+    section: COPY_SECTION,
+    firstBody: COPY_BODY,
+    unresolved: true,
+  });
+  assert.equal(result.status, 1, `exit code; stderr:\n${result.stderr}`);
+  const lines = result.stderr.trimEnd().split("\n");
+  assert.equal(lines[0], GH_UNRESOLVED);
+  assert.equal(lines[1], `could not resolve the PR: ${COPY_TARGET}`);
+  assert.match(lines.at(-2), /^refused: /);
+  assert.match(lines.at(-1), /^see \S+\/references\/copy-mode\.md$/);
+  assert.doesNotMatch(ghCalls, /^pr edit /m);
 });
 
 test("copy mode writes the home section once into the target PR", (t) => {
