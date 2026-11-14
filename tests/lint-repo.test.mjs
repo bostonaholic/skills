@@ -33,7 +33,7 @@ function compliant(overrides = {}) {
   return {
     "CHANGELOG.md": CHANGELOG,
     "README.md": README,
-    "docs/plans/2026-01-01-widgets/1-task.md": "# Task\n\nQuoted evidence — kept as written.\n",
+    "docs/plans/2026-01-01-widgets/notes.md": "# Notes\n\nQuoted evidence — kept as written.\n",
     ".github/workflows/ci.yml": CI_WORKFLOW,
     "package.json": packageJson(SCRIPTS),
     ...overrides,
