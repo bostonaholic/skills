@@ -1,10 +1,11 @@
 // Fails when update.mjs plans or runs a step for an install that is current or absent, adds a
 // skill to a copy directory that lacked it, deletes or overwrites a copy without a backup,
+// leaves a retired copy or lock entry in place, removes a skill another source installed,
 // changes anything on a dry run or when the plan id differs, runs steps past a blocker or a
 // failed step, runs the Claude Code or Codex commands out of order, or leaves a failure
 // without a final `see` line. The release is a local bare repository read through file://, so
-// its clone is shallow. The machine is a fake HOME, and the Claude Code and Codex CLIs are fake
-// executables on PATH that log each call.
+// its clone is shallow. The machine is a fake HOME, and the Claude Code, Codex, and npx CLIs are
+// fake executables on PATH that log each call.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -318,7 +319,7 @@ test("Grok Bot copies carry no agents/openai.yaml, and are compared without it",
   assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
 });
 
-test("leaves retired skills, symlinks, and copies without SKILL.md alone and reports each", (t) => {
+test("moves a retired copy to the backup, and leaves symlinks and copies without SKILL.md alone", (t) => {
   const machine = makeMachine(t, makeRelease());
   const directory = copyDirectory(machine, "cursor");
   write(join(directory, "alpha/SKILL.md"), "alpha stale\n");
@@ -326,13 +327,115 @@ test("leaves retired skills, symlinks, and copies without SKILL.md alone and rep
   write(join(machine.home, "elsewhere/SKILL.md"), "linked\n");
   symlinkSync(join(machine.home, "elsewhere"), join(directory, "beta"));
   const result = plan(machine);
-  assert.match(result.stdout, /^left: .*cursor\/skills\/old: retired from the collection/m);
+  assert.match(
+    result.stdout,
+    /\[cursor\] .*cursor\/skills holds skills retired from the collection/,
+  );
+  assert.match(result.stdout, /\$ move each to the backup directory: old$/m);
   assert.match(result.stdout, /^left: .*cursor\/skills\/beta: a symlink or file stands where/m);
   const applied = run(machine, ["apply", result.id]);
   assert.equal(applied.status, 0, applied.stderr);
-  assert.equal(readFileSync(join(directory, "old/SKILL.md"), "utf8"), "retired\n");
+  assert.ok(!existsSync(join(directory, "old")), "the retired copy is still installed");
+  assert.equal(readFileSync(join(backupRoot(machine), "cursor/old/SKILL.md"), "utf8"), "retired\n");
   assert.ok(lstatSync(join(directory, "beta")).isSymbolicLink());
   assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha 1.2.0\n");
+  assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
+});
+
+test("a retired name that is a symlink or lacks SKILL.md is reported, not moved", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  const directory = copyDirectory(machine, "opencode");
+  write(join(directory, "old/notes.md"), "mine\n");
+  const result = plan(machine);
+  assert.match(result.stdout, /^Nothing to do\.$/m);
+  assert.match(
+    result.stdout,
+    /^left: .*opencode\/skills\/old: retired from the collection, but not a skill copy/m,
+  );
+  assert.equal(readFileSync(join(directory, "old/notes.md"), "utf8"), "mine\n");
+});
+
+// ---------------------------------------------------------------------------
+// The skills CLI global lock
+
+function writeLock(path, skills) {
+  write(path, JSON.stringify({ version: 3, skills }));
+}
+
+function lockEntry(source) {
+  return { source, sourceType: "github", skillPath: "SKILL.md" };
+}
+
+test("removes skills the lock installed from the collection that the release no longer ships", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  fakeCli(machine, "npx", []);
+  writeLock(join(machine.home, ".agents/.skill-lock.json"), {
+    alpha: lockEntry("bostonaholic/skills"),
+    gone: lockEntry("bostonaholic/skills"),
+    "lock-only": lockEntry("bostonaholic/skills"),
+    theirs: lockEntry("someone/else"),
+  });
+  write(join(machine.home, ".agents/skills/gone/SKILL.md"), "gone\n");
+  const opencode = copyDirectory(machine, "opencode");
+  write(join(opencode, "gone/SKILL.md"), "gone\n");
+  write(join(opencode, "theirs/SKILL.md"), "theirs\n");
+  const result = plan(machine);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Installs found: opencode, skills-cli/);
+  assert.match(result.stdout, /1\. \[opencode\] .* holds skills retired from the collection/);
+  assert.match(result.stdout, /2\. \[skills-cli\] .*\.skill-lock\.json lists skills retired/);
+  assert.match(result.stdout, /\$ npx -y skills@\d+\.\d+\.\d+ remove -g -y gone lock-only$/m);
+  assert.deepEqual(mutations(machine), []);
+  const applied = run(machine, ["apply", result.id]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.match(
+    mutations(machine).join("\n"),
+    /^npx -y skills@\d+\.\d+\.\d+ remove -g -y gone lock-only$/,
+  );
+  const backups = backupRoot(machine);
+  assert.equal(readFileSync(join(backups, "opencode/gone/SKILL.md"), "utf8"), "gone\n");
+  assert.equal(readFileSync(join(backups, "skills-cli/gone/SKILL.md"), "utf8"), "gone\n");
+  assert.ok(!existsSync(join(opencode, "gone")));
+  assert.equal(readFileSync(join(opencode, "theirs/SKILL.md"), "utf8"), "theirs\n");
+});
+
+test("reads the lock under XDG_STATE_HOME when it is set", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  fakeCli(machine, "npx", []);
+  const state = join(machine.home, "state");
+  writeLock(join(state, "skills/.skill-lock.json"), { gone: lockEntry("bostonaholic/skills") });
+  writeLock(join(machine.home, ".agents/.skill-lock.json"), {
+    other: lockEntry("bostonaholic/skills"),
+  });
+  const result = run(machine, ["plan"], { XDG_STATE_HOME: state });
+  assert.match(result.stdout, /remove -g -y gone$/m);
+});
+
+test("a lock with only current collection skills plans nothing", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  writeLock(join(machine.home, ".agents/.skill-lock.json"), {
+    alpha: lockEntry("bostonaholic/skills"),
+  });
+  const result = plan(machine);
+  assert.match(result.stdout, /^Nothing to do\.$/m);
+  assert.match(result.stdout, /Installs found: skills-cli/);
+});
+
+test("a lock with a retired skill blocks the plan when npx is not on PATH", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  writeLock(join(machine.home, ".agents/.skill-lock.json"), {
+    gone: lockEntry("bostonaholic/skills"),
+  });
+  write(join(machine.home, ".agents/skills/gone/SKILL.md"), "gone\n");
+  const result = plan(machine);
+  assert.equal(result.status, 4);
+  assert.match(
+    result.stdout,
+    /skills-cli: .* lists retired skills \(gone\) but npx is not on PATH/,
+  );
+  assert.equal(run(machine, ["apply", result.id]).status, 4);
+  assert.ok(existsSync(join(machine.home, ".agents/skills/gone/SKILL.md")));
+  assert.equal(backupRoot(machine), undefined);
 });
 
 test("apply refuses a plan id that does not match and changes nothing", (t) => {

@@ -52,15 +52,28 @@
  * as a real directory with a SKILL.md is compared with the release's copy and
  * replaced when it differs. The old copy moves to
  * ${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>,
- * and the new copy is staged beside the old one, then moved in whole. A symlink
- * or file where a collection skill goes, and a skill the collection has
- * retired, are left alone and reported.
+ * and the new copy is staged beside the old one, then moved in whole. A retired
+ * skill there as a real directory with a SKILL.md moves to the same backup
+ * directory. A symlink or file where a collection skill goes is left alone and
+ * reported.
  *
- * Not touched: ~/.claude/skills, ~/.agents/skills, and project-level
- * `skills` CLI installs. Update those as INSTALL.md's "One skill" section shows.
+ * A skill is retired when the release archives it under skills/deprecated/, or
+ * when the `skills` CLI global lock records it as installed from
+ * bostonaholic/skills and the release no longer ships it. The lock is
+ * $XDG_STATE_HOME/skills/.skill-lock.json, or ~/.agents/.skill-lock.json when
+ * XDG_STATE_HOME is unset, the path the CLI itself reads.
  *
- * Environment: HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, CLAUDE_CONFIG_DIR, and
- * CODEX_HOME locate the installs. UPDATING_BOSTONAHOLIC_SKILLS_SOURCE
+ *   skills-cli     the lock lists a retired skill: each real copy in
+ *                  ~/.agents/skills is copied to the backup directory, then
+ *                  `npx -y skills@<pinned> remove -g -y <names>` removes the
+ *                  copies, the agent links, and the lock entries
+ *
+ * Not touched otherwise: current skills in ~/.claude/skills and
+ * ~/.agents/skills, and project-level `skills` CLI installs. Update those as
+ * INSTALL.md's "One skill" section shows.
+ *
+ * Environment: HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, XDG_STATE_HOME,
+ * CLAUDE_CONFIG_DIR, and CODEX_HOME locate the installs. UPDATING_BOSTONAHOLIC_SKILLS_SOURCE
  * replaces the release repository (a URL or path), for tests only.
  *
  * Stdout, `plan`: the release tag, the installs found, one numbered step per
@@ -109,6 +122,10 @@ const USAGE = `${SCRIPT}: usage: ${SCRIPT} plan | ${SCRIPT} apply <plan-id>\n`;
 const DEFAULT_SOURCE = "https://github.com/bostonaholic/skills.git";
 const PLUGIN_ID = "bostonaholic@skills";
 const MARKETPLACE = "skills";
+// The `skills` CLI records this as the source of each skill it installed from the collection.
+const LOCK_SOURCE = "bostonaholic/skills";
+// Pinned: the plugin directory checklist rejects an unpinned npx launcher.
+const SKILLS_CLI = "skills@1.8.1";
 const EXIT = { ok: 0, failure: 1, usage: 2, changed: 3, blocked: 4 };
 // Files a file manager adds to a skill directory; they are not part of a copy.
 const IGNORED_ENTRIES = new Set([".DS_Store"]);
@@ -148,6 +165,10 @@ function environment() {
       },
     ],
     cursorPluginDirectory: join(home, ".cursor/plugins/local/bostonaholic"),
+    skillsLock: process.env.XDG_STATE_HOME
+      ? join(process.env.XDG_STATE_HOME, "skills/.skill-lock.json")
+      : join(home, ".agents/.skill-lock.json"),
+    skillsCliDirectory: join(home, ".agents/skills"),
   };
 }
 
@@ -327,7 +348,25 @@ function copyDiffers(target, releaseSkill, entries) {
 // Inspection
 
 function newPlan(release) {
-  return { release, found: [], steps: [], blockers: [], left: [] };
+  return { release, found: [], steps: [], blockers: [], left: [], lockNames: [] };
+}
+
+// Names the `skills` CLI global lock records as installed from the collection.
+function lockedCollectionNames(context) {
+  const lock = readJsonIfPresent(context.skillsLock);
+  return Object.entries(lock?.skills ?? {})
+    .filter(([, entry]) => entry?.source === LOCK_SOURCE)
+    .map(([name]) => name)
+    .sort();
+}
+
+function lockRetired(plan) {
+  const shipped = new Set(plan.release.skills.map((skill) => skill.name));
+  return plan.lockNames.filter((name) => !shipped.has(name));
+}
+
+function retiredNames(plan) {
+  return [...new Set([...plan.release.retired, ...lockRetired(plan)])].sort();
 }
 
 function claudeInstallEvidence(context) {
@@ -526,30 +565,70 @@ function inspectCopyHarness(harness, plan) {
       replacements.push(skill.name);
     }
   }
-  for (const name of plan.release.retired) {
-    if (!lstatIfPresent(join(harness.directory, name))) continue;
+  const retirements = [];
+  for (const name of retiredNames(plan)) {
+    const target = join(harness.directory, name);
+    const present = lstatIfPresent(target);
+    if (!present) continue;
     holdsCollection = true;
-    plan.left.push(
-      `${join(harness.directory, name)}: retired from the collection; delete it if unwanted`,
-    );
+    if (present.isDirectory() && existsSync(join(target, "SKILL.md"))) {
+      retirements.push(name);
+    } else {
+      plan.left.push(
+        `${target}: retired from the collection, but not a skill copy; delete it if unwanted`,
+      );
+    }
   }
   if (holdsCollection) plan.found.push(harness.name);
-  if (replacements.length === 0) return;
+  if (replacements.length > 0) {
+    plan.steps.push({
+      harness: harness.name,
+      gap: `${replacements.length} of ${plan.release.skills.length} collection copies in ${harness.directory} differ from ${plan.release.tag}`,
+      replace: { directory: harness.directory, entries: harness.entries, names: replacements },
+      lines: [
+        `replace each; the old copy moves to the backup directory: ${replacements.join(", ")}`,
+      ],
+    });
+  }
+  if (retirements.length > 0) {
+    plan.steps.push({
+      harness: harness.name,
+      gap: `${harness.directory} holds skills retired from the collection`,
+      retire: { directory: harness.directory, names: retirements },
+      lines: [`move each to the backup directory: ${retirements.join(", ")}`],
+    });
+  }
+}
+
+// Runs after the copy harnesses, so their copies reach the backup before the CLI deletes them.
+function inspectSkillsCli(context, plan) {
+  if (plan.lockNames.length === 0) return;
+  plan.found.push("skills-cli");
+  const names = lockRetired(plan);
+  if (names.length === 0) return;
+  if (!onPath("npx")) {
+    plan.blockers.push(
+      `skills-cli: ${context.skillsLock} lists retired skills (${names.join(", ")}) but npx is not on PATH`,
+    );
+    return;
+  }
   plan.steps.push({
-    harness: harness.name,
-    gap: `${replacements.length} of ${plan.release.skills.length} collection copies in ${harness.directory} differ from ${plan.release.tag}`,
-    replace: { directory: harness.directory, entries: harness.entries, names: replacements },
-    lines: [`replace each; the old copy moves to the backup directory: ${replacements.join(", ")}`],
+    harness: "skills-cli",
+    gap: `${context.skillsLock} lists skills retired from the collection`,
+    backup: { directory: context.skillsCliDirectory, names },
+    commands: [["npx", "-y", SKILLS_CLI, "remove", "-g", "-y", ...names]],
   });
 }
 
 function buildPlan(context, parent) {
   const tag = latestTag(context.source);
   const plan = newPlan(cloneRelease(context.source, tag, parent));
+  plan.lockNames = lockedCollectionNames(context);
   inspectClaude(context, plan);
   inspectCodex(context, plan);
   inspectCursorPlugin(context, plan);
   for (const harness of context.copyHarnesses) inspectCopyHarness(harness, plan);
+  inspectSkillsCli(context, plan);
   const identity = JSON.stringify(
     plan.steps.map((step) => [step.harness, step.gap, stepLines(step)]),
   );
@@ -580,7 +659,7 @@ function renderPlan(context, plan) {
   if (plan.steps.length === 0 && plan.blockers.length === 0) lines.push("Nothing to do.");
   if (plan.steps.length > 0) {
     lines.push(
-      `  Backups of replaced copies go under ${join(context.backupsDirectory, "<UTC timestamp>")}`,
+      `  Backups of replaced and retired copies go under ${join(context.backupsDirectory, "<UTC timestamp>")}`,
     );
     lines.push("Steps, in order:");
     plan.steps.forEach((step, index) => {
@@ -651,6 +730,26 @@ function replaceCopy(plan, step, name, backupRoot) {
   }
 }
 
+function retireCopy(step, name, backupRoot) {
+  const target = join(step.retire.directory, name);
+  if (!lstatIfPresent(target)) return `already gone: ${target}`;
+  const backup = join(backupRoot, step.harness, name);
+  moveDirectory(target, backup);
+  return `retired ${target} (old copy: ${backup})`;
+}
+
+// Copies each real directory the step's command is about to delete into the backup directory.
+function backUpBeforeCommand(step, backupRoot) {
+  for (const name of step.backup.names) {
+    const target = join(step.backup.directory, name);
+    if (!lstatIfPresent(target)?.isDirectory()) continue;
+    const backup = join(backupRoot, step.harness, name);
+    mkdirSync(join(backup, ".."), { recursive: true });
+    cpSync(target, backup, { recursive: true, verbatimSymlinks: true });
+    process.stdout.write(`  backed up ${target} (copy: ${backup})\n`);
+  }
+}
+
 function runStep(context, plan, step, backupRoot) {
   if (context.dryRun) {
     for (const line of stepLines(step)) process.stdout.write(`  [dry run] ${line}\n`);
@@ -661,6 +760,12 @@ function runStep(context, plan, step, backupRoot) {
       process.stdout.write(`  ${replaceCopy(plan, step, name, backupRoot)}\n`);
     return;
   }
+  if (step.retire) {
+    for (const name of step.retire.names)
+      process.stdout.write(`  ${retireCopy(step, name, backupRoot)}\n`);
+    return;
+  }
+  if (step.backup) backUpBeforeCommand(step, backupRoot);
   for (const command of step.commands) {
     process.stdout.write(`  $ ${commandText(command)}\n`);
     const result = spawnSync(command[0], command.slice(1), { stdio: "inherit" });

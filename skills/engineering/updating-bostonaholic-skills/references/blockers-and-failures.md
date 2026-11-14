@@ -40,6 +40,9 @@ Nothing runs while any blocker stands, in any harness.
   and clone again per INSTALL.md. A clone already at or past the release tag is
   never checked for these. The pull follows the clone's own branch, so it can
   land past the release tag.
+- **`skills-cli` ... `npx is not on PATH`**: the `skills` CLI lock lists a
+  retired skill, and its removal needs `npx`. Put Node's `npx` on PATH, or run
+  the `skills remove -g` command by hand and re-plan.
 
 ## Failed steps
 
@@ -56,13 +59,17 @@ appears in it.
   install linked into `~/.cursor/skills`. Update it as INSTALL.md's "One skill" section shows.
   A real directory under a collection name is refreshed, whatever installed it.
 - A directory with no `SKILL.md` under a collection name.
-- A skill the collection has retired. Delete it by hand if unwanted.
+- A retired skill name that is a symlink or file, or a directory with no
+  `SKILL.md`. Delete it by hand if unwanted.
 - A Claude Code or Codex listing that failed where no install is shown.
 - `bostonaholic@skills` installed in Claude Code at project or local scope.
   Update it with the `claude plugin update` command the line shows.
 
 ## Backups
 
-Each replaced copy moves to
-`${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>`.
-To undo one, move it back over the new copy. The script never prunes backups.
+Each replaced or retired copy moves to
+`${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>`,
+and each `~/.agents/skills` copy the `skills` CLI removes is copied to
+`<UTC timestamp>/skills-cli/<name>` first. To undo one, move it back over the
+new copy; a restored `skills-cli` copy also needs `skills add` to return to the
+lock. The script never prunes backups.
