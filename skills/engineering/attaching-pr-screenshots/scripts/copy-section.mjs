@@ -26,7 +26,8 @@
  *
  *   0  the target body was written
  *   1  refused: stderr says `refused: <reason>`. The result carries no
- *      section, `resolve-pr.sh` refused the target, the splice refused, or
+ *      section, `resolve-pr.sh` refused the target (its stderr comes
+ *      first), the splice refused, or
  *      another writer changed the body between the read and the write. The
  *      target body is byte-identical
  *   2  fault: wrong usage, an unreadable or malformed result file, or a
@@ -110,10 +111,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   });
   if (resolved.error) fault(`resolve-pr.sh could not start: ${resolved.error.message}`);
   if (resolved.status !== 0) {
-    // resolve-pr.sh ends its own stderr with its pointer; the reason line comes first.
-    const reason = resolved.stderr.split("\n").find((line) => line && !line.startsWith("see "));
-    if (resolved.status === 1) refuse(reason ?? "resolve-pr.sh refused the target");
-    fault(reason ?? `resolve-pr.sh exited ${resolved.status}`);
+    forward(resolved.stderr);
+    if (resolved.status === 1) refuse(`resolve-pr.sh refused the target ${target}`);
+    fault(`resolve-pr.sh exited ${resolved.status} on the target ${target}`);
   }
   const value = (name) => readFileSync(join(runDir, name), "utf8").trim();
   const number = value("number");
