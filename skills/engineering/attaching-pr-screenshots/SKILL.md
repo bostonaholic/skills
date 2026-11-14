@@ -97,5 +97,6 @@ With `--copy-from <result.json>`, follow [copy mode](references/copy-mode.md) in
    ```
 
    It prints `outcome <value>`, plus `failed <assertion>` on exit 1
-   (`unverified`): never retry, rewrite, or revert the body. Report the outcome
-   and each failure.
+   (`unverified`): never retry, rewrite, or revert the body. Report the outcome,
+   each failure, and the absolute path of `$RUN_DIR/result.json`, which
+   `--copy-from` reads.
