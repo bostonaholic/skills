@@ -16,7 +16,9 @@ levels.
    container.
 3. Components: the major groupings inside each container, usually top-level
    packages, namespaces, or feature directories. Every code element belongs to
-   exactly one component.
+   exactly one component. A file's same-named directory that holds only types
+   split out of it, such as its error classes, stays in that file's component,
+   so splitting a file never creates a component.
 4. Code: one element per module or file; use classes when the language keeps
    one class per file or the user asks. Keep the code level under 2,000
    elements, since the browser layout slows past that: model at file level, or
