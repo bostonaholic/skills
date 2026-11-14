@@ -58,6 +58,7 @@
     "./skills/engineering/visualizing-codebases",
     "./skills/engineering/watching-authored-prs",
     "./skills/engineering/watching-reviewed-prs",
+    "./skills/engineering/writing-commit-messages",
     "./skills/engineering/writing-no-comments",
     "./skills/engineering/writing-no-tests",
     "./skills/engineering/writing-playbooks",
