@@ -178,9 +178,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const json = JSON.parse(pull.stdout);
     let html = typeof json.body_html === "string" ? json.body_html : "";
     if (html === "") {
+      // Render the stored body, never `spliced.body`: an edit that did not persist must fail.
+      const text = typeof json.body === "string" ? json.body : "";
       const rendered = api(
         ["--method", "POST", "markdown", "--input", "-"],
-        JSON.stringify({ text: spliced.body, mode: "gfm", context: `${owner}/${repo}` }),
+        JSON.stringify({ text, mode: "gfm", context: `${owner}/${repo}` }),
       );
       if (rendered.status !== 0) throw new Error("render failed");
       html = rendered.stdout;
