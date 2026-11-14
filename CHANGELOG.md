@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `updating-bostonaholic-skills` retires skills the collection no longer ships: it moves their copies to the backup directory and removes their global `skills` CLI installs, instead of only reporting them. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.97.0] - 2026-11-13
 
 ### Fixed

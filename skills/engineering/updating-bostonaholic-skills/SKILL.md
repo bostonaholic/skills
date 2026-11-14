@@ -18,14 +18,21 @@ skill to a copy directory that did not hold it.
 - **Confirm once.** Show the whole plan. No answer is no change.
 - **Apply only the confirmed id.** A changed plan exits 3 and runs nothing.
 - **Stop at blockers.** Exit 4 means a harness needs the user's action first.
-- **Never delete a skill.** A retired or unrecognized copy is only reported.
+- **Never delete a skill without a backup.** A retired copy moves to the
+  backup directory; an unrecognized copy is only reported.
 - **Refreshed:** the Claude Code and Codex plugins, the Cursor plugin clone
   (`git pull --ff-only` on its own branch, not the release tag), and any
   collection-named real copy in `~/.gemini/antigravity-cli/skills`,
   `${XDG_CONFIG_HOME:-~/.config}/opencode/skills`, `~/.cursor/skills`, and
   `~/agent-data/workflows`, whatever installed it. Each old copy is backed up.
-- **Not touched:** `~/.claude/skills`, `~/.agents/skills`, and project-level
-  `skills` CLI installs. Point the user at the update command in INSTALL.md's "One skill" section.
+- **Retired:** a skill archived in the release, or recorded in the `skills` CLI
+  global lock as installed from `bostonaholic/skills` but no longer shipped. Its
+  copies in those directories move to the backup directory, and the pinned
+  `skills` CLI removes its global install, links, and lock entry after backing
+  up `~/.agents/skills/<name>`.
+- **Not touched:** current skills in `~/.claude/skills` and `~/.agents/skills`,
+  and project-level `skills` CLI installs. Point the user at the update command
+  in INSTALL.md's "One skill" section.
 
 ## Steps
 
