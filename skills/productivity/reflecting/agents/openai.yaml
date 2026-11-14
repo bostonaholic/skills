@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reflecting"
+  short_description: "Mine a session or named sources for durable learnings"
+  default_prompt: "Use $reflecting to reflect on this session and propose approval-gated changes."

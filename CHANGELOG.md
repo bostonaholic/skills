@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Rename `running-retros` to `reflecting`; it starts when you say "reflect" or "reflect on ...", and a copy install keeps the old directory until you delete it. [#205](https://github.com/bostonaholic/skills/pull/205)
+
 ## [0.100.0] - 2026-11-14
 
 ### Fixed
