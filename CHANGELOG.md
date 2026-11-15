@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.104.0] - 2026-11-15
+
+### Added
+
+- Add testing-the-premise, which writes down the premise that repeated failed fixes share and tests it with a rerunnable observation before the next fix. [#204](https://github.com/bostonaholic/skills/pull/204)
+- Add scripting-the-work, which builds a codemod, script, generator, query, or check that does or proves non-trivial work instead of hand edits. [#204](https://github.com/bostonaholic/skills/pull/204)
+
 ## [0.103.0] - 2026-11-15
 
 ### Changed
@@ -1245,5 +1252,7 @@
 
 [0.102.0]: https://github.com/bostonaholic/skills/compare/v0.101.0...v0.102.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.103.0...HEAD
 [0.103.0]: https://github.com/bostonaholic/skills/compare/v0.102.0...v0.103.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.104.0...HEAD
+[0.104.0]: https://github.com/bostonaholic/skills/compare/v0.103.0...v0.104.0

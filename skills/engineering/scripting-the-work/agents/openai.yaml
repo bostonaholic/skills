@@ -1,0 +1,6 @@
+interface:
+  display_name: "Scripting the Work"
+  short_description: "Build a rerunnable tool that does or proves the work"
+  default_prompt: "Use $scripting-the-work to build a codemod, script, or check that does or proves this work instead of editing by hand."
+policy:
+  allow_implicit_invocation: false
