@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.105.0] - 2026-11-15
+
+### Added
+
+- `opening-prs` opens a draft PR for the current branch, or refreshes its open PR's body, and refuses before any push on the default branch, a `gh stack` layer, or a branch that heads two open PRs. [#203](https://github.com/bostonaholic/skills/pull/203)
+- `updating-changelogs` adds user-facing bullets under `## [Unreleased]` for the commits since the last release and skips changes the section already covers. [#203](https://github.com/bostonaholic/skills/pull/203)
+- `writing-commit-messages` writes Conventional Commits messages with a 50/72 layout and one logical change per commit, and keeps any subject, type, or body line the caller fixes. [#203](https://github.com/bostonaholic/skills/pull/203)
+- `attaching-pr-screenshots` takes `--copy-from <result.json>` to copy a Screenshots section that an earlier run verified into another PR without uploading again. [#203](https://github.com/bostonaholic/skills/pull/203)
+
+### Changed
+
+- `opening-prs` and `stacking-prs` follow the same PR body rules, so both write PR numbers as full links and build the same Stack table. [#203](https://github.com/bostonaholic/skills/pull/203)
+
 ## [0.104.0] - 2026-11-15
 
 ### Added
@@ -1254,5 +1267,7 @@
 
 [0.103.0]: https://github.com/bostonaholic/skills/compare/v0.102.0...v0.103.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.104.0...HEAD
 [0.104.0]: https://github.com/bostonaholic/skills/compare/v0.103.0...v0.104.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.105.0...HEAD
+[0.105.0]: https://github.com/bostonaholic/skills/compare/v0.104.0...v0.105.0

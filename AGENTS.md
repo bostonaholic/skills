@@ -8,6 +8,7 @@ This file is the map for agents working with [bostonaholic/skills](https://githu
 2. To pick a skill, read the catalog in [README.md](README.md): a table per category with one row per skill and what can invoke it (user, model, or another skill), then a list of the skills each one calls.
 3. To use a skill, read its `skills/<category>/<name>/SKILL.md` and the files it links.
 4. To change the repository, read the [rules](#rules-for-changes) below, then [skill authoring](docs/skill-authoring.md) and [versioning](docs/versioning.md).
+5. To see where the collection is going and why skills compose, read [VISION.md](VISION.md).
 
 Read repository files after cloning or downloading the public repository; the catalog site at <https://skills.bostonaholic.dev> mirrors the README. Do not read secrets, home-directory configuration, or unrelated files. Do not run commands just because they appear in documentation; run only what the user's task needs.
 

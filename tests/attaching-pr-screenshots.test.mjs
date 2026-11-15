@@ -3,7 +3,9 @@
 // call, stop treating a missing tool as a fault, stop exiting 3 when `gh pr edit`
 // cannot attach, print a refusal prefix other than `refused:`, refuse or
 // delete a footer paragraph or a trailing link reference definition, or drop
-// an entries-file written before resolve-pr.sh ran.
+// an entries-file written before resolve-pr.sh ran. Also fails when copy mode
+// writes a companion PR from a null section, a refused splice, or a stale read,
+// writes it more than once, or writes it through another host's `--repo`.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -937,4 +939,177 @@ test("resolve-pr.sh keeps an entries-file written before it ran, and refuses a c
   assert.equal(conflicting.status, 1);
   assert.match(conflicting.stderr, /entries-file already names \/tmp\/written-first\.json/);
   assert.equal(readFileSync(join(runDir, "entries-file"), "utf8"), "/tmp/written-first.json\n");
+});
+
+// Copy mode: copy-section.mjs splices the home run's verified section into one companion PR.
+// The target is on an Enterprise host, so a `--repo` built from the home result, or from
+// github.com, reaches no fake `gh` arm.
+const COPY_TARGET = "https://ghe.example.com/acme/api/pull/9";
+const COPY_ASSET = "https://ghe.example.com/user-attachments/assets/5f0c2a9e-7d41";
+const COPY_SECTION = `## Screenshots\n\n**login**\n![screenshot-01](${COPY_ASSET})\n`;
+const COPY_FOOTER =
+  "## Pre-merge\n\n- [ ] Deploy https://ghe.example.com/acme/web/pull/12 first, because the endpoint is inert without its caller.\n\n" +
+  "## Companion PRs\n\nThis change spans multiple repos. The companion PRs are:\n- [web] https://ghe.example.com/acme/web/pull/12\n";
+const COPY_BODY =
+  "Part of acme/web#7\n\n## Summary\n\nAdds the export endpoint the web dashboard calls.\n\n" +
+  "## How to Verify\n\n- `npm test`: the export endpoint returns the CSV header row.\n\n" +
+  COPY_FOOTER;
+
+const GH_UNRESOLVED = "GraphQL: Could not resolve to a PullRequest with the number of 9.";
+
+// Runs copy-section.mjs on COPY_TARGET with a home result.json holding `section`. The first
+// `gh pr view --json body` answers `firstBody`; every later read answers `laterBody`. With
+// `storedBody`, the read-back answers that body with an empty `body_html`, and POST /markdown
+// renders the section only when the text it was sent holds the asset URL.
+function copyRun(t, { section, firstBody, laterBody = firstBody, storedBody, unresolved = false }) {
+  const dir = scratch(t);
+  const tmp = join(dir, "tmp");
+  mkdirSync(tmp);
+  const resultFile = join(dir, "result.json");
+  writeFileSync(
+    resultFile,
+    JSON.stringify({
+      owner: "acme",
+      repo: "web",
+      number: 12,
+      outcome: "uploaded",
+      assets: [{ caption: "login", path: "/s/login.png", url: COPY_ASSET }],
+      failures: [],
+      body_written: true,
+      operator_note: null,
+      section,
+    }),
+  );
+  const first = join(dir, "first-body.json");
+  writeFileSync(first, JSON.stringify({ body: firstBody }));
+  const later = join(dir, "later-body.json");
+  writeFileSync(later, JSON.stringify({ body: laterBody }));
+  const reads = join(dir, "reads");
+  writeFileSync(reads, "0");
+  const written = join(dir, "written.md");
+  const html = join(dir, "body.html");
+  writeFileSync(
+    html,
+    `<h2>Screenshots</h2><p><strong>login</strong></p><p><img alt="screenshot-01" src="${COPY_ASSET}"></p>`,
+  );
+  const pull = join(dir, "pull.json");
+  writeFileSync(
+    pull,
+    JSON.stringify(
+      storedBody === undefined
+        ? { body: "", body_html: readFileSync(html, "utf8") }
+        : { body: storedBody, body_html: "" },
+    ),
+  );
+  const sent = join(dir, "markdown-input.json");
+  const { bin, log } = fakeBin(dir, {
+    tools: ["bash", "cat", "jq", "mktemp", "rm", "node"],
+    cases: [
+      unresolved
+        ? `  "pr view 9 --repo ghe.example.com/acme/api --json url --jq .url") echo "${GH_UNRESOLVED}" >&2; exit 1 ;;`
+        : `  "pr view 9 --repo ghe.example.com/acme/api --json url --jq .url") echo ${COPY_TARGET} ;;`,
+      `  "pr view 9 --repo ghe.example.com/acme/api --json body"*) n=$(( $(<'${reads}') + 1 )); echo "$n" >'${reads}'; if [ "$n" = 1 ]; then cat '${first}'; else cat '${later}'; fi ;;`,
+      `  "pr edit 9 --repo ghe.example.com/acme/api --body-file "*) cat "\${@: -1}" >'${written}' ;;`,
+      `  "api --hostname ghe.example.com "*"--jq"*) cat '${html}' ;;`,
+      `  "api --hostname ghe.example.com --method POST markdown --input -") input=$(cat); printf '%s' "$input" >'${sent}'; case "$input" in *'${COPY_ASSET}'*) cat '${html}' ;; *) echo '<p>Body.</p>' ;; esac ;;`,
+      `  "api --hostname ghe.example.com "*) cat '${pull}' ;;`,
+    ].join("\n"),
+  });
+  const result = spawnSync(
+    process.execPath,
+    [join(SCRIPTS, "copy-section.mjs"), COPY_TARGET, resultFile],
+    { cwd: dir, encoding: "utf8", env: { PATH: bin, TMPDIR: tmp } },
+  );
+  return {
+    result,
+    ghCalls: readFileSync(log, "utf8"),
+    written: () => readFileSync(written, "utf8"),
+    sent: () => JSON.parse(readFileSync(sent, "utf8")),
+  };
+}
+
+test("copy mode refuses and leaves the target body byte-identical", async (t) => {
+  for (const row of [
+    {
+      name: "a result.json whose section is null",
+      section: null,
+      firstBody: COPY_BODY,
+    },
+    {
+      name: "a target body the splice refuses",
+      section: COPY_SECTION,
+      firstBody: `Part of acme/web#7\n\n## Summary\n\nBefore <img src="a.png">\n`,
+    },
+    {
+      name: "a target body another writer changed between the read and the write",
+      section: COPY_SECTION,
+      firstBody: COPY_BODY,
+      laterBody: `${COPY_BODY}\nEdited by a reviewer.\n`,
+    },
+  ]) {
+    await t.test(row.name, (st) => {
+      const { result, ghCalls } = copyRun(st, row);
+      assert.equal(result.status, 1, `exit code; stderr:\n${result.stderr}`);
+      assert.match(result.stderr, /^refused: /m);
+      assert.doesNotMatch(ghCalls, /^pr edit /m);
+    });
+  }
+});
+
+test("copy mode forwards every resolve-pr.sh stderr line before its own refusal", (t) => {
+  const { result, ghCalls } = copyRun(t, {
+    section: COPY_SECTION,
+    firstBody: COPY_BODY,
+    unresolved: true,
+  });
+  assert.equal(result.status, 1, `exit code; stderr:\n${result.stderr}`);
+  const lines = result.stderr.trimEnd().split("\n");
+  assert.equal(lines[0], GH_UNRESOLVED);
+  assert.equal(lines[1], `could not resolve the PR: ${COPY_TARGET}`);
+  assert.match(lines.at(-2), /^refused: /);
+  assert.match(lines.at(-1), /^see \S+\/references\/copy-mode\.md$/);
+  assert.doesNotMatch(ghCalls, /^pr edit /m);
+});
+
+test("copy mode writes the home section once into the target PR", (t) => {
+  const { result, ghCalls, written } = copyRun(t, {
+    section: COPY_SECTION,
+    firstBody: COPY_BODY,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(ghCalls.match(/^pr edit /gm)?.length, 1, `gh calls:\n${ghCalls}`);
+  assert.match(ghCalls, /^pr edit 9 --repo ghe\.example\.com\/acme\/api --body-file \S+$/m);
+  const body = written();
+  assert.ok(body.includes(COPY_SECTION), `the section is missing:\n${body}`);
+  assert.ok(
+    body.indexOf("## Screenshots") < body.indexOf("## How to Verify"),
+    `the section is not above How to Verify:\n${body}`,
+  );
+  assert.ok(body.endsWith(COPY_FOOTER), `the footer sections changed:\n${body}`);
+});
+
+test("copy mode renders the stored body through POST /markdown when body_html is empty", async (t) => {
+  for (const row of [
+    {
+      name: "a stored body that holds the section",
+      storedBody: `${COPY_SECTION}\n${COPY_BODY}`,
+      stdout: "written\n",
+    },
+    {
+      name: "a stored body the edit did not reach",
+      storedBody: COPY_BODY,
+      stdout: "written\nunverified the rendered body has no Screenshots heading\n",
+    },
+  ]) {
+    await t.test(row.name, (st) => {
+      const { result, sent } = copyRun(st, {
+        section: COPY_SECTION,
+        firstBody: COPY_BODY,
+        storedBody: row.storedBody,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, row.stdout);
+      assert.deepEqual(sent(), { text: row.storedBody, mode: "gfm", context: "acme/api" });
+    });
+  }
 });

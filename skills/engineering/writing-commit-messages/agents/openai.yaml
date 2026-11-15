@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Commit Messages"
+  short_description: "Write a 50/72 Conventional Commits message"
+  default_prompt: "Use $writing-commit-messages to write the commit message for the staged changes."
