@@ -1,7 +1,6 @@
 ---
 name: testing-the-premise
-description: Writes down the premise that repeated failed fixes share and tests it directly before any further fix that assumes it. Use when the user explicitly asks to test or attack the premise after two or more fixes fail the same check. Never infer from one failed fix. Not for a first diagnosis; use fixing-root-causes.
-disable-model-invocation: true
+description: Writes down the premise that repeated failed fixes share and tests it before any further fix that assumes it. Use when the user says "test the premise", or when a second fix to the same failure has not worked, such as a limit, timeout, pool size, or retry count raised again while the error persists. Never infer from one failed fix. Not for a first diagnosis; use fixing-root-causes.
 ---
 
 # Test the Premise
