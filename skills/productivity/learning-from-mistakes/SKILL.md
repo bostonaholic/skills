@@ -1,6 +1,6 @@
 ---
 name: learning-from-mistakes
-description: Codifies the latest correction or mistake in the conversation as a short imperative rule in the project or global CLAUDE.md or AGENTS.md, after the user approves it. Use when the user says "learn from this mistake", or when the user asks to learn from a mistake, remember a lesson for next time, add a rule to CLAUDE.md, or not repeat a behavior. Not for a whole session; use running-retros.
+description: Codifies the latest correction or mistake in the conversation as a short imperative rule in the project or global CLAUDE.md or AGENTS.md and, for a project lesson, proposes the highest check that makes the mistake impossible, after the user approves. Use when the user says "learn from this mistake", or when the user asks to learn from a mistake, remember a lesson for next time, add a rule to CLAUDE.md, make a mistake impossible, or not repeat a behavior. Not for a whole session; use running-retros.
 ---
 
 # Learn From Mistake
@@ -19,9 +19,19 @@ If no correction is clear, ask which one to codify.
   On exit 2 (no repository) or 69 (no git), ask where to write. In another
   host, or on exit 3, ask which file it reads. On exit 4, report the loop.
   Exit 1 is a usage error: fix the arguments and rerun.
-- **Overlap**: if the rule already exists, stop and say where. If a related
-  rule exists, refine it instead of adding a duplicate.
+- **Enforcement**: nothing fails when an agent skips a rule. For a project
+  lesson about the repository's code or tooling, also propose the highest
+  level that stops the mistake: architecture (one owner, one supported way,
+  delete the old way), then types, then a lint or CI check whose error names
+  what to use instead, then a test. If the pattern is already common, fail only
+  when a change adds more. Prove the check fails on the real mistake. End the
+  rule with `Enforced by <check>.`; with no check, say why each level fails.
+- **Overlap**: if the rule exists and a check already catches the mistake,
+  stop and name its file and section. If it exists with nothing enforcing it,
+  the mistake is a repeat: propose the check instead of a second rule. If a
+  related rule exists, refine it instead of adding a duplicate.
 - **Approval**: show the rule (or the old and new text of a refined rule), the
   file path, and the section: an existing section that fits, or else a new
-  `## Learned Rules` section. Never propose any other new heading. Write nothing
-  until the user approves.
+  `## Learned Rules` section. Never propose any other new heading. Show any
+  proposed check as its files and the command that proves it fails. Write
+  nothing until the user approves.
