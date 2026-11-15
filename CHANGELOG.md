@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.105.0] - 2026-11-15
+
 ### Added
 
 - `opening-prs` opens a draft PR for the current branch, or refreshes its open PR's body, and refuses before any push on the default branch, a `gh stack` layer, or a branch that heads two open PRs. [#203](https://github.com/bostonaholic/skills/pull/203)
@@ -1265,5 +1267,7 @@
 
 [0.103.0]: https://github.com/bostonaholic/skills/compare/v0.102.0...v0.103.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.104.0...HEAD
 [0.104.0]: https://github.com/bostonaholic/skills/compare/v0.103.0...v0.104.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.105.0...HEAD
+[0.105.0]: https://github.com/bostonaholic/skills/compare/v0.104.0...v0.105.0
