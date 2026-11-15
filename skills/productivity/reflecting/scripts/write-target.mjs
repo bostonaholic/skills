@@ -47,7 +47,7 @@ export function isValidSkillName(name) {
 }
 
 /**
- * A repo-relative file path a retro prompt may target, such as
+ * A repo-relative file path a reflecting prompt may target, such as
  * `CODING_STANDARDS.md` or `docs/standards/naming.md`. Plain segments of
  * letters, digits, `.`, `_`, and `-` only: no absolute path, no `..` or `.`
  * segment, no empty segment, and no leading `-` that a command could read as

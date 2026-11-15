@@ -1,11 +1,11 @@
 ---
-name: running-retros
-description: Mines a session transcript, past agent sessions, or named sources such as PR review comments for durable learnings, then proposes approval-gated edits to skills, AGENTS.md, or docs and tracker issues. Use when the user says "retro", or when the user explicitly asks for a retrospective. Never infer from session end or friction.
+name: reflecting
+description: Mines a session transcript, past agent sessions, or named sources such as PR review comments for durable learnings, then proposes approval-gated edits to skills, AGENTS.md, or docs and tracker issues. Use when the user says "reflect" or "reflect on ...", or explicitly asks to reflect on a session or sources. Never infer from session end or friction.
 effort: high
-argument-hint: "[what to retro on]"
+argument-hint: "[what to reflect on]"
 ---
 
-# Running retros
+# Reflecting
 
 ## Rules for the whole run
 
@@ -24,7 +24,7 @@ argument-hint: "[what to retro on]"
 
 ## The prompt
 
-- A bare `/running-retros` mines this session.
+- A bare `/reflecting` mines this session.
 - The request may set the question (replacing the lenses with one
   prompt pass), the sources (default: this session's transcript), and the
   targets (default: any repository file the findings call for).

@@ -1,4 +1,4 @@
-// Fails when the retro write-target guard cannot locate a skill nested one
+// Fails when the reflecting write-target guard cannot locate a skill nested one
 // category level down, guesses between same-named skills, lets a nested
 // target escape the repository, misses a copy under the other skills root, or
 // lets a name or path read through --name-file or --path-file skip validation.
@@ -11,9 +11,9 @@ import test from "node:test";
 import {
   resolveEditTarget,
   shadowedCopies,
-} from "../skills/productivity/running-retros/scripts/write-target.mjs";
+} from "../skills/productivity/reflecting/scripts/write-target.mjs";
 
-const SCRIPT = resolve("skills/productivity/running-retros/scripts/write-target.mjs");
+const SCRIPT = resolve("skills/productivity/reflecting/scripts/write-target.mjs");
 
 function scratchDir(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "write-target-")));

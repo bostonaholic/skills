@@ -168,8 +168,8 @@ export function detectHost(env) {
 
   const candidates = [];
   // CODEX_THREAD_ID names this thread's own rollout. CODEX_SESSION_ID names the
-  // root thread, which is the same file for the top-level session a user invokes
-  // retro from; the header check below rejects it when it is not.
+  // root thread, which is the same file for the top-level session a user
+  // reflects on; the header check below rejects it when it is not.
   if (codex) candidates.push({ host: "codex", sessionId: codexId });
   if (claude) candidates.push({ host: "claude-code", sessionId: claudeId || null });
   // OpenCode exports no session id into the shell, so the candidate carries

@@ -57,7 +57,7 @@ test("importing check-playbook.mjs through a symlinked directory has no side eff
 
 test("write-target.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
-    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "write-target.mjs"),
+    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "write-target.mjs"),
   );
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^usage: write-target\.mjs </);
@@ -65,7 +65,7 @@ test("write-target.mjs run through a symlinked directory reaches its usage error
 
 test("list-sessions.mjs run through a symlinked directory reaches its usage error", (t) => {
   const run = runScript(
-    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "list-sessions.mjs"),
+    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "list-sessions.mjs"),
   );
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^usage: list-sessions\.mjs </);
@@ -74,7 +74,7 @@ test("list-sessions.mjs run through a symlinked directory reaches its usage erro
 test("importing list-sessions.mjs through a symlinked directory has no side effects", (t) => {
   const run = importModule(
     t,
-    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "list-sessions.mjs"),
+    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "list-sessions.mjs"),
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
@@ -95,7 +95,7 @@ test("importing resolve-transcript.mjs through a symlinked directory has no side
 test("importing write-target.mjs through a symlinked directory has no side effects", (t) => {
   const run = importModule(
     t,
-    join(symlinkedDir(t, "skills/productivity/running-retros/scripts"), "write-target.mjs"),
+    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "write-target.mjs"),
   );
   assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
 });
