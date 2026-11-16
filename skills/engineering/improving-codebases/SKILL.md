@@ -1,6 +1,6 @@
 ---
 name: improving-codebases
-description: 'Sweeps a git repository with focused improvement lanes, starting with implicit state machines made explicit and checked in TLA+. Leaves edits uncommitted. Use when the user says "improve this codebase", or when asked to make implicit state machines explicit. Never infer from a request to review or explain code. Not for test value or complexity rankings; use auditing-tests or auditing-complexity.'
+description: 'Sweeps a git repository with focused improvement lanes: implicit state machines made explicit and checked in TLA+, and high-churn files refactored so the next change edits one place. Leaves edits uncommitted. Use when the user says "improve this codebase", or when asked to make implicit state machines explicit or to reduce churn in high-churn files. Never infer from a request to review or explain code. Not for test value or complexity rankings; use auditing-tests or auditing-complexity.'
 effort: high
 argument-hint: "[<path or subsystem> ...] [--out <dir>] [--env <NAME> ...]"
 ---
@@ -33,6 +33,9 @@ holds the brief format and the return every subagent owes, to each subagent.
 
 - [state-machines](references/lanes/state-machines.md): implicit state
   machines, each specced in TLA+ and checked with TLC.
+- [churn](references/lanes/churn.md): files that `churn.mjs` ranks highest
+  by recent commits, each refactored so the change that keeps editing it
+  lands in one place.
 
 ## Procedure
 
@@ -43,7 +46,7 @@ holds the brief format and the return every subagent owes, to each subagent.
    - Put vendored, generated, and build-output paths in `gaps` too, with the evidence as `reason`: a `linguist-vendored` or `linguist-generated` entry, a generated-code header, or a manifest or build config that names the path. A directory name alone is not evidence, and a path the user names stays in.
    - Split the rest by owner into groups of at most 40 files.
    - Create `<run>` with `mktemp -d`, outside the repository, and write the `report.json` stub there per the [report schema](references/report-schema.md). Take `scope.commit` from `git rev-parse HEAD`, and `scope.dirty` from `git status --porcelain --untracked-files=no`, because a tracked change can move cited lines. When `mktemp -d` cannot run, hold the report in this session for the reply.
-4. **Find.** Run each lane's `## Find` section on each group, in a fresh-context, read-only subagent, never a fork of this conversation, where available, otherwise inline. Give it the lane contract, the whole brief, the group's files, and the scope paths. Start at most 30 per lane; later groups go to `gaps` with the reason `fan-out limit`.
+4. **Find.** Run each lane's `## Find` section on each group, in a fresh-context, read-only subagent, never a fork of this conversation, where available, otherwise inline. Give it the lane contract, the whole brief, the group's id and files, the scope paths, and `<run>`. Start at most 30 per lane; later groups go to `gaps` with the reason `fan-out limit`.
    - Retry a malformed or `blocked` return once. A second failure puts the group under the lane's `failed` list with the reason.
    - A `partial` return keeps its candidates, and its group goes under `failed` with the reason.
 5. **Merge.** Within one lane, join candidates that cite one `subject` into one finding. Rank by evidence count, highest first, and break a tie by `subject` in byte order. The `id` is `<lane>/<n>`, where `<n>` is the rank. Drop a candidate with no in-scope evidence of a declared kind to a gap line that names its holder.
