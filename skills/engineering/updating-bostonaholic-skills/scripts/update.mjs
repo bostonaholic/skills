@@ -4,16 +4,16 @@
  * Updates every existing install of the bostonaholic skills collection on this
  * machine to the latest release tag, in every harness that already holds it.
  *
+ *     node "<skill-dir>/scripts/update.mjs" run
+ *     DRY_RUN=true node "<skill-dir>/scripts/update.mjs" run
  *     node "<skill-dir>/scripts/update.mjs" plan
- *     node "<skill-dir>/scripts/update.mjs" apply <plan-id>
- *     DRY_RUN=true node "<skill-dir>/scripts/update.mjs" apply <plan-id>
  *
- * `plan` changes nothing on the machine. It reads the latest `v*` tag of
- * https://github.com/bostonaholic/skills, shallow-clones that tag to a
- * temporary directory, inspects each harness, and prints the steps it would
- * run. `apply` reads every harness again and runs the steps only when that
- * plan has the id the user confirmed. With DRY_RUN=true it prints each
- * command and copy instead of running it.
+ * Both commands read the latest `v*` tag of https://github.com/bostonaholic/skills,
+ * shallow-clone that tag to a temporary directory, inspect each harness, and
+ * print the steps. `plan` stops there and changes nothing. `run` then runs
+ * every step without asking, deletes the backups directory, and inspects every
+ * harness again to verify nothing is left to do. With DRY_RUN=true, `run`
+ * prints each command, copy, and removal instead of running it.
  *
  * Harnesses, each inspected only when an install of the collection exists in
  * it. Nothing is ever installed into a harness that lacks the collection, and
@@ -53,31 +53,41 @@
  * replaced when it differs. The old copy moves to
  * ${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/<UTC timestamp>/<harness>/<name>,
  * and the new copy is staged beside the old one, then moved in whole. A symlink
- * or file where a collection skill goes, and a skill the collection has
- * retired, are left alone and reported.
+ * or file where a collection skill goes is left alone and reported.
  *
- * Not touched: ~/.claude/skills, ~/.agents/skills, and project-level
- * `skills` CLI installs. Update those as INSTALL.md's "One skill" section shows.
+ * Retired skills, the directories under the release's skills/deprecated, are
+ * removed from the four copy directories and from ${CLAUDE_CONFIG_DIR:-~/.claude}/skills
+ * and ~/.agents/skills: a real directory with a SKILL.md moves to the backup
+ * directory, and a symlink is unlinked without touching its target. A retired
+ * name that is a file, or a directory without a SKILL.md, is reported.
+ *
+ * After every step runs, `run` deletes the whole backups directory, earlier
+ * runs' backups included. A failed step keeps it and names it.
+ *
+ * Not refreshed: collection skills in ~/.claude/skills, ~/.agents/skills, and
+ * project-level `skills` CLI installs. Update those as INSTALL.md's "One
+ * skill" section shows.
  *
  * Environment: HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, CLAUDE_CONFIG_DIR, and
  * CODEX_HOME locate the installs. UPDATING_BOSTONAHOLIC_SKILLS_SOURCE
  * replaces the release repository (a URL or path), for tests only.
  *
- * Stdout, `plan`: the release tag, the installs found, one numbered step per
- * gap with each exact command, `Blocked` lines, `left:` lines, then
- * `Plan id: <40 hex>`. A plan with no steps and no blockers prints
- * `Nothing to do.` before its `left:` lines. `apply`: one `[n/total]` line per
- * step followed by its commands and replaced copies, then the backup
- * directory when a copy moved there.
+ * Stdout: the release tag, the installs found, one numbered step per gap with
+ * each exact command, `Blocked` lines, and `left:` lines. A plan with no steps
+ * and no blockers prints `Nothing to do.` before its `left:` lines. `run` then
+ * prints one `[n/total]` line per step followed by its commands, replaced
+ * copies, and removals, the deleted backups directory, and `Verified: nothing
+ * left to do.`
  *
  * Exit codes:
  *
- *   0   the plan printed, or every step ran
- *   1   a step failed (the steps not run are named), or the release or a
- *       harness could not be read; a failed tool's stderr comes first
- *   2   usage: wrong arguments or a malformed plan id. Nothing ran
- *   3   the plan changed since it was confirmed. Nothing ran
- *   4   the plan is blocked. `plan` prints the blockers; `apply` runs nothing
+ *   0   the plan printed, or every step ran and the second inspection found
+ *       nothing left
+ *   1   a step failed (the steps not run are named), a step is still planned
+ *       after the run, or the release or a harness could not be read; a
+ *       failed tool's stderr comes first
+ *   2   usage: wrong arguments. Nothing ran
+ *   4   the plan is blocked. Nothing ran
  */
 
 import { spawnSync } from "node:child_process";
@@ -104,12 +114,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SCRIPT = "update.mjs";
 const DOC_PATH = fileURLToPath(new URL("../references/blockers-and-failures.md", import.meta.url));
-const USAGE = `${SCRIPT}: usage: ${SCRIPT} plan | ${SCRIPT} apply <plan-id>\n`;
+const USAGE = `${SCRIPT}: usage: ${SCRIPT} run | ${SCRIPT} plan\n`;
 
 const DEFAULT_SOURCE = "https://github.com/bostonaholic/skills.git";
 const PLUGIN_ID = "bostonaholic@skills";
 const MARKETPLACE = "skills";
-const EXIT = { ok: 0, failure: 1, usage: 2, changed: 3, blocked: 4 };
+const EXIT = { ok: 0, failure: 1, usage: 2, blocked: 4 };
 // Files a file manager adds to a skill directory; they are not part of a copy.
 const IGNORED_ENTRIES = new Set([".DS_Store"]);
 
@@ -148,6 +158,15 @@ function environment() {
       },
     ],
     cursorPluginDirectory: join(home, ".cursor/plugins/local/bostonaholic"),
+    // Directories whose collection skills this script leaves to the `skills` CLI, but whose
+    // retired skills it removes.
+    retiredOnlyDirectories: [
+      {
+        name: "claude-skills",
+        directory: join(process.env.CLAUDE_CONFIG_DIR || join(home, ".claude"), "skills"),
+      },
+      { name: "agents-skills", directory: join(home, ".agents/skills") },
+    ],
   };
 }
 
@@ -526,13 +545,6 @@ function inspectCopyHarness(harness, plan) {
       replacements.push(skill.name);
     }
   }
-  for (const name of plan.release.retired) {
-    if (!lstatIfPresent(join(harness.directory, name))) continue;
-    holdsCollection = true;
-    plan.left.push(
-      `${join(harness.directory, name)}: retired from the collection; delete it if unwanted`,
-    );
-  }
   if (holdsCollection) plan.found.push(harness.name);
   if (replacements.length === 0) return;
   plan.steps.push({
@@ -543,18 +555,55 @@ function inspectCopyHarness(harness, plan) {
   });
 }
 
-function buildPlan(context, parent) {
-  const tag = latestTag(context.source);
-  const plan = newPlan(cloneRelease(context.source, tag, parent));
+function isDirectory(path) {
+  return statSync(path, { throwIfNoEntry: false })?.isDirectory() ?? false;
+}
+
+// Plans the removal of each retired skill in `directory`. A symlink is unlinked; its target is
+// left for the directory that holds it.
+function inspectRetired(name, directory, plan) {
+  if (!isDirectory(directory)) return;
+  const removals = [];
+  for (const retired of plan.release.retired) {
+    const target = join(directory, retired);
+    const present = lstatIfPresent(target);
+    if (!present) continue;
+    if (present.isSymbolicLink()) {
+      removals.push({ name: retired, link: true });
+    } else if (present.isDirectory() && existsSync(join(target, "SKILL.md"))) {
+      removals.push({ name: retired, link: false });
+    } else {
+      plan.left.push(`${target}: named like a retired skill but is not a skill copy`);
+    }
+  }
+  if (removals.length === 0) return;
+  plan.steps.push({
+    harness: name,
+    gap: `${removals.length} skills in ${directory} are retired from the collection`,
+    remove: { directory, removals },
+    lines: [
+      `remove each; a copy moves to the backup directory, a symlink is unlinked: ${removals.map((removal) => removal.name).join(", ")}`,
+    ],
+  });
+}
+
+function inspect(context, release) {
+  const plan = newPlan(release);
   inspectClaude(context, plan);
   inspectCodex(context, plan);
   inspectCursorPlugin(context, plan);
-  for (const harness of context.copyHarnesses) inspectCopyHarness(harness, plan);
-  const identity = JSON.stringify(
-    plan.steps.map((step) => [step.harness, step.gap, stepLines(step)]),
-  );
-  plan.id = createHash("sha1").update(`${tag}\n${identity}`).digest("hex");
+  for (const harness of context.copyHarnesses) {
+    inspectCopyHarness(harness, plan);
+    inspectRetired(harness.name, harness.directory, plan);
+  }
+  for (const { name, directory } of context.retiredOnlyDirectories) {
+    inspectRetired(name, directory, plan);
+  }
   return plan;
+}
+
+function buildPlan(context, parent) {
+  return inspect(context, cloneRelease(context.source, latestTag(context.source), parent));
 }
 
 // ---------------------------------------------------------------------------
@@ -566,7 +615,7 @@ function commandText(command) {
     .join(" ");
 }
 
-// What the plan shows and the id covers for a step: its exact commands, or its copy summary.
+// What the plan shows for a step: its exact commands, or its copy or removal summary.
 function stepLines(step) {
   return step.lines ?? step.commands.map(commandText);
 }
@@ -580,7 +629,7 @@ function renderPlan(context, plan) {
   if (plan.steps.length === 0 && plan.blockers.length === 0) lines.push("Nothing to do.");
   if (plan.steps.length > 0) {
     lines.push(
-      `  Backups of replaced copies go under ${join(context.backupsDirectory, "<UTC timestamp>")}`,
+      `  Replaced and removed copies go under ${join(context.backupsDirectory, "<UTC timestamp>")}, deleted once every step runs`,
     );
     lines.push("Steps, in order:");
     plan.steps.forEach((step, index) => {
@@ -593,7 +642,6 @@ function renderPlan(context, plan) {
     for (const blocker of plan.blockers) lines.push(`  - ${blocker}`);
   }
   for (const reason of plan.left) lines.push(`left: ${reason}`);
-  lines.push(`Plan id: ${plan.id}`);
   process.stdout.write(`${lines.join("\n")}\n`);
 }
 
@@ -651,9 +699,24 @@ function replaceCopy(plan, step, name, backupRoot) {
   }
 }
 
+function removeRetired(step, removal, backupRoot) {
+  const target = join(step.remove.directory, removal.name);
+  if (removal.link) {
+    rmSync(target);
+    return `unlinked ${target}`;
+  }
+  moveDirectory(target, join(backupRoot, step.harness, removal.name));
+  return `removed ${target}`;
+}
+
 function runStep(context, plan, step, backupRoot) {
   if (context.dryRun) {
     for (const line of stepLines(step)) process.stdout.write(`  [dry run] ${line}\n`);
+    return;
+  }
+  if (step.remove) {
+    for (const removal of step.remove.removals)
+      process.stdout.write(`  ${removeRetired(step, removal, backupRoot)}\n`);
     return;
   }
   if (step.replace) {
@@ -669,23 +732,33 @@ function runStep(context, plan, step, backupRoot) {
   }
 }
 
-function applyPlan(context, plan, confirmedId) {
-  if (confirmedId !== plan.id) {
-    process.stderr.write(
-      `${SCRIPT}: the plan changed since it was confirmed (now ${plan.id}); nothing ran\n`,
-    );
-    process.stderr.write(`see ${DOC_PATH}\n`);
-    return EXIT.changed;
+// Deletes this tool's backups directory, earlier runs' backups included.
+function deleteBackups(context) {
+  if (!existsSync(context.backupsDirectory)) return;
+  rmSync(context.backupsDirectory, { recursive: true, force: true });
+  process.stdout.write(`Deleted backups: ${context.backupsDirectory}\n`);
+}
+
+// Inspects every harness again with the same release; any step still planned is a failure.
+function verify(context, release) {
+  const again = inspect(context, release);
+  if (again.steps.length === 0 && again.blockers.length === 0) {
+    process.stdout.write("Verified: nothing left to do.\n");
+    return EXIT.ok;
   }
+  process.stderr.write(`${SCRIPT}: still planned after the run:\n`);
+  for (const step of again.steps) process.stderr.write(`  - [${step.harness}] ${step.gap}\n`);
+  for (const blocker of again.blockers) process.stderr.write(`  - blocked: ${blocker}\n`);
+  process.stderr.write(`see ${DOC_PATH}\n`);
+  return EXIT.failure;
+}
+
+function runPlan(context, plan) {
+  renderPlan(context, plan);
   if (plan.blockers.length > 0) {
-    process.stderr.write(`${SCRIPT}: blocked; nothing ran:\n`);
-    for (const blocker of plan.blockers) process.stderr.write(`  - ${blocker}\n`);
+    process.stderr.write(`${SCRIPT}: blocked; nothing ran\n`);
     process.stderr.write(`see ${DOC_PATH}\n`);
     return EXIT.blocked;
-  }
-  if (plan.steps.length === 0) {
-    process.stdout.write("Nothing to do.\n");
-    return EXIT.ok;
   }
   const backupRoot = join(context.backupsDirectory, utcTimestamp());
   const total = plan.steps.length;
@@ -706,18 +779,15 @@ function applyPlan(context, plan, confirmedId) {
       return EXIT.failure;
     }
   }
-  if (existsSync(backupRoot)) process.stdout.write(`Backups: ${backupRoot}\n`);
-  process.stdout.write("Done.\n");
-  return EXIT.ok;
+  if (context.dryRun) return EXIT.ok;
+  deleteBackups(context);
+  return verify(context, plan.release);
 }
 
 // ---------------------------------------------------------------------------
 
 function parseArguments(argv) {
-  if (argv.length === 1 && argv[0] === "plan") return { command: "plan" };
-  if (argv.length === 2 && argv[0] === "apply" && /^[0-9a-f]{40}$/.test(argv[1])) {
-    return { command: "apply", planId: argv[1] };
-  }
+  if (argv.length === 1 && (argv[0] === "plan" || argv[0] === "run")) return { command: argv[0] };
   return undefined;
 }
 
@@ -732,7 +802,7 @@ function main(argv) {
   try {
     const context = environment();
     const plan = buildPlan(context, parent);
-    if (parsed.command === "apply") return applyPlan(context, plan, parsed.planId);
+    if (parsed.command === "run") return runPlan(context, plan);
     renderPlan(context, plan);
     return plan.blockers.length > 0 ? EXIT.blocked : EXIT.ok;
   } catch (error) {

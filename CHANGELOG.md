@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- updating-bostonaholic-skills now updates in one step without asking for confirmation, then checks that nothing is left to update. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- updating-bostonaholic-skills now removes retired skill copies, including from `~/.claude/skills` and `~/.agents/skills`, and deletes its backups once every step has run. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+
 ## [0.89.0] - 2026-11-09
 
 ### Added

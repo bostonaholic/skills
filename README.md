@@ -133,7 +133,7 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 ### Local files outside the working repository
 
 - Reads: Claude Code and Codex session logs (`auditing-agent-token-usage`, `running-retros`, `writing-playbooks`), frog friction logs across a workspace (`summarizing-friction-logs`), global instruction files (`learning-from-mistakes`), and cache sizes (`freeing-disk-space`).
-- `updating-bostonaholic-skills` updates the plugin installs and skill copies of each harness after you confirm its plan. It backs up each old copy under `${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/`.
+- `updating-bostonaholic-skills` updates the plugin installs and skill copies of each harness without asking, and removes retired skill copies, including from `~/.claude/skills` and `~/.agents/skills`. It backs up each old copy under `${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/` during the run and deletes that directory once every step has run.
 - `configuring-zsh` edits zsh startup files and the dotfiles repository behind them.
 - `learning-from-mistakes` adds a rule to a project or global `CLAUDE.md` or `AGENTS.md` after you approve it.
 - `freeing-disk-space` deletes caches and build outputs, one approved deletion at a time.

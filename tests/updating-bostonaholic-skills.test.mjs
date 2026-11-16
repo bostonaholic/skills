@@ -1,8 +1,9 @@
 // Fails when update.mjs plans or runs a step for an install that is current or absent, adds a
-// skill to a copy directory that lacked it, deletes or overwrites a copy without a backup,
-// changes anything on a dry run or when the plan id differs, runs steps past a blocker or a
-// failed step, runs the Claude Code or Codex commands out of order, or leaves a failure
-// without a final `see` line. The release is a local bare repository read through file://, so
+// skill to a copy directory that lacked it, keeps a retired skill or follows a retired symlink
+// into its target, keeps backups after a run whose steps all ran or deletes them after a failed
+// step, changes anything on a dry run or under `plan`, runs steps past a blocker or a failed
+// step, runs the Claude Code or Codex commands out of order, reports success while a step is
+// still planned, or leaves a failure without a final `see` line. The release is a local bare repository read through file://, so
 // its clone is shallow. The machine is a fake HOME, and the Claude Code and Codex CLIs are fake
 // executables on PATH that log each call.
 import assert from "node:assert/strict";
@@ -29,7 +30,6 @@ const SCRIPT = resolve("skills/engineering/updating-bostonaholic-skills/scripts/
 const BASH = spawnSync("bash", ["-c", "command -v bash"], { encoding: "utf8" }).stdout.trim();
 const GIT = spawnSync("bash", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
 const CAT = spawnSync("bash", ["-c", "command -v cat"], { encoding: "utf8" }).stdout.trim();
-const ZERO_ID = "0".repeat(40);
 const GIT_ENV = {
   GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_SYSTEM: "/dev/null",
@@ -118,7 +118,8 @@ function writeExecutable(path, body) {
 
 // A machine with a fake HOME. `tools` has a `git` wrapper, so a CLI is on PATH only when the
 // test fakes it. A fake CLI logs its arguments to `log`, prints the listing file for
-// `plugin list`, and fails with exit 7 and "boom" when its arguments contain FAKE_FAIL.
+// `plugin list`, and fails with exit 7 and "boom" when its arguments contain FAKE_FAIL. Its
+// `plugin update` and `plugin add` swap in the listing at the release version unless `stuck`.
 function makeMachine(t, release) {
   const root = scratch(t);
   const machine = {
@@ -134,9 +135,11 @@ function makeMachine(t, release) {
   return machine;
 }
 
-function fakeCli(machine, name, listing, { failList = false } = {}) {
+function fakeCli(machine, name, listing, { failList = false, stuck = false } = {}) {
   const listingFile = join(machine.home, `${name}-listing.json`);
+  const updatedFile = join(machine.home, `${name}-listing-updated.json`);
   write(listingFile, JSON.stringify(listing));
+  write(updatedFile, JSON.stringify(listing).replaceAll('"1.1.0"', '"1.2.0"'));
   writeExecutable(
     join(machine.bin, name),
     `echo "${name} $*" >> "${machine.log}"
@@ -144,6 +147,7 @@ if [ "$1 $2" = "plugin list" ]; then
   ${failList ? 'echo "oops: listing broke" >&2; exit 1' : `${CAT} "${listingFile}"; exit 0`}
 fi
 case "$*" in *"$FAKE_FAIL"*) [ -n "$FAKE_FAIL" ] && { echo boom >&2; exit 7; } ;; esac
+case "$1 $2" in "plugin update"|"plugin add") ${stuck ? ":" : `${CAT} "${updatedFile}" > "${listingFile}"`} ;; esac
 exit 0
 `,
   );
@@ -175,11 +179,10 @@ function run(machine, args, env = {}) {
 }
 
 function plan(machine) {
-  const result = run(machine, ["plan"]);
-  return { ...result, id: /^Plan id: ([0-9a-f]{40})$/m.exec(result.stdout)?.[1] };
+  return run(machine, ["plan"]);
 }
 
-// Calls to the fake CLIs, without the listing reads that plan and apply make.
+// Calls to the fake CLIs, without their listing reads.
 function mutations(machine) {
   return readFileSync(machine.log, "utf8")
     .split("\n")
@@ -194,10 +197,16 @@ function copyDirectory(machine, harness) {
   }[harness];
 }
 
-function backupRoot(machine) {
-  const root = join(machine.home, ".local/share/updating-bostonaholic-skills/backups");
-  if (!existsSync(root)) return undefined;
-  return join(root, readdirSync(root)[0]);
+function lstatIfPresent(path) {
+  try {
+    return lstatSync(path);
+  } catch {
+    return undefined;
+  }
+}
+
+function backupsDirectory(machine) {
+  return join(machine.home, ".local/share/updating-bostonaholic-skills/backups");
 }
 
 function seeLine(stderr) {
@@ -209,7 +218,7 @@ function seeLine(stderr) {
 
 // ---------------------------------------------------------------------------
 
-test("plans nothing when every install is current, and apply runs nothing", (t) => {
+test("plans nothing when every install is current, and run changes nothing", (t) => {
   const machine = makeMachine(t, makeRelease());
   fakeCli(machine, "claude", claudeListing("1.2.0"));
   fakeCli(machine, "codex", codexListing("1.2.0"));
@@ -218,8 +227,9 @@ test("plans nothing when every install is current, and apply runs nothing", (t) 
   assert.match(result.stdout, /Latest release: v1\.2\.0/);
   assert.match(result.stdout, /^Nothing to do\.$/m);
   assert.doesNotMatch(result.stdout, /Steps, in order/);
-  const applied = run(machine, ["apply", result.id]);
-  assert.equal(applied.status, 0);
+  const applied = run(machine, ["run"]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.match(applied.stdout, /^Verified: nothing left to do\.$/m);
   assert.deepEqual(mutations(machine), []);
 });
 
@@ -241,7 +251,7 @@ test("plans and runs the Claude Code marketplace update before the plugin update
   );
   assert.match(result.stdout, /^left: claude: .* project scope/m);
   assert.deepEqual(mutations(machine), []);
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 0, applied.stderr);
   assert.match(applied.stdout, /\[1\/1\] \[claude\]/);
   assert.deepEqual(mutations(machine), [
@@ -255,7 +265,7 @@ test("plans and runs the Codex marketplace upgrade before adding the plugin", (t
   fakeCli(machine, "codex", codexListing("1.1.0"));
   const result = plan(machine);
   assert.match(result.stdout, /\[codex\] bostonaholic@skills 1\.1\.0 is behind v1\.2\.0/);
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 0, applied.stderr);
   assert.deepEqual(mutations(machine), [
     "codex plugin marketplace upgrade skills",
@@ -263,7 +273,7 @@ test("plans and runs the Codex marketplace upgrade before adding the plugin", (t
   ]);
 });
 
-test("replaces a differing copy, backs up the old one, and never adds a missing skill", (t) => {
+test("replaces a differing copy, deletes the backups, and never adds a missing skill", (t) => {
   const machine = makeMachine(t, makeRelease());
   const directory = copyDirectory(machine, "opencode");
   write(join(directory, "alpha/SKILL.md"), "alpha stale\n");
@@ -273,7 +283,7 @@ test("replaces a differing copy, backs up the old one, and never adds a missing 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /\[opencode\] 1 of 2 collection copies .* differ from v1\.2\.0/);
   assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha stale\n");
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 0, applied.stderr);
   assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha 1.2.0\n");
   assert.equal(
@@ -286,11 +296,9 @@ test("replaces a differing copy, backs up the old one, and never adds a missing 
   );
   assert.ok(!existsSync(join(directory, "alpha/stray.md")));
   assert.deepEqual(readdirSync(directory).sort(), ["alpha", "mine"]);
-  const backups = backupRoot(machine);
-  assert.equal(readFileSync(join(backups, "opencode/alpha/SKILL.md"), "utf8"), "alpha stale\n");
-  assert.equal(readFileSync(join(backups, "opencode/alpha/stray.md"), "utf8"), "stray\n");
-  assert.match(applied.stdout, new RegExp(`Backups: ${backups}`));
-  assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
+  assert.ok(!existsSync(backupsDirectory(machine)), "backups survived a run whose steps all ran");
+  assert.match(applied.stdout, new RegExp(`Deleted backups: ${backupsDirectory(machine)}`));
+  assert.match(applied.stdout, /^Verified: nothing left to do\.$/m);
 });
 
 test("a copy directory without a collection skill gets nothing", (t) => {
@@ -308,7 +316,7 @@ test("Grok Bot copies carry no agents/openai.yaml, and are compared without it",
   write(join(directory, "beta/SKILL.md"), "beta\n");
   const result = plan(machine);
   assert.match(result.stdout, /\[grok-bot\] 1 of 2 collection copies/);
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 0, applied.stderr);
   assert.equal(
     readFileSync(join(directory, "alpha/references/detail.md"), "utf8"),
@@ -318,7 +326,7 @@ test("Grok Bot copies carry no agents/openai.yaml, and are compared without it",
   assert.match(plan(machine).stdout, /^Nothing to do\.$/m);
 });
 
-test("leaves retired skills, symlinks, and copies without SKILL.md alone and reports each", (t) => {
+test("removes retired skills, and leaves symlinks under collection names and copies without SKILL.md alone", (t) => {
   const machine = makeMachine(t, makeRelease());
   const directory = copyDirectory(machine, "cursor");
   write(join(directory, "alpha/SKILL.md"), "alpha stale\n");
@@ -326,27 +334,80 @@ test("leaves retired skills, symlinks, and copies without SKILL.md alone and rep
   write(join(machine.home, "elsewhere/SKILL.md"), "linked\n");
   symlinkSync(join(machine.home, "elsewhere"), join(directory, "beta"));
   const result = plan(machine);
-  assert.match(result.stdout, /^left: .*cursor\/skills\/old: retired from the collection/m);
+  assert.match(
+    result.stdout,
+    /\[cursor\] 1 skills in .*cursor\/skills are retired from the collection/,
+  );
   assert.match(result.stdout, /^left: .*cursor\/skills\/beta: a symlink or file stands where/m);
-  const applied = run(machine, ["apply", result.id]);
-  assert.equal(applied.status, 0, applied.stderr);
   assert.equal(readFileSync(join(directory, "old/SKILL.md"), "utf8"), "retired\n");
+  const applied = run(machine, ["run"]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.ok(!existsSync(join(directory, "old")), "a retired copy survived the run");
   assert.ok(lstatSync(join(directory, "beta")).isSymbolicLink());
   assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha 1.2.0\n");
+  assert.ok(!existsSync(backupsDirectory(machine)));
 });
 
-test("apply refuses a plan id that does not match and changes nothing", (t) => {
+test("removes retired skills from ~/.agents/skills and unlinks ~/.claude/skills symlinks to them", (t) => {
   const machine = makeMachine(t, makeRelease());
-  fakeCli(machine, "claude", claudeListing("1.1.0"));
-  const directory = copyDirectory(machine, "opencode");
-  write(join(directory, "alpha/SKILL.md"), "alpha stale\n");
-  const applied = run(machine, ["apply", ZERO_ID]);
-  assert.equal(applied.status, 3);
-  assert.match(applied.stderr, /the plan changed since it was confirmed/);
+  const agents = join(machine.home, ".agents/skills");
+  const claude = join(machine.home, ".claude/skills");
+  write(join(agents, "old/SKILL.md"), "retired\n");
+  write(join(agents, "alpha/SKILL.md"), "alpha stale\n");
+  mkdirSync(claude, { recursive: true });
+  symlinkSync("../../.agents/skills/old", join(claude, "old"));
+  symlinkSync("../../.agents/skills/alpha", join(claude, "alpha"));
+  write(join(machine.home, "kept/SKILL.md"), "target of a retired symlink\n");
+  write(join(machine.home, ".cursor/skills/old"), "a file, not a skill\n");
+  const result = plan(machine);
+  assert.match(result.stdout, /\[claude-skills\] 1 skills in .*\.claude\/skills are retired/);
+  assert.match(result.stdout, /\[agents-skills\] 1 skills in .*\.agents\/skills are retired/);
+  assert.match(result.stdout, /^left: .*cursor\/skills\/old: named like a retired skill/m);
+  const applied = run(machine, ["run"]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.ok(!lstatIfPresent(join(claude, "old")), "the retired symlink survived");
+  assert.ok(!existsSync(join(agents, "old")), "the retired copy survived");
+  assert.ok(lstatSync(join(claude, "alpha")).isSymbolicLink(), "a collection symlink was removed");
+  assert.equal(readFileSync(join(agents, "alpha/SKILL.md"), "utf8"), "alpha stale\n");
+  assert.equal(
+    readFileSync(join(machine.home, ".cursor/skills/old"), "utf8"),
+    "a file, not a skill\n",
+  );
+});
+
+test("a retired symlink is unlinked without touching its target", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  write(join(machine.home, "mine/SKILL.md"), "mine\n");
+  mkdirSync(copyDirectory(machine, "opencode"), { recursive: true });
+  symlinkSync(join(machine.home, "mine"), join(copyDirectory(machine, "opencode"), "old"));
+  const applied = run(machine, ["run"]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.match(applied.stdout, /unlinked .*opencode\/skills\/old/);
+  assert.equal(readFileSync(join(machine.home, "mine/SKILL.md"), "utf8"), "mine\n");
+});
+
+test("run deletes earlier runs' backups even with nothing else to do", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  write(join(backupsDirectory(machine), "20260101T000000Z/cursor/alpha/SKILL.md"), "old\n");
+  const listed = plan(machine);
+  assert.ok(existsSync(backupsDirectory(machine)), "plan deleted the backups");
+  assert.match(listed.stdout, /^Nothing to do\.$/m);
+  const applied = run(machine, ["run"]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.ok(!existsSync(backupsDirectory(machine)));
+});
+
+test("a step still planned after the run fails with exit 1 and a see line", (t) => {
+  const machine = makeMachine(t, makeRelease());
+  fakeCli(machine, "claude", claudeListing("1.1.0"), { stuck: true });
+  const applied = run(machine, ["run"]);
+  assert.equal(applied.status, 1);
+  assert.match(
+    applied.stderr,
+    /still planned after the run:\n {2}- \[claude\] bostonaholic@skills 1\.1\.0 is behind/,
+  );
+  assert.doesNotMatch(applied.stdout, /Verified/);
   seeLine(applied.stderr);
-  assert.deepEqual(mutations(machine), []);
-  assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha stale\n");
-  assert.equal(backupRoot(machine), undefined);
 });
 
 test("DRY_RUN=true prints the steps and changes nothing", (t) => {
@@ -354,22 +415,24 @@ test("DRY_RUN=true prints the steps and changes nothing", (t) => {
   fakeCli(machine, "claude", claudeListing("1.1.0"));
   const directory = copyDirectory(machine, "opencode");
   write(join(directory, "alpha/SKILL.md"), "alpha stale\n");
-  const { id } = plan(machine);
-  const applied = run(machine, ["apply", id], { DRY_RUN: "true" });
+  write(join(directory, "old/SKILL.md"), "retired\n");
+  write(join(backupsDirectory(machine), "20260101T000000Z/cursor/alpha/SKILL.md"), "old\n");
+  const applied = run(machine, ["run"], { DRY_RUN: "true" });
   assert.equal(applied.status, 0, applied.stderr);
   assert.match(applied.stdout, /\[dry run\] claude plugin marketplace update skills/);
-  assert.match(applied.stdout, /\[2\/2\] \[opencode\]/);
+  assert.match(applied.stdout, /\[3\/3\] \[opencode\] 1 skills .* retired/);
   assert.deepEqual(mutations(machine), []);
   assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha stale\n");
-  assert.equal(backupRoot(machine), undefined);
+  assert.equal(readFileSync(join(directory, "old/SKILL.md"), "utf8"), "retired\n");
+  assert.ok(existsSync(backupsDirectory(machine)), "a dry run deleted the backups");
 });
 
 test("a failed step stops the run, passes the tool's stderr through, and names the steps not run", (t) => {
   const machine = makeMachine(t, makeRelease());
   fakeCli(machine, "claude", claudeListing("1.1.0"));
   fakeCli(machine, "codex", codexListing("1.1.0"));
-  const { id } = plan(machine);
-  const applied = run(machine, ["apply", id], { FAKE_FAIL: "plugin update" });
+  write(join(backupsDirectory(machine), "20260101T000000Z/cursor/alpha/SKILL.md"), "old\n");
+  const applied = run(machine, ["run"], { FAKE_FAIL: "plugin update" });
   assert.equal(applied.status, 1);
   assert.match(applied.stderr, /^boom$/m);
   assert.match(applied.stderr, /step 1 of 2 failed: \[claude\]/);
@@ -377,6 +440,7 @@ test("a failed step stops the run, passes the tool's stderr through, and names t
   assert.ok(applied.stderr.indexOf("boom") < applied.stderr.indexOf("step 1 of 2 failed"));
   seeLine(applied.stderr);
   assert.ok(!mutations(machine).some((call) => call.startsWith("codex")));
+  assert.ok(existsSync(backupsDirectory(machine)), "a failed run deleted the backups");
 });
 
 test("an install whose CLI is not on PATH blocks the plan", (t) => {
@@ -393,7 +457,7 @@ test("an install whose CLI is not on PATH blocks the plan", (t) => {
     result.stdout,
     /claude: bostonaholic@skills is installed but the claude CLI is not on PATH/,
   );
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 4);
   seeLine(applied.stderr);
   assert.equal(
@@ -428,7 +492,7 @@ test("a Codex install without the codex CLI blocks the plan", (t) => {
     result.stdout,
     /codex: bostonaholic@skills is installed but the codex CLI is not on PATH/,
   );
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 4);
   seeLine(applied.stderr);
 });
@@ -507,7 +571,7 @@ test("fast-forwards a clean Cursor plugin clone that is behind", (t) => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /\[cursor-plugin\] .* is behind v1\.2\.0/);
   assert.match(result.stdout, /\$ git -C \S+ pull --ff-only/);
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 0, applied.stderr);
   assert.equal(
     git(clone, "rev-parse", "HEAD"),
@@ -541,7 +605,7 @@ test("a dirty Cursor plugin clone blocks the plan with exit 4 and changes nothin
   const result = plan(machine);
   assert.equal(result.status, 4);
   assert.match(result.stdout, /cursor-plugin: .*has uncommitted changes/);
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 4);
   seeLine(applied.stderr);
   assert.equal(
@@ -566,7 +630,7 @@ function blockedBy(machine, pattern) {
   const result = plan(machine);
   assert.equal(result.status, 4, result.stdout);
   assert.match(result.stdout, pattern);
-  const applied = run(machine, ["apply", result.id]);
+  const applied = run(machine, ["run"]);
   assert.equal(applied.status, 4);
   seeLine(applied.stderr);
 }
@@ -615,10 +679,10 @@ test("ssh and https GitHub origins, with or without .git or a slash, name the sa
 
 test("a usage error exits 2 with a final see line", (t) => {
   const machine = makeMachine(t, makeRelease());
-  for (const args of [[], ["apply"], ["apply", "abc"], ["plan", "extra"]]) {
+  for (const args of [[], ["apply", "0".repeat(40)], ["run", "extra"], ["plan", "extra"]]) {
     const result = run(machine, args);
     assert.equal(result.status, 2, args.join(" "));
-    assert.match(result.stderr, /usage: update\.mjs plan \| update\.mjs apply <plan-id>/);
+    assert.match(result.stderr, /usage: update\.mjs run \| update\.mjs plan/);
     seeLine(result.stderr);
   }
 });
