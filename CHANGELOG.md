@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.106.0] - 2026-11-16
+
 ### Added
 
 - `improving-codebases` adds a churn lane: `churn.mjs` ranks inventory files by commits in the last year, and each top file is refactored so the change that keeps editing it edits one place. [#212](https://github.com/bostonaholic/skills/pull/212)
@@ -1279,5 +1281,7 @@
 
 [0.104.0]: https://github.com/bostonaholic/skills/compare/v0.103.0...v0.104.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.105.0...HEAD
 [0.105.0]: https://github.com/bostonaholic/skills/compare/v0.104.0...v0.105.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.106.0...HEAD
+[0.106.0]: https://github.com/bostonaholic/skills/compare/v0.105.0...v0.106.0
