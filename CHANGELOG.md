@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `improving-codebases` adds a churn lane: `churn.mjs` ranks inventory files by commits in the last year, and each top file is refactored so the change that keeps editing it edits one place. [#212](https://github.com/bostonaholic/skills/pull/212)
+
 ### Changed
 
 - `writing-system-prompts` states response length as audience and outcome, keeping a number only for a hard format limit. [#210](https://github.com/bostonaholic/skills/pull/210)
