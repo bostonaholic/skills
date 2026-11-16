@@ -48,10 +48,8 @@ export const LINT_IDS = Object.freeze([
 // only the real-tree test in tests/lint-skills.test.mjs checks an entry, so a fixture repository
 // without these skills still passes, and that test fails once an entry goes stale.
 export const EVALS_PENDING = Object.freeze({
-  cr: "alias that only calls reviewing-code, whose eval cases cover the review",
   "fixing-root-causes": "no eval cases yet; writing them is deferred",
   "updating-bostonaholic-skills": "no eval cases yet; writing them is deferred",
-  "writing-no-tests": "no eval cases yet; writing them is deferred",
 });
 
 // Skills whose name may skip the gerund rule (A2), each with why. Keep this to aliases whose short

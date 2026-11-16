@@ -184,6 +184,11 @@ Each active skill has at least these cases in `evals/<category>/<skill>/`:
   stops.
 - `<skill>-core`: the rule the skill exists to enforce.
 
+A skill whose `description:` says `Not for <task>; use <sibling>` can also
+have `<skill>-guard-<sibling>`: a request that belongs to the sibling, with a
+`not-fired.md` grader for the skill. It fails when a widened description
+takes the sibling's requests.
+
 The case name is the directory name. `--case '<skill>-*'` selects one skill,
 and `--case '<skill>-core'` selects one case. A case directory holds
 `prompt.md` and one grader per file in `graders/`. Saved command output is
