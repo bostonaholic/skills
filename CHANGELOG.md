@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `writing-system-prompts` states response length as audience and outcome, keeping a number only for a hard format limit. [#210](https://github.com/bostonaholic/skills/pull/210)
+- `reflecting` lenses report the patterns worth a durable change without fixed line caps. [#210](https://github.com/bostonaholic/skills/pull/210)
+- `reviewing-design-docs` no longer lists lenses in its description that it does not run. [#210](https://github.com/bostonaholic/skills/pull/210)
+
 ## [0.105.0] - 2026-11-15
 
 ### Added

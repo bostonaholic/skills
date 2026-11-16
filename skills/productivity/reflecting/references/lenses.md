@@ -30,9 +30,8 @@ findings.
   select only recent records or truncate long entries to fit a context window.
   Report any unread range rather than claiming a complete review.
 - Each finding is one line carrying a file path, a turn index, or a source URL.
-  A lens reports at most 30 lines, so it keeps the patterns worth a durable
-  change rather than every incident; the prompt pass reports at most 60, since
-  it stands in for every lens.
+  A lens reports only the patterns worth a durable change, not every
+  incident; the prompt pass stands in for every lens, so it may report more.
 - Each finding names the record it rests on: a transcript turn, a review
   comment, an issue, a log entry, or a line in a source file the prompt named.
   A practice the repository lacks is a finding only through a record that shows
