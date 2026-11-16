@@ -161,6 +161,13 @@ Browse the [skill catalog](https://skills.bostonaholic.dev) for usage and instal
 
 Read [AGENTS.md](AGENTS.md) before making changes. See [README and site maintenance](docs/catalog.md) for documentation changes and [versioning and releases](docs/versioning.md) for publishing.
 
+## Inspired By
+
+- [mattpocock/skills](https://github.com/mattpocock/skills)
+- [cursor/plugins pstack](https://github.com/cursor/plugins/tree/main/pstack/skills)
+- [garrytan/gstack](https://github.com/garrytan/gstack)
+- [t3dotgg/tstack](https://github.com/t3dotgg/tstack)
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
