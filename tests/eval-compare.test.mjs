@@ -107,6 +107,16 @@ test("two files compare the control's with-arm to the treatment's", (t) => {
   );
 });
 
+test("a -calibrate-bad case counts a run the judge failed as passing", (t) => {
+  const file = writeResult(
+    t,
+    aggregate([evalCase("a-calibrate-bad", { with: [run({ passed: false })], without: [run()] })]),
+  );
+  const result = compare(file);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^a-calibrate-bad without 0\/1 \S+ with 1\/1 /);
+});
+
 test("excluded runs count toward neither pass rate nor cost", (t) => {
   const file = writeResult(
     t,

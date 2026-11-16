@@ -8,7 +8,8 @@
 // edit, or two variants of a skill run in separate checkouts.
 // Runs count as in scripts/eval-verdict.mjs: a run with skippedPaidGraders true or an error that
 // names a usage or rate limit is excluded, and a counted run passes when it ended without an error
-// and every grader passed or was unscored. Cost is the run's costUsd, the agent's spend without
+// and every grader passed or was unscored, or, for a *-calibrate-bad case, when every scored
+// grader failed. Cost is the run's costUsd, the agent's spend without
 // the judge's, averaged over the counted runs that report it.
 // Output, sorted by case name, one line per case and then a total line over every counted run:
 //   <case> <label> <passing>/<counted> <cost> <label> <passing>/<counted> <cost> cost <delta> pass <delta>
@@ -27,7 +28,7 @@ import {
   isExcluded,
   isObject,
   readResult,
-  runPasses,
+  runRuleFor,
 } from "./eval-verdict.mjs";
 
 const USAGE =
@@ -56,7 +57,7 @@ function armRuns(evalCase, arm, where) {
 }
 
 // Tallies the counted runs of one arm: how many, how many pass, and their summed cost.
-function tally(runs, where) {
+function tally(runs, where, caseName) {
   const counted = runs.filter((run) => !isExcluded(run));
   if (
     counted.some(
@@ -67,7 +68,7 @@ function tally(runs, where) {
   const costed = counted.filter((run) => typeof run.costUsd === "number");
   return {
     counted: counted.length,
-    passing: counted.filter(runPasses).length,
+    passing: counted.filter(runRuleFor(caseName)).length,
     costed: costed.length,
     cost: costed.reduce((sum, run) => sum + run.costUsd, 0),
   };
@@ -87,7 +88,10 @@ function sides(arm, label, document) {
   return new Map(
     casesOf(document).map((evalCase) => {
       const where = `case ${evalCase.name}`;
-      return [evalCase.name, { label, ...tally(armRuns(evalCase, arm, where), where) }];
+      return [
+        evalCase.name,
+        { label, ...tally(armRuns(evalCase, arm, where), where, evalCase.name) },
+      ];
     }),
   );
 }

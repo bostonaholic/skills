@@ -6,6 +6,9 @@
 // Run rule: a run is excluded when skippedPaidGraders is true or its error names a usage or rate
 // limit. A counted run passes when its error is null or absent and every graders[] entry has
 // scored false or passed true, so a timeout or scaffold failure fails its run.
+// Calibration rule: a case named *-calibrate-bad replays a known-bad reply, so its counted run
+// passes when its error is null or absent, at least one grader scored, and every scored grader has
+// passed false. A judge that passes everything then fails the case.
 // Case rule: a case with fewer counted runs than --runs is incomplete. Otherwise it passes at
 // --runs 1 on 1/1 and at --runs 3 on 2 or 3 passing runs; else it fails.
 // Output, sorted by case name: <case> <passing>/<counted> excluded <n> <pass|fail|incomplete>.
@@ -108,6 +111,18 @@ export function runPasses(run) {
   );
 }
 
+const CALIBRATE_BAD = /-calibrate-bad$/;
+
+export function calibrateBadRunPasses(run) {
+  const scored = run.graders.filter((grader) => grader.scored !== false);
+  return endedClean(run) && scored.length > 0 && scored.every((grader) => grader.passed === false);
+}
+
+// The run rule for a case: the calibration rule for a *-calibrate-bad case, else runPasses.
+export function runRuleFor(caseName) {
+  return CALIBRATE_BAD.test(caseName) ? calibrateBadRunPasses : runPasses;
+}
+
 function judgeCase(evalCase, index, { runs, passingNeeded }) {
   const withRuns = withArmRuns(evalCase, index);
   if (withRuns.length > runs)
@@ -122,7 +137,7 @@ function judgeCase(evalCase, index, { runs, passingNeeded }) {
   ) {
     throw new VerdictError(`case ${evalCase.name}: a run with no error has no graders list`);
   }
-  const passing = counted.filter(runPasses).length;
+  const passing = counted.filter(runRuleFor(evalCase.name)).length;
   const result = counted.length < runs ? "incomplete" : passing >= passingNeeded ? "pass" : "fail";
   return {
     name: evalCase.name,
