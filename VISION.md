@@ -8,7 +8,7 @@ A skill composes when another skill, an agent, or a person can use it as one ste
 
 1. **One job per skill.** `opening-prs` opens and refreshes a pull request. `writing-commit-messages` writes commit messages. `updating-changelogs` adds changelog bullets. `attaching-pr-screenshots` uploads images into a PR body. A caller that needs a PR, a commit, and a changelog entry calls the skills for those jobs. It does not get one skill that does all three.
 2. **The description is the interface.** A skill's `name` and its `Use when` clause tell a harness and a caller when to load it. A caller passes facts (a branch, a result file, an inputs file) and gets a result back. The procedure behind the description can change without any caller changing.
-3. **Calls are explicit and degrade.** A skill reaches another skill by name and states what to do when that skill is not installed ([skill calls](shared/skill-calls.md)). The README lists every call under "Skill calls", so the dependency graph is visible and reviewable.
+3. **Calls are explicit and degrade.** A skill reaches another skill by name and states what to do when that skill is not installed ([skill calls](shared/skill-calls.md)). Each call is written as "call the Skill tool with `<name>`" in the caller's files, so a search for that phrase finds the dependency graph. An agent that installs a named skill installs the skills it calls too ([INSTALL.md](INSTALL.md#for-agents) step 3).
 4. **Skills do not know their callers.** No skill names a pipeline, plugin, or process that calls it, and no skill changes its behavior for one caller. A caller that needs different behavior passes different facts. When a rule is specific to one caller, it belongs in that caller.
 
 ## One rule, one owner
@@ -30,7 +30,7 @@ The same rule applies across repositories. When a rule about PR bodies, commits,
 - More workflows become compositions of existing skills, not new monolithic skills. A new skill is justified when it owns a job no other skill owns.
 - When a skill grows a second job, it splits into two skills that one caller can still compose.
 - When a rule appears in two places, it moves to `shared/` or to the one skill that owns it.
-- The "Skill calls" list stays complete, so anyone can see what each skill depends on before installing it.
+- Installing a named skill also installs the skills it calls, and the skills those call, so the installed skill has every skill it calls.
 
 ## What this collection is not
 

@@ -88,14 +88,22 @@ To update it:
 npx skills@latest update <name>
 ```
 
-A skill that calls another skill names it, and stops or falls back when that skill is missing.
+This command installs only that skill. A skill that calls another skill names it, and stops or falls back when that skill is missing. An agent that installs named skills for you also installs the skills they call, as [For agents](#for-agents) step 3 says.
 
 ## For agents
 
 An agent installing on a user's behalf:
 
 1. In Claude Code, run the `claude plugin` install commands in the `sh` block above. In Cursor, run the Cursor clone command above. In Grok Bot, run the Grok Bot install commands above on the bot's computer, adding `--set strategy` when the bot does not write code; add the plugin instead only when the account's team marketplace offers it.
-2. Elsewhere, install without prompts: `npx skills@latest add bostonaholic/skills --skill '*' --agent <agent> --yes`. Pass `--agent '*'` to install on every agent. Add `--global` for a user-level install; ask the user which scope they want if they did not say.
-3. Install one way per agent, never two. The subagents in `agents/` come only with the Claude Code or Cursor plugin.
-4. Confirm the install: `claude plugin list` shows `bostonaholic@skills`, `~/.cursor/plugins/local/bostonaholic/.cursor-plugin/plugin.json` exists, `ls ~/agent-data/workflows` lists the skills on a Grok Bot computer, or `npx skills@latest list` shows the skills.
-5. Tell the user to restart the agent so it loads the new skills.
+2. Elsewhere, install without prompts. When the user names skills instead of the whole set, do step 3 first: it builds the `--skill` list and the agents for this command. Otherwise run `npx skills@latest add bostonaholic/skills --skill '*' --agent <agent> --yes`. Pass `--agent '*'` to install on every agent. Add `--global` for a user-level install; ask the user which scope they want if they did not say.
+3. When the user names skills instead of the whole set, also install the skills they call. Build the list before you install anything:
+   1. Start a list with the named skills. When a named skill has no directory under `skills/engineering/` or `skills/productivity/`, tell the user it is not a skill in this repository, and run nothing.
+   2. In an up-to-date copy of this repository, read every `.md` file in each listed skill's directory, `references/` included. With no copy, clone the repository to a temporary directory. When the clone fails, stop and report it.
+   3. Add each name written with exactly the phrase "call the Skill tool with `<name>`" when `skills/engineering/<name>/` or `skills/productivity/<name>/` exists and the name is not on the list. Match the phrase in any letter case, so "Call the Skill tool with" at the start of a sentence counts. The phrase can also wrap across lines, even between two of its words.
+   4. Do sub-steps 2 and 3 for each newly added skill. Stop when a pass adds no name.
+   5. Name each target agent, as step 2's `--agent <agent>` does. Never pass `--agent '*'`. When the user asks for every agent, ask which agents they use, and run no command until they answer.
+   6. For each agent, drop each called skill that `npx skills@latest list --global --agent <agent>` shows. For a project-level install, also drop each one `npx skills@latest list --agent <agent>` shows. Keep every named skill, even one that `list` shows: the command installs it again, as step 2 does.
+   7. Run step 2's command once per agent, with that agent in `--agent` and one `--skill <name>` per skill left for it. When `list` or `add` exits non-zero, stop and report the command and its output; do not guess what is installed, and do not fall back to `--skill '*'`. Tell the user which called skills you added on each agent, or that you added none.
+4. Install one way per agent, never two. The subagents in `agents/` come only with the Claude Code or Cursor plugin.
+5. Confirm the install: `claude plugin list` shows `bostonaholic@skills`, `~/.cursor/plugins/local/bostonaholic/.cursor-plugin/plugin.json` exists, `ls ~/agent-data/workflows` lists the skills on a Grok Bot computer, or `npx skills@latest list` shows the skills.
+6. Tell the user to restart the agent so it loads the new skills.
