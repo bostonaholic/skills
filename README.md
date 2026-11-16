@@ -96,23 +96,6 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`writing-prose`](./skills/productivity/writing-prose/SKILL.md)                                 | "write this up"                    | user, model        | Write plain, short prose for people.                                    |
 | [`writing-system-prompts`](./skills/productivity/writing-system-prompts/SKILL.md)               | "write a system prompt"            | user, model        | Write or review a system prompt.                                        |
 
-### Skill calls
-
-Some skills call others. Install the skills they call too.
-
-- `addressing-pr-comments` calls `attaching-pr-screenshots`.
-- `auditing-rails-tech-debt` calls `simplifying-ruby-code`.
-- `composing-agent-prompts` calls `improving-prompts`.
-- `cr` calls `reviewing-code`.
-- `cutting-skills` calls `hillclimbing`.
-- `defining-problems` calls `writing-acceptance-criteria`.
-- `explaining-architecture` calls `investigating-design-rationale`.
-- `explaining-code` calls `explaining-architecture`.
-- `investigating-design-rationale` calls `explaining-architecture`.
-- `landing-prs` calls `modernizing-prs`.
-- `watching-authored-prs` calls `addressing-pr-comments`, `modernizing-prs`.
-- `writing-technical-design-docs` calls `reviewing-design-docs`.
-
 <!-- generated:end -->
 
 ## What the skills run and send

@@ -29,7 +29,6 @@ export const README_END = "<!-- generated:end -->";
 const TABLE_HEADER = ["Skill", "Say", "Invoked by", "What it does"];
 const SAY_LEGEND =
   "Say a quoted phrase, or ask in your own words, and the matching skill loads. A skill shown as a command starts only when you run it, written in [the form your harness uses](AGENTS.md#what-the-skills-are). Invoked by lists what can start a skill: you (user), the agent on its own (model), or another skill (skill).";
-const CALLS_LEAD = "Some skills call others. Install the skills they call too.";
 
 export const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 export const SKILL_CALL = /call\s+the\s+Skill\s+tool\s+with\s+`([a-z0-9-]+)`/gi;
@@ -157,10 +156,6 @@ function tableRow(skill, called) {
   ];
 }
 
-function callsLine(skill) {
-  return `- \`${skill.name}\` calls ${skill.calls.map((name) => `\`${name}\``).join(", ")}.`;
-}
-
 // Keeps a cell on one table row: a newline would end the row and a bare pipe would split it.
 // Backslashes are escaped too, or a summary's own `\|` would become `\\|` and split the cell.
 function escapeCell(text) {
@@ -208,9 +203,6 @@ export function renderReadme(catalog) {
       "",
     );
   }
-  const callers = catalog.filter((skill) => skill.calls.length);
-  if (callers.length)
-    lines.push("### Skill calls", "", CALLS_LEAD, "", ...callers.map(callsLine), "");
   return `\n\n${lines.join("\n")}\n`;
 }
 

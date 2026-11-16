@@ -144,7 +144,8 @@ test("categorized inputs retain names, source paths, calls, and invocation label
   assert.equal(rowCells(readmeRow(root, "engineering", "alpha"))[2], "user");
   assert.equal(rowCells(readmeRow(root, "productivity", "beta"))[2], "user, model, skill");
   assert.equal(rowCells(readmeRow(root, "engineering", "zeta"))[2], "model");
-  assert.match(readme, /^- `alpha` calls `beta`\.$/m);
+  assert.ok(!readme.includes("### Skill calls"), readme);
+  assert.ok(!readme.includes("Some skills call others"), readme);
   assert.ok(!readme.includes("Explicit invocation only"), readme);
   assert.ok(!readme.includes("Archived fixture"));
   const html = readFileSync(join(buildSite(t, root), "index.html"), "utf8");
@@ -254,7 +255,7 @@ test("the site HTML-escapes argument hints from its input", (t) => {
 // ---------------------------------------------------------------------------------------------
 // The CLIs on fixture repositories
 
-test("a Skill tool call wrapped across a line break still yields a Skill calls entry", (t) => {
+test("a Skill tool call wrapped across a line break still marks the callee invoked by skill", (t) => {
   const root = fixtureRepo(t, {
     "README.md": FIXTURE_README,
     "skills/engineering/alpha/SKILL.md":
@@ -264,8 +265,7 @@ test("a Skill tool call wrapped across a line break still yields a Skill calls e
   });
   const run = runCli(CATALOG, root, "--write");
   assert.equal(run.status, 0, run.output);
-  const readme = readFileSync(join(root, "README.md"), "utf8");
-  assert.match(readme, /^- `alpha` calls `beta`\.$/m);
+  assert.equal(rowCells(readmeRow(root, "engineering", "beta"))[2], "user, model, skill");
 });
 
 test("a skill without agents/openai.yaml is listed with the first sentence of its description", (t) => {
@@ -283,7 +283,6 @@ test("a skill without agents/openai.yaml is listed with the first sentence of it
     '| [`gamma`](./skills/engineering/gamma/SKILL.md) | "run gamma" | user, model | Use for fixture checks. |',
   ].join("\n");
   assert.ok(readme.includes(table), `README.md lacks the padded gamma table:\n${readme}`);
-  assert.ok(!readme.includes("### Skill calls"), readme);
   assert.ok(!readme.includes("### Productivity"), readme);
 });
 
