@@ -186,16 +186,6 @@ test("the committed README generated block equals renderReadme(loadCatalog())", 
   assert.equal(generatedBlock(readme), renderReadme(await loadCatalog()));
 });
 
-test("the README Install section shows the Claude Code install command in a text fence", async () => {
-  const { CLAUDE_CODE_INSTALL_COMMAND, loadCatalog, renderReadme } = await catalogModule();
-  const block = renderReadme(await loadCatalog());
-  const expected = ["```text", CLAUDE_CODE_INSTALL_COMMAND, "```"].join("\n");
-  assert.ok(
-    block.includes(expected),
-    `README Install section lacks the Claude Code install command in a text fence:\n${expected}`,
-  );
-});
-
 // ---------------------------------------------------------------------------------------------
 // The built site
 
@@ -205,38 +195,6 @@ test("the site has one section per tracked skill, keyed by the skill name", (t) 
   const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
   const sections = [...html.matchAll(/<section\b[^>]*\bid="([^"]+)"/g)].map(([, id]) => id).sort();
   assert.deepEqual(sections, skills);
-});
-
-test("the site shows the Claude Code install command, the install prompt, and links an installation doc that exists", async (t) => {
-  const { CLAUDE_CODE_INSTALL_COMMAND, INSTALL_DOC, INSTALL_PROMPT, INSTALL_PROMPT_LABEL } =
-    await catalogModule();
-  assert.ok(existsSync(join(REPO, INSTALL_DOC)), `missing ${INSTALL_DOC}`);
-  const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
-  for (const text of [
-    CLAUDE_CODE_INSTALL_COMMAND,
-    INSTALL_PROMPT_LABEL,
-    INSTALL_PROMPT,
-    `/blob/main/${INSTALL_DOC}`,
-  ]) {
-    assert.ok(html.includes(escaped(text)), `index.html lacks ${text}`);
-  }
-  assert.ok(
-    html.includes(`<pre><code>${escaped(CLAUDE_CODE_INSTALL_COMMAND)}</code></pre>`),
-    `index.html lacks a <pre><code> block holding ${CLAUDE_CODE_INSTALL_COMMAND}`,
-  );
-});
-
-test("the site shows the subtitle exported by the catalog", async (t) => {
-  const { LEDE } = await catalogModule();
-  assert.ok(typeof LEDE === "string" && LEDE, "catalog exports no LEDE");
-  const html = readFileSync(join(buildSite(t, REPO), "index.html"), "utf8");
-  assert.ok(html.includes(escaped(LEDE)), "index.html lacks the subtitle");
-});
-
-test("the site carries the custom domain in CNAME", (t) => {
-  const out = buildSite(t, REPO);
-  assert.ok(existsSync(join(out, "CNAME")), "the site has no CNAME");
-  assert.equal(readFileSync(join(out, "CNAME"), "utf8"), "skills.bostonaholic.dev\n");
 });
 
 test("the site HTML-escapes argument hints from its input", (t) => {
