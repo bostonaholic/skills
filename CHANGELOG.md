@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.110.0] - 2026-11-17
+
 ### Fixed
 
 - `watching-authored-prs` promotes a draft only after every check on its head passes, including checks branch protection does not require, such as codecov, and `landing-prs` states that an `unstable` verdict from such a check blocks the merge. [#225](https://github.com/bostonaholic/skills/pull/225)
@@ -1321,5 +1323,7 @@
 
 [0.108.0]: https://github.com/bostonaholic/skills/compare/v0.107.0...v0.108.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.109.0...HEAD
 [0.109.0]: https://github.com/bostonaholic/skills/compare/v0.108.0...v0.109.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.110.0...HEAD
+[0.110.0]: https://github.com/bostonaholic/skills/compare/v0.109.0...v0.110.0
