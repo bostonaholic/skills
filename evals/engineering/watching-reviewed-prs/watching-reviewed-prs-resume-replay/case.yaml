@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: watching-reviewed-prs-resume-replay
-context:
-  scaffold_script: scaffold.sh
