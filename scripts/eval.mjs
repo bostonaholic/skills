@@ -8,14 +8,15 @@
 // to evals/results/<timestamp>-<model>-<tag>/, and scripts/eval-verdict.mjs then prints one line
 // per case; a selected case with no line prints as incomplete. scripts/eval-compare.mjs then prints
 // each case's pass rate and mean cost without and with the skills.
-// --check runs the free load check ($0 cap) and compiles every grader regex. It starts no run.
+// --check runs the free load check ($0 cap), compiles every grader regex, and checks that each
+// calibration case's rubric matches its source case's (see staleCalibrations). It starts no run.
 // --dry-run prints the commands and runs nothing. Arguments after -- go to every claude command.
 // A run or --check starts claude only under `npm run eval`; anywhere else it exits 2 first.
 // Exit 0 when every case passes (or the check is clean), 1 on any failing or incomplete case, a
 // load error, or a bad regex, and 2 on a bad argument or a start outside `npm run eval`.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const USAGE = `usage: npm run eval -- [<skill>|<case>] [options] [-- <claude flags>]
@@ -193,6 +194,27 @@ export function badGraderRegexes(caseDirs) {
   return problems;
 }
 
+// A calibration case, <source>-calibrate-good or <source>-calibrate-bad, replays a fixed reply
+// under its source case's LLM rubric, so its graders/rubric.md must stay byte-identical to the
+// source's. Returns one "<case>: <problem>" line per calibration case whose source is missing or
+// whose rubric differs. The source case lives in the same skill directory.
+const CALIBRATION = /^(.+)-calibrate-(?:good|bad)$/;
+
+export function staleCalibrations(cases) {
+  const problems = [];
+  for (const { name, dir } of cases) {
+    const source = name.match(CALIBRATION)?.[1];
+    if (source === undefined) continue;
+    const sourceRubric = join(dirname(dir), source, "graders", "rubric.md");
+    const rubric = join(dir, "graders", "rubric.md");
+    if (!existsSync(sourceRubric)) problems.push(`${name}: no source rubric ${sourceRubric}`);
+    else if (!existsSync(rubric)) problems.push(`${name}: no graders/rubric.md`);
+    else if (readFileSync(rubric, "utf8") !== readFileSync(sourceRubric, "utf8"))
+      problems.push(`${name}: graders/rubric.md differs from ${sourceRubric}`);
+  }
+  return problems;
+}
+
 function unquoteYaml(raw) {
   if (raw.startsWith("'") && raw.endsWith("'")) return raw.slice(1, -1).replaceAll("''", "'");
   if (raw.startsWith('"') && raw.endsWith('"')) return JSON.parse(raw);
@@ -225,7 +247,10 @@ function runCheck(commands, selected) {
   const problems = badGraderRegexes(selected.map((c) => c.dir));
   for (const problem of problems) console.error(`bad regex: ${problem}`);
   console.log(`== grader regexes: ${problems.length === 0 ? "ok" : `${problems.length} bad`}`);
-  return ok && problems.length === 0;
+  const stale = staleCalibrations(selected);
+  for (const problem of stale) console.error(`stale calibration: ${problem}`);
+  console.log(`== calibration rubrics: ${stale.length === 0 ? "ok" : `${stale.length} stale`}`);
+  return ok && problems.length === 0 && stale.length === 0;
 }
 
 function runEvals(commands, runs) {

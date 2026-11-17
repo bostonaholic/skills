@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.107.0] - 2026-11-17
+
+### Fixed
+
+- `reviewing-code` prints its `### Findings` section whenever nothing was posted, including when the review found nothing. [#215](https://github.com/bostonaholic/skills/pull/215)
+
+### Removed
+
+- Stop shipping `writing-no-tests`: it moves to incubating skills, which the plugin and `npx skills` do not install. [#215](https://github.com/bostonaholic/skills/pull/215)
+
 ## [0.106.0] - 2026-11-16
 
 ### Added
@@ -1283,5 +1293,7 @@
 
 [0.105.0]: https://github.com/bostonaholic/skills/compare/v0.104.0...v0.105.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.106.0...HEAD
 [0.106.0]: https://github.com/bostonaholic/skills/compare/v0.105.0...v0.106.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.107.0...HEAD
+[0.107.0]: https://github.com/bostonaholic/skills/compare/v0.106.0...v0.107.0

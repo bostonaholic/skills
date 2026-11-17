@@ -356,6 +356,74 @@ test("eval-verdict applies the run and case rules", async (t) => {
   });
 });
 
+test("eval-verdict inverts the run rule for a -calibrate-bad case", async (t) => {
+  await t.test("a judge that fails the known-bad reply passes the case", (st) => {
+    const file = writeResult(
+      st,
+      aggregate([
+        evalCase("x-guard-calibrate-bad", 1, {
+          with: [run({ passed: false, score: 0, graders: [scoredFail(), unscoredFail()] })],
+        }),
+      ]),
+    );
+    const result = verdict("--runs", "1", file);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "x-guard-calibrate-bad 1/1 excluded 0 pass\n");
+  });
+
+  await t.test("a judge that passes the known-bad reply fails the case", (st) => {
+    const file = writeResult(
+      st,
+      aggregate([evalCase("x-guard-calibrate-bad", 1, { with: [passingRun()] })]),
+    );
+    assert.equal(
+      verdict("--runs", "1", file).stdout,
+      "x-guard-calibrate-bad 0/1 excluded 0 fail\n",
+    );
+  });
+
+  await t.test("a run with no scored grader fails the case", (st) => {
+    const file = writeResult(
+      st,
+      aggregate([
+        evalCase("x-guard-calibrate-bad", 1, {
+          with: [run({ passed: false, score: 0, graders: [unscoredFail()] })],
+        }),
+      ]),
+    );
+    assert.equal(
+      verdict("--runs", "1", file).stdout,
+      "x-guard-calibrate-bad 0/1 excluded 0 fail\n",
+    );
+  });
+
+  await t.test("a run that errored fails the case", (st) => {
+    const file = writeResult(
+      st,
+      aggregate([
+        evalCase("x-guard-calibrate-bad", 1, {
+          with: [run({ error: "timeout", passed: false, score: 0, graders: [scoredFail()] })],
+        }),
+      ]),
+    );
+    assert.equal(
+      verdict("--runs", "1", file).stdout,
+      "x-guard-calibrate-bad 0/1 excluded 0 fail\n",
+    );
+  });
+
+  await t.test("a -calibrate-good case keeps the normal run rule", (st) => {
+    const file = writeResult(
+      st,
+      aggregate([evalCase("x-guard-calibrate-good", 1, { with: [failingRun()] })]),
+    );
+    assert.equal(
+      verdict("--runs", "1", file).stdout,
+      "x-guard-calibrate-good 0/1 excluded 0 fail\n",
+    );
+  });
+});
+
 test("eval-verdict rejects input it cannot judge", async (t) => {
   await t.test("no arguments", () => {
     const result = verdict();

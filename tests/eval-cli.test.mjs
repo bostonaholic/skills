@@ -23,6 +23,7 @@ import {
   parseArgs,
   planCommands,
   selectCases,
+  staleCalibrations,
   withMissingCases,
 } from "../scripts/eval.mjs";
 
@@ -225,6 +226,25 @@ test("reports a grader regex that does not compile and accepts quoted ones", (t)
   const problems = badGraderRegexes([dir]);
   assert.equal(problems.length, 1);
   assert.match(problems[0], /bad\.md: pattern: /);
+});
+
+test("reports a calibration case whose rubric differs from or lacks its source", (t) => {
+  const root = tempDir(t);
+  const rubric = "---\ntype: llm\n---\n\nPASS if the reply serves the request.\n";
+  writeCase(root, "alpha", "alpha-guard", ["readonly"], { "rubric.md": rubric });
+  const cases = [
+    ["alpha-guard-calibrate-good", rubric],
+    ["alpha-guard-calibrate-bad", `${rubric}Edited.\n`],
+    ["alpha-gone-calibrate-bad", rubric],
+    ["alpha-core", "anything"],
+  ].map(([name, body]) => ({
+    name,
+    dir: writeCase(root, "alpha", name, ["readonly"], { "rubric.md": body }),
+  }));
+  const problems = staleCalibrations(cases);
+  assert.equal(problems.length, 2);
+  assert.match(problems[0], /^alpha-guard-calibrate-bad: graders\/rubric\.md differs from /);
+  assert.match(problems[1], /^alpha-gone-calibrate-bad: no source rubric /);
 });
 
 test("adds an incomplete line for each selected case with no verdict line", () => {

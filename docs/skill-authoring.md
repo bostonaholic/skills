@@ -184,6 +184,20 @@ Each active skill has at least these cases in `evals/<category>/<skill>/`:
   stops.
 - `<skill>-core`: the rule the skill exists to enforce.
 
+A skill whose `description:` says `Not for <task>; use <sibling>` can also
+have `<skill>-guard-<sibling>`: a request that belongs to the sibling, with a
+`not-fired.md` grader for the skill. It fails when a widened description
+takes the sibling's requests.
+
+A calibration case checks an LLM rubric itself. `<case>-calibrate-good` and
+`<case>-calibrate-bad` sit next to `<case>`, hold a copy of its
+`graders/rubric.md`, and make the model reply with a fixed known-good or
+known-bad text under `<case>`'s prompt. `scripts/eval-verdict.mjs` passes a
+`-calibrate-bad` case only when every scored grader fails it, so a judge or
+rubric that passes everything fails that case. `--check` fails when a copied
+rubric differs from its source; after editing a source rubric, copy it into
+its calibration cases.
+
 The case name is the directory name. `--case '<skill>-*'` selects one skill,
 and `--case '<skill>-core'` selects one case. A case directory holds
 `prompt.md` and one grader per file in `graders/`. Saved command output is

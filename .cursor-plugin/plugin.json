@@ -1,6 +1,6 @@
 {
   "name": "bostonaholic",
-  "version": "0.106.0",
+  "version": "0.107.0",
   "description": "Matthew Boston's personal software engineering skills for coding agents.",
   "author": {
     "name": "Matthew Boston"
@@ -64,7 +64,6 @@
     "./skills/engineering/watching-reviewed-prs",
     "./skills/engineering/writing-commit-messages",
     "./skills/engineering/writing-no-comments",
-    "./skills/engineering/writing-no-tests",
     "./skills/engineering/writing-playbooks",
     "./skills/engineering/writing-technical-design-docs",
     "./skills/productivity/being-extremely-fucking-brief",
