@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `reviewing-code` prints its `### Findings` section whenever nothing was posted, including when the review found nothing. [#215](https://github.com/bostonaholic/skills/pull/215)
+
 ### Removed
 
 - Stop shipping `writing-no-tests`: it moves to incubating skills, which the plugin and `npx skills` do not install. [#215](https://github.com/bostonaholic/skills/pull/215)

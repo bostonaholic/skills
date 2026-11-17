@@ -55,7 +55,7 @@ Print exactly this, and nothing of the report beyond it:
 <3 to 5 sentences: what was reviewed, at which short SHA and at which depth; the finding count, blocking count, and the most serious finding; the test result; the review URL, or why nothing was posted.>
 ```
 
-- When nothing was posted, add the report's `### Findings` section after the summary, since the findings exist nowhere else.
+- When nothing was posted, add the report's `### Findings` section after the summary, even when it lists no findings: it is the only record of what the review found.
 - When a [reused finding](#reused-findings) was verified, add its verification after the summary, apart from the verdict.
 - When the reviewer used a nonstandard heading, or its read-only restriction rested on its prompt rather than its tool grants, say so in one sentence of the summary.
 - When `### Checks` holds `Not judged:` lines, print them after the summary.
