@@ -368,7 +368,9 @@ header states them:
 
 - The script excludes a run when `skippedPaidGraders` is true, because the
   cost cap left its `llm` graders unjudged. It also excludes a run whose
-  error matches `/(usage|rate)[ -]limit/i`.
+  error, or any grader's `explanation`, matches
+  `/(usage|rate|weekly)[ -]limit/i`. A judge call that hits a limit leaves
+  the run with no error and a failed grader whose explanation names the limit.
 - A counted run passes only when its `error` is null or absent and every
   `graders[]` entry has `scored: false` or `passed: true`. Any other error,
   such as a timeout or a scaffold failure, fails the run even when its graders

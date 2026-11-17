@@ -5,7 +5,7 @@
 // Each file's model is its suite.modelOverride. Files of one model pool their runs per case and
 // arm, so a rerun adds observations. A case's skill is the <skill> segment of its dir,
 // evals/<category>/<skill>/<case>. Runs count as in scripts/eval-verdict.mjs: a run with
-// skippedPaidGraders true or an error that names a usage or rate limit is excluded, and a counted
+// skippedPaidGraders true or an error or grader explanation naming a limit is excluded, and a counted
 // run passes when it ended without an error and every grader passed or was unscored.
 // Case rule, with w/n with-arm and o/m without-arm passing runs:
 // - gain: a one-sided Fisher exact test of with over without gives p <= 0.05. At 3 runs per arm
