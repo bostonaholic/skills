@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `opening-prs` links a stacked PR into a GitHub stack with `gh stack link` and confirms it through the stacks API, where it used to stop at chained base branches. [#221](https://github.com/bostonaholic/skills/pull/221)
+
 ## [0.107.0] - 2026-11-17
 
 ### Fixed
