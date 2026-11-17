@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- `watching-authored-prs` promotes a draft only after every check on its head passes, including checks branch protection does not require, such as codecov, and `landing-prs` states that an `unstable` verdict from such a check blocks the merge. [#NNN](https://github.com/bostonaholic/skills/pull/NNN)
+- `watching-authored-prs` promotes a draft only after every check on its head passes, including checks branch protection does not require, such as codecov, and `landing-prs` states that an `unstable` verdict from such a check blocks the merge. [#225](https://github.com/bostonaholic/skills/pull/225)
 
 ## [0.109.0] - 2026-11-17
 
