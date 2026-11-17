@@ -39,10 +39,28 @@
 - `opening-prs` links a stacked PR into a GitHub stack with `gh stack link` and confirms it through the stacks API, where it used to stop at chained base branches. [#221](https://github.com/bostonaholic/skills/pull/221)
 
 ## [0.107.0] - 2026-11-17
+### Changed
+
+- `being-extremely-fucking-brief` loads alongside any other skill that fits a request instead of taking its place. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `testing-behavior-not-implementation` loads before the first test edit of a task. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `explaining-architecture` also loads for questions about how a request, event, or piece of data travels through the code, or which files to start in. [#223](https://github.com/bostonaholic/skills/pull/223)
 
 ### Fixed
 
 - `reviewing-code` prints its `### Findings` section whenever nothing was posted, including when the review found nothing. [#215](https://github.com/bostonaholic/skills/pull/215)
+- `reviewing-code` prints `Not judged:` lines before `### Findings` and adds nothing after the report. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `auditing-repo-security` replies with the full report template, including the grade and `**Safe to run?**` line, even when there are no findings. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `cutting-skills` names each class with the classification table's exact words and reports before and after counts as numbers. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `drawing-mermaid-diagrams` quotes every label that holds `:` or another special character, plain prose labels included. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `explaining-architecture` heads each section with its exact name, such as `Where Things Live`. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `improving-codebases` reports a finding whose make step never ran as `deferred`, and always gives the exact render command, saying whether it ran. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `investigating-design-rationale` gives each source category its own `Sources Consulted` line, even when several were skipped for the same reason. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `opening-prs` always writes the `## Summary`, `## How to Verify`, and `## Merge risk` sections of the body template. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `reviewing-security` adds nothing after the reviewer's report except the read-only note, so it never raises a class the brief excludes. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `simplifying-ruby-code` names the caller search it ran and its result before replacing or removing a class. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `stacking-prs` splits uncommitted work through the existing-work procedure, so it commits a backup branch before building layers. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `testing-the-premise` opens its reply with a `Premise:` sentence and the fixes that failed. [#223](https://github.com/bostonaholic/skills/pull/223)
+- `watching-reviewed-prs` prints the `Armed at head` line before the first poll cycle. [#223](https://github.com/bostonaholic/skills/pull/223)
 
 ### Removed
 

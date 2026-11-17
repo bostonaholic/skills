@@ -76,7 +76,7 @@ In a gem, every public constant is API that other projects may call.
 ## Before removing or inlining a class
 
 - Run `bash <skill-dir>/scripts/find-callers.sh <Constant> <project>` for
-  each class.
+  each class, and name in the reply the search you ran and what it found.
 - Exit 0: account for every `reference` and `require` hit, and decide for
   each `dynamic` hit whether the name it builds can be the class; that takes
   reading the code, so it stays with you.

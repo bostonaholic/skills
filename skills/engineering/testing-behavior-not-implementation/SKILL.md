@@ -1,6 +1,6 @@
 ---
 name: testing-behavior-not-implementation
-description: 'Checks each test asserts what the code''s users can observe, so it fails when that behavior breaks and passes when only internals change. Use when the user says "test behavior, not implementation", or when writing, changing, or keeping a test. Not for auditing a whole suite; use auditing-tests.'
+description: 'Checks each test asserts what the code''s users can observe, so it fails when that behavior breaks and passes when only internals change. Use when the user says "test behavior, not implementation", or when about to write, change, or keep a test: load it before the first test edit of a task. Not for auditing a whole suite; use auditing-tests.'
 ---
 
 # Test Behavior, Not Implementation

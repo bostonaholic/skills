@@ -35,5 +35,7 @@ instead, and name candidate fixes only as outcomes of its result.
 
 ## Report
 
-Reply with the premise, the observation and the command that makes it, its
-result, the cause the result points to, and then the fix.
+Open the reply with the premise as its own sentence, `Premise: <what every
+failed fix assumed>`, and the fixes it failed. Then give the observation and
+the command that makes it, its result, the cause the result points to, and
+then the fix.

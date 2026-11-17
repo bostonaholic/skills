@@ -48,8 +48,9 @@ does not prove an older host renders the diagram.
 
 Several of these fail silently rather than with a parse error.
 
-- Labels containing `()`, `[]`, `{}`, `:`, `;`, or `#` are wrapped in
-  `"..."`; inner quotes are written `#quot;`, `<` and `>` as `#lt;` and `#gt;`.
+- Every node and edge label containing `()`, `[]`, `{}`, `:`, `;`, or `#` is
+  wrapped in `"..."`, prose too: `H["Email customer: refund sent"]`. Inner
+  quotes are written `#quot;`, `<` and `>` as `#lt;` and `#gt;`.
 - A lowercase `end` as a flowchart node ID or bare label breaks the parse; use
   `End` or `["end"]`.
 - A node ID beginning with `o` or `x` right after a link (`A---oB`) silently

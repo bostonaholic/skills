@@ -58,7 +58,7 @@ Print exactly this, and nothing of the report beyond it:
 - When nothing was posted, add the report's `### Findings` section after the summary, even when it lists no findings: it is the only record of what the review found.
 - When a [reused finding](#reused-findings) was verified, add its verification after the summary, apart from the verdict.
 - When the reviewer used a nonstandard heading, or its read-only restriction rested on its prompt rather than its tool grants, say so in one sentence of the summary.
-- When `### Checks` holds `Not judged:` lines, print them after the summary.
+- When `### Checks` holds `Not judged:` lines, print them verbatim after the summary and before `### Findings`. Add nothing after the last section printed.
 
 ## Re-review
 

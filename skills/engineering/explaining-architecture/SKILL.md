@@ -1,6 +1,6 @@
 ---
 name: explaining-architecture
-description: Explains how a subsystem, feature flow, or runtime path works (architecture, data flow, file map, gotchas), with an optional critique by fresh-context critics. Read-only. Use when the user says "how does this work?", or when asked how a subsystem or flow works or where logic belongs. Not for why code is shaped as it is; use investigating-design-rationale. Not for explaining a PR or diff; use explaining-code.
+description: Explains how a subsystem, feature flow, or runtime path works (architecture, data flow, file map, gotchas), with an optional critique by fresh-context critics. Read-only. Use when the user says "how does this work?", or when asked how a subsystem or flow works, how a request, event, or piece of data travels through the code, which files to start in, or where logic belongs. Not for why code is shaped as it is; use investigating-design-rationale. Not for explaining a PR or diff; use explaining-code.
 effort: medium
 argument-hint: "[<subsystem, feature, or question>]"
 ---
@@ -33,7 +33,8 @@ Trace each flow from trigger to effect. Where you cannot trace a link, say so
 instead of inventing it. Claims about code carry `file:line`, and a flow step
 names the function that runs it.
 
-Adapt the answer to the question; use only the sections it needs:
+Adapt the answer to the question; use only the sections it needs, headed
+word for word as named here:
 
 - **Overview**: what it is, what it does, why it exists, in a paragraph or
   two.

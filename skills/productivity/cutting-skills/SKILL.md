@@ -39,8 +39,8 @@ agent-agnostic, and a short, checklist-shaped `SKILL.md` with detail in
 - Read the whole `SKILL.md`, its `agents/openai.yaml`, and its resources.
 - Name the tasks that should trigger it and the decisions an otherwise capable
   agent would get wrong without it.
-- Give each piece of material a class and its default treatment from
-  [the classification table](references/classification-table.md).
+- Give each piece of material its class, named word for word, and default
+  treatment from [the classification table](references/classification-table.md).
 
 ## Cutting
 
@@ -96,9 +96,9 @@ Without a Skill tool, follow the [skill call rules](shared/skill-calls.md).
 ## Report
 
 - The mode, and SKILL.md line and character counts and total line counts
-  before and after (estimates in Audit mode).
+  before and after, each as a number, never a percentage (estimates in Audit mode).
 - The behavior the skill still provides, and each material keep, move, or
-  deletion with its class.
+  deletion with its class name from the table.
 - The trigger change, validation and eval results (pooled runs per case), and
   whether the skill rules hold.
 - Anything left untouched because you were unsure.

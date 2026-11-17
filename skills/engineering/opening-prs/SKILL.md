@@ -26,7 +26,9 @@ argument-hint: "[<pr-number-or-url>] [--inputs <path>]"
    nothing pushed. Exit 0 prints `BRANCH`, `MODE`, and, in refresh mode, `PR`.
 
 2. **Write the title and body** per the
-   [body template](references/body-template.md), with every PR number and
+   [body template](references/body-template.md), read before writing: every
+   body holds its `## Summary`, `## How to Verify`, and `## Merge risk`
+   headings exactly, with every PR number and
    any `## Stack` table as [PR body rules](shared/pr-body-rules.md) say. In
    open mode, first find the base branch per
    [open and refresh](references/open-and-refresh.md#base-branch).
