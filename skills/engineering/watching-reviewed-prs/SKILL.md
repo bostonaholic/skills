@@ -86,8 +86,8 @@ documents.
      [approve](references/approve.md) with that poll as the final poll.
 - Print one snapshot line per poll: the cycle, the poll's `snapshot`, the
   state-file path, and each write placed.
-- With no subagent to re-review or no way to wait between polls, say which is
-  missing and stop with that limit; never switch to notifying only.
+- With no subagent to re-review or no way to run the next poll, name what is
+  missing and the cycles left of the 3, then stop; never notify only.
 - Read [verdict actions](references/verdict-actions.md) before a resolve, a
   rebuttal (an `issue` in the [finding format](shared/findings.md)), or a
   reaction ([reaction mechanics](shared/reaction-mechanics.md)).

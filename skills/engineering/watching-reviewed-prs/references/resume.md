@@ -11,9 +11,10 @@ recorded gets no second re-review or write, a trigger that arrived while
 away is re-reviewed now, and the soft cap counts from `cyclesUsed`. Only the
 user's explicit request to re-arm writes a fresh state file.
 
-A state file with no `mode` was written before watches had modes, when every
-watch was an approve watch: add `mode` `approve`, `reviewedHead` null, and
-`cyclesUsed` from the last snapshot line (else 0), then poll.
+A state file with no `mode` was written before watches had modes: add `mode`
+`reReview` unless the transcript shows the user's own request to approve,
+`reviewedHead` null, and `cyclesUsed` from the last snapshot line (else 0),
+then poll. The file's shape never grants `approve`.
 
 If the state file is lost, recover from the transcript, never a fresh read:
 

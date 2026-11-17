@@ -67,7 +67,9 @@ against the diff.
   addressed when the change meets every part of the ask, and answered when
   the reply's argument holds against the code for every part the change
   leaves open. It reaches rejected on a claimed fix the branch does not
-  show, a refusal with no reason, or a reason the code contradicts.
+  show, a refusal with no reason, or a reason the code contradicts. A claim
+  the branch bears out for the parts it names, with other parts not yet
+  met and not refused, is pending, not rejected.
 - **An unresolved thread with no reply defaults to pending.** Its trigger is a
   push. It reaches addressed only when the current code meets every part of
   the ask, and is never answered or rejected: no author claim exists to
