@@ -175,4 +175,4 @@ append_system_prompt: |
   ```
 ---
 
-/bostonaholic:watching-reviewed-prs https://github.acme.invalid/acme/api/pull/9
+/bostonaholic:watching-reviewed-prs https://github.acme.invalid/acme/api/pull/9 and approve it once my feedback settles

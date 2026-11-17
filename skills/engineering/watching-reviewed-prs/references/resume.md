@@ -1,8 +1,8 @@
 # Resume
 
 Read this when the conversation was compacted during a watch, or when a watch
-resumes in a later turn or session, such as after a background wake or a
-soft-cap handoff the user picks up.
+resumes in a later turn or session, such as after a background wake. A watch
+past the soft cap does not resume; it continues only by a re-arm.
 
 Re-read the state file at the path the last snapshot line or handoff named,
 and re-run the poll. A resume never re-arms: the file's `mode`,
@@ -10,6 +10,10 @@ and re-run the poll. A resume never re-arms: the file's `mode`,
 recorded gets no second re-review or write, a trigger that arrived while
 away is re-reviewed now, and the soft cap counts from `cyclesUsed`. Only the
 user's explicit request to re-arm writes a fresh state file.
+
+A state file with no `mode` was written before watches had modes, when every
+watch was an approve watch: add `mode` `approve`, `reviewedHead` null, and
+`cyclesUsed` from the last snapshot line (else 0), then poll.
 
 If the state file is lost, recover from the transcript, never a fresh read:
 

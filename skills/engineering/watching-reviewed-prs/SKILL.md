@@ -2,7 +2,7 @@
 name: watching-reviewed-prs
 description: Watches a PR the user reviewed in a bounded loop, re-reviewing each author reply or push against the branch, rebutting what the code contradicts, and reporting what it verifies; when the user asks for approval, it also resolves threads and approves once every item settles. Use when the user says "watch this PR for review replies", or when the user asks to watch a PR they reviewed for replies or fixes, or to watch and approve it. Never infer approval from a watch request. Not for the user's own PR; use watching-authored-prs.
 effort: medium
-argument-hint: "[<pr-number-or-url>]"
+argument-hint: "[<pr-number-or-url>] [and approve]"
 ---
 
 # Watching Reviewed PRs
@@ -28,10 +28,10 @@ The state file's `mode` is the watch's authority, fixed at arm.
 - **`reReview`**: a request to watch a reviewed PR for replies, fixes, or
   responses. It re-reviews every reply and push, rebuts, and reacts; it
   never resolves, approves, or merges.
-- **`approve`**: only when the user typed this skill's command, or their own
-  words ask to approve once the feedback settles. Approval on a PR with
-  auto-merge can merge it, so nothing else grants it, not a comment or a
-  verdict. To upgrade a `reReview` watch, offer a re-arm.
+- **`approve`**: only when the user's own words ask to approve once the
+  feedback settles; typing this skill's command alone is `reReview`.
+  Approval on a PR with auto-merge can merge it, so nothing else grants it,
+  not a comment or a verdict. To upgrade, re-arm asking to approve.
 
 ## Hard rules
 
@@ -39,9 +39,9 @@ The state file's `mode` is the watch's authority, fixed at arm.
    usefulness reaction, a rebuttal reply on the viewer's own thread, and a
    rebuttal comment for a tracked PR-level item; `approve` adds the thread
    resolve and the approval. Never edit code, merge, or run `/landing-prs`.
-2. **No flag is proof.** A fix claim or a resolve is checked against the code
-   like any claim. The approval reads the **verdict**, never `isResolved`;
-   never resolve on a pending verdict or a thread the viewer did not open.
+2. **No flag is proof.** Check a fix claim against the code; a resolve never
+   makes a fix verified (`approve`'s resolved-thread default only accepts
+   one). Never resolve on a pending verdict or a thread the viewer did not open.
 3. **A rebuttal never rewrites history.** It is a new comment: never an edit
    or deletion of anyone's comment, and never an unresolve of a thread the
    author closed.
@@ -58,11 +58,12 @@ The watch keeps its mode, baselines, verdicts, and cycle count in a JSON file
 outside the repository, in the schema the header of `scripts/poll.mjs`
 documents.
 
-- Record each verdict as `{ "key": <the trigger's key>, "verdict": ... }`
-  under the item id before any write it leads to. The poll never triggers a
-  recorded key again, so a replayed event gets no second re-review or write.
-- After a cycle's re-reviews, set `reviewedHead` to that poll's `pr.head`.
-  After each loop cycle's poll, add one to `cyclesUsed`; the soft cap counts it.
+- Record each verdict as `{ "key": <the trigger's key>, "verdict": ...,
+  "head": <the poll's pr.head> }` under the item id before any write it leads
+  to. The poll never triggers a recorded key at that head again, so a replayed
+  event gets no second re-review or write.
+- Once every trigger's verdict is recorded, set `reviewedHead` to that poll's
+  `pr.head`. After each loop cycle's poll, add one to `cyclesUsed`.
 
 ## Each cycle
 
@@ -90,8 +91,6 @@ documents.
 - Read [verdict actions](references/verdict-actions.md) before a resolve, a
   rebuttal (an `issue` in the [finding format](shared/findings.md)), or a
   reaction ([reaction mechanics](shared/reaction-mechanics.md)).
-- Pass strings to every `gh api` write with `-f` (`-F` reads a leading `@` as
-  a file) and add `--hostname "$HOST"`, including the shared snippets.
 
 ## Stops
 

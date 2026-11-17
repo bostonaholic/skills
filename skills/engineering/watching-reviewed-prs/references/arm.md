@@ -20,11 +20,12 @@ report.
 
 ## Mode
 
-Set `mode` as SKILL.md's Mode section says. A `reReview` arm report says the
-watch re-reviews every reply and push and reports the verdicts, and that it
-will not resolve or approve; to have it approve once everything settles, the
-user re-arms asking for that. When the request's mode is unclear, arm
-`reReview`.
+Set `mode` as SKILL.md's Mode section says: `approve` only when the user's
+own words ask to approve, never from the command alone. A `reReview` arm
+report says the watch re-reviews every reply and push and reports the
+verdicts, and that it will not resolve or approve; to have it approve once
+everything settles, the user re-arms asking for that. When the request's
+mode is unclear, arm `reReview`.
 
 ## Classify the viewer's PR-level feedback
 

@@ -19,7 +19,7 @@
  * State file, written by the model at arm and edited after each verdict:
  *
  *   {
- *     "mode": "reReview" | "approve",    // approve only when the user asked to approve
+ *     "mode": "reReview" | "approve",    // approve only when the user's words asked to approve
  *     "reviewedHead": "<sha>" | null,    // head the last finished re-review judged; null: none yet
  *     "cyclesUsed": 0,                   // loop cycles run, carried across resumes
  *     "armHead": "<sha>" | null,         // null: lost, the baseline is missing
@@ -30,7 +30,8 @@
  *                    "conversationComments": 0 } | null,   // null: lost
  *     "resolvedBySkill": ["<thread id>"] | null,           // null: lost
  *     "verdicts": { "<item id>": { "key": "<trigger key>",
- *                   "verdict": "addressed" | "answered" | "pending" | "rejected" } }
+ *                   "verdict": "addressed" | "answered" | "pending" | "rejected",
+ *                   "head": "<sha>" } }   // the poll's head the verdict judged; optional
  *   }
  *
  * Tracked set: every thread whose first comment is the viewer's and submitted
@@ -47,8 +48,10 @@
  * Touched thread: every tracked thread while `reviewedHead` is null, so the
  * first re-review sees a fix pushed before the watch armed; otherwise, once
  * the head differs from `reviewedHead`, a thread whose `path` the commits
- * between them touched (a rename's old name counts). When GitHub cannot
- * compare them (HTTP 404 or 422, as after a force-push) or lists the compare
+ * between them touched (a rename's old name counts). When the head is not a
+ * descendant of `reviewedHead` (a compare `status` other than `ahead` or
+ * `identical`, as after a force-push that dropped a commit), when GitHub
+ * cannot compare them (HTTP 404 or 422), or when the list reaches the compare
  * API's 300-file maximum, every tracked thread is touched.
  *
  * Stdout, on exit 0 only, one line of JSON:
@@ -78,8 +81,9 @@
  * resolved or carries a non-viewer reply, and for an engaged PR-level item,
  * when the item has no current verdict; `kind` is `resolved`, `reply`,
  * `reopened`, or `engaged`. A touched thread with no other trigger fires
- * with `kind` `push`, even when its verdict is current. `key` is what to
- * record with its verdict. A
+ * with `kind` `push`, even when its verdict is current, unless that verdict's
+ * `head` is the current head: a verdict already judged this head is never
+ * triggered again. `key` is what to record with its verdict. A
  * thread trigger's `resolvedKey` is the key the thread holds once resolved
  * with no new reply. `viewerReplied` is true when a viewer comment sits below
  * the thread's first. A third login is neither the viewer nor the thread's
@@ -133,6 +137,9 @@ const COMPARE_FILE_LIMIT = 300;
 // GitHub answers 404 when a commit is gone (a force-push) and 422 when the two have no
 // common history; both mean the touched files are unknown, not that the read failed.
 const UNCOMPARABLE_PATTERN = /HTTP (?:404|422)\b/;
+// Only these mean every commit since `reviewedHead` is still on the branch; `diverged`
+// or `behind` means a force-push may have dropped a fix the compare cannot list.
+const DESCENDANT_STATUSES = new Set(["ahead", "identical"]);
 
 const loginOf = (node) => node.author?.login ?? null;
 const isStringArray = (value) => Array.isArray(value) && value.every((v) => typeof v === "string");
@@ -166,12 +173,16 @@ export function validateState(state) {
   )
     fault("verdicts");
   for (const [id, record] of Object.entries(state.verdicts))
-    if (typeof record?.key !== "string" || !VERDICTS.includes(record?.verdict))
+    if (
+      typeof record?.key !== "string" ||
+      !VERDICTS.includes(record?.verdict) ||
+      (record.head !== undefined && !SHA_PATTERN.test(record.head))
+    )
       fault(`verdicts.${id}`);
   return state;
 }
 
-function threadItem(thread, viewer, recorded, touched) {
+function threadItem(thread, viewer, recorded, touched, head) {
   const [first, ...replies] = thread.comments;
   const lastReply = replies.filter((comment) => loginOf(comment) !== viewer).at(-1);
   const replyId = lastReply?.id ?? "none";
@@ -188,7 +199,7 @@ function threadItem(thread, viewer, recorded, touched) {
     else if (!thread.isResolved && recorded.key === resolvedKey) kind = "reopened";
     else kind = "reply";
   }
-  if (kind === null && touched) kind = "push";
+  if (kind === null && touched && recorded?.head !== head) kind = "push";
 
   let counterpart;
   const thirdLogins = [];
@@ -255,6 +266,11 @@ export function standingReview(reviews, viewer) {
   return standing;
 }
 
+function isTrackedThread(thread, viewer) {
+  const first = thread.comments[0];
+  return first !== undefined && loginOf(first) === viewer && first.state !== "PENDING";
+}
+
 // `changedPaths` is the set of paths the commits since `reviewedHead` touched, or null
 // when they are unknown; it is unused while `reviewedHead` is null or equals the head.
 export function evaluatePoll(feedback, state, headCommittedAt, changedPaths = null) {
@@ -264,11 +280,10 @@ export function evaluatePoll(feedback, state, headCommittedAt, changedPaths = nu
     state.reviewedHead === null ||
     (state.reviewedHead !== head && (changedPaths === null || changedPaths.has(path)));
   const results = feedback.reviewThreads
-    .filter((thread) => {
-      const first = thread.comments[0];
-      return first !== undefined && loginOf(first) === viewer && first.state !== "PENDING";
-    })
-    .map((thread) => threadItem(thread, viewer, state.verdicts[thread.id], touched(thread.path)));
+    .filter((thread) => isTrackedThread(thread, viewer))
+    .map((thread) =>
+      threadItem(thread, viewer, state.verdicts[thread.id], touched(thread.path), head),
+    );
   const prLevel = trackedPrLevel(feedback, state);
   for (const shape of PR_LEVEL_SHAPES)
     for (const node of prLevel[shape])
@@ -366,9 +381,15 @@ function headCommittedDate(pr, head) {
   return date;
 }
 
-export function parseChangedPaths(files) {
-  if (!Array.isArray(files) || !files.every((file) => typeof file?.filename === "string"))
-    throw new Failure(EXIT_FAILURE, "the compare read listed no file names");
+export function parseChangedPaths(compare) {
+  const files = compare?.files;
+  if (
+    typeof compare?.status !== "string" ||
+    !Array.isArray(files) ||
+    !files.every((file) => typeof file?.filename === "string")
+  )
+    throw new Failure(EXIT_FAILURE, "the compare read listed no status or file names");
+  if (!DESCENDANT_STATUSES.has(compare.status)) return null;
   if (files.length >= COMPARE_FILE_LIMIT) return null;
   return new Set(
     files.flatMap((file) =>
@@ -386,20 +407,20 @@ function changedPathsSince(pr, base, head) {
     pr.host,
     `repos/${pr.owner}/${pr.repo}/compare/${base}...${head}`,
     "--jq",
-    "[.files[]? | {filename, previous_filename}]",
+    "{status, files: [.files[]? | {filename, previous_filename}]}",
   ]);
   if (run.status !== 0) {
     if (UNCOMPARABLE_PATTERN.test(run.stderr)) return null;
     process.stderr.write(run.stderr);
     throw new Failure(EXIT_FAILURE, `cannot compare ${base}...${head}`);
   }
-  let files;
+  let compare;
   try {
-    files = JSON.parse(run.stdout);
+    compare = JSON.parse(run.stdout);
   } catch {
     throw new Failure(EXIT_FAILURE, `the compare read of ${base}...${head} is not JSON`);
   }
-  return parseChangedPaths(files);
+  return parseChangedPaths(compare);
 }
 
 function readState(path) {
@@ -428,9 +449,7 @@ function main(argv) {
   const head = feedback.pr.headRefOid;
   const committedAt = needsDate ? headCommittedDate(pr, head) : null;
   const viewer = feedback.viewer.login;
-  const hasThreads = feedback.reviewThreads.some(
-    (thread) => loginOf(thread.comments[0] ?? {}) === viewer,
-  );
+  const hasThreads = feedback.reviewThreads.some((thread) => isTrackedThread(thread, viewer));
   const needsCompare = hasThreads && state.reviewedHead !== null && state.reviewedHead !== head;
   const changedPaths = needsCompare ? changedPathsSince(pr, state.reviewedHead, head) : null;
   process.stdout.write(

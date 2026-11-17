@@ -323,6 +323,32 @@ test("a push triggers each touched thread, and every thread before the first re-
     ]);
     assert.equal(poll.items[1].verdict, "pending");
   });
+  await t.test("a verdict already recorded at this head: no second push trigger", () => {
+    const judged = {
+      ...verdicts,
+      T1: { ...verdicts.T1, head: NEW_HEAD },
+      T2: { ...verdicts.T2, head: ARM_HEAD },
+    };
+    const poll = evaluatePoll(
+      feedback({ threads, head: NEW_HEAD }),
+      state({ verdicts: judged }),
+      null,
+      null,
+    );
+    assert.deepEqual(
+      kinds(poll).map(([id]) => id),
+      ["T2", "T3"],
+    );
+    const first = evaluatePoll(
+      feedback({ threads }),
+      state({ reviewedHead: null, verdicts: { T1: { ...verdicts.T1, head: ARM_HEAD } } }),
+      null,
+    );
+    assert.deepEqual(
+      kinds(first).map(([id]) => id),
+      ["T2", "T3"],
+    );
+  });
   await t.test("unknown touched paths: every thread", () => {
     const poll = evaluatePoll(
       feedback({ threads, head: NEW_HEAD }),
@@ -349,23 +375,28 @@ test("a push triggers each touched thread, and every thread before the first re-
   });
 });
 
-test("parseChangedPaths keeps both names of a rename and gives up at the compare file limit", () => {
+test("parseChangedPaths keeps both names of a rename, and gives up on a non-descendant head or the compare file limit", () => {
+  const ahead = (files) => ({ status: "ahead", files });
   assert.deepEqual(
-    [...parseChangedPaths([{ filename: "b.js", previous_filename: "a.js" }, { filename: "c.js" }])],
+    [
+      ...parseChangedPaths(
+        ahead([{ filename: "b.js", previous_filename: "a.js" }, { filename: "c.js" }]),
+      ),
+    ],
     ["b.js", "a.js", "c.js"],
   );
+  assert.deepEqual([...parseChangedPaths({ status: "identical", files: [] })], []);
+  for (const status of ["diverged", "behind"])
+    assert.equal(parseChangedPaths({ status, files: [{ filename: "b.js" }] }), null, status);
   assert.equal(
-    parseChangedPaths(Array.from({ length: 300 }, (_, i) => ({ filename: `f${i}` }))),
+    parseChangedPaths(ahead(Array.from({ length: 300 }, (_, i) => ({ filename: `f${i}` })))),
     null,
   );
-  assert.throws(
-    () => parseChangedPaths({}),
-    (error) => error.exitCode === 1,
-  );
-  assert.throws(
-    () => parseChangedPaths([{}]),
-    (error) => error.exitCode === 1,
-  );
+  for (const malformed of [{}, [], ahead([{}])])
+    assert.throws(
+      () => parseChangedPaths(malformed),
+      (error) => error.exitCode === 1,
+    );
 });
 
 test("a re-review watch settles without approval readiness, and settling ignores the gate", async (t) => {
@@ -563,6 +594,11 @@ test("validateState names the first malformed field", async (t) => {
     ["resolvedBySkill", "resolvedBySkill", state({ resolvedBySkill: "T1" })],
     ["verdicts", "verdicts", state({ verdicts: [] })],
     ["verdicts.T1", "verdicts.T1", state({ verdicts: { T1: { key: "k", verdict: "fine" } } })],
+    [
+      "verdicts.T1 head",
+      "verdicts.T1",
+      state({ verdicts: { T1: { key: "k", verdict: "pending", head: "abc" } } }),
+    ],
   ];
   for (const [name, field, value] of cases) {
     await t.test(name, () => {
@@ -965,7 +1001,10 @@ test("poll.mjs reads the touched paths only when a thread is tracked and the hea
       st,
       "poll.mjs",
       [PR_URL, "--state", "state.json"],
-      { graphql: moved, compare: { stdout: '[{"filename":"src/other.js"}]\n' } },
+      {
+        graphql: moved,
+        compare: { stdout: '{"status":"ahead","files":[{"filename":"src/other.js"}]}\n' },
+      },
       reviewed,
     );
     assert.equal(result.status, 0, result.stderr);
@@ -975,9 +1014,44 @@ test("poll.mjs reads the touched paths only when a thread is tracked and the hea
       HOST,
       `repos/o/r/compare/${ARM_HEAD}...${NEW_HEAD}`,
       "--jq",
-      "[.files[]? | {filename, previous_filename}]",
+      "{status, files: [.files[]? | {filename, previous_filename}]}",
     ]);
     assert.deepEqual(JSON.parse(result.stdout).triggers, []);
+  });
+  await t.test(
+    "a head that no longer descends from the reviewed head touches every thread",
+    (st) => {
+      const result = cli(
+        st,
+        "poll.mjs",
+        [PR_URL, "--state", "state.json"],
+        {
+          graphql: moved,
+          compare: { stdout: '{"status":"diverged","files":[{"filename":"src/other.js"}]}\n' },
+        },
+        reviewed,
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(
+        JSON.parse(result.stdout).triggers.map((tr) => tr.kind),
+        ["push"],
+      );
+    },
+  );
+  await t.test("a moved head with no tracked thread: no compare read", (st) => {
+    const pendingOnly = graphqlResponse({
+      threads: [thread("T1", [comment("C1", "me", { state: "PENDING" })])],
+      head: NEW_HEAD,
+    });
+    const result = cli(
+      st,
+      "poll.mjs",
+      [PR_URL, "--state", "state.json"],
+      { graphql: pendingOnly },
+      reviewed,
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.calls.length, 1);
   });
   await t.test("a compare GitHub cannot make touches every thread", (st) => {
     const result = cli(

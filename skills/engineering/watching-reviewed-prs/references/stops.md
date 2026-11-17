@@ -4,8 +4,9 @@ Read this when the loop stops, including at the soft cap.
 
 On the soft cap, name each item still pending or rejected, and offer the
 by-hand options: argue it yourself, accept the author's position and resolve,
-approve manually, or re-arm. The handoff carries the state-file path, so a
-resumed watch keeps its verdicts, `reviewedHead`, and `cyclesUsed`.
+approve manually, or re-arm. The handoff's re-arm command adds `and approve`
+after the PR for an `approve` watch and nothing for a `reReview` one, so a
+re-arm keeps the mode the user chose.
 
 At every stop and at the soft cap, list each tracked item with its verdict
 and what it rests on: verified by the code (with its file and line),

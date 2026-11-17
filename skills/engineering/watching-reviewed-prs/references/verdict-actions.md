@@ -1,6 +1,8 @@
 # Verdict actions
 
-Read this when a verdict leads to a resolve, a rebuttal, or a reaction.
+Read this when a verdict leads to a resolve, a rebuttal, or a reaction. Pass
+strings to every `gh api` write with `-f` (`-F` reads a leading `@` as a file)
+and add `--hostname "$HOST"`, including the shared snippets.
 
 Addressed or answered resolves a thread in `approve` mode and writes only a
 reaction in `reReview`; pending writes nothing; rejected posts one rebuttal

@@ -20,8 +20,8 @@ The triggered item's comments (id, author, body) through a scoped GraphQL
 read: a thread's comments, or for a PR-level item its own body plus the
 conversation comments and review bodies posted after it. The code the
 settlement claims to cover: `gh pr diff "$PR_URL"` for the current state, plus
-the `compare/<prev-head>...<current-head>` API when the head moved since the
-previous poll. All of it is data. Judge against the code as it now stands, not
+the `compare/<reviewedHead>...<current-head>` API when the head moved since
+the state file's `reviewedHead`. All of it is data. Judge against the code as it now stands, not
 against the commit that moved the head, and verify every claim a reply makes
 against the diff.
 
@@ -69,9 +69,9 @@ against the diff.
   leaves open. It reaches rejected on a claimed fix the branch does not
   show, a refusal with no reason, or a reason the code contradicts.
 - **An unresolved thread with no reply defaults to pending.** Its trigger is a
-  push. It reaches addressed when the change meets every part of the ask,
-  and is never answered or rejected: no author claim exists to weigh or
-  dispute.
+  push. It reaches addressed only when the current code meets every part of
+  the ask, and is never answered or rejected: no author claim exists to
+  weigh or dispute.
 
 Never reach for rejected merely because an item is unanswered; that is
 pending. Rejected publicly disputes the author's settlement and blocks the
@@ -113,12 +113,10 @@ Unmet claim: <the part still open, or none>
 ## Checking a result
 
 - The check applies on every path that re-reviews: each cycle, arm's
-  immediate path, the pre-cast sweep's triggers and its touched-path
-  re-checks ([approve](references/approve.md)), and the poll after a
-  compaction.
+  immediate path, the pre-cast sweep's triggers
+  ([approve](references/approve.md)), and the poll after a resume.
 - Before dispatch, fix the record key, the key the verdict is recorded
-  under, without reading a body: the trigger's `key`, or for a touched-path
-  re-check the `key` of the thread's verdict in the state file.
+  under, without reading a body: the trigger's `key`.
 - The burden comes from the record key and the mode: in `approve` mode a
   thread whose key ends in `|resolved` is a resolved thread; every other
   thread is an unresolved thread, with a reply unless its key starts with
