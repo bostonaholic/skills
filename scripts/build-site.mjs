@@ -74,7 +74,7 @@ function sectionHtml(skill) {
   const command = [`/${skill.name}`, skill.argumentHint].filter(Boolean).join(" ");
   const usage = [
     !skill.modelOnly && `<code>${escapeHtml(command)}</code>`,
-    !skill.userInvoked && `say ${escapeHtml(`"${skill.say}"`)}`,
+    !skill.userInvoked && skill.say && `say ${escapeHtml(`"${skill.say}"`)}`,
   ]
     .filter(Boolean)
     .join(", or ");
