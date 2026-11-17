@@ -62,6 +62,14 @@ jobs:
       - name: Install Claude Code
         if: env.OIDC == '1'
         run: npm install --global @anthropic-ai/claude-code@2.1.325
+      - name: Install the Claude Code sandbox backend
+        if: env.OIDC == '1'
+        # bash-tagged cases grant a shell, and claude refuses to start without its
+        # sandbox. Ubuntu's AppArmor default blocks the user namespaces bubblewrap needs.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap socat
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Keep a GitHub OIDC token for Anthropic
         if: env.OIDC == '1'
         run: |
