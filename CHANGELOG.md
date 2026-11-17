@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- Stop shipping `writing-no-tests`: it moves to incubating skills, which the plugin and `npx skills` do not install. [#215](https://github.com/bostonaholic/skills/pull/215)
+
 ## [0.106.0] - 2026-11-16
 
 ### Added
