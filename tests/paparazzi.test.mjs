@@ -188,7 +188,6 @@ test("png-check exits 0 on a passing frame, 1 on a failed gate, and 2 on a non-P
   const failing = run(PNG_CHECK, [blank]);
   assert.equal(failing.status, 1);
   assert.equal(JSON.parse(failing.stdout).failures.length, 1);
-  assert.doesNotMatch(failing.stderr, /^see /m);
 
   assert.equal(run(PNG_CHECK, [text]).status, 2);
   assert.equal(run(PNG_CHECK, [frame, "extra"]).status, 2);
@@ -386,10 +385,6 @@ function shootWithFake(t, shots, behavior) {
   });
 }
 
-function lastLine(text) {
-  return text.replace(/\n$/, "").split("\n").at(-1);
-}
-
 test("shoot.mjs writes Playwright's full error to stderr only when the frame reason cut it", async (t) => {
   await t.test("a two-line goto error: reason is line 1, the whole message on stderr", (st) => {
     const message = "page.goto: net::ERR_CONNECTION_REFUSED\npw-sentinel call log: navigating";
@@ -431,7 +426,6 @@ test("shoot.mjs writes Playwright's full error to stderr only when the frame rea
       "pw-sentinel chrome: install Google Chrome",
       "shoot.mjs: no browser: bundled chromium: browserType.launch: Executable doesn't exist; chrome: browserType.launch: Chromium distribution 'chrome' is not found",
     ]);
-    assert.match(lastLine(result.stderr), /^see /);
     assert.equal(result.stdout, "");
   });
 

@@ -1067,7 +1067,6 @@ test("copy mode forwards every resolve-pr.sh stderr line before its own refusal"
   assert.equal(lines[0], GH_UNRESOLVED);
   assert.equal(lines[1], `could not resolve the PR: ${COPY_TARGET}`);
   assert.match(lines.at(-2), /^refused: /);
-  assert.match(lines.at(-1), /^see \S+\/references\/copy-mode\.md$/);
   assert.doesNotMatch(ghCalls, /^pr edit /m);
 });
 

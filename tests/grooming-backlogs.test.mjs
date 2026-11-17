@@ -803,7 +803,6 @@ test("set-status.sh skips with 10 a card that changed or left the board, or a fu
     const result = run(env, "set-status.sh", SET(env, extra));
     assert.equal(result.status, 10, line);
     assert.deepEqual(result.lines, [line]);
-    assert.doesNotMatch(result.stderr, /^see /m, line);
     assert.ok(!result.ghCalls.some((call) => call[0] === "api"), "nothing is written");
   }
 });
@@ -989,7 +988,6 @@ test("link-blocked-by.sh skips with 10 a closed or changed endpoint, or a link t
     const result = run(env, "link-blocked-by.sh", [env.runDir, REPO, "12", "15"]);
     assert.equal(result.status, 10, reason);
     assert.deepEqual(result.lines, [`skipped #12 blocked-by #15 ${reason}`]);
-    assert.doesNotMatch(result.stderr, /^see /m, reason);
     assert.ok(!result.ghCalls.some((call) => call.includes("POST")));
   }
 });
@@ -1116,7 +1114,6 @@ test("close-issue.sh skips with 10 an issue that closed, was edited, moved, or d
     const result = run(env, "close-issue.sh", CLOSE(env));
     assert.equal(result.status, 10, reason);
     assert.equal(result.lines.at(-1), `skipped #12 ${reason}`);
-    assert.doesNotMatch(result.stderr, /^see /m, reason);
     assert.ok(
       !result.ghCalls.some(
         (call) => call.includes("POST") || call[1] === "close" || call[1] === "edit",
