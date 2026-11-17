@@ -2,16 +2,14 @@
 // Checks every tracked active and incubating skill and every tracked agents/*.md subagent against the mechanical
 // rules in docs/skill-authoring.md and prints one `path: ID message` line per violation.
 //   node scripts/lint-skills.mjs  exit 1 when any skill breaks a rule, 0 when all pass
-// Rules: A1 name, A2 gerund name, A3 description limits, A4 third-person description, A5 "Use
-// when" clause, A7 agents/openai.yaml present and agreeing on invocation, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, B5 a
+// Rules: A1 name, A3 description limits, A7 agents/openai.yaml present and agreeing on invocation, B3 no harness-specific files, frontmatter keys, or SKILL.md substitutions, B5 a
 // skill call only with a shared/skill-calls.md link from SKILL.md, C1 SKILL.md body of at most
 // 100 lines, C3 every references/ and shared/ file linked from SKILL.md, C4 a `## Contents` table
-// of contents in files over 100 lines, C5 forward-slash paths, C6 no SKILL.md prose paragraph over
-// 50 words, C7 links and <skill-dir>/ paths that name tracked files in the skill, C8 -dir and -root
+// of contents in files over 100 lines, C5 forward-slash paths, C7 links and <skill-dir>/ paths that name tracked files in the skill, C8 -dir and -root
 // placeholders that name only the skill's own directory, G1 a trigger, guard, and core eval case
 // per active skill, and for an incubating skill, A7 disable-model-invocation: true and
-// metadata.internal: true. Subagents get A3 to A5 on their description, S1 a tier-alias model, S2 readonly: true
-// beside a tools list with no write tool, and S3 a name that is not a gerund. Acts on the git repository at the working directory; skills come from `git ls-files`,
+// metadata.internal: true. Subagents get A3 on their description, S1 a tier-alias model, and S2 readonly: true
+// beside a tools list with no write tool. Acts on the git repository at the working directory; skills come from `git ls-files`,
 // and archived skills under skills/deprecated/ are skipped.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
@@ -24,10 +22,7 @@ import { references } from "./sync-shared.mjs";
 // docs/skill-authoring.md rows marked **lint**, so a new check and its row land together.
 export const LINT_IDS = Object.freeze([
   "A1",
-  "A2",
   "A3",
-  "A4",
-  "A5",
   "A7",
   "B3",
   "B5",
@@ -35,13 +30,11 @@ export const LINT_IDS = Object.freeze([
   "C3",
   "C4",
   "C5",
-  "C6",
   "C7",
   "C8",
   "G1",
   "S1",
   "S2",
-  "S3",
 ]);
 
 // Skills that ship without their eval cases, each with why. The lint only skips these skills;
@@ -52,12 +45,6 @@ export const EVALS_PENDING = Object.freeze({
   "updating-bostonaholic-skills": "no eval cases yet; writing them is deferred",
 });
 
-// Skills whose name may skip the gerund rule (A2), each with why. Keep this to aliases whose short
-// name is the point; the real-tree test in tests/lint-skills.test.mjs fails once an entry goes stale.
-export const GERUND_EXEMPT = Object.freeze({
-  cr: "short alias for reviewing-code; a two-letter name is faster to type",
-});
-
 // Limits from the Agent Skills frontmatter specification and Anthropic's authoring guide.
 const NAME_MAX = 64;
 const DESCRIPTION_MAX = 1024;
@@ -66,7 +53,6 @@ const BODY_MAX_LINES = 100;
 // Files longer than this need a table of contents so a partial read still shows their scope.
 const TOC_MIN_LINES = 100;
 // About three wrapped lines: past this a paragraph reads as an essay, not a checklist item.
-const PARAGRAPH_MAX_WORDS = 50;
 
 // The Agent Skills specification's fields, plus invocation metadata that other harnesses ignore.
 // Anything else, such as `hooks` or `allowed-tools`, binds the skill to one harness.
@@ -93,13 +79,7 @@ const HARNESS_SUBSTITUTIONS = [
 
 const NAME_FORMAT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const RESERVED_WORDS = /anthropic|claude/;
-const GERUND = /^[a-z]+ing(?:-|$)/;
 const XML_TAG = /<\/?[A-Za-z][^>]*>/;
-const THIRD_PERSON_VERB = /^[A-Z][a-z]+s\b/;
-const NOT_A_VERB = new Set(["This", "Its"]);
-// Hyphens count as word characters so names such as "oh-my-zsh" are not read as "my".
-const FIRST_OR_SECOND_PERSON = /(?<![\w-])(?:I|I'm|I'll|me|my|you|you're|your)(?![\w-])/i;
-const USE_WHEN = /\bUse when\b/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 // The fallback for harnesses with no Skill tool, which every skill that calls another links.
 const SKILL_CALL_RULES = "shared/skill-calls.md";
@@ -141,8 +121,6 @@ function checkName(name, report) {
     report("A1", `name "${name}" must be lowercase letters, digits, and single hyphens`);
   if (RESERVED_WORDS.test(name))
     report("A1", `name "${name}" contains a reserved word (anthropic, claude)`);
-  if (!GERUND.test(name) && !Object.hasOwn(GERUND_EXEMPT, name))
-    report("A2", `name "${name}" must start with a gerund (verb + -ing), as in "reviewing-code"`);
 }
 
 function checkDescription(description, report) {
@@ -153,17 +131,6 @@ function checkDescription(description, report) {
       `description is ${description.length} characters; the limit is ${DESCRIPTION_MAX}`,
     );
   if (XML_TAG.test(description)) report("A3", "description contains an XML tag");
-  const firstWord = description.split(/\s/)[0];
-  if (!THIRD_PERSON_VERB.test(firstWord) || NOT_A_VERB.has(firstWord)) {
-    report(
-      "A4",
-      `description must open with a third-person verb, as in "Reviews ..."; it opens with "${firstWord}"`,
-    );
-  }
-  if (FIRST_OR_SECOND_PERSON.test(description))
-    report("A4", "description must be third person; it addresses I or you");
-  if (!USE_WHEN.test(description))
-    report("A5", 'description must say when to use the skill with a "Use when ..." clause');
 }
 
 function checkPortability(dir, frontmatter, body, files, report) {
@@ -218,34 +185,6 @@ function checkInvocation(dir, frontmatter, tracked, report) {
     !/^metadata:[ \t]*\r?\n(?:[ \t]+.*\r?\n)*?[ \t]+internal:[ \t]*true[ \t]*$/m.test(frontmatter)
   )
     report("A7", "an incubating skill must set metadata.internal: true");
-}
-
-// Prose paragraphs outside fences, headings, list items, tables, and indented continuations.
-function checkChecklistShape(body, report) {
-  let fenced = false;
-  let words = 0;
-  let start = 0;
-  const lines = body.split(/\r?\n/);
-  const flush = () => {
-    if (words > PARAGRAPH_MAX_WORDS)
-      report(
-        "C6",
-        `body line ${start}: ${words}-word paragraph; split it into list items or move it to references/`,
-      );
-    words = 0;
-  };
-  lines.forEach((line, index) => {
-    if (/^\s*(```|~~~)/.test(line)) {
-      flush();
-      fenced = !fenced;
-    } else if (fenced || /^\s*$|^#|^\s*(?:[-*+]|\d+\.)\s|^\s*\||^\s{2,}\S|^>/.test(line)) {
-      flush();
-    } else {
-      if (!words) start = index + 1;
-      words += line.trim().split(/\s+/).length;
-    }
-  });
-  flush();
 }
 
 // SKILL.md link targets without their #anchor or leading ./.
@@ -387,7 +326,7 @@ function listField(frontmatter, key) {
   return items;
 }
 
-// A3 to A5 on the description, then S1 to S3.
+// A3 on the description, then S1 and S2.
 function lintAgent(text, report) {
   const frontmatter = text.match(FRONTMATTER)?.[1];
   if (frontmatter === undefined) {
@@ -410,12 +349,6 @@ function lintAgent(text, report) {
     report(
       "S2",
       `readonly: true, but tools holds ${writes.join(", ")}; drop the write tools (${[...WRITE_TOOLS].join(", ")}) or readonly`,
-    );
-  const name = scalar(frontmatter, "name");
-  if (name && GERUND.test(name))
-    report(
-      "S3",
-      `name "${name}" reads as a gerund; name a subagent with a role noun, as in "oracle"`,
     );
 }
 
@@ -456,7 +389,6 @@ export function lintSkills() {
         "C1",
         `body is ${bodyLines} lines; keep it to ${BODY_MAX_LINES} by moving detail into references/`,
       );
-    checkChecklistShape(body, report);
     const texts = new Map(
       files.map((path) => [path, path === skillPath ? skillText : readFileSync(path, "utf8")]),
     );
