@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- `watching-reviewed-prs` watches a PR you reviewed for review replies: each author reply or new commit on a reviewed thread, including a fix pushed before the watch started, gets a fresh-context re-review, a rebuttal when the code contradicts it, and a report of what was verified. This mode never resolves, approves, or merges, and a resolved thread alone never counts as fixed. [#224](https://github.com/bostonaholic/skills/pull/224)
+
+### Changed
+
+- `watching-reviewed-prs` resolves threads and approves only when your request asks it to approve; the bare `/watching-reviewed-prs <pr>` command now arms a re-review watch. Add "and approve" to keep the old behavior. [#224](https://github.com/bostonaholic/skills/pull/224)
+- `watching-reviewed-prs` records the last reviewed head and the head each verdict judged, so a resumed or replayed cycle does not re-review or reply twice, and it names what is missing instead of only notifying when it cannot run the re-review. [#224](https://github.com/bostonaholic/skills/pull/224)
+- `learning-from-mistakes` proposes the fix in the source of the skill or plugin whose workflow went wrong, and falls back to an instructions-file rule only for a lesson no workflow owns. [#224](https://github.com/bostonaholic/skills/pull/224)
+
 ## [0.108.0] - 2026-11-17
 
 ### Fixed
@@ -17,16 +27,6 @@
 ### Removed
 
 - Stop shipping `writing-no-tests`: it moves to incubating skills, which the plugin and `npx skills` do not install. [#215](https://github.com/bostonaholic/skills/pull/215)
-
-### Added
-
-- `watching-reviewed-prs` watches a PR you reviewed for review replies: each author reply or new commit on a reviewed thread, including a fix pushed before the watch started, gets a fresh-context re-review, a rebuttal when the code contradicts it, and a report of what was verified. This mode never resolves, approves, or merges, and a resolved thread alone never counts as fixed. [#224](https://github.com/bostonaholic/skills/pull/224)
-
-### Changed
-
-- `watching-reviewed-prs` resolves threads and approves only when your request asks it to approve; the bare `/watching-reviewed-prs <pr>` command now arms a re-review watch. Add "and approve" to keep the old behavior. [#224](https://github.com/bostonaholic/skills/pull/224)
-- `watching-reviewed-prs` records the last reviewed head and the head each verdict judged, so a resumed or replayed cycle does not re-review or reply twice, and it names what is missing instead of only notifying when it cannot run the re-review. [#224](https://github.com/bostonaholic/skills/pull/224)
-- `learning-from-mistakes` proposes the fix in the source of the skill or plugin whose workflow went wrong, and falls back to an instructions-file rule only for a lesson no workflow owns. [#224](https://github.com/bostonaholic/skills/pull/224)
 
 ## [0.106.0] - 2026-11-16
 
