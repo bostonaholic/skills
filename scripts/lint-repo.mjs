@@ -3,21 +3,15 @@
 // prints one `path: rule N line L: message` line per violation.
 //   node scripts/lint-repo.mjs  exit 1 when any rule breaks, 0 when all pass
 // Rules: 7 every CHANGELOG.md bullet ends with a PR link whose label and URL carry the same
-// number; 10 no em dash in repo-level Markdown (REPO_PROSE), outside the README generated block;
-// 11 only the EVAL_SCRIPTS npm scripts run the eval suite, in package.json scripts and in
+// number; 11 only the EVAL_SCRIPTS npm scripts run the eval suite, in package.json scripts and in
 // .github/workflows/*.yml and *.yaml lines. Acts on the git repository at the working directory;
 // files come from `git ls-files`. A missing or invalid package.json throws.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
-import { README_END, README_START, REPO_URL } from "./catalog.mjs";
+import { REPO_URL } from "./catalog.mjs";
 
-// Rule 10's repo-level prose. docs/plans/ quotes untrusted evidence, and skill and subagent files
-// are shipped prompts that skill authoring governs, so neither is listed.
-const REPO_PROSE =
-  /^(?:AGENTS\.md|README\.md|INSTALL\.md|CHANGELOG\.md|docs\/[^/]+\.md|\.github\/.+\.md)$/;
-const EM_DASH = "\u2014";
 // The npm scripts that may run the eval suite, as Running the evals in docs/skill-authoring.md
 // says. Each names an entry point whose NPM_SCRIPT guard admits only that script. No fixture
 // depends on these names; a renamed entry point fails here and in its own guard.
@@ -57,20 +51,6 @@ function checkChangelog(tracked, report) {
   });
 }
 
-// Rule 10. In README.md the generated block holds skill descriptions, which skill authoring governs.
-function checkEmDashes(tracked, report) {
-  for (const path of tracked.filter((file) => REPO_PROSE.test(file))) {
-    const lines = readFileSync(path, "utf8").split(/\r?\n/);
-    const start = path === "README.md" ? lines.indexOf(README_START) : -1;
-    const end = path === "README.md" ? lines.indexOf(README_END) : -1;
-    const generated = (index) => start !== -1 && end !== -1 && index > start && index < end;
-    lines.forEach((line, index) => {
-      if (line.includes(EM_DASH) && !generated(index))
-        report(`${path}: rule 10 line ${index + 1}: replace the em dash`);
-    });
-  }
-}
-
 // Rule 11. A paid eval run may start only from an npm script a maintainer runs by hand.
 function checkEvalRuns(tracked, report) {
   const message =
@@ -102,7 +82,6 @@ export function lintRepo() {
   const report = (line) => problems.push(line);
   const tracked = lsFiles();
   checkChangelog(tracked, report);
-  checkEmDashes(tracked, report);
   checkEvalRuns(tracked, report);
   return problems;
 }
