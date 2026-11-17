@@ -59,7 +59,9 @@ exit code:
   and re-run the gate. After three rebases in one run, stop: "base keeps
   moving".
 - `1` (`fail`), `11` (`unstable`), `124` (`timeout`): stop with the verdict,
-  naming each `FAILED` check.
+  naming each `FAILED` check. `unstable` means a check that branch protection
+  does not require (codecov, for one) failed; it blocks the merge like any
+  other failure.
 - `3` (`stop`): stop and report `STATUS` verbatim (`BLOCKED`, `DIRTY`,
   `DRAFT`, ...). Never merge on an unnamed status.
 - `143`: the harness killed it; re-run it in the background.
