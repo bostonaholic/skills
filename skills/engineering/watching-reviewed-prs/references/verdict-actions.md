@@ -1,7 +1,21 @@
 # Verdict actions
 
-Read this when a verdict leads to a rebuttal or a reaction.
+Read this when a verdict leads to a resolve, a rebuttal, or a reaction. Pass
+strings to every `gh api` write with `-f` (`-F` reads a leading `@` as a file)
+and add `--hostname "$HOST"`, including the shared snippets.
 
+Addressed or answered resolves a thread in `approve` mode and writes only a
+reaction in `reReview`; pending writes nothing; rejected posts one rebuttal
+and leaves the item open, in either mode.
+
+- **Dispute stands.** A rejected thread whose poll item has
+  `viewerReplied: true` stops the loop as `Dispute stands` before any write
+  that cycle. Never a second rebuttal.
+- **Resolve**, in `approve` mode only, with `resolveReviewThread`, skipping
+  threads already resolved; the response must read `isResolved: true`. After
+  a confirmed resolve, set the verdict's `key` to the trigger's `resolvedKey`
+  and add the thread id to `resolvedBySkill`. A resolve failure warns, keeps
+  the verdict, and carries on.
 - **Rebut** with only these things: which claim the branch does
   not bear out, the specific evidence (file, line, symbol), and what would
   settle it, as an `issue` in the [finding format](shared/findings.md) with the

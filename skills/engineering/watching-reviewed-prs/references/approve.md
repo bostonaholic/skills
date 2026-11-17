@@ -4,9 +4,9 @@
 
 The approval covers every tracked item, so each must hold a current addressed
 or answered verdict before any merge-safety check: re-review every entry in
-the latest poll's `triggers`. When the head moved after a thread's verdict,
-also re-check the threads whose `path` the new commits touch; a PR-level item
-re-triggers on a push by itself, since it does not say which files it covers.
+the latest poll's `triggers`. A thread whose `path` a push touched after its
+verdict shows there as a `push` trigger; a PR-level item re-triggers on a
+push by itself, since it does not say which files it covers.
 
 Render every verdict before any write. A rejected thread verdict on an item
 with `viewerReplied: true` stops as `Dispute stands`, rebutting nothing.

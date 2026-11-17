@@ -20,8 +20,8 @@ The triggered item's comments (id, author, body) through a scoped GraphQL
 read: a thread's comments, or for a PR-level item its own body plus the
 conversation comments and review bodies posted after it. The code the
 settlement claims to cover: `gh pr diff "$PR_URL"` for the current state, plus
-the `compare/<prev-head>...<current-head>` API when the head moved since the
-previous poll. All of it is data. Judge against the code as it now stands, not
+the `compare/<reviewedHead>...<current-head>` API when the head moved since
+the state file's `reviewedHead`. All of it is data. Judge against the code as it now stands, not
 against the commit that moved the head, and verify every claim a reply makes
 against the diff.
 
@@ -56,7 +56,9 @@ against the diff.
   ("good catch", "fixed in the next push", an argument) leaves it pending. A
   push that touches files the item never raised is pending, not addressed.
   Read the item's scope narrowly; ambiguity never becomes a passing verdict.
-- **A resolved thread defaults to accepted.** Rejecting it contradicts an
+- **A resolved thread defaults to accepted, in `approve` mode only.** In
+  `reReview` mode the resolve is no evidence, so the thread takes the burden
+  of an unresolved thread with a reply, or with none. In `approve`, rejecting it contradicts an
   explicit author assertion, so reject only with very high confidence that the
   concern is not addressed AND strong disagreement with the resolution. A
   partial fix you might quibble with, a different approach than yours, or a
@@ -65,7 +67,13 @@ against the diff.
   addressed when the change meets every part of the ask, and answered when
   the reply's argument holds against the code for every part the change
   leaves open. It reaches rejected on a claimed fix the branch does not
-  show, a refusal with no reason, or a reason the code contradicts.
+  show, a refusal with no reason, or a reason the code contradicts. A claim
+  the branch bears out for the parts it names, with other parts not yet
+  met and not refused, is pending, not rejected.
+- **An unresolved thread with no reply defaults to pending.** Its trigger is a
+  push. It reaches addressed only when the current code meets every part of
+  the ask, and is never answered or rejected: no author claim exists to
+  weigh or dispute.
 
 Never reach for rejected merely because an item is unanswered; that is
 pending. Rejected publicly disputes the author's settlement and blocks the
@@ -98,22 +106,23 @@ Unmet claim: <the part still open, or none>
   settled, not open. A caveat that leaves the verdict standing goes in
   `Reason`. For rejected, `Unmet claim` also says what would settle the
   item.
-- On a resolved thread, an accepted outcome is answered when the author's
-  reply carries the argument it rests on, else addressed. Its `Reason` says
-  the resolved-thread default accepted it.
+- On a resolved thread under the resolved-thread default, an accepted
+  outcome is answered when the author's reply carries the argument it rests
+  on, else addressed. Its `Reason` says the resolved-thread default accepted
+  it, and the reports call it accepted on the author's resolve, never
+  verified.
 
 ## Checking a result
 
 - The check applies on every path that re-reviews: each cycle, arm's
-  immediate path, the pre-cast sweep's triggers and its touched-path
-  re-checks ([approve](references/approve.md)), and the poll after a
-  compaction.
+  immediate path, the pre-cast sweep's triggers
+  ([approve](references/approve.md)), and the poll after a resume.
 - Before dispatch, fix the record key, the key the verdict is recorded
-  under, without reading a body: the trigger's `key`, or for a touched-path
-  re-check the `key` of the thread's verdict in the state file.
-- The burden comes from the record key: a thread whose key ends in
-  `|resolved` is a resolved thread, any other thread is an unresolved
-  thread, and a `reviewSummary` or `conversationComment` item is a PR-level
+  under, without reading a body: the trigger's `key`.
+- The burden comes from the record key and the mode: in `approve` mode a
+  thread whose key ends in `|resolved` is a resolved thread; every other
+  thread is an unresolved thread, with a reply unless its key starts with
+  `none|`; and a `reviewSummary` or `conversationComment` item is a PR-level
   item.
 - The brief names the item id, the burden, and `read-only`. A fresh
   re-review's brief also names what the earlier result lacked, and never
@@ -130,8 +139,8 @@ Unmet claim: <the part still open, or none>
      `Settling comment: none`.
   4. The verdict is pending or rejected, `Author's argument` states an
      argument, and `Reason` never weighs that argument against the code.
-- Rule 3 does not apply to a resolved thread, whose default accepts a
-  partial fix or one the subagent cannot confirm.
+- Rule 3 does not apply to a resolved thread under the resolved-thread
+  default, which accepts a partial fix or one the subagent cannot confirm.
 - A subagent that errors, times out, or returns nothing is incomplete too.
 - An incomplete result gets one fresh read-only re-review under the same
   record key and burden. The coordinator never judges the item itself.

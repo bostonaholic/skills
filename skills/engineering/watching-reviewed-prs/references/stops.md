@@ -4,7 +4,17 @@ Read this when the loop stops, including at the soft cap.
 
 On the soft cap, name each item still pending or rejected, and offer the
 by-hand options: argue it yourself, accept the author's position and resolve,
-approve manually, or re-arm.
+approve manually, or re-arm. The handoff's re-arm command adds `and approve`
+after the PR for an `approve` watch and nothing for a `reReview` one, so a
+re-arm keeps the mode the user chose.
+
+At every stop and at the soft cap, list each tracked item with its verdict
+and what it rests on: verified by the code (with its file and line),
+accepted on the author's resolve, or outstanding with its unmet claim. A
+fix claim no re-review has confirmed is outstanding, never verified.
+
+At `Feedback settled`, say no approval was cast and no thread resolved, so
+the user may approve and resolve by hand or re-arm asking for approval.
 
 At every stop, report the cycles used and the write ledger (resolves,
 rebuttals and where, reactions). After an approval the skill cast, add its
