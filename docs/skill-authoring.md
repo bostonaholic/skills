@@ -437,6 +437,63 @@ It counts runs as the verdict script does, so an excluded run moves neither
 number. Cost is the run's `costUsd`, the agent's spend without the judge's.
 The script's header states its output format and its exit 2 causes.
 
+#### Finding skills a model no longer needs
+
+`scripts/eval-necessity.mjs` rolls the per-case arms up to one verdict per
+skill and model, so a new model release shows which skills still change the
+result:
+
+```sh
+node scripts/eval-necessity.mjs evals/results/*/aggregate-result.json
+```
+
+It pools the runs of every file of one model, so a rerun adds observations.
+Pool only files run from one commit: a file from before a skill edit and one
+from after it measure different skills. The script's header states the rules
+and output format. In short:
+
+- `NEEDED`: some case passes more often with the skill than without it, by a
+  one-sided Fisher exact test at p <= 0.05. At `--runs 3` only 3/3 against 0/3
+  qualifies.
+- `FIX-CASE`: no gain, and some case's with-arm passes under 2/3 of its runs.
+  Fix the case or the skill and rerun before reading anything else.
+- `NO-GAIN`: every case has at least 9 counted runs per arm and passes without
+  the skill within 15 points of its with-arm pass rate.
+- `UNCLEAR`: anything else. Rerun the skill until each arm reaches 9 runs.
+
+`fired` counts the with-arm runs of the skill's trigger and core cases whose
+`fired` grader passed. A low count means the skill did not load, not that it
+loaded and changed nothing.
+
+Given more than one model, the script adds a line for each skill that is
+`NO-GAIN` on the last model named. `OBSOLETE` means another model rated the
+skill `NEEDED`, so its cases can detect a gain and the last model no longer
+needs it. `UNPROVEN` means no model showed a gain; read the core case before
+retiring the skill, since a case too easy for every model also gives
+`NO-GAIN`. Retire a skill as rule 6 in `AGENTS.md` says.
+
+A sweep runs the `readonly` tag at `--runs 3` on a model the cases already
+show a gain on, then on the new model, then reruns each `UNCLEAR` skill:
+
+```sh
+npm run eval -- --check
+npm run eval -- --model sonnet --runs 3 --tag readonly
+npm run eval -- --model <new model id> --runs 3 --tag readonly --max-cost-usd <cap>
+npm run eval -- <skill> --model <new model id> --tag readonly --max-cost-usd <cap>
+node scripts/eval-necessity.mjs evals/results/<sweep>*/aggregate-result.json
+```
+
+Name the new model by its full ID, so a moved alias does not change what was
+measured. Triage timeouts as [Verdicts](#verdicts) says before trusting a
+`FIX-CASE`.
+
+Two limits apply to every verdict:
+
+- The without-arm removes the whole plugin, not one skill. A without-arm pass
+  still shows the model passes the case with no skill at all.
+- Eval runs load no user `CLAUDE.md`. A `NEEDED` skill can still repeat what a
+  user's own instructions already say; the evals do not measure that.
+
 #### Comparing two variants
 
 Measure an expensive step before keeping it. To learn whether a step earns
