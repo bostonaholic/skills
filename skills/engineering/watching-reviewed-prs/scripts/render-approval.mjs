@@ -29,8 +29,9 @@
  * Exit codes:
  *
  *   0  rendered
- *   2  usage fault: wrong arguments, an unreadable or malformed file, or a
- *      poll whose `approvalReady` is not true
+ *   2  usage fault: wrong arguments, an unreadable or malformed file, a
+ *      state file whose `mode` is not `approve`, or a poll whose
+ *      `approvalReady` is not true
  */
 
 import { readFileSync, realpathSync } from "node:fs";
@@ -58,6 +59,7 @@ export function renderApproval(state, poll) {
       Number.isInteger(poll?.counts?.[shape]?.tracked),
     );
   if (!wellFormed) throw new Failure(EXIT_USAGE, "malformed poll output");
+  if (state.mode !== "approve") throw new Failure(EXIT_USAGE, "the watch was not armed to approve");
   if (poll.approvalReady !== true) throw new Failure(EXIT_USAGE, "the poll is not approval-ready");
   const arm = state.armCounts ?? {};
   const t = poll.counts.threads.tracked;

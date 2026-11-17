@@ -12,11 +12,16 @@
  * runs `../shared/scripts/fetch-pr-feedback.mjs --no-bodies`, so no comment
  * or review text ever reaches this script or its output. When any tracked
  * PR-level item is present it also reads the head commit's committer date.
- * The script never writes: the model edits the state file.
+ * When a tracked thread is present and the head differs from a non-null
+ * `reviewedHead`, it also reads the file names the commits between them
+ * touched. The script never writes: the model edits the state file.
  *
  * State file, written by the model at arm and edited after each verdict:
  *
  *   {
+ *     "mode": "reReview" | "approve",    // approve only when the user asked to approve
+ *     "reviewedHead": "<sha>" | null,    // head the last finished re-review judged; null: none yet
+ *     "cyclesUsed": 0,                   // loop cycles run, carried across resumes
  *     "armHead": "<sha>" | null,         // null: lost, the baseline is missing
  *     "armReview": "<review id>" | null, // standing review at arm; null: none or lost
  *     "autoMergeConfirmed": false,       // the user confirmed an auto-merge run
@@ -39,10 +44,18 @@
  * only when its recorded `key` equals the item's key now, so a new reply, a
  * resolve, a reopen, or a later push voids it.
  *
+ * Touched thread: every tracked thread while `reviewedHead` is null, so the
+ * first re-review sees a fix pushed before the watch armed; otherwise, once
+ * the head differs from `reviewedHead`, a thread whose `path` the commits
+ * between them touched (a rename's old name counts). When GitHub cannot
+ * compare them (HTTP 404 or 422, as after a force-push) or lists the compare
+ * API's 300-file maximum, every tracked thread is touched.
+ *
  * Stdout, on exit 0 only, one line of JSON:
  *
  *   {
  *     "pr": { url, state, head, autoMerge },
+ *     "mode": "reReview" | "approve",    // the state file's
  *     "viewer": "<login>",
  *     "counts": { threads: { tracked, resolved },
  *                 reviewSummaries: { tracked, engaged },
@@ -54,6 +67,7 @@
  *     "thirdParty": [ { id, logins } ],   // unresolved threads only
  *     "vanished": [ "<id>" ],             // trackedItems no longer found
  *     "newApproval": { id, url } | null,
+ *     "settled": bool,
  *     "approvalReady": bool,
  *     "safety": { headDrift, autoMergeUnconfirmed, baselineMissing },
  *     "snapshot": "<one line>"
@@ -63,14 +77,17 @@
  * that order, then GitHub order. A trigger fires for a thread that is
  * resolved or carries a non-viewer reply, and for an engaged PR-level item,
  * when the item has no current verdict; `kind` is `resolved`, `reply`,
- * `reopened`, or `engaged`, and `key` is what to record with its verdict. A
+ * `reopened`, or `engaged`. A touched thread with no other trigger fires
+ * with `kind` `push`, even when its verdict is current. `key` is what to
+ * record with its verdict. A
  * thread trigger's `resolvedKey` is the key the thread holds once resolved
  * with no new reply. `viewerReplied` is true when a viewer comment sits below
  * the thread's first. A third login is neither the viewer nor the thread's
  * earliest non-viewer author; a deleted author prints as `(deleted)`.
- * `approvalReady` holds when the PR is OPEN, there is no `newApproval`, the
- * tracked set is non-empty, the gate and triggers are empty, and every item's
- * current verdict is `addressed` or `answered`. The viewer's standing review
+ * `settled` holds when the PR is OPEN, the tracked set is non-empty, the
+ * triggers are empty, and every item's current verdict is `addressed` or
+ * `answered`. `approvalReady` holds when `mode` is `approve`, `settled` holds,
+ * there is no `newApproval`, and the gate is empty. The viewer's standing review
  * is their latest review by `submittedAt` that is not PENDING or COMMENTED,
  * the later one in GitHub order on a tie; a counted viewer review with no
  * parseable `submittedAt` exits 1. `newApproval` is the standing review when
@@ -110,6 +127,12 @@ const VERDICTS = ["addressed", "answered", "pending", "rejected"];
 const PASSING = new Set(["addressed", "answered"]);
 const PR_LEVEL_SHAPES = ["reviewSummary", "conversationComment"];
 const COUNT_FIELDS = ["threads", "reviewSummaries", "conversationComments"];
+const MODES = ["reReview", "approve"];
+// GitHub's compare API lists at most 300 files, so a list that long may be cut short.
+const COMPARE_FILE_LIMIT = 300;
+// GitHub answers 404 when a commit is gone (a force-push) and 422 when the two have no
+// common history; both mean the touched files are unknown, not that the read failed.
+const UNCOMPARABLE_PATTERN = /HTTP (?:404|422)\b/;
 
 const loginOf = (node) => node.author?.login ?? null;
 const isStringArray = (value) => Array.isArray(value) && value.every((v) => typeof v === "string");
@@ -120,6 +143,10 @@ export function validateState(state) {
     throw new Failure(EXIT_USAGE, `malformed state file: ${field}`);
   };
   if (state === null || typeof state !== "object" || Array.isArray(state)) fault("not an object");
+  if (!MODES.includes(state.mode)) fault("mode");
+  if (state.reviewedHead !== null && !SHA_PATTERN.test(state.reviewedHead ?? ""))
+    fault("reviewedHead");
+  if (!isCount(state.cyclesUsed)) fault("cyclesUsed");
   if (state.armHead !== null && !SHA_PATTERN.test(state.armHead ?? "")) fault("armHead");
   if (state.armReview !== null && (typeof state.armReview !== "string" || state.armReview === ""))
     fault("armReview");
@@ -144,7 +171,7 @@ export function validateState(state) {
   return state;
 }
 
-function threadItem(thread, viewer, recorded) {
+function threadItem(thread, viewer, recorded, touched) {
   const [first, ...replies] = thread.comments;
   const lastReply = replies.filter((comment) => loginOf(comment) !== viewer).at(-1);
   const replyId = lastReply?.id ?? "none";
@@ -161,6 +188,7 @@ function threadItem(thread, viewer, recorded) {
     else if (!thread.isResolved && recorded.key === resolvedKey) kind = "reopened";
     else kind = "reply";
   }
+  if (kind === null && touched) kind = "push";
 
   let counterpart;
   const thirdLogins = [];
@@ -227,15 +255,20 @@ export function standingReview(reviews, viewer) {
   return standing;
 }
 
-export function evaluatePoll(feedback, state, headCommittedAt) {
+// `changedPaths` is the set of paths the commits since `reviewedHead` touched, or null
+// when they are unknown; it is unused while `reviewedHead` is null or equals the head.
+export function evaluatePoll(feedback, state, headCommittedAt, changedPaths = null) {
   const viewer = feedback.viewer.login;
   const head = feedback.pr.headRefOid;
+  const touched = (path) =>
+    state.reviewedHead === null ||
+    (state.reviewedHead !== head && (changedPaths === null || changedPaths.has(path)));
   const results = feedback.reviewThreads
     .filter((thread) => {
       const first = thread.comments[0];
       return first !== undefined && loginOf(first) === viewer && first.state !== "PENDING";
     })
-    .map((thread) => threadItem(thread, viewer, state.verdicts[thread.id]));
+    .map((thread) => threadItem(thread, viewer, state.verdicts[thread.id], touched(thread.path)));
   const prLevel = trackedPrLevel(feedback, state);
   for (const shape of PR_LEVEL_SHAPES)
     for (const node of prLevel[shape])
@@ -272,29 +305,31 @@ export function evaluatePoll(feedback, state, headCommittedAt) {
     standing?.state === "APPROVED" && standing.id !== state.armReview
       ? { id: standing.id, url: standing.url }
       : null;
-  const approvalReady =
+  const settled =
     pr.state === "OPEN" &&
-    newApproval === null &&
     items.length > 0 &&
-    gate.length === 0 &&
     triggers.length === 0 &&
     items.every((item) => PASSING.has(item.verdict));
+  const approvalReady =
+    state.mode === "approve" && settled && newApproval === null && gate.length === 0;
   const safety = {
     headDrift: state.armHead !== null && state.armHead !== head,
     autoMergeUnconfirmed: pr.autoMerge && !state.autoMergeConfirmed,
     baselineMissing: state.armHead === null,
   };
   const snapshot = [
+    `mode ${state.mode}`,
     `threads ${counts.threads.resolved}/${counts.threads.tracked} resolved`,
     `review summaries ${counts.reviewSummaries.engaged}/${counts.reviewSummaries.tracked} engaged`,
     `conversation comments ${counts.conversationComments.engaged}/${counts.conversationComments.tracked} engaged`,
-    `head ${head} (armed ${state.armHead ?? "unknown"})`,
+    `head ${head} (armed ${state.armHead ?? "unknown"}, reviewed ${state.reviewedHead ?? "none"})`,
     `auto-merge ${pr.autoMerge ? "on" : "off"}`,
     `verdicts ${items.map((item) => `${item.id}=${item.verdict ?? "none"}`).join(", ") || "none"}`,
   ].join("; ");
 
   return {
     pr,
+    mode: state.mode,
     viewer,
     counts,
     items,
@@ -305,6 +340,7 @@ export function evaluatePoll(feedback, state, headCommittedAt) {
       .map((result) => ({ id: result.item.id, logins: result.thirdLogins })),
     vanished: state.trackedItems.filter((id) => !found.has(id)),
     newApproval,
+    settled,
     approvalReady,
     safety,
     snapshot,
@@ -330,6 +366,42 @@ function headCommittedDate(pr, head) {
   return date;
 }
 
+export function parseChangedPaths(files) {
+  if (!Array.isArray(files) || !files.every((file) => typeof file?.filename === "string"))
+    throw new Failure(EXIT_FAILURE, "the compare read listed no file names");
+  if (files.length >= COMPARE_FILE_LIMIT) return null;
+  return new Set(
+    files.flatMap((file) =>
+      typeof file.previous_filename === "string"
+        ? [file.filename, file.previous_filename]
+        : [file.filename],
+    ),
+  );
+}
+
+function changedPathsSince(pr, base, head) {
+  const run = runGh([
+    "api",
+    "--hostname",
+    pr.host,
+    `repos/${pr.owner}/${pr.repo}/compare/${base}...${head}`,
+    "--jq",
+    "[.files[]? | {filename, previous_filename}]",
+  ]);
+  if (run.status !== 0) {
+    if (UNCOMPARABLE_PATTERN.test(run.stderr)) return null;
+    process.stderr.write(run.stderr);
+    throw new Failure(EXIT_FAILURE, `cannot compare ${base}...${head}`);
+  }
+  let files;
+  try {
+    files = JSON.parse(run.stdout);
+  } catch {
+    throw new Failure(EXIT_FAILURE, `the compare read of ${base}...${head} is not JSON`);
+  }
+  return parseChangedPaths(files);
+}
+
 function readState(path) {
   let text;
   try {
@@ -353,8 +425,17 @@ function main(argv) {
   const feedback = fetchFeedback(url, { bodies: false });
   const prLevel = trackedPrLevel(feedback, state);
   const needsDate = PR_LEVEL_SHAPES.some((shape) => prLevel[shape].length > 0);
-  const committedAt = needsDate ? headCommittedDate(pr, feedback.pr.headRefOid) : null;
-  process.stdout.write(`${JSON.stringify(evaluatePoll(feedback, state, committedAt))}\n`);
+  const head = feedback.pr.headRefOid;
+  const committedAt = needsDate ? headCommittedDate(pr, head) : null;
+  const viewer = feedback.viewer.login;
+  const hasThreads = feedback.reviewThreads.some(
+    (thread) => loginOf(thread.comments[0] ?? {}) === viewer,
+  );
+  const needsCompare = hasThreads && state.reviewedHead !== null && state.reviewedHead !== head;
+  const changedPaths = needsCompare ? changedPathsSince(pr, state.reviewedHead, head) : null;
+  process.stdout.write(
+    `${JSON.stringify(evaluatePoll(feedback, state, committedAt, changedPaths))}\n`,
+  );
   return EXIT_OK;
 }
 

@@ -1,5 +1,6 @@
 // Fails when watching-reviewed-prs's scripts misjudge the tracked set, the gate, a re-review
-// trigger, the third-party check, approval readiness, or a merge-safety check; miss or misread
+// trigger (a push included), the third-party check, settlement, approval readiness in either
+// mode, or a merge-safety check; render an approval for a watch not armed to approve; miss or misread
 // the viewer's standing approval; let another author's body or any thread body reach the arm
 // output; read a body during a poll; render an approval body that breaks a rendering rule; or
 // report an approval its read cannot confirm at the head.
@@ -12,6 +13,7 @@ import test from "node:test";
 import { summarizeArm } from "../skills/engineering/watching-reviewed-prs/scripts/arm.mjs";
 import {
   evaluatePoll,
+  parseChangedPaths,
   standingReview,
   validateState,
 } from "../skills/engineering/watching-reviewed-prs/scripts/poll.mjs";
@@ -97,6 +99,9 @@ function feedback({
 
 function state(extra = {}) {
   return {
+    mode: "approve",
+    reviewedHead: ARM_HEAD,
+    cyclesUsed: 0,
     armHead: ARM_HEAD,
     armReview: null,
     autoMergeConfirmed: false,
@@ -281,6 +286,113 @@ test("a push past a PR-level verdict voids it, and a reply alone does not", () =
   ]);
 });
 
+test("a push triggers each touched thread, and every thread before the first re-review", async (t) => {
+  const threads = [
+    thread("T1", [comment("C1", "me")]),
+    thread("T2", [comment("C2", "me")]),
+    thread("T3", [comment("C3", "me"), comment("C4", "lee")]),
+  ];
+  const verdicts = {
+    T1: { key: "none|open", verdict: "addressed" },
+    T2: { key: "none|open", verdict: "pending" },
+    T3: { key: "C4|open", verdict: "pending" },
+  };
+  const kinds = (poll) => poll.triggers.map((tr) => [tr.id, tr.kind, tr.key]);
+  await t.test("no re-review yet: every thread, verdict or not", () => {
+    const poll = evaluatePoll(feedback({ threads }), state({ reviewedHead: null }), null);
+    assert.deepEqual(kinds(poll), [
+      ["T1", "push", "none|open"],
+      ["T2", "push", "none|open"],
+      ["T3", "reply", "C4|open"],
+    ]);
+  });
+  await t.test("the head already reviewed: none", () => {
+    const poll = evaluatePoll(feedback({ threads }), state({ verdicts }), null, new Set());
+    assert.deepEqual(kinds(poll), []);
+  });
+  await t.test("a later push: only the threads whose path it touched", () => {
+    const poll = evaluatePoll(
+      feedback({ threads, head: NEW_HEAD }),
+      state({ verdicts }),
+      null,
+      new Set(["src/T1.js", "src/T3.js"]),
+    );
+    assert.deepEqual(kinds(poll), [
+      ["T1", "push", "none|open"],
+      ["T3", "push", "C4|open"],
+    ]);
+    assert.equal(poll.items[1].verdict, "pending");
+  });
+  await t.test("unknown touched paths: every thread", () => {
+    const poll = evaluatePoll(
+      feedback({ threads, head: NEW_HEAD }),
+      state({ verdicts }),
+      null,
+      null,
+    );
+    assert.deepEqual(
+      kinds(poll).map(([id, kind]) => [id, kind]),
+      [
+        ["T1", "push"],
+        ["T2", "push"],
+        ["T3", "push"],
+      ],
+    );
+  });
+  await t.test("a PR-level item never takes a push trigger", () => {
+    const poll = evaluatePoll(
+      feedback({ summaries: [summary("S1", "me", { submittedAt: AFTER })] }),
+      state({ reviewedHead: null, trackedItems: ["S1"] }),
+      BEFORE,
+    );
+    assert.deepEqual(poll.triggers, []);
+  });
+});
+
+test("parseChangedPaths keeps both names of a rename and gives up at the compare file limit", () => {
+  assert.deepEqual(
+    [...parseChangedPaths([{ filename: "b.js", previous_filename: "a.js" }, { filename: "c.js" }])],
+    ["b.js", "a.js", "c.js"],
+  );
+  assert.equal(
+    parseChangedPaths(Array.from({ length: 300 }, (_, i) => ({ filename: `f${i}` }))),
+    null,
+  );
+  assert.throws(
+    () => parseChangedPaths({}),
+    (error) => error.exitCode === 1,
+  );
+  assert.throws(
+    () => parseChangedPaths([{}]),
+    (error) => error.exitCode === 1,
+  );
+});
+
+test("a re-review watch settles without approval readiness, and settling ignores the gate", async (t) => {
+  const open = { threads: [thread("T1", [comment("C1", "me"), comment("C2", "lee")])] };
+  const verdicts = { T1: { key: "C2|open", verdict: "addressed" } };
+  await t.test("re-review mode: settled, never approval-ready", () => {
+    const poll = evaluatePoll(feedback(open), state({ mode: "reReview", verdicts }), null);
+    assert.equal(poll.mode, "reReview");
+    assert.equal(poll.settled, true);
+    assert.equal(poll.approvalReady, false);
+    assert.match(poll.snapshot, /^mode reReview; /);
+  });
+  await t.test("approve mode: settled, but the open thread keeps the gate shut", () => {
+    const poll = evaluatePoll(feedback(open), state({ verdicts }), null);
+    assert.equal(poll.settled, true);
+    assert.equal(poll.approvalReady, false);
+  });
+  await t.test("a pending verdict is not settled", () => {
+    const poll = evaluatePoll(
+      feedback(open),
+      state({ mode: "reReview", verdicts: { T1: { key: "C2|open", verdict: "pending" } } }),
+      null,
+    );
+    assert.equal(poll.settled, false);
+  });
+});
+
 test("a tracked id that is gone or not the viewer's is vanished, not tracked", () => {
   const poll = evaluatePoll(
     feedback({ conversation: [comment("IC1", "lee")] }),
@@ -340,7 +452,7 @@ test("evaluatePoll reports a standing approval as newApproval unless arm recorde
   }
 });
 
-test("approval readiness needs an open PR, a non-empty set, an empty gate, no new viewer approval, and passing verdicts", async (t) => {
+test("approval readiness needs approve mode, an open PR, a non-empty set, an empty gate, no new viewer approval, and passing verdicts", async (t) => {
   const ready = {
     threads: [thread("T1", [comment("C1", "me"), comment("C2", "lee")], true)],
     summaries: [summary("S1", "me")],
@@ -368,6 +480,7 @@ test("approval readiness needs an open PR, a non-empty set, an empty gate, no ne
     ],
     ["a merged PR", ready, verdicts, "MERGED", false],
     ["an empty tracked set", {}, {}, "OPEN", false],
+    ["a watch armed only to re-review", ready, verdicts, "OPEN", false, "reReview"],
     [
       "a new viewer approval",
       { ...ready, summaries: [...ready.summaries, summary("R1", "me", { state: "APPROVED" })] },
@@ -376,11 +489,11 @@ test("approval readiness needs an open PR, a non-empty set, an empty gate, no ne
       false,
     ],
   ];
-  for (const [name, shape, recorded, prState, expected] of cases) {
+  for (const [name, shape, recorded, prState, expected, mode = "approve"] of cases) {
     await t.test(name, () => {
       const poll = evaluatePoll(
         feedback({ ...shape, state: prState }),
-        state({ trackedItems: ["S1"], verdicts: recorded }),
+        state({ mode, trackedItems: ["S1"], verdicts: recorded }),
         AFTER,
       );
       assert.equal(poll.approvalReady, expected);
@@ -417,11 +530,19 @@ test("the safety checks flag head drift, unconfirmed auto-merge, and a missing b
 test("validateState names the first malformed field", async (t) => {
   const cases = [
     ["not an object", "not an object", []],
+    ["mode missing", "mode", state({ mode: undefined })],
+    ["mode unknown", "mode", state({ mode: "watch" })],
+    ["reviewedHead", "reviewedHead", state({ reviewedHead: "abc" })],
+    ["reviewedHead missing", "reviewedHead", state({ reviewedHead: undefined })],
+    ["cyclesUsed", "cyclesUsed", state({ cyclesUsed: -1 })],
     ["armHead", "armHead", state({ armHead: "abc" })],
     [
       "armReview missing",
       "armReview",
       {
+        mode: "approve",
+        reviewedHead: null,
+        cyclesUsed: 0,
         armHead: ARM_HEAD,
         autoMergeConfirmed: false,
         trackedItems: [],
@@ -456,6 +577,7 @@ test("validateState names the first malformed field", async (t) => {
     null,
   );
   assert.equal(validateState(state()).armReview, null);
+  assert.equal(validateState(state({ mode: "reReview", reviewedHead: null })).reviewedHead, null);
   assert.equal(validateState(state({ armReview: "R1" })).armReview, "R1");
 });
 
@@ -610,6 +732,10 @@ test("renderApproval refuses a poll that is not approval-ready or is malformed",
     /not approval-ready/,
   );
   assert.throws(() => renderApproval(state(), { approvalReady: true }), /malformed poll/);
+  assert.throws(
+    () => renderApproval(state({ mode: "reReview" }), readyPoll()),
+    /not armed to approve/,
+  );
 });
 
 // ---------- CLIs with a fake gh ----------
@@ -624,6 +750,7 @@ const responses = JSON.parse(readFileSync(join(dir, "responses.json"), "utf8"));
 let kind;
 if (args[0] === "pr") kind = "prView";
 else if (args.includes("graphql")) kind = "graphql";
+else if (args.some((arg) => arg.includes("/compare/"))) kind = "compare";
 else kind = "commit";
 let response = responses[kind];
 // An array answers its kind's calls in order, so an extra page read fails loudly.
@@ -828,6 +955,69 @@ test("poll.mjs reads no body, passes --hostname, and reads the head date only fo
   });
 });
 
+test("poll.mjs reads the touched paths only when a thread is tracked and the head moved past the reviewed head", async (t) => {
+  const moved = graphqlResponse({ threads: [thread("T1", [comment("C1", "me")])], head: NEW_HEAD });
+  const reviewed = {
+    "state.json": state({ verdicts: { T1: { key: "none|open", verdict: "pending" } } }),
+  };
+  await t.test("a moved head: one bodiless compare read", (st) => {
+    const result = cli(
+      st,
+      "poll.mjs",
+      [PR_URL, "--state", "state.json"],
+      { graphql: moved, compare: { stdout: '[{"filename":"src/other.js"}]\n' } },
+      reviewed,
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.calls[1], [
+      "api",
+      "--hostname",
+      HOST,
+      `repos/o/r/compare/${ARM_HEAD}...${NEW_HEAD}`,
+      "--jq",
+      "[.files[]? | {filename, previous_filename}]",
+    ]);
+    assert.deepEqual(JSON.parse(result.stdout).triggers, []);
+  });
+  await t.test("a compare GitHub cannot make touches every thread", (st) => {
+    const result = cli(
+      st,
+      "poll.mjs",
+      [PR_URL, "--state", "state.json"],
+      { graphql: moved, compare: { stderr: "gh: Not Found (HTTP 404)\n", exitCode: 1 } },
+      reviewed,
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(
+      JSON.parse(result.stdout).triggers.map((tr) => tr.kind),
+      ["push"],
+    );
+  });
+  await t.test("a failed compare read exits 1", (st) => {
+    const result = cli(
+      st,
+      "poll.mjs",
+      [PR_URL, "--state", "state.json"],
+      { graphql: moved, compare: { stderr: "HTTP 502\n", exitCode: 1 } },
+      reviewed,
+    );
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /HTTP 502\n[\s\S]*^poll\.mjs: cannot compare/m);
+  });
+  await t.test("no reviewed head yet: no compare read", (st) => {
+    const result = cli(
+      st,
+      "poll.mjs",
+      [PR_URL, "--state", "state.json"],
+      { graphql: moved },
+      { "state.json": state({ reviewedHead: null }) },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.calls.length, 1);
+  });
+});
+
 test("poll.mjs exits 1 on a failed read and 2 on a usage fault", async (t) => {
   const prLevel = { "state.json": state({ trackedItems: ["S1"] }) };
   const withSummary = graphqlResponse({ summaries: [summary("S1", "me")] });
@@ -885,6 +1075,17 @@ test("render-approval.mjs prints the body, and exits 2 on a poll not ready", asy
       ["state.json", "poll.json"],
       {},
       { "state.json": state(ARMED), "poll.json": { ...readyPoll(), approvalReady: false } },
+    );
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, "");
+  });
+  await t.test("a watch armed only to re-review", (st) => {
+    const result = cli(
+      st,
+      "render-approval.mjs",
+      ["state.json", "poll.json"],
+      {},
+      { "state.json": state({ ...ARMED, mode: "reReview" }), "poll.json": readyPoll() },
     );
     assert.equal(result.status, 2);
     assert.equal(result.stdout, "");
