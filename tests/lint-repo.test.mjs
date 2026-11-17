@@ -150,6 +150,16 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
       `.github/workflows/nightly.yaml: rule 11 line 7: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
     );
   });
+  await t.test("a workflow line that runs npm run eval passes", (t) => {
+    const run = runLintRepo(
+      t,
+      compliant({
+        ".github/workflows/evals.yml":
+          "name: Evals\non: push\njobs:\n  evals:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm run eval -- reviewing-code --runs 1\n      - run: ls evals/results\n",
+      }),
+    );
+    assert.equal(run.status, 0, run.output);
+  });
 });
 
 test("lint-repo exits non-zero on an argument or a missing package.json", async (t) => {

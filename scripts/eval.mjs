@@ -34,7 +34,7 @@ const USAGE = `usage: npm run eval -- [<skill>|<case>] [options] [-- <claude fla
   --dry-run            print the claude commands and run nothing`;
 const EVALS_DIR = "evals";
 // npm sets npm_lifecycle_event to the script it runs, so only `npm run eval` passes. npm test, a
-// test's spawn, CI, and a direct `node scripts/eval.mjs` fail closed before claude starts.
+// test's spawn, and a direct `node scripts/eval.mjs` fail closed before claude starts.
 const NPM_SCRIPT = "eval";
 const TAGS = ["readonly", "bash"];
 const DEFAULTS = {
@@ -310,7 +310,7 @@ function main(args) {
   }
   if (process.env.npm_lifecycle_event !== NPM_SCRIPT)
     throw new UsageError(
-      `start claude only through npm run ${NPM_SCRIPT}, never from npm test or CI (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
+      `start claude only through npm run ${NPM_SCRIPT}, never from npm test (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
     );
   const ok = options.check ? runCheck(commands, selected) : runEvals(commands, options.runs);
   return ok ? 0 : 1;
