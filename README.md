@@ -126,7 +126,7 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 - `learning-from-mistakes` adds a rule to a project or global `CLAUDE.md` or `AGENTS.md` after you approve it.
 - `freeing-disk-space` deletes caches and build outputs, one approved deletion at a time.
 - `capturing-screenshots` installs Playwright into `${XDG_CACHE_HOME:-~/.cache}/paparazzi` and Chromium into the Playwright browser cache.
-- `stacking-prs` runs `gh stack`, which records its release checks in `gh-stack/state.yml` under GitHub CLI's state directory.
+- `stacking-prs` and `opening-prs` run `gh stack`, which records its release checks in `gh-stack/state.yml` under GitHub CLI's state directory.
 - `summarizing-shipped-work` adds highlights to your brag document when you accept its offer.
 - `visualizing-codebases` writes its model, such as `c4-model.json`, and the static site into `visualized/` at the repository root, or the directory you name.
 - `improving-codebases` keeps its run files, such as the assembled `report.json`, in a `mktemp -d` directory outside the target repository and names it in the reply. It runs the TLC model checker when `tlc` is on `PATH` or `TLA2TOOLS_JAR` names the TLA+ tools jar, in a scratch directory under that run directory. It runs the target repository's test command, found in its manifest or CI config, before the first refactor and after each one, with only an allowlisted environment plus the names you pass with `--env`. Its churn lane reads the target repository's history with `git log` and `git show` and writes nothing. TLC sends usage statistics only after you opt in through `~/.tlaplus/esc.txt`, and the skill never opts in.

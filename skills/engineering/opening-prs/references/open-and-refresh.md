@@ -9,6 +9,7 @@
 - [Open mode](#open-mode)
 - [Refresh mode](#refresh-mode)
 - [Stack tables](#stack-tables)
+- [Native stack](#native-stack)
 - [Errors](#errors)
 
 ## Inputs file
@@ -70,6 +71,11 @@ own name under every `push.default`, even when it tracks the default branch,
 as a branch made by `git worktree add -b <branch> <path> origin/HEAD` does.
 `--set-upstream` then sets its upstream to `origin/<branch>`. A branch that is
 already up to date pushes nothing.
+
+When the body has a `## Stack` table, run `gh stack --version` before the
+push. On a failure, stop with nothing pushed and report
+`gh extension install github/gh-stack` as the user's to run, because the run
+ends in [Native stack](#native-stack).
 
 ## Open mode
 
@@ -145,8 +151,38 @@ for each other PR in that table:
 [body template](references/body-template.md#stack). Put it into a command only
 when it holds nothing but digits.
 
+Then link the stack, as [Native stack](#native-stack) says.
+
+## Native stack
+
+A `## Stack` table and chained base branches do not make a GitHub stack. Only
+`gh stack` creates one. When this body has a `## Stack` table, after the
+tables are written:
+
+1. Read the stack GitHub holds:
+   `gh api "repos/{owner}/{repo}/stacks?pull_request=<n>" --jq '.[] | .number, .pull_requests[].number'`,
+   where `<n>` is this PR's number. The first line is the stack number, the
+   rest its PRs bottom to top. No output means no stack holds the PR. When the
+   PRs are the table's PRs in the table's order, report the stack number and
+   stop here.
+2. Link the table's PRs, bottom to top:
+
+   ```bash
+   GH_FORCE_TTY= gh stack link --base <trunk> --remote origin <n1> <n2> ...
+   ```
+
+   `<trunk>` is the bottom PR's `baseRefName`, under the same name check as
+   the stack lookup. Pass PR numbers only, never branch names, because
+   `gh stack link` pushes each branch argument. It creates the stack, or adds
+   the PRs to the stack that holds some of them, and never removes a PR.
+
+3. Run step 1's `gh api` again. When its PRs are not the table's PRs in
+   order, report "stack not linked" with the `gh stack link` output, because
+   `gh stack` can exit 0 when GitHub refuses a stack. Else report the stack
+   number.
+
 ## Errors
 
-Report each `git push`, `gh pr create`, `gh pr view`, and `gh pr edit` error
-verbatim and stop. Never retry. After `gh pr create` prints a URL, every error
-report also gives that URL.
+Report each `git push`, `gh pr create`, `gh pr view`, `gh pr edit`,
+`gh stack`, and `gh api` error verbatim and stop. Never retry. After
+`gh pr create` prints a URL, every error report also gives that URL.
