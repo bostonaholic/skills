@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.109.0] - 2026-11-17
+
 ### Added
 
 - `watching-reviewed-prs` watches a PR you reviewed for review replies: each author reply or new commit on a reviewed thread, including a fix pushed before the watch started, gets a fresh-context re-review, a rebuttal when the code contradicts it, and a report of what was verified. This mode never resolves, approves, or merges, and a resolved thread alone never counts as fixed. [#224](https://github.com/bostonaholic/skills/pull/224)
@@ -1313,5 +1315,7 @@
 
 [0.107.0]: https://github.com/bostonaholic/skills/compare/v0.106.0...v0.107.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.108.0...HEAD
 [0.108.0]: https://github.com/bostonaholic/skills/compare/v0.107.0...v0.108.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.109.0...HEAD
+[0.109.0]: https://github.com/bostonaholic/skills/compare/v0.108.0...v0.109.0
