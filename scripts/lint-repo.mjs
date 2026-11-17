@@ -3,8 +3,8 @@
 // prints one `path: rule N line L: message` line per violation.
 //   node scripts/lint-repo.mjs  exit 1 when any rule breaks, 0 when all pass
 // Rules: 7 every CHANGELOG.md bullet ends with a PR link whose label and URL carry the same
-// number; 11 only the EVAL_SCRIPTS npm scripts run the eval suite, in package.json scripts and in
-// .github/workflows/*.yml and *.yaml lines. Acts on the git repository at the working directory;
+// number; 11 only the EVAL_SCRIPTS npm scripts run the eval suite, in package.json scripts, and a
+// .github/workflows/*.yml or *.yaml line starts evals only through those npm scripts. Acts on the git repository at the working directory;
 // files come from `git ls-files`. A missing or invalid package.json throws.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
@@ -20,6 +20,9 @@ const EVAL_SCRIPTS = ["eval", "eval:handoff"];
 // the case tree.
 const EVAL_PATTERN =
   /npm\s+run(?:-script)?\s+eval\b|scripts\/eval\.mjs|scripts\/eval-handoff\.mjs|plugin\s+eval\b|evals\//;
+// A workflow line that starts an eval run around the npm-only guard: an entry point or the claude
+// subcommand. `npm run eval` passes, since the entry point's guard admits it.
+const DIRECT_EVAL_START = /scripts\/eval\.mjs|scripts\/eval-handoff\.mjs|plugin\s+eval\b/;
 const WORKFLOW = /^\.github\/workflows\/[^/]+\.ya?ml$/;
 const BULLET = /^\s*[-*] /;
 const PR_LINK_END = new RegExp(
@@ -51,7 +54,7 @@ function checkChangelog(tracked, report) {
   });
 }
 
-// Rule 11. A paid eval run may start only from an npm script a maintainer runs by hand.
+// Rule 11. A paid eval run may start only through the npm eval scripts.
 function checkEvalRuns(tracked, report) {
   const message =
     "only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)";
@@ -71,7 +74,7 @@ function checkEvalRuns(tracked, report) {
     readFileSync(path, "utf8")
       .split(/\r?\n/)
       .forEach((line, index) => {
-        if (EVAL_PATTERN.test(line)) report(`${path}: rule 11 line ${index + 1}: ${message}`);
+        if (DIRECT_EVAL_START.test(line)) report(`${path}: rule 11 line ${index + 1}: ${message}`);
       });
   }
 }
