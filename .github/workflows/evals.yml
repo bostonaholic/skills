@@ -44,6 +44,7 @@ jobs:
         if: env.ANTHROPIC_API_KEY != ''
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Install Claude Code
         if: env.ANTHROPIC_API_KEY != ''
         run: npm install --global @anthropic-ai/claude-code@2.1.325
