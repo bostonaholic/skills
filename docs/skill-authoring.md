@@ -141,9 +141,14 @@ only what a frontier model would otherwise get wrong.
 
 ### Running the evals
 
-The eval suite in `evals/` runs on demand with `claude plugin eval`. The
-cases and the verdict script match the CLI in Claude Code 2.1.289. Each run
-costs money, so the suite never joins `npm test` or CI. Every case runs in
+The eval suite in `evals/` runs with `claude plugin eval`, on demand and in
+CI. The cases and the verdict script match the CLI in Claude Code 2.1.289.
+Each run costs money, so the suite never joins `npm test`.
+`.github/workflows/evals.yml` runs, through `npm run eval`, the cases
+`scripts/select-evals.mjs` picks for each pull request: the trigger and guard
+cases of each changed skill, or of every skill when a shared file changes. It
+runs every case weekly and compares the results with the last weekly run.
+Locally, every case runs in
 two arms: with the plugin's skills (the with-arm) and without them (the
 without-arm), each `--runs` times. The report gives each arm's score and the
 difference between them.
@@ -155,7 +160,7 @@ It runs the `readonly` and `bash` tags as separate commands, writes each
 to `evals/results/<timestamp>-<model>-<tag>/`, and runs the verdict script
 and the [cost comparison](#cost-and-pass-rate) on each result. It exits 1 if any case fails or is incomplete. A live run
 or `--check` starts only through `npm run eval`. Started from
-`node scripts/eval.mjs`, `npm test`, or CI, it exits 2 before `claude`
+`node scripts/eval.mjs` or `npm test`, it exits 2 before `claude`
 starts. `--dry-run` and `--help` run anywhere.
 
 ```sh
@@ -525,8 +530,8 @@ code that its Refactor mode changes is cheaper for the next agent to change.
 `claude plugin eval` cannot start one run from another run's workspace, so
 `scripts/eval-handoff.mjs` drives `claude -p` itself. It costs money, so it
 never joins `npm test` or CI. A live run starts only through
-`npm run eval:handoff`. Started from `node scripts/eval-handoff.mjs`,
-`npm test`, or CI, it exits 2 before `claude` starts. `--dry-run` and
+`npm run eval:handoff`. Started from `node scripts/eval-handoff.mjs` or
+`npm test`, it exits 2 before `claude` starts. `--dry-run` and
 `--help` run anywhere.
 
 ```sh
