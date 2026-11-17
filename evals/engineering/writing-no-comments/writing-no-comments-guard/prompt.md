@@ -1,6 +1,6 @@
 ---
-tags: [readonly, no-agent]
-allowed_tools: [Read, Grep, Glob, Skill, TodoWrite]
+tags: [bash]
+allowed_tools: [Read, Grep, Glob, Skill, TodoWrite, Edit]
 max_turns: 20
 timeout_seconds: 300
 ---

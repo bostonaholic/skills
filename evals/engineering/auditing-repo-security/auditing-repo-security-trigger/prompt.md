@@ -9,6 +9,7 @@ append_system_prompt: |
   - git-rev-parse-head.txt: git -C clone rev-parse HEAD
   - scan-patterns.txt: bash "<skill-dir>/scripts/scan-patterns.sh" clone; echo "rc=$?"
   - scan-deps.txt: node "<skill-dir>/scripts/scan-deps.mjs" clone; echo "rc=$?"
+  - score-empty.txt: echo '[]' | node "<skill-dir>/scripts/score.mjs"; echo "rc=$?"
 
   command-v-tools.txt:
   ```text
@@ -80,6 +81,12 @@ append_system_prompt: |
     "ignoreConfig": [],
     "npmrcRegistry": []
   }
+  rc=0
+  ```
+
+  score-empty.txt:
+  ```text
+  {"score":100,"grade":"A","safeToRun":"YES","countsBySeverity":{"Critical":0,"High":0,"Medium":0,"Low":0}}
   rc=0
   ```
 ---

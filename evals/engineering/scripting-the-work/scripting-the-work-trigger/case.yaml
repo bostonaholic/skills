@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: scripting-the-work-trigger
+context:
+  scaffold_script: scaffold.sh
