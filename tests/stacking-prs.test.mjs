@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -531,12 +532,15 @@ function commit(cwd, file) {
   return git(cwd, "rev-parse", "HEAD");
 }
 
-// A temporary world: a bare remote with `main`, a clone at <dir>/work whose `origin` is the
-// GitHub-style ORIGIN_URL (an insteadOf rule reaches the bare remote), a fake gh and a
-// logging git on PATH, and its own HOME and TMPDIR.
-function world(t) {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "stacking-prs-")));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+// The base every world copies: a bare remote with `main`, a clone at <dir>/work whose `origin`
+// is the GitHub-style ORIGIN_URL (an insteadOf rule reaches the bare remote), a fake gh and a
+// logging git in bin/, and empty home/ and tmp/. Built once per file, since git setup dominated
+// each case's cost.
+let template;
+function worldTemplate() {
+  if (template) return template;
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "stacking-prs-template-")));
+  process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   const bin = join(dir, "bin");
   mkdirSync(bin);
   writeFileSync(join(bin, "gh"), `#!${process.execPath}\n(${fakeGh})(require);\n`);
@@ -553,6 +557,22 @@ function world(t) {
   git(work, "remote", "add", "origin", ORIGIN_URL);
   commit(work, "base.txt");
   git(work, "push", "-q", "origin", "main");
+  template = dir;
+  return template;
+}
+
+// A temporary world: a private copy of the template, with the insteadOf rule pointed at the
+// copy's own bare remote, and its own HOME and TMPDIR.
+function world(t) {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "stacking-prs-")));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const source = worldTemplate();
+  cpSync(source, dir, { recursive: true });
+  const bin = join(dir, "bin");
+  const remote = join(dir, "remote.git");
+  const work = join(dir, "work");
+  const config = join(work, ".git", "config");
+  writeFileSync(config, readFileSync(config, "utf8").replaceAll(source, dir));
   const w = {
     dir,
     remote,
