@@ -197,6 +197,12 @@ test("the site has one section per tracked skill, keyed by the skill name", (t) 
   assert.deepEqual(sections, skills);
 });
 
+test("the site carries the custom domain in CNAME", (t) => {
+  const out = buildSite(t, REPO);
+  assert.ok(existsSync(join(out, "CNAME")), "the site has no CNAME");
+  assert.equal(readFileSync(join(out, "CNAME"), "utf8"), "skills.bostonaholic.dev\n");
+});
+
 test("the site HTML-escapes argument hints from its input", (t) => {
   const hint = '<value> & "quoted"';
   const root = fixtureRepo(t, {
