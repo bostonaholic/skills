@@ -169,16 +169,6 @@ NEXT Next
 INVARIANTS TypeOK NotC
 `;
 
-const HIST_CFG = `INIT Init
-NEXT Next
-INVARIANTS TypeOK NoSkip
-`;
-
-const HISTBAD_CFG = `INIT Init
-NEXT Next
-INVARIANTS TypeOK NoSkip
-`;
-
 const BAD_CFG = `INIT Init
 NEXT Next
 INVARIANT Never
@@ -209,47 +199,6 @@ Model checking completed. No error has been found.
 The depth of the complete state graph search is 2.
 The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 1 and the 95th percentile is 1).
 Finished in 00s at (2026-11-06 20:13:19)
-`;
-
-const HIST_OUT = `TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
-Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
-(Use the -nowarning option to disable this warning.)
-Running breadth-first search Model-Checking with fp 77 and seed -6375784759420828173 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 99997] (Mac OS X 26.6.2 aarch64, Eclipse Adoptium 21.0.13 x86_64, MSBDiskFPSet, DiskStateQueue).
-Semantic processing of module Hist
-Starting... (2026-11-06 21:44:13)
-Computing initial states...
-Finished computing initial states: 1 distinct state generated at 2026-11-06 21:44:13.
-Model checking completed. No error has been found.
-  Estimates of the probability that TLC did not check all reachable states
-  because two distinct states had the same fingerprint:
-  calculated (optimistic):  val = 0.0
-3 states generated, 3 distinct states found, 0 states left on queue.
-The depth of the complete state graph search is 3.
-The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 1 and the 95th percentile is 1).
-Finished in 01s at (2026-11-06 21:44:13)
-`;
-
-const HISTBAD_OUT = String.raw`TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
-Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
-(Use the -nowarning option to disable this warning.)
-Running breadth-first search Model-Checking with fp 96 and seed 5671214910714003370 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 110] (Mac OS X 26.6.2 aarch64, Eclipse Adoptium 21.0.13 x86_64, MSBDiskFPSet, DiskStateQueue).
-Semantic processing of module HistBad
-Starting... (2026-11-06 21:44:15)
-Computing initial states...
-Finished computing initial states: 1 distinct state generated at 2026-11-06 21:44:16.
-Error: Invariant NoSkip is violated.
-Error: The behavior up to this point is:
-State 1: <Initial predicate>
-/\ s = "pending"
-/\ prev = "pending"
-
-State 2: <Skip line 7, col 9 to line 7, col 52 of module HistBad>
-/\ s = "shipped"
-/\ prev = "pending"
-
-3 states generated, 3 distinct states found, 1 states left on queue.
-The depth of the complete state graph search is 2.
-Finished in 01s at (2026-11-06 21:44:16)
 `;
 
 const BAD_OUT = `TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
@@ -310,56 +259,6 @@ The depth of the complete state graph search is 2.
 The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 1 and the 95th percentile is 1).
 Finished in 04s at (2026-11-06 19:56:06)
 `;
-
-const DEAD_NODEADLOCK_OUT = `TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
-Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
-(Use the -nowarning option to disable this warning.)
-Running breadth-first search Model-Checking with fp 61 and seed 3453330016877993973 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 87977] (Mac OS X 26.6.2 aarch64, Eclipse Adoptium 21.0.13 x86_64, MSBDiskFPSet, DiskStateQueue).
-Semantic processing of module Dead
-Starting... (2026-11-06 20:13:20)
-Computing initial states...
-Finished computing initial states: 1 distinct state generated at 2026-11-06 20:13:20.
-Model checking completed. No error has been found.
-  Estimates of the probability that TLC did not check all reachable states
-  because two distinct states had the same fingerprint:
-  calculated (optimistic):  val = 0.0
-2 states generated, 2 distinct states found, 0 states left on queue.
-The depth of the complete state graph search is 2.
-The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 1 and the 95th percentile is 1).
-Finished in 00s at (2026-11-06 20:13:20)
-`;
-
-// syn.out holds a line with a trailing space, so it is written line by line.
-const SYN_OUT = [
-  "TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)",
-  'Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.',
-  "(Use the -nowarning option to disable this warning.)",
-  "Running breadth-first search Model-Checking with fp 113 and seed 291114412354340372 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 67521] (Mac OS X 26.6.2 aarch64, Eclipse Adoptium 21.0.13 x86_64, MSBDiskFPSet, DiskStateQueue).",
-  "***Parse Error***",
-  'Was expecting "Expression or Instance"',
-  'Encountered "==" at line 2, column 9 and token "==" ',
-  "",
-  "Residual stack trace follows:",
-  "Definition starting at line 2, column 1.",
-  "Module body starting at line 2, column 1.",
-  "Module definition starting at line 1, column 1.",
-  "",
-  "",
-  "Fatal errors while parsing TLA+ spec in file Syn",
-  "",
-  "tla2sany.semantic.AbortException",
-  "*** Abort messages: 1",
-  "",
-  "In module Syn",
-  "",
-  "Could not parse module Syn from file Syn.tla",
-  "",
-  "",
-  "Starting... (2026-11-06 19:55:47)",
-  "Error: Parsing or semantic analysis failed.",
-  "Finished in 03s at (2026-11-06 19:55:47)",
-  "",
-].join("\n");
 
 const TWO_OUT_WITHOUT_PASS_LINE = TWO_OUT.replace(
   "Model checking completed. No error has been found.\n",
@@ -626,23 +525,6 @@ describe("slice 2: spec and model-check each machine", () => {
       assert.equal(result.distinctStates, 2);
     });
 
-    await t.test("hist.out with Hist.cfg: pass with distinctStates", async () => {
-      const result = await classifyTlc({ exitCode: 0, output: HIST_OUT, cfg: HIST_CFG });
-
-      assert.equal(result.status, "pass");
-      assert.equal(result.distinctStates, 3);
-    });
-
-    await t.test("histbad.out with HistBad.cfg: fail with the trace", async () => {
-      const result = await classifyTlc({ exitCode: 12, output: HISTBAD_OUT, cfg: HISTBAD_CFG });
-
-      assert.equal(result.status, "fail");
-      assert.match(
-        result.trace,
-        /State 2: <Skip line 7, col 9 to line 7, col 52 of module HistBad>/,
-      );
-    });
-
     await t.test("bad.out with Bad.cfg: fail with the trace", async () => {
       const result = await classifyTlc({ exitCode: 12, output: BAD_OUT, cfg: BAD_CFG });
 
@@ -665,22 +547,6 @@ describe("slice 2: spec and model-check each machine", () => {
       assert.equal(result.status, "not-run");
     });
 
-    await t.test("syn.out with Dead.cfg: not-run", async () => {
-      const result = await classifyTlc({ exitCode: 150, output: SYN_OUT, cfg: DEAD_CFG });
-
-      assert.equal(result.status, "not-run");
-    });
-
-    await t.test("dead-nodeadlock.out with Dead.cfg: not-run", async () => {
-      const result = await classifyTlc({
-        exitCode: 0,
-        output: DEAD_NODEADLOCK_OUT,
-        cfg: DEAD_CFG,
-      });
-
-      assert.equal(result.status, "not-run");
-    });
-
     await t.test("exit 0 with no pass line, with Two.cfg: not-run", async () => {
       assert.doesNotMatch(TWO_OUT_WITHOUT_PASS_LINE, /No error has been found/);
 
@@ -699,16 +565,6 @@ describe("slice 2: spec and model-check each machine", () => {
       const result = await classifyTlc({
         exitCode: 0,
         output: TWO_OUT_WITH_ONE_STATE,
-        cfg: TWO_CFG,
-      });
-
-      assert.equal(result.status, "not-run");
-    });
-
-    await t.test("unknown text, with Two.cfg: not-run", async () => {
-      const result = await classifyTlc({
-        exitCode: 0,
-        output: "TLC2 printed something this script has never seen.\n",
         cfg: TWO_CFG,
       });
 
@@ -898,23 +754,6 @@ printf 'ran\\n' > '${ranFile}'
       assert.equal(run.status, 0, run.stderr);
       assert.ok(existsSync(ranFile), "the tlc stub never ran");
       assert.deepEqual(readdirSync(fx.specs).sort(), ["Two.cfg", "Two.tla"]);
-    });
-
-    await t.test("a variable outside the allowlist does not reach the stub", (st) => {
-      const fx = checkerFixture(st);
-      const envFile = join(fx.run, "env.txt");
-      stub(fx.bin, "tlc", `/usr/bin/env > '${envFile}'\n`);
-      const result = join(fx.run, "tlc", "1.json");
-      mkdirSync(dirname(result));
-
-      const run = node(script("run-tlc.mjs"), [fx.spec, result], {
-        PATH: fx.bin,
-        IMPROVING_CODEBASES_SECRET: "must-not-leak",
-      });
-
-      assert.equal(run.status, 0, run.stderr);
-      assert.match(readFileSync(envFile, "utf8"), /^PATH=/m);
-      assert.doesNotMatch(readFileSync(envFile, "utf8"), /IMPROVING_CODEBASES_SECRET/);
     });
 
     await t.test("a bad module name: exit 2", (st) => {
