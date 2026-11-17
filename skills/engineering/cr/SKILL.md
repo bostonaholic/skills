@@ -11,3 +11,5 @@ Call the Skill tool with `reviewing-code`, per [skill call rules](shared/skill-c
 `reviewing-code` owns the review. Add nothing after its output or its own stop message, and copy none of its rules here.
 
 If `reviewing-code` is not installed, do not review the code yourself. Print one line saying so, naming the skill to install, and stop.
+
+<!-- wif-check: throwaway change to select only cr cases -->
