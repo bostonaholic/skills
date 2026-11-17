@@ -14,6 +14,10 @@ execution:
     - gh-pr-list-base.json: gh pr list --base limits/banner --state open --json number,url,title,headRefName,baseRefName
     - git-push.txt: the branch push the skill runs (exit 0)
     - gh-pr-create.txt: the gh pr create command the skill runs (exit 0)
+    - gh-stack-version.txt: gh stack --version
+    - gh-api-stacks-before.txt: the first gh api stacks call for PR 102 (exit 0)
+    - gh-stack-link.txt: the gh stack link command the skill runs (exit 0)
+    - gh-api-stacks-after.txt: every later gh api stacks call for PR 102 (exit 0)
 
     preflight.txt:
     ```text
@@ -64,4 +68,26 @@ execution:
     gh-pr-create.txt:
     ```text
     https://github.acme.invalid/acme/web/pull/102
+    ```
+
+    gh-stack-version.txt:
+    ```text
+    gh stack version 0.3.0
+    ```
+
+    gh-api-stacks-before.txt:
+    ```text
+    ```
+
+    gh-stack-link.txt:
+    ```text
+    Checking existing stacks...
+    ✓ Created stack with 2 PRs (stack #103)
+    ```
+
+    gh-api-stacks-after.txt:
+    ```text
+    103
+    101
+    102
     ```
