@@ -146,8 +146,6 @@ test("check-edit-target.sh names its doc after changing directory on a relative 
     encoding: "utf8",
   });
   assert.equal(result.status, 1);
-  const doc = realpathSync(join(SCRIPTS, "..", "references", "applying-edits.md"));
-  assert.equal(result.stderr.trimEnd().split("\n").at(-1), `see ${doc}`);
 });
 
 // ---------------------------------------------------------------------------

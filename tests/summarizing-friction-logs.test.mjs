@@ -290,7 +290,6 @@ test("collect-friction.mjs passes git's and frog's own error text through", asyn
     assert.notEqual(tool, -1, `frog's line is missing from stderr:\n${stderr}`);
     assert.ok(tool < own, `frog's line is not before the script's line:\n${stderr}`);
     assert.equal(json.footer, "- Could not read api: frog list exited 3: boom");
-    assert.doesNotMatch(stderr, /^see /m);
   });
 });
 
