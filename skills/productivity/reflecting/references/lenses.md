@@ -24,6 +24,8 @@ Run each pass in a fresh-context, read-only subagent, never a fork of this conve
 question, and the rules here, so one lens does not anchor on another's
 findings.
 
+Without subagents, run the passes yourself one at a time and say so.
+
 ## Rules for every pass
 
 - Read every record of every source in consecutive chunks until its end. Never
