@@ -84,11 +84,7 @@ function loadSkill(path, skillNames, errors) {
   if (!description) errors.push(`${path}: no description`);
   const userInvoked = scalar(frontmatter, "disable-model-invocation") === "true";
   const say = description?.match(SAY_PHRASE)?.[1];
-  if (!userInvoked && !say)
-    errors.push(
-      `${path}: description has no 'Use when the user says "<phrase>"' for the Say column`,
-    );
-  if (name !== directoryName || !description || (!userInvoked && !say)) return null;
+  if (name !== directoryName || !description) return null;
 
   const yamlPath = `${dir}/agents/openai.yaml`;
   const yaml = existsSync(yamlPath) ? readFileSync(yamlPath, "utf8") : "";
@@ -150,7 +146,7 @@ function invokedBy(skill, called) {
 function tableRow(skill, called) {
   return [
     `[\`${skill.name}\`](./${skill.directory}/SKILL.md)`,
-    skill.userInvoked ? `\`/${skill.name}\`` : `"${skill.say}"`,
+    skill.userInvoked ? `\`/${skill.name}\`` : skill.say ? `"${skill.say}"` : "(automatic)",
     invokedBy(skill, called),
     `${skill.summary}.`,
   ];

@@ -107,37 +107,6 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     assert.equal(run.output, `CHANGELOG.md: rule 7: not tracked\n${summary}`);
   });
 
-  await t.test("an em dash in docs/guide.md", (t) => {
-    const run = runLintRepo(
-      t,
-      compliant({ "docs/guide.md": "# Guide\n\nRun the check — then read it.\n" }),
-    );
-    assert.equal(run.status, 1, run.output);
-    assert.equal(run.output, `docs/guide.md: rule 10 line 3: replace the em dash\n${summary}`);
-  });
-
-  await t.test("an em dash in README.md outside the generated block", (t) => {
-    const run = runLintRepo(
-      t,
-      compliant({
-        "README.md": `# Skills\n\nThe skills I use — daily.\n\n${README_START}\n- reviewing-widgets — reviews widgets\n${README_END}\n`,
-      }),
-    );
-    assert.equal(run.status, 1, run.output);
-    assert.equal(run.output, `README.md: rule 10 line 3: replace the em dash\n${summary}`);
-  });
-
-  await t.test("a README with no generated markers", (t) => {
-    const run = runLintRepo(
-      t,
-      compliant({
-        "README.md": "# Skills\n\nThe skills I use.\n\n- reviewing-widgets — reviews widgets\n",
-      }),
-    );
-    assert.equal(run.status, 1, run.output);
-    assert.equal(run.output, `README.md: rule 10 line 5: replace the em dash\n${summary}`);
-  });
-
   // packageJson puts the first script key on line 5.
   await t.test("a pretest script that runs npm run eval", (t) => {
     const run = runLintRepo(

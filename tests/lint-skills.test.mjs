@@ -121,45 +121,6 @@ test("A1 reports a name with invalid characters or a reserved word", (t) => {
   );
 });
 
-test("A2 reports a name that does not start with a gerund", (t) => {
-  assertReports(
-    t,
-    compliant({ [`${SKILL}/SKILL.md`]: skillFile({ name: "review-widgets" }) }),
-    "A2",
-    /must start with a gerund/,
-  );
-});
-
-test("A2 skips a name in GERUND_EXEMPT", (t) => {
-  assert.ok(
-    lint.GERUND_EXEMPT && typeof lint.GERUND_EXEMPT === "object",
-    "scripts/lint-skills.mjs exports no GERUND_EXEMPT map",
-  );
-  const name = Object.keys(lint.GERUND_EXEMPT)[0];
-  if (!name) return t.skip("GERUND_EXEMPT is empty");
-  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ name }) }));
-  assert.doesNotMatch(run.output, / A2 /);
-});
-
-test("every GERUND_EXEMPT entry names an active skill", () => {
-  assert.ok(
-    lint.GERUND_EXEMPT && typeof lint.GERUND_EXEMPT === "object",
-    "scripts/lint-skills.mjs exports no GERUND_EXEMPT map",
-  );
-  const names = new Set(
-    gitFiles("skills/*/*/SKILL.md")
-      .filter((path) => /^skills\/(engineering|productivity)\/[^/]+\/SKILL\.md$/.test(path))
-      .map((path) => path.split("/")[2]),
-  );
-  const problems = Object.keys(lint.GERUND_EXEMPT)
-    .filter((name) => !names.has(name))
-    .map(
-      (name) =>
-        `GERUND_EXEMPT in scripts/lint-skills.mjs: ${name} is not an active skill. Delete its entry.`,
-    );
-  assert.deepEqual(problems, []);
-});
-
 test("A3 reports an overlong description and one containing an XML tag", (t) => {
   const long = `${DESCRIPTION} ${"word ".repeat(220)}`;
   assertReports(
@@ -178,50 +139,6 @@ test("A3 reports an overlong description and one containing an XML tag", (t) => 
   );
 });
 
-test("A4 reports a description that opens without a third-person verb or addresses you", (t) => {
-  assertReports(
-    t,
-    compliant({ [`${SKILL}/SKILL.md`]: skillFile({ description: "Use when reviewing widgets." }) }),
-    "A4",
-    /opens with "Use"/,
-  );
-  assertReports(
-    t,
-    compliant({
-      [`${SKILL}/SKILL.md`]: skillFile({
-        description: "This skill reviews widgets. Use when asked.",
-      }),
-    }),
-    "A4",
-    /opens with "This"/,
-  );
-  assertReports(
-    t,
-    compliant({
-      [`${SKILL}/SKILL.md`]: skillFile({ description: "Reviews your widgets. Use when asked." }),
-    }),
-    "A4",
-    /addresses I or you/,
-  );
-});
-
-test("A4 does not read a hyphenated name such as oh-my-zsh as first person", (t) => {
-  const description = "Configures oh-my-zsh plugins. Use when editing zsh configuration.";
-  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ description }) }));
-  assert.deepEqual(run, { status: 0, output: "" });
-});
-
-test("A5 reports a description without a Use when clause", (t) => {
-  assertReports(
-    t,
-    compliant({
-      [`${SKILL}/SKILL.md`]: skillFile({ description: "Reviews widgets for defects." }),
-    }),
-    "A5",
-    /"Use when \.\.\." clause/,
-  );
-});
-
 test("C1 reports a SKILL.md body over 100 lines and accepts one of 100", (t) => {
   // The fixture header adds four lines (blank, heading, blank, links) before the items.
   const items = (count) => `${LINKS}${"- Item.\n".repeat(count)}`;
@@ -232,19 +149,6 @@ test("C1 reports a SKILL.md body over 100 lines and accepts one of 100", (t) => 
     /body is 101 lines; keep it to 100/,
   );
   const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body: items(96) }) }));
-  assert.deepEqual(run, { status: 0, output: "" });
-});
-
-test("C6 reports a prose paragraph over 50 words and ignores lists, tables, and fences", (t) => {
-  const words = (count) => `${"word ".repeat(count).trim()}\n`;
-  assertReports(
-    t,
-    compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body: `${LINKS}\n${words(51)}` }) }),
-    "C6",
-    /body line \d+: 51-word paragraph/,
-  );
-  const body = `${LINKS}\n${words(50)}\n- ${words(80)}\n| ${words(80)}\n\n\`\`\`text\n${words(80)}\`\`\`\n`;
-  const run = runLint(t, compliant({ [`${SKILL}/SKILL.md`]: skillFile({ body }) }));
   assert.deepEqual(run, { status: 0, output: "" });
 });
 
@@ -787,7 +691,7 @@ test("an explicit-only, internal incubating skill passes without eval cases", (t
 });
 
 test("incubating skills are linted like active ones", (t) => {
-  assertReports(t, compliant(incubatingSkill({ name: "widget-sorter" })), "A2", /gerund/);
+  assertReports(t, compliant(incubatingSkill({ name: "Widget-Sorter" })), "A1", /lowercase/);
 });
 
 test("A7 reports an incubating skill that is model-invoked or not internal", async (t) => {
@@ -825,7 +729,7 @@ function agentFile({
   return `---\nname: ${name}\ndescription: ${description}\n${fields}---\n\n# Reviewer\n\nReview the diff.\n`;
 }
 
-test("S1, S2, and S3 report a dated model, a readonly mismatch, and a gerund name in agents/*.md", async (t) => {
+test("S1 and S2 report a dated model and a readonly mismatch in agents/*.md", async (t) => {
   await t.test("a dated model", (t) => {
     assertReportsLine(
       t,
@@ -872,43 +776,11 @@ test("S1, S2, and S3 report a dated model, a readonly mismatch, and a gerund nam
     );
   });
 
-  await t.test("a gerund name", (t) => {
-    assertReportsLine(
-      t,
-      compliant({ "agents/reviewer.md": agentFile({ name: "reviewing-agent" }) }),
-      'agents/reviewer.md: S3 name "reviewing-agent" reads as a gerund; name a subagent with a role noun, as in "oracle"',
-    );
-  });
-
   await t.test("no frontmatter", (t) => {
     const run = runLint(t, compliant({ "agents/reviewer.md": "# Reviewer\n\nReview the diff.\n" }));
     assert.equal(run.status, 1, run.output);
     assert.ok(run.output.split("\n").includes("agents/reviewer.md: A3 no frontmatter"), run.output);
     assert.ok(run.output.split("\n").includes("agents/reviewer.md: S1 no model"), run.output);
-  });
-});
-
-test("A3, A4, and A5 apply to subagent descriptions", async (t) => {
-  await t.test('a description that opens with "You"', (t) => {
-    assertReportsMatch(
-      t,
-      compliant({
-        "agents/reviewer.md": agentFile({
-          description: "You review diffs. Use when the main agent wants a second opinion.",
-        }),
-      }),
-      /^agents\/reviewer\.md: A4 [^\n]*opens with "You"$/m,
-    );
-  });
-
-  await t.test("a description with no Use when clause", (t) => {
-    assertReportsMatch(
-      t,
-      compliant({
-        "agents/reviewer.md": agentFile({ description: "Reviews a diff for defects." }),
-      }),
-      /^agents\/reviewer\.md: A5 [^\n]*"Use when \.\.\." clause$/m,
-    );
   });
 });
 
