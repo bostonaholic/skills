@@ -48,7 +48,8 @@ record while the steps that mattered are still there.
    the line where the session last checked that service was back. A
    transcript too long for one context goes to fresh-context subagents, never
    a fork of this conversation, each returning the timeline for one record
-   range.
+   range. Without subagents, read one record range at a time and add its
+   lines to `timeline.md` before the next.
 3. Sort the timeline: checks that pointed at the cause, checks that ruled a
    hypothesis out, the fix, and the verification. A command whose result the
    session never used is a dead end: leave it out of Check and Fix.
