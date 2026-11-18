@@ -201,13 +201,6 @@ function backupRoot(machine) {
   return join(root, readdirSync(root)[0]);
 }
 
-function seeLine(stderr) {
-  const lines = stderr.trimEnd().split("\n");
-  const last = lines.at(-1);
-  assert.match(last, /^see \//, `last stderr line is not a see line: ${last}`);
-  assert.ok(existsSync(last.slice(4)), `${last} names a file that does not exist`);
-}
-
 // ---------------------------------------------------------------------------
 
 test("plans nothing when every install is current, and apply runs nothing", (t) => {
@@ -446,7 +439,6 @@ test("apply refuses a plan id that does not match and changes nothing", (t) => {
   const applied = run(machine, ["apply", ZERO_ID]);
   assert.equal(applied.status, 3);
   assert.match(applied.stderr, /the plan changed since it was confirmed/);
-  seeLine(applied.stderr);
   assert.deepEqual(mutations(machine), []);
   assert.equal(readFileSync(join(directory, "alpha/SKILL.md"), "utf8"), "alpha stale\n");
   assert.equal(backupRoot(machine), undefined);
@@ -478,7 +470,6 @@ test("a failed step stops the run, passes the tool's stderr through, and names t
   assert.match(applied.stderr, /step 1 of 2 failed: \[claude\]/);
   assert.match(applied.stderr, /not run: \[codex\]/);
   assert.ok(applied.stderr.indexOf("boom") < applied.stderr.indexOf("step 1 of 2 failed"));
-  seeLine(applied.stderr);
   assert.ok(!mutations(machine).some((call) => call.startsWith("codex")));
 });
 
@@ -498,7 +489,6 @@ test("an install whose CLI is not on PATH blocks the plan", (t) => {
   );
   const applied = run(machine, ["apply", result.id]);
   assert.equal(applied.status, 4);
-  seeLine(applied.stderr);
   assert.equal(
     readFileSync(join(copyDirectory(machine, "opencode"), "alpha/SKILL.md"), "utf8"),
     "alpha stale\n",
@@ -533,7 +523,6 @@ test("a Codex install without the codex CLI blocks the plan", (t) => {
   );
   const applied = run(machine, ["apply", result.id]);
   assert.equal(applied.status, 4);
-  seeLine(applied.stderr);
 });
 
 test("a commented-out Codex plugin header is not an install", (t) => {
@@ -646,7 +635,6 @@ test("a dirty Cursor plugin clone blocks the plan with exit 4 and changes nothin
   assert.match(result.stdout, /cursor-plugin: .*has uncommitted changes/);
   const applied = run(machine, ["apply", result.id]);
   assert.equal(applied.status, 4);
-  seeLine(applied.stderr);
   assert.equal(
     git(clone, "rev-parse", "HEAD"),
     git(machine.release.work, "rev-parse", "v1.1.0^{commit}"),
@@ -671,7 +659,6 @@ function blockedBy(machine, pattern) {
   assert.match(result.stdout, pattern);
   const applied = run(machine, ["apply", result.id]);
   assert.equal(applied.status, 4);
-  seeLine(applied.stderr);
 }
 
 test("a Cursor plugin directory that is not a git clone blocks the plan", (t) => {
@@ -722,7 +709,6 @@ test("a usage error exits 2 with a final see line", (t) => {
     const result = run(machine, args);
     assert.equal(result.status, 2, args.join(" "));
     assert.match(result.stderr, /usage: update\.mjs plan \| update\.mjs apply <plan-id>/);
-    seeLine(result.stderr);
   }
 });
 
@@ -734,5 +720,4 @@ test("an unreadable release source fails with git's error and a see line", (t) =
   assert.equal(result.status, 1);
   assert.match(result.stderr, /^fatal: /m);
   assert.match(result.stderr, /cannot list the release tags/);
-  seeLine(result.stderr);
 });

@@ -10,680 +10,87 @@ import test from "node:test";
 const IMPORTER =
   'import { pathToFileURL } from "node:url";\nawait import(pathToFileURL(process.argv[2]).href);\n';
 
+const E = "skills/engineering";
+// [scripts directory, script, arguments that reach a usage error, that error's exit status]
+const SCRIPTS = [
+  ["shared/scripts", "resolve-transcript.mjs", [], 1],
+  ["shared/scripts", "fetch-pr-feedback.mjs", ["--bogus"], 2],
+  ["shared/scripts", "contention.mjs", ["--bogus"], 2],
+  [`${E}/writing-playbooks/scripts`, "check-playbook.mjs", [], 2],
+  ["skills/productivity/reflecting/scripts", "write-target.mjs", [], 1],
+  ["skills/productivity/reflecting/scripts", "list-sessions.mjs", [], 1],
+  [`${E}/attaching-pr-screenshots/scripts`, "splice.mjs", [], 2],
+  [`${E}/attaching-pr-screenshots/scripts`, "asset-url.mjs", [], 2],
+  [`${E}/attaching-pr-screenshots/scripts`, "write-body.mjs", [], 2],
+  [`${E}/attaching-pr-screenshots/scripts`, "copy-section.mjs", [], 2],
+  [`${E}/attaching-pr-screenshots/scripts`, "write-result.mjs", [], 2],
+  [`${E}/opening-prs/scripts`, "preflight.mjs", ["--bogus"], 2],
+  [`${E}/updating-changelogs/scripts`, "changelog-candidates.mjs", [], 2],
+  [`${E}/capturing-screenshots/scripts`, "png-check.mjs", [], 2],
+  [`${E}/capturing-screenshots/scripts`, "shoot.mjs", [], 2],
+  [`${E}/capturing-screenshots/scripts`, "finalize.mjs", [], 2],
+  [`${E}/auditing-tests/scripts`, "render-report.mjs", [], 2],
+  [`${E}/auditing-complexity/scripts`, "inventory.mjs", [], 2],
+  [`${E}/auditing-complexity/scripts`, "render-report.mjs", [], 2],
+  [`${E}/improving-codebases/scripts`, "list-lanes.mjs", ["stray"], 2],
+  [`${E}/improving-codebases/scripts`, "render-report.mjs", [], 2],
+  [`${E}/improving-codebases/scripts`, "checkpoint.mjs", [], 2],
+  [`${E}/improving-codebases/scripts`, "run-bounded.mjs", [], 2],
+  [`${E}/improving-codebases/scripts`, "run-tlc.mjs", [], 2],
+  [`${E}/improving-codebases/scripts`, "churn.mjs", [], 2],
+  [`${E}/addressing-pr-comments/scripts`, "re-request-review.mjs", [], 2],
+  [`${E}/addressing-pr-comments/scripts`, "build-items.mjs", [], 2],
+  [`${E}/addressing-pr-comments/scripts`, "settle-item.mjs", [], 2],
+  [`${E}/summarizing-friction-logs/scripts`, "collect-friction.mjs", ["--bogus"], 1],
+  [`${E}/merging-dependabot-prs/scripts`, "analyze.mjs", ["x", "x", "x", "x"], 2],
+  [`${E}/merging-dependabot-prs/scripts`, "render-plan.mjs", ["x", "x", "x", "x"], 2],
+  [`${E}/merging-dependabot-prs/scripts`, "act.mjs", ["x", "x", "x", "x"], 2],
+  [`${E}/landing-prs/scripts`, "ci-gate.mjs", [], 2],
+  [`${E}/auditing-repo-security/scripts`, "scan-deps.mjs", [], 2],
+  [`${E}/auditing-repo-security/scripts`, "score.mjs", ["findings.json"], 2],
+  [`${E}/auditing-rails-tech-debt/scripts`, "find-leads.mjs", [], 2],
+  [`${E}/grooming-backlogs/scripts`, "gap-inventory.mjs", [], 2],
+  [`${E}/grooming-backlogs/scripts`, "ready-slots.mjs", [], 2],
+  ["skills/productivity/summarizing-shipped-work/scripts", "resolve-timeframe.mjs", [], 64],
+  [`${E}/removing-comments/scripts`, "check-report.mjs", [], 2],
+  [`${E}/watching-authored-prs/scripts`, "poll.mjs", [], 2],
+  [`${E}/watching-authored-prs/scripts`, "ci-fix-preflight.mjs", [], 2],
+  [`${E}/watching-reviewed-prs/scripts`, "arm.mjs", ["a", "b", "c", "d"], 2],
+  [`${E}/watching-reviewed-prs/scripts`, "poll.mjs", ["a", "b", "c", "d"], 2],
+  [`${E}/watching-reviewed-prs/scripts`, "render-approval.mjs", ["a", "b", "c", "d"], 2],
+  [`${E}/watching-reviewed-prs/scripts`, "verify-approval.mjs", ["a", "b", "c", "d"], 2],
+];
+
 function scratchDir(t) {
   const root = mkdtempSync(join(tmpdir(), "entry-guard-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   return root;
 }
 
-function symlinkedDir(t, target) {
+function symlinkedScript(t, dir, script) {
   const link = join(scratchDir(t), "link");
-  symlinkSync(resolve(target), link);
-  return link;
+  symlinkSync(resolve(dir), link);
+  return join(link, script);
 }
 
-function runScript(path) {
-  return spawnSync(process.execPath, [path], { encoding: "utf8" });
-}
-
-function importModule(t, path) {
-  const importer = join(scratchDir(t), "importer.mjs");
-  writeFileSync(importer, IMPORTER);
-  const run = spawnSync(process.execPath, [importer, path], { encoding: "utf8" });
-  return { status: run.status, stdout: run.stdout, stderr: run.stderr };
-}
-
-test("resolve-transcript.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(join(symlinkedDir(t, "shared/scripts"), "resolve-transcript.mjs"));
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /^usage: resolve-transcript\.mjs </);
-});
-
-test("check-playbook.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/writing-playbooks/scripts"), "check-playbook.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^check-playbook\.mjs: usage: check-playbook\.mjs /);
-});
-
-test("importing check-playbook.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/writing-playbooks/scripts"), "check-playbook.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("write-target.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "write-target.mjs"),
-  );
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /^usage: write-target\.mjs </);
-});
-
-test("list-sessions.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "list-sessions.mjs"),
-  );
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /^usage: list-sessions\.mjs </);
-});
-
-test("importing list-sessions.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "list-sessions.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("splice.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "splice.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^splice\.mjs: usage: splice\.mjs /);
-});
-
-test("importing resolve-transcript.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(t, join(symlinkedDir(t, "shared/scripts"), "resolve-transcript.mjs"));
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("importing write-target.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/productivity/reflecting/scripts"), "write-target.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("importing splice.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "splice.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("asset-url.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "asset-url.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^asset-url\.mjs: usage: asset-url\.mjs /);
-});
-
-test("importing asset-url.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "asset-url.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("preflight.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = spawnSync(
-    process.execPath,
-    [join(symlinkedDir(t, "skills/engineering/opening-prs/scripts"), "preflight.mjs"), "--bogus"],
-    { encoding: "utf8" },
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^preflight\.mjs: usage: preflight\.mjs /);
-});
-
-test("importing preflight.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/opening-prs/scripts"), "preflight.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("write-body.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "write-body.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^write-body\.mjs: usage: write-body\.mjs /);
-});
-
-test("importing write-body.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"), "write-body.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("changelog-candidates.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(
-      symlinkedDir(t, "skills/engineering/updating-changelogs/scripts"),
-      "changelog-candidates.mjs",
-    ),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^changelog-candidates\.mjs: usage: changelog-candidates\.mjs /);
-});
-
-test("importing changelog-candidates.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/engineering/updating-changelogs/scripts"),
-      "changelog-candidates.mjs",
-    ),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("copy-section.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(
-      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
-      "copy-section.mjs",
-    ),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^copy-section\.mjs: usage: copy-section\.mjs /);
-});
-
-test("importing copy-section.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
-      "copy-section.mjs",
-    ),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("write-result.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(
-      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
-      "write-result.mjs",
-    ),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^write-result\.mjs: usage: write-result\.mjs /);
-});
-
-test("importing write-result.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/engineering/attaching-pr-screenshots/scripts"),
-      "write-result.mjs",
-    ),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("png-check.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "png-check.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^png-check\.mjs: usage: png-check\.mjs /);
-});
-
-test("shoot.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "shoot.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^shoot\.mjs: usage: shoot\.mjs /);
-});
-
-test("finalize.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "finalize.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^finalize\.mjs: usage: finalize\.mjs /);
-});
-
-test("importing finalize.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "finalize.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("importing png-check.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "png-check.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("importing shoot.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/capturing-screenshots/scripts"), "shoot.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("render-report.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-tests/scripts"), "render-report.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^render-report\.mjs: usage: render-report\.mjs /);
-});
-
-test("importing render-report.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/auditing-tests/scripts"), "render-report.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("auditing-complexity/inventory.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "inventory.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^inventory\.mjs: usage: inventory\.mjs /);
-});
-
-test("importing auditing-complexity/inventory.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "inventory.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("auditing-complexity/render-report.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "render-report.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^render-report\.mjs: usage: render-report\.mjs /);
-});
-
-test("importing auditing-complexity/render-report.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/auditing-complexity/scripts"), "render-report.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("improving-codebases/list-lanes.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = spawnSync(
-    process.execPath,
-    [
-      join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "list-lanes.mjs"),
-      "stray",
-    ],
-    { encoding: "utf8" },
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^list-lanes\.mjs: usage: list-lanes\.mjs /);
-});
-
-test("importing improving-codebases/list-lanes.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "list-lanes.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("improving-codebases/render-report.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "render-report.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^render-report\.mjs: usage: render-report\.mjs /);
-});
-
-test("importing improving-codebases/render-report.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "render-report.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("improving-codebases/checkpoint.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "checkpoint.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^checkpoint\.mjs: usage: checkpoint\.mjs /);
-});
-
-test("importing improving-codebases/checkpoint.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "checkpoint.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("improving-codebases/run-bounded.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-bounded.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^run-bounded\.mjs: usage: run-bounded\.mjs /);
-});
-
-test("importing improving-codebases/run-bounded.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-bounded.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("improving-codebases/run-tlc.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-tlc.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(
-    run.stderr,
-    /^run-tlc\.mjs: expected a spec and a result path\nrun-tlc\.mjs: usage: run-tlc\.mjs /,
-  );
-});
-
-test("importing improving-codebases/run-tlc.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "run-tlc.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("improving-codebases/churn.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "churn.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^churn\.mjs: usage: churn\.mjs /);
-});
-
-test("importing improving-codebases/churn.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/improving-codebases/scripts"), "churn.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("re-request-review.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(
-      symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"),
-      "re-request-review.mjs",
-    ),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^re-request-review\.mjs: usage: re-request-review\.mjs /);
-});
-
-test("fetch-pr-feedback.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = spawnSync(
-    process.execPath,
-    [join(symlinkedDir(t, "shared/scripts"), "fetch-pr-feedback.mjs"), "--bogus"],
-    { encoding: "utf8" },
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^fetch-pr-feedback\.mjs: usage: fetch-pr-feedback\.mjs /);
-});
-
-test("importing fetch-pr-feedback.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(t, join(symlinkedDir(t, "shared/scripts"), "fetch-pr-feedback.mjs"));
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("importing re-request-review.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"),
-      "re-request-review.mjs",
-    ),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("collect-friction.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const script = join(
-    symlinkedDir(t, "skills/engineering/summarizing-friction-logs/scripts"),
-    "collect-friction.mjs",
-  );
-  const run = spawnSync(process.execPath, [script, "--bogus"], { encoding: "utf8" });
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /^collect-friction\.mjs: usage: collect-friction\.mjs /);
-});
-
-test("importing collect-friction.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/engineering/summarizing-friction-logs/scripts"),
-      "collect-friction.mjs",
-    ),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-for (const script of ["analyze.mjs", "render-plan.mjs", "act.mjs"]) {
-  const dir = "skills/engineering/merging-dependabot-prs/scripts";
-  const name = script.replace(/\./g, "\\.");
-
-  test(`merging-dependabot-prs/${script} run through a symlinked directory reaches its usage error`, (t) => {
-    // Four `x` arguments are invalid for each script, so each stops at usage before calling gh.
-    const run = spawnSync(
-      process.execPath,
-      [join(symlinkedDir(t, dir), script), "x", "x", "x", "x"],
-      { encoding: "utf8" },
-    );
-    assert.equal(run.status, 2);
-    assert.match(run.stderr, new RegExp(`^${name}: usage: ${name} `));
-  });
-
-  test(`importing merging-dependabot-prs/${script} through a symlinked directory has no side effects`, (t) => {
-    const run = importModule(t, join(symlinkedDir(t, dir), script));
-    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-  });
-}
-test("ci-gate.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/landing-prs/scripts"), "ci-gate.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^ci-gate\.mjs: usage: ci-gate\.mjs /);
-});
-
-test("importing ci-gate.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/landing-prs/scripts"), "ci-gate.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("scan-deps.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"), "scan-deps.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^scan-deps\.mjs: usage: scan-deps\.mjs /);
-});
-
-test("importing scan-deps.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"), "scan-deps.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("score.mjs run through a symlinked directory reaches its usage error", (t) => {
-  // score.mjs reads findings from stdin, so only an argument triggers its usage error.
-  const script = join(
-    symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"),
-    "score.mjs",
-  );
-  const run = spawnSync(process.execPath, [script, "findings.json"], { encoding: "utf8" });
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^score\.mjs: usage: score\.mjs /);
-});
-
-test("importing score.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/auditing-repo-security/scripts"), "score.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("find-leads.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/auditing-rails-tech-debt/scripts"), "find-leads.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^find-leads\.mjs: usage: find-leads\.mjs /);
-});
-
-test("importing find-leads.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/auditing-rails-tech-debt/scripts"), "find-leads.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-for (const script of ["gap-inventory.mjs", "ready-slots.mjs"]) {
-  const dir = "skills/engineering/grooming-backlogs/scripts";
-
-  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
-    const run = runScript(join(symlinkedDir(t, dir), script));
-    assert.equal(run.status, 2);
-    assert.ok(run.stderr.startsWith(`${script}: usage: ${script} `), run.stderr);
-  });
-
-  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
-    const run = importModule(t, join(symlinkedDir(t, dir), script));
-    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-  });
-}
-
-test("resolve-timeframe.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(
-      symlinkedDir(t, "skills/productivity/summarizing-shipped-work/scripts"),
-      "resolve-timeframe.mjs",
-    ),
-  );
-  assert.equal(run.status, 64);
-  assert.match(run.stderr, /^resolve-timeframe\.mjs: usage: resolve-timeframe\.mjs /);
-});
-
-test("importing resolve-timeframe.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(
-      symlinkedDir(t, "skills/productivity/summarizing-shipped-work/scripts"),
-      "resolve-timeframe.mjs",
-    ),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-test("check-report.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const run = runScript(
-    join(symlinkedDir(t, "skills/engineering/removing-comments/scripts"), "check-report.mjs"),
-  );
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /^check-report\.mjs: usage: check-report\.mjs /);
-});
-
-test("importing check-report.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(
-    t,
-    join(symlinkedDir(t, "skills/engineering/removing-comments/scripts"), "check-report.mjs"),
-  );
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-});
-
-for (const script of ["build-items.mjs", "settle-item.mjs"]) {
-  const escaped = script.replace(".", "\\.");
-  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
-    const run = runScript(
-      join(symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"), script),
-    );
-    assert.equal(run.status, 2);
-    assert.match(run.stderr, new RegExp(`^${escaped}: usage: ${escaped} `));
-  });
-
-  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
-    const run = importModule(
-      t,
-      join(symlinkedDir(t, "skills/engineering/addressing-pr-comments/scripts"), script),
-    );
-    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-  });
-}
-
-for (const script of ["poll.mjs", "ci-fix-preflight.mjs"]) {
-  const dir = "skills/engineering/watching-authored-prs/scripts";
-
-  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
-    const run = runScript(join(symlinkedDir(t, dir), script));
-    assert.equal(run.status, 2);
-    assert.ok(run.stderr.startsWith(`${script}: usage: ${script} `), run.stderr);
-  });
-
-  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
-    const run = importModule(t, join(symlinkedDir(t, dir), script));
-    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-  });
-}
-
-for (const script of ["arm.mjs", "poll.mjs", "render-approval.mjs", "verify-approval.mjs"]) {
-  const dir = "skills/engineering/watching-reviewed-prs/scripts";
-
-  test(`${script} run through a symlinked directory reaches its usage error`, (t) => {
-    const run = spawnSync(
-      process.execPath,
-      [join(symlinkedDir(t, dir), script), "a", "b", "c", "d"],
-      { encoding: "utf8" },
-    );
-    assert.equal(run.status, 2);
-    assert.ok(run.stderr.startsWith(`${script}: usage: ${script} `), run.stderr);
-  });
-
-  test(`importing ${script} through a symlinked directory has no side effects`, (t) => {
-    const run = importModule(t, join(symlinkedDir(t, dir), script));
-    assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
-  });
-}
-
-test("contention.mjs run through a symlinked directory reaches its usage error", (t) => {
-  const dir = symlinkedDir(t, "shared/scripts");
-  const run = spawnSync(process.execPath, [join(dir, "contention.mjs"), "--bogus"], {
-    encoding: "utf8",
-  });
-  assert.equal(run.status, 2);
-  assert.match(run.stderr, /\ncontention\.mjs: usage: contention\.mjs /);
-});
-
-test("importing contention.mjs through a symlinked directory has no side effects", (t) => {
-  const run = importModule(t, join(symlinkedDir(t, "shared/scripts"), "contention.mjs"));
-  assert.deepEqual(run, { status: 0, stdout: "", stderr: "" });
+test("every guarded script runs its CLI through a symlinked directory and not on import", async (t) => {
+  for (const [dir, script, args, status] of SCRIPTS) {
+    await t.test(`${dir}/${script}`, (st) => {
+      const run = spawnSync(process.execPath, [symlinkedScript(st, dir, script), ...args], {
+        encoding: "utf8",
+      });
+      assert.equal(run.status, status, run.stderr);
+      assert.match(run.stderr, /usage/i);
+
+      const importer = join(scratchDir(st), "importer.mjs");
+      writeFileSync(importer, IMPORTER);
+      const imported = spawnSync(process.execPath, [importer, symlinkedScript(st, dir, script)], {
+        encoding: "utf8",
+      });
+      assert.deepEqual(
+        { status: imported.status, stdout: imported.stdout, stderr: imported.stderr },
+        { status: 0, stdout: "", stderr: "" },
+      );
+    });
+  }
 });

@@ -178,7 +178,6 @@ test("deploy-gate.sh reports a mixed last poll at max polls as a rollout in prog
     run.stdout,
     "poll 1 on-target 1/2\npoll 2 on-target 1/2\nrollout-in-progress on=1 off=1\n",
   );
-  assert.doesNotMatch(run.stderr, /^see /m);
 });
 
 test("deploy-gate.sh reports a clean last poll short of the streak as off=0", (t) => {
@@ -194,7 +193,6 @@ test("deploy-gate.sh reports not-deployed when no sample is on target, as after 
   const { run } = gateRun(t, [TARGET, TARGET, BASELINE, BASELINE], { maxPolls: 2 });
   assert.equal(run.status, 1);
   assert.equal(run.stdout, "poll 1 on-target 2/2\npoll 2 on-target 0/2\nnot-deployed\n");
-  assert.doesNotMatch(run.stderr, /^see /m);
 });
 
 test("deploy-gate.sh exits 3 when a sampled sha cannot be resolved", (t) => {

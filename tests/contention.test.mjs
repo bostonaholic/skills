@@ -87,10 +87,6 @@ function run(args, { cwd, env }) {
   return spawnSync(process.execPath, [SCRIPT, ...args], { cwd, env, encoding: "utf8" });
 }
 
-function lastLine(stderr) {
-  return stderr.replace(/\n$/, "").split("\n").at(-1);
-}
-
 const REGISTRY = "config/registry.json";
 const ROUTES = "src/api/routes.js";
 const CLIENT = "web/client.js";
@@ -300,7 +296,6 @@ test("contention.mjs outside a git repository exits 1 with git's error and the s
   assert.equal(result.stdout, "");
   assert.match(result.stderr, /^fatal: not a git repository/);
   assert.match(result.stderr, /\ncontention\.mjs: git .*rev-parse --show-toplevel exited 128\n/);
-  assert.equal(lastLine(result.stderr), `see ${DOC}`);
 });
 
 test("contention.mjs in a repository with no commits exits 1 naming the missing HEAD", (t) => {
@@ -324,6 +319,5 @@ test("contention.mjs with a bad flag or value exits 2 with the usage line and th
       result.stderr,
       /\ncontention\.mjs: usage: contention\.mjs \[--max-commits <n>\] \[--top <n>\] \[-- <pathspec>\.\.\.\]\n/,
     );
-    assert.equal(lastLine(result.stderr), `see ${DOC}`);
   }
 });

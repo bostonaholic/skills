@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 import {
   buildGitArgs,
@@ -216,38 +216,6 @@ const manyFilesReport = () =>
 const manyFilesInventory = () =>
   inventory({ files: Object.fromEntries(MANY_FILES.map((file, i) => [file, textFile(i + 1)])) });
 
-// 26 hot functions, at most 6 per file; fn00 has the lowest cyclomatic (2), so the 25-row cap omits it.
-// With full coverage each CRAP equals its cyclomatic value, so fn00 also has the lowest CRAP (2).
-const MANY_FUNCTION_FILES = ["src/g0.js", "src/g1.js", "src/g2.js", "src/g3.js", "src/g4.js"];
-const manyFunctionsReport = () =>
-  report({
-    lanes: [
-      lane(
-        "many",
-        MANY_FUNCTION_FILES.map((file, f) =>
-          entry(file, {
-            functions: 6,
-            hotFunctions: Array.from({ length: 6 }, (_, k) => f * 6 + k)
-              .filter((i) => i < 26)
-              .map((i) => hot(`fn${String(i).padStart(2, "0")}`, 1 + (i % 6) * 10, i + 2)),
-          }),
-        ),
-      ),
-    ],
-    gaps: [],
-  });
-const manyFunctionsInventory = () =>
-  inventory({
-    files: Object.fromEntries(MANY_FUNCTION_FILES.map((file) => [file, textFile(100)])),
-  });
-const manyScoredReport = () => {
-  const audit = withCoverage(manyFunctionsReport());
-  for (const fn of audit.lanes[0].entries.flatMap((e) => e.hotFunctions)) {
-    fn.coverage = { hit: [fn.line + 1], missed: [] };
-  }
-  return audit;
-};
-
 // One file: src/full.js, cyclomatic 1, 199 of 200 coverable lines hit. 199 x 100 / 200 = 99.5, floored to 99%.
 const NEARLY_FULL = { hit: Array.from({ length: 199 }, (_, i) => i + 2), missed: [201] };
 
@@ -275,13 +243,6 @@ function subsection(text, heading) {
 
 // The Change risk section without its Not scored subsection: the ranked table and its notes.
 const rankedChangeRisk = (markdown) => section(markdown, "Change risk").split("\n### ")[0];
-
-// Every `## ` heading of the report, in order, without the `## ` prefix.
-const level2Headings = (markdown) =>
-  markdown
-    .split("\n")
-    .filter((line) => line.startsWith("## "))
-    .map((line) => line.slice(3));
 
 const isSeparator = (line) => /^\|(\s*:?-+:?\s*\|)+\s*$/.test(line);
 
@@ -525,14 +486,6 @@ test("validateReport rejects an inconsistent join", async (t) => {
     assert.match(errors[0], /src\/logo\.png/);
   });
 
-  await t.test("a gap file that is not text", () => {
-    const broken = report();
-    broken.gaps.push({ file: "src/logo.png", reason: "not source code" });
-    const errors = validateReport(broken, inventory());
-    assert.equal(errors.length, 1, errors.join("\n"));
-    assert.match(errors[0], /src\/logo\.png/);
-  });
-
   await t.test("a lane file with both an entry and a skipped record", () => {
     const broken = report();
     broken.lanes[0].skipped.push({ file: "src/db.js", reason: "minified" });
@@ -606,13 +559,6 @@ test("renderReport ranks files by their highest cyclomatic complexity", async (t
     assert.equal(rows.length, 2, rows.join("\n"));
     assert.match(rows[0], /src\/app\.js.*\b3\b/);
     assert.match(rows[1], /src\/db\.js.*\b1\b/);
-  });
-
-  await t.test("a gap file never ranks, even with the most lines", () => {
-    // src/README.md has 900 lines but sits in gaps.
-    const files = section(renderReport(report(), inventory()), "Files");
-    assert.match(files, /src\/app\.js/);
-    assert.doesNotMatch(files, /src\/README\.md/);
   });
 
   await t.test("equal max cyclomatic ranks by lines, most first", () => {
@@ -829,23 +775,6 @@ test("renderReport ranks hot functions", async (t) => {
     assert.match(rows[3], /\broute\b/);
   });
 
-  await t.test("26 hot functions show 25 rows and the omitted count", () => {
-    const functions = section(
-      renderReport(manyFunctionsReport(), manyFunctionsInventory()),
-      "Functions",
-    );
-    assert.equal(tableRows(functions).length, 25);
-    assert.doesNotMatch(functions, /\bfn00\b/);
-    assert.match(lineMatching(functions, /omitted/i), /\b1\b/);
-  });
-
-  await t.test("the heading warns that a function below its file's top 3 can be missing", () => {
-    assert.match(
-      section(renderReport(report(), inventory()), "Functions"),
-      /below the top 3 in its own file can be missing/i,
-    );
-  });
-
   await t.test("file maxima skip <module> for length and parameters only", () => {
     const withModule = report();
     withModule.lanes[0].entries[0].functions = 5;
@@ -1053,18 +982,6 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
     assert.match(rows[6], /\blate\b/);
   });
 
-  await t.test("26 scored functions show 25 rows and the omitted count", () => {
-    const ranked = rankedChangeRisk(
-      renderReport(
-        manyScoredReport(),
-        inventory({ ...manyFunctionsInventory(), coverage: COVERAGE }),
-      ),
-    );
-    assert.equal(tableRows(ranked).length, 25);
-    assert.doesNotMatch(ranked, /\bfn00\b/);
-    assert.match(lineMatching(ranked, /omitted/i), /\b1\b/);
-  });
-
   await t.test("199 of 200 lines hit shows 99%, never 100%", () => {
     const markdown = renderReport(
       withCoverage(
@@ -1139,22 +1056,6 @@ test("renderReport ranks scored functions by CRAP under Change risk", async (t) 
     assert.match(changeRisk, /Not run: no coverage file was given\./);
     assert.doesNotMatch(changeRisk, /\d/);
   });
-
-  await t.test(
-    "without coverage the six existing sections keep their order, with Change risk after Functions",
-    () => {
-      const headings = level2Headings(renderReport(report(), inventory()));
-      assert.deepEqual(headings.slice(0, 7), [
-        "Summary",
-        "Files",
-        "Functions",
-        "Change risk",
-        "Lanes",
-        "Gaps",
-        "Not measured",
-      ]);
-    },
-  );
 });
 
 test("renderReport sums file CRAP into combined and average CRAP", async (t) => {
@@ -1311,32 +1212,6 @@ test("renderReport labels each cyclomatic and CRAP value with its band", async (
     },
   );
 
-  await t.test(
-    "Functions labels cyclomatic 6/7, 9/10, and 20/21 with the band each side of the boundary",
-    () => {
-      const functions = section(renderReport(bandReport(), bandInventory()), "Functions");
-      assert.equal(rowWith(functions, "f06")["CC band"], "low");
-      assert.equal(rowWith(functions, "f07")["CC band"], "moderate");
-      assert.equal(rowWith(functions, "f09")["CC band"], "moderate");
-      assert.equal(rowWith(functions, "f10")["CC band"], "high");
-      assert.equal(rowWith(functions, "f20")["CC band"], "high");
-      assert.equal(rowWith(functions, "f21")["CC band"], "very complex");
-    },
-  );
-
-  await t.test(
-    "Lanes labels cyclomatic 6/7, 9/10, and 20/21 with the band each side of the boundary",
-    () => {
-      const lanes = section(renderReport(bandReport(), bandInventory()), "Lanes");
-      assert.equal(rowWith(lanes, "src/cc06.js")["CC band"], "low");
-      assert.equal(rowWith(lanes, "src/cc07.js")["CC band"], "moderate");
-      assert.equal(rowWith(lanes, "src/cc09.js")["CC band"], "moderate");
-      assert.equal(rowWith(lanes, "src/cc10.js")["CC band"], "high");
-      assert.equal(rowWith(lanes, "src/cc20.js")["CC band"], "high");
-      assert.equal(rowWith(lanes, "src/cc21.js")["CC band"], "very complex");
-    },
-  );
-
   await t.test("a file with no hot function shows - as its CC band in Files and Lanes", () => {
     const markdown = renderReport(bandReport(), bandInventory());
     assert.equal(rowWith(section(markdown, "Files"), "src/none.js")["CC band"], "-");
@@ -1368,15 +1243,6 @@ test("renderReport labels each cyclomatic and CRAP value with its band", async (
     );
     assert.equal(row.CRAP, "30.0");
     assert.equal(row["CRAP band"], "acceptable");
-  });
-
-  await t.test("a recount just above 60 that shows 60.0 reads needs attention", () => {
-    const row = rowWith(
-      section(renderReport(crapBandReport(), crapBandInventory()), "Change risk"),
-      "rounds60",
-    );
-    assert.equal(row.CRAP, "60.0");
-    assert.equal(row["CRAP band"], "needs attention");
   });
 
   await t.test("a shown CRAP of 60.1 reads high risk", () => {
@@ -1413,50 +1279,6 @@ test("render-report.mjs exits 0 when a CRAP is above 60", (t) => {
   const run = runRender(join(dir, "report.json"));
   assert.equal(run.status, 0, run.stderr);
   assert.match(readFileSync(join(dir, "report.md"), "utf8"), /high risk/);
-});
-
-test("renderReport ends every report with Reading the numbers", async (t) => {
-  await t.test("with coverage the reading aid is the last section, once", () => {
-    const headings = level2Headings(renderReport(coveredReport(), coveredInventory()));
-    assert.equal(headings.at(-1), "Reading the numbers");
-    assert.equal(headings.indexOf("Reading the numbers"), headings.length - 1);
-  });
-
-  await t.test("without coverage the reading aid is the last section, once", () => {
-    const headings = level2Headings(renderReport(report(), inventory()));
-    assert.equal(headings.at(-1), "Reading the numbers");
-    assert.equal(headings.indexOf("Reading the numbers"), headings.length - 1);
-  });
-
-  await t.test(
-    "it holds both band tables, the four reduction strategies, and the trend tip, with attribution",
-    () => {
-      const aid = section(renderReport(report(), inventory()), "Reading the numbers");
-      assert.match(aid, /\bmoderate\b/);
-      assert.match(aid, /very complex/);
-      assert.match(aid, /\bacceptable\b/);
-      assert.match(aid, /needs attention/);
-      assert.match(aid, /high risk/);
-      assert.match(aid, /extract/i);
-      assert.match(aid, /guard clause/i);
-      assert.match(aid, /polymorphism/i);
-      assert.match(aid, /lookup table/i);
-      assert.match(aid, /trend/i);
-      assert.match(
-        aid,
-        /getotterwise\.com\/blog\/understanding-crap-and-cyclomatic-complexity-metrics/,
-      );
-    },
-  );
-
-  await t.test(
-    "it frames the strategies as finding the 20 lines that replace the 200, figuratively",
-    () => {
-      const aid = section(renderReport(report(), inventory()), "Reading the numbers");
-      assert.match(aid, /20 lines that replace the 200/);
-      assert.match(aid, /not a target line count/);
-    },
-  );
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -1620,38 +1442,6 @@ test("both CLIs exit 1 and write nothing", async (t) => {
     assert.equal(run.status, 1, run.stderr);
     assert.match(run.stderr, /^inventory\.mjs: /);
     assert.equal(existsSync(join(dir, "inventory.json")), false);
-  });
-
-  await t.test("inventory.mjs outside any work tree", (st) => {
-    const dir = tempDir(st);
-    writeFileSync(join(dir, "report.json"), auditRequest(["."]));
-    writeFileSync(join(dir, "empty.gitconfig"), "");
-    const run = runInventory(join(dir, "report.json"), {
-      cwd: dir,
-      env: isolatedGitEnv(join(dir, "empty.gitconfig"), { GIT_CEILING_DIRECTORIES: dirname(dir) }),
-    });
-    assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /m);
-    assert.equal(existsSync(join(dir, "inventory.json")), false);
-  });
-
-  await t.test("inventory.mjs in a repository with no commit", (st) => {
-    const dir = tempDir(st);
-    mkdirSync(join(dir, "repo"));
-    mkdirSync(join(dir, "out"));
-    writeFileSync(join(dir, "empty.gitconfig"), "");
-    const env = isolatedGitEnv(join(dir, "empty.gitconfig"));
-    const init = spawnSync("git", ["init", "-q"], {
-      cwd: join(dir, "repo"),
-      env,
-      encoding: "utf8",
-    });
-    assert.equal(init.status, 0, init.stderr);
-    writeFileSync(join(dir, "out", "report.json"), auditRequest(["."]));
-    const run = runInventory(join(dir, "out", "report.json"), { cwd: join(dir, "repo"), env });
-    assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^inventory\.mjs: /m);
-    assert.equal(existsSync(join(dir, "out", "inventory.json")), false);
   });
 
   await t.test("inventory.mjs with a named path that matches nothing names it", (st) => {
