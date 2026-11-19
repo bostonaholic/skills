@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `addressing-pr-comments` re-requests review from a reviewer whose latest review is COMMENTED when a thread or review summary they left has your outcome reply and no feedback awaits a response; before, only reviewers who requested changes were re-requested. [#226](https://github.com/bostonaholic/skills/pull/226)
+
 ## [0.110.0] - 2026-11-17
 
 ### Fixed
