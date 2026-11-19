@@ -58,10 +58,10 @@ function review({
   };
 }
 
-function thread({ isResolved, firstCommentUrl, latestAuthor, latestBody }) {
+function thread({ isResolved, firstCommentUrl, firstAuthor, latestAuthor, latestBody }) {
   return {
     isResolved,
-    firstComment: { nodes: [{ url: firstCommentUrl }] },
+    firstComment: { nodes: [{ url: firstCommentUrl, author: firstAuthor }] },
     latestComment: { nodes: [{ author: latestAuthor, body: latestBody }] },
   };
 }
@@ -839,8 +839,8 @@ test("a viewer marker clears only the item it names", async (t) => {
       }),
       PULL_REQUEST_412,
     );
-    assert.deepEqual(result.logins, ["alice"]);
-    assert.deepEqual(result.lines, []);
+    assert.deepEqual(result.logins, ["alice", "dave"]);
+    assert.deepEqual(result.lines, ["target dave COMMENTED"]);
   });
 });
 
@@ -1264,5 +1264,177 @@ test("CLI --report prints report lines in place of tokens", async (t) => {
       "Review re-request: not sent, the review-state read failed: gh printed output that is not JSON",
     ]);
     assert.equal(run.status, 1);
+  });
+});
+
+const DANA_COMMENTED_WITH_THREADS = review({
+  author: user("dana"),
+  state: "COMMENTED",
+  url: `${PR_URL}#pullrequestreview-500`,
+  body: "",
+  inlineCommentCount: 2,
+});
+
+function markedDanaThread(discussionId, { isResolved = true } = {}) {
+  return thread({
+    isResolved,
+    firstCommentUrl: `${PR_URL}#discussion_r${discussionId}`,
+    firstAuthor: { login: "dana" },
+    latestAuthor: { login: "me" },
+    latestBody: `Fixed.\n<!-- feedback-outcome: ${PR_URL}#discussion_r${discussionId} -->`,
+  });
+}
+
+test("re-requests a COMMENTED reviewer whose feedback carries the viewer's marker", async (t) => {
+  await t.test("a resolved marked thread re-requests the reviewer with one POST", (st) => {
+    const run = runScript(st, {
+      args: [PR_URL],
+      responses: [
+        pageOneResponse({
+          reviews: connection([DANA_COMMENTED_WITH_THREADS]),
+          reviewThreads: connection([markedDanaThread(5001)]),
+        }),
+        POST_SUCCEEDED,
+      ],
+    });
+    assert.deepEqual(run.lines, ["target dana COMMENTED", "re-requested dana"]);
+    assert.deepEqual(run.calls.slice(1), [postReviewerRequest("dana")]);
+    assert.equal(run.status, 0);
+  });
+
+  await t.test("--report names COMMENTED as the latest review", (st) => {
+    const run = runScript(st, {
+      args: ["--report", PR_URL],
+      responses: [
+        pageOneResponse({
+          reviews: connection([DANA_COMMENTED_WITH_THREADS]),
+          reviewThreads: connection([markedDanaThread(5001)]),
+        }),
+        POST_SUCCEEDED,
+      ],
+    });
+    assert.deepEqual(run.lines, [
+      "Review re-request: re-requested @dana (no feedback awaits a response, latest review COMMENTED)",
+    ]);
+  });
+
+  await t.test("a marked review body re-requests the reviewer", () => {
+    const danaSummary = review({
+      author: user("dana"),
+      state: "COMMENTED",
+      url: `${PR_URL}#pullrequestreview-501`,
+      body: BODY_SENTINEL,
+      inlineCommentCount: 0,
+    });
+    const result = derive(
+      reviewState({
+        reviews: [danaSummary],
+        comments: [
+          conversationComment({
+            author: user("me"),
+            url: `${PR_URL}#issuecomment-5101`,
+            body: `Done.\n<!-- feedback-outcome: ${PR_URL}#pullrequestreview-501 -->`,
+          }),
+        ],
+      }),
+      PULL_REQUEST_412,
+    );
+    assert.deepEqual(result.logins, ["dana"]);
+    assert.deepEqual(result.lines, ["target dana COMMENTED"]);
+  });
+
+  await t.test("an unresolved thread blocks the request", () => {
+    const result = derive(
+      reviewState({
+        reviews: [DANA_COMMENTED_WITH_THREADS],
+        reviewThreads: [
+          markedDanaThread(5001),
+          thread({
+            isResolved: false,
+            firstCommentUrl: `${PR_URL}#discussion_r5002`,
+            firstAuthor: { login: "dana" },
+            latestAuthor: { login: "dana" },
+            latestBody: BODY_SENTINEL,
+          }),
+        ],
+      }),
+      PULL_REQUEST_412,
+    );
+    assert.deepEqual(result.logins, []);
+    assert.deepEqual(result.lines, [
+      "target dana COMMENTED",
+      `pending ${PR_URL}#discussion_r5002`,
+      "not-requested pending-feedback",
+    ]);
+  });
+
+  await t.test("a reviewer who authored no thread and no review body is not a target", () => {
+    const result = derive(
+      reviewState({
+        reviews: [DANA_COMMENTED_WITH_THREADS],
+        reviewThreads: [resolvedThread(5003)],
+      }),
+      PULL_REQUEST_412,
+    );
+    assert.deepEqual(result.logins, []);
+    assert.deepEqual(result.lines, ["not-requested no-changes-requested-reviewer"]);
+  });
+
+  await t.test("a reviewer already in reviewRequests prints already-requested", () => {
+    const result = derive(
+      reviewState({
+        reviews: [DANA_COMMENTED_WITH_THREADS],
+        reviewThreads: [markedDanaThread(5001)],
+        reviewRequests: [requestedUser("dana")],
+      }),
+      PULL_REQUEST_412,
+    );
+    assert.deepEqual(result.logins, []);
+    assert.deepEqual(result.lines, [
+      "already-requested dana",
+      "not-requested no-changes-requested-reviewer",
+    ]);
+  });
+
+  await t.test("an APPROVED review after the COMMENTED one gets no request", () => {
+    const danaApproved = review({
+      author: user("dana"),
+      state: "APPROVED",
+      url: `${PR_URL}#pullrequestreview-502`,
+      body: "",
+      inlineCommentCount: 0,
+      submittedAt: "2026-09-21T12:00:00Z",
+    });
+    const result = derive(
+      reviewState({
+        latestOpinionatedReviews: [danaApproved],
+        reviews: [DANA_COMMENTED_WITH_THREADS, danaApproved],
+        reviewThreads: [markedDanaThread(5001)],
+      }),
+      PULL_REQUEST_412,
+    );
+    assert.deepEqual(result.logins, []);
+    assert.deepEqual(result.lines, ["not-requested no-changes-requested-reviewer"]);
+  });
+
+  await t.test("a COMMENTED review after an approval gets no request", () => {
+    const danaApproved = review({
+      author: user("dana"),
+      state: "APPROVED",
+      url: `${PR_URL}#pullrequestreview-502`,
+      body: "",
+      inlineCommentCount: 0,
+      submittedAt: "2026-09-19T12:00:00Z",
+    });
+    const result = derive(
+      reviewState({
+        latestOpinionatedReviews: [danaApproved],
+        reviews: [danaApproved, DANA_COMMENTED_WITH_THREADS],
+        reviewThreads: [markedDanaThread(5001)],
+      }),
+      PULL_REQUEST_412,
+    );
+    assert.deepEqual(result.logins, []);
+    assert.deepEqual(result.lines, ["not-requested no-changes-requested-reviewer"]);
   });
 });

@@ -1,8 +1,11 @@
 # Review re-request
 
 Run once per pass, as its last action. When no feedback awaits a response,
-the script re-requests review from each reviewer whose latest review requested
-changes.
+the script re-requests review from each reviewer whose latest opinionated
+review requested changes, and from each reviewer whose latest review is
+COMMENTED and who wrote a review thread or review body that now carries your
+outcome marker. A reviewer who approved is never re-requested, even after a
+later COMMENTED review.
 
 ## Passes and gate
 
