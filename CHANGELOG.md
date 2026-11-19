@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.111.0] - 2026-11-19
+
 ### Changed
 
 - `addressing-pr-comments` re-requests review from a reviewer whose latest review is COMMENTED when a thread or review summary they left has your outcome reply and no feedback awaits a response; before, only reviewers who requested changes were re-requested. [#226](https://github.com/bostonaholic/skills/pull/226)
@@ -1329,5 +1331,7 @@
 
 [0.109.0]: https://github.com/bostonaholic/skills/compare/v0.108.0...v0.109.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.110.0...HEAD
 [0.110.0]: https://github.com/bostonaholic/skills/compare/v0.109.0...v0.110.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.111.0...HEAD
+[0.111.0]: https://github.com/bostonaholic/skills/compare/v0.110.0...v0.111.0
