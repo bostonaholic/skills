@@ -2,7 +2,11 @@
 
 /**
  * Re-request review from each reviewer whose latest opinionated review is
- * CHANGES_REQUESTED, but only when no feedback on the PR awaits a response.
+ * CHANGES_REQUESTED, and from each reviewer whose latest review is COMMENTED
+ * and who authored a review thread or review body that now carries the
+ * viewer's outcome marker, but only when no feedback on the PR awaits a
+ * response. A reviewer whose latest opinionated review is APPROVED is never a
+ * target, even after a later COMMENTED review.
  *
  *     node "<skill-dir>/scripts/re-request-review.mjs" [--report] "<pr-url>"
  *
@@ -31,6 +35,7 @@
  *   skipped invalid-login                         the login fails LOGIN_PATTERN
  *   skipped <login> not-a-user                    a Bot, Mannequin, or other non-User
  *   already-requested <login>                     already in reviewRequests
+ *   target <login> COMMENTED                      a COMMENTED reviewer to request
  *   pending <url>                                 at most MAX_PENDING_URL_LINES
  *   pending url-unavailable                       the item url is not on this PR
  *   pending-more <n>                              pending urls past the cap
@@ -67,6 +72,10 @@
  * `#issuecomment-123` never clears `#issuecomment-12`. Another author's
  * marker clears nothing.
  *
+ * COMMENTED targets come from `reviews`, because `latestOpinionatedReviews`
+ * omits COMMENTED reviews. The reviewer's latest review is the non-PENDING one
+ * with the latest `submittedAt`.
+ *
  * Read limits: the first query reads one page of each of the five
  * connections. Each connection with more nodes follows its `after` cursor,
  * one query per page, up to MAX_PAGES_PER_CONNECTION pages, so a run makes at
@@ -80,7 +89,9 @@
  * `not-requested pending-feedback` stands, with the empty-changes-request
  * lines after it:
  *
- *   re-requested @<login> (no feedback awaits a response, latest review CHANGES_REQUESTED)
+ *   re-requested @<login> (no feedback awaits a response, latest review <state>)
+ *       (<state> is COMMENTED after a `target <login> COMMENTED` line,
+ *       otherwise CHANGES_REQUESTED; the target line prints nothing)
  *   @<login> already has a pending review request
  *   skipped @<login>, not a user account
  *   skipped a reviewer whose login failed validation
@@ -163,7 +174,7 @@ const CONNECTION_SELECTIONS = {
   reviewRequests: "nodes { requestedReviewer { __typename ... on User { login } } }",
   reviewThreads: `nodes {
     isResolved
-    firstComment: comments(first: 1) { nodes { url } }
+    firstComment: comments(first: 1) { nodes { url author { login } } }
     latestComment: comments(last: 1) { nodes { author { login } body } }
   }`,
   reviews:
@@ -227,7 +238,8 @@ export function deriveReRequest(reviewState, pullRequest) {
   return { lines: targets.lines, logins: targets.writeSet.map((target) => target.login).sort() };
 }
 
-function checkTargets({ viewerLogin, latestOpinionatedReviews, reviewRequests }) {
+function checkTargets(reviewState) {
+  const { viewerLogin, latestOpinionatedReviews, reviewRequests } = reviewState;
   const requestedLogins = new Set(
     reviewRequests
       .map(({ requestedReviewer }) =>
@@ -237,8 +249,11 @@ function checkTargets({ viewerLogin, latestOpinionatedReviews, reviewRequests })
   );
   const lines = [];
   const writeSet = [];
-  for (const review of latestOpinionatedReviews) {
-    if (review.state !== "CHANGES_REQUESTED") continue;
+  const candidates = [
+    ...latestOpinionatedReviews.filter((review) => review.state === "CHANGES_REQUESTED"),
+    ...commentedTargetReviews(reviewState),
+  ];
+  for (const review of candidates) {
     const { author } = review;
     if (author == null) {
       lines.push("skipped author-unavailable");
@@ -251,10 +266,52 @@ function checkTargets({ viewerLogin, latestOpinionatedReviews, reviewRequests })
     } else if (requestedLogins.has(author.login)) {
       lines.push(`already-requested ${author.login}`);
     } else {
+      if (review.state === "COMMENTED") lines.push(`target ${author.login} COMMENTED`);
       writeSet.push({ login: author.login, review });
     }
   }
   return { lines, writeSet };
+}
+
+function commentedTargetReviews({
+  viewerLogin,
+  latestOpinionatedReviews,
+  reviewThreads,
+  reviews,
+  comments,
+}) {
+  const opinionatedLogins = new Set(
+    latestOpinionatedReviews
+      .filter((review) => review.state === "APPROVED" || review.state === "CHANGES_REQUESTED")
+      .map((review) => review.author?.login),
+  );
+  const markedUrls = viewerMarkedUrls(comments, viewerLogin);
+  const handledAuthors = new Set([
+    ...reviewThreads
+      .filter((thread) => isThreadMarked(thread, viewerLogin))
+      .map((thread) => thread.firstComment?.nodes?.[0]?.author?.login),
+    ...reviews
+      .filter((review) => !isEmptyBody(review.body) && markedUrls.has(review.url))
+      .map((review) => review.author?.login),
+  ]);
+  return [...latestReviewByLogin(reviews).values()].filter(
+    (review) =>
+      review.state === "COMMENTED" &&
+      handledAuthors.has(review.author.login) &&
+      !opinionatedLogins.has(review.author.login),
+  );
+}
+
+function latestReviewByLogin(reviews) {
+  const latest = new Map();
+  for (const review of reviews) {
+    const login = review.author?.login;
+    const time = Date.parse(review.submittedAt);
+    if (typeof login !== "string" || review.state === "PENDING" || Number.isNaN(time)) continue;
+    const current = latest.get(login);
+    if (current === undefined || time >= Date.parse(current.submittedAt)) latest.set(login, review);
+  }
+  return latest;
 }
 
 function describePending(reviewState, pullRequest, writeSet) {
@@ -269,7 +326,12 @@ function describePending(reviewState, pullRequest, writeSet) {
     cappedUrlLines.push(`pending-more ${urlLines.length - MAX_PENDING_URL_LINES}`);
   }
   const emptyChangesRequestLines = writeSet
-    .filter(({ review }) => isEmptyBody(review.body) && review.comments?.totalCount === 0)
+    .filter(
+      ({ review }) =>
+        review.state === "CHANGES_REQUESTED" &&
+        isEmptyBody(review.body) &&
+        review.comments?.totalCount === 0,
+    )
     .map(({ login }) => `pending empty-changes-request ${login}`);
   return [...cappedUrlLines, ...emptyChangesRequestLines];
 }
@@ -280,11 +342,7 @@ function pendingItemUrls({ viewerLogin, reviewThreads, reviews, comments }) {
     .filter((thread) => !thread.isResolved && !isThreadMarked(thread, viewerLogin))
     .map((thread) => thread.firstComment?.nodes?.[0]?.url);
 
-  const markedPullRequestItemUrls = new Set(
-    comments
-      .filter((comment) => comment.author?.login === viewerLogin)
-      .flatMap((comment) => outcomeMarkerUrls(comment.body)),
-  );
+  const markedPullRequestItemUrls = viewerMarkedUrls(comments, viewerLogin);
   const isUnmarked = (item) => !markedPullRequestItemUrls.has(item.url);
   const reviewUrls = reviews
     .filter(
@@ -301,6 +359,14 @@ function pendingItemUrls({ viewerLogin, reviewThreads, reviews, comments }) {
     .filter(isUnmarked)
     .map((comment) => comment.url);
   return [...threadUrls, ...reviewUrls, ...commentUrls];
+}
+
+function viewerMarkedUrls(comments, viewerLogin) {
+  return new Set(
+    comments
+      .filter((comment) => comment.author?.login === viewerLogin)
+      .flatMap((comment) => outcomeMarkerUrls(comment.body)),
+  );
 }
 
 function isThreadMarked(thread, viewerLogin) {
@@ -340,11 +406,6 @@ const FIXED_REPORT_TEXT = {
 };
 
 const LOGIN_REPORT_TEXT = [
-  [
-    /^re-requested (\S+)$/,
-    (login) =>
-      `re-requested @${login} (no feedback awaits a response, latest review CHANGES_REQUESTED)`,
-  ],
   [/^already-requested (\S+)$/, (login) => `@${login} already has a pending review request`],
   [/^skipped (\S+) not-a-user$/, (login) => `skipped @${login}, not a user account`],
   [
@@ -364,9 +425,18 @@ export function renderReport(lines, readFailureReason = "") {
   const report = [];
   const pendingUrls = [];
   const deferred = [];
+  const commentedLogins = new Set();
   let morePending = 0;
   for (const line of lines) {
-    if (line === "pending url-unavailable") pendingUrls.push("an item with no usable URL");
+    const target = /^target (\S+) COMMENTED$/.exec(line);
+    const reRequested = /^re-requested (\S+)$/.exec(line);
+    if (target) commentedLogins.add(target[1]);
+    else if (reRequested) {
+      const state = commentedLogins.has(reRequested[1]) ? "COMMENTED" : "CHANGES_REQUESTED";
+      report.push(
+        `re-requested @${reRequested[1]} (no feedback awaits a response, latest review ${state})`,
+      );
+    } else if (line === "pending url-unavailable") pendingUrls.push("an item with no usable URL");
     else if (line.startsWith("pending https://")) pendingUrls.push(line.slice("pending ".length));
     else if (/^pending-more \d+$/.test(line))
       morePending = Number(line.slice("pending-more ".length));
