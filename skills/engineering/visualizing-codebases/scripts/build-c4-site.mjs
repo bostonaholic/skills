@@ -6,7 +6,8 @@
 //           styles.css, app.js, and data.js into <out>; printed the index.html path, then per
 //           level the cycle count and one line per cycle: its id, size, and one closed path of ids;
 //           then `grade: <letter> (<points> of 4)` and one `  <criterion> <letter or n/a>: <value>`
-//           line per criterion, or `grade: none (<reason>)` when no letter is given
+//           line per criterion, then one `  cap <cap> <letter>: <reason>` line per cap that fired;
+//           or `grade: none (<reason>)` when no letter is given
 //   exit 1  wrote nothing; stderr names an unreadable or non-JSON model, every validation
 //           error (including the architecture section's), or an <out> that is not a directory
 //   exit 2  not exactly two arguments; stderr prints the usage line
@@ -391,6 +392,7 @@ function gradeLines(grade) {
   return [
     `grade: ${grade.letter} (${fourPointScale(grade.points)} of 4)`,
     ...grade.criteria.map(({ id, letter, value }) => `  ${id} ${letter ?? "n/a"}: ${value}`),
+    ...grade.caps.map(({ id, letter, reason }) => `  cap ${id} ${letter}: ${reason}`),
   ];
 }
 

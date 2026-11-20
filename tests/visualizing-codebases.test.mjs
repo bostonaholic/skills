@@ -221,6 +221,36 @@ function twoLayers(crossing) {
   });
 }
 
+// Five components of 2 code elements each, in layers web, domain, and data. Every cross-layer
+// relationship points inward, and no instability rises along an edge. `imports` adds pairs.
+function domainModel({ imports = [], answers = allYes() } = {}) {
+  return layered({
+    layers: ["web", "domain", "data"],
+    components: {
+      web: { layer: "web", code: ["web/page", "web/form"] },
+      orders: { layer: "domain", code: ["orders/service", "orders/rules"] },
+      billing: { layer: "domain", code: ["billing/service", "billing/rules"] },
+      store: { layer: "data", code: ["store/repo", "store/query"] },
+      db: { layer: "data", code: ["db/pool", "db/migrate"] },
+    },
+    imports: [
+      ["web/page", "web/form"],
+      ["web/form", "orders/service"],
+      ["web/page", "billing/service"],
+      ["orders/service", "orders/rules"],
+      ["orders/rules", "billing/rules"],
+      ["orders/service", "store/repo"],
+      ["billing/service", "billing/rules"],
+      ["billing/rules", "store/query"],
+      ["store/repo", "store/query"],
+      ["store/query", "db/pool"],
+      ["db/pool", "db/migrate"],
+      ...imports,
+    ],
+    answers,
+  });
+}
+
 // Writes the model, builds it, and returns stdout. A graded or withheld build both exit 0.
 function stdoutOf(t, model) {
   const dir = scratch(t);
@@ -237,6 +267,11 @@ function assertHasLine(stdout, line) {
     `stdout has no line ${JSON.stringify(line)}:\n${stdout}`,
   );
 }
+
+const capLines = (stdout) => stdout.split("\n").filter((line) => line.startsWith("  cap "));
+
+// Lower is better, so a comparison reads as "no worse than".
+const RANK = Object.freeze({ A: 0, B: 1, C: 2, D: 3, F: 4 });
 
 test("a well-formed model has no validation errors", () => {
   assert.deepEqual(validateModel(model()), []);
@@ -969,3 +1004,199 @@ for (const row of LAYER_LINES)
   test(`the build prints dependency-direction and stable-dependencies lines at their boundaries: ${row.label}`, (t) => {
     assertHasLine(stdoutOf(t, row.model()), row.line);
   });
+
+// Cycle caps.
+
+// Two containers whose code calls each other through different components, so the containers
+// form a cycle and the components do not.
+function containerCycle() {
+  return {
+    system: { id: "shop", name: "Shop" },
+    containers: [
+      { id: "web", name: "Web" },
+      { id: "api", name: "API" },
+    ],
+    components: [
+      { id: "web.pages", name: "Pages", container: "web" },
+      { id: "web.client", name: "Client", container: "web" },
+      { id: "api.orders", name: "Orders", container: "api" },
+      { id: "api.events", name: "Events", container: "api" },
+    ],
+    code: [
+      { id: "pages/home", name: "home", component: "web.pages" },
+      { id: "pages/cart", name: "cart", component: "web.pages" },
+      { id: "pages/checkout", name: "checkout", component: "web.pages" },
+      { id: "client/http", name: "http", component: "web.client" },
+      { id: "client/socket", name: "socket", component: "web.client" },
+      { id: "orders/routes", name: "routes", component: "api.orders" },
+      { id: "orders/service", name: "service", component: "api.orders" },
+      { id: "orders/repo", name: "repo", component: "api.orders" },
+      { id: "events/publisher", name: "publisher", component: "api.events" },
+      { id: "events/hub", name: "hub", component: "api.events" },
+    ],
+    relationships: [
+      { from: "pages/home", to: "pages/cart" },
+      { from: "pages/cart", to: "pages/checkout" },
+      { from: "pages/checkout", to: "orders/routes" },
+      { from: "orders/routes", to: "orders/service" },
+      { from: "orders/service", to: "orders/repo" },
+      { from: "events/publisher", to: "events/hub" },
+      { from: "events/hub", to: "client/socket" },
+      { from: "client/socket", to: "client/http" },
+    ],
+    architecture: { convention: "React web app and Node API, from the README", answers: allYes() },
+  };
+}
+
+const CAP_LINES = [
+  {
+    label: "a container cycle caps the letter at C",
+    model: containerCycle,
+    caps: ["  cap container-cycle C: a cycle joins containers (cycle-1)"],
+  },
+  {
+    label: "component cycles cap the letter at B",
+    model: () =>
+      layout({
+        components: 6,
+        code: 12,
+        imports: [
+          ["f3", "f1"],
+          ["f9", "f7"],
+        ],
+      }),
+    caps: ["  cap component-cycle B: a cycle joins components (cycle-1, cycle-2)"],
+  },
+  {
+    label: "one cycle that holds exactly half of the components is not tangled",
+    model: () => layout({ components: 6, code: 12, imports: [["f5", "f1"]] }),
+    caps: ["  cap component-cycle B: a cycle joins components (cycle-1)"],
+  },
+  {
+    label: "one cycle that holds one more than half of the components is tangled",
+    model: () => layout({ components: 6, code: 12, imports: [["f7", "f1"]] }),
+    caps: [
+      "  cap component-cycle B: a cycle joins components (cycle-1)",
+      "  cap tangled-components D: cycle-1 holds 4 of 6 components",
+    ],
+  },
+];
+
+for (const row of CAP_LINES)
+  test(`the build prints a cap line for each cycle cap that fires: ${row.label}`, (t) => {
+    assert.deepEqual(capLines(stdoutOf(t, row.model())), row.caps);
+  });
+
+// In each row, `better` has one criterion with more points, or one cap fewer, than `worse`.
+const MONOTONE = [
+  {
+    label: "a measured criterion rises from D to B",
+    better: {
+      criteria: [
+        { weight: 20, points: 300 },
+        { weight: 10, points: 400 },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+    worse: {
+      criteria: [
+        { weight: 20, points: 100 },
+        { weight: 10, points: 400 },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+  },
+  {
+    label: "a judged criterion rises past a letter edge",
+    better: {
+      criteria: [
+        { weight: 10, points: 400 },
+        { weight: 20, points: 300 },
+      ],
+      caps: [],
+    },
+    worse: {
+      criteria: [
+        { weight: 10, points: 266 },
+        { weight: 20, points: 300 },
+      ],
+      caps: [],
+    },
+  },
+  {
+    label: "a criterion rises beside an n/a criterion",
+    better: {
+      criteria: [
+        { weight: 20, points: 400 },
+        { weight: 5, points: null },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+    worse: {
+      criteria: [
+        { weight: 20, points: 300 },
+        { weight: 5, points: null },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+  },
+  {
+    label: "a criterion rises under a C cap",
+    better: {
+      criteria: [
+        { weight: 20, points: 400 },
+        { weight: 10, points: 400 },
+      ],
+      caps: [{ letter: "C" }],
+    },
+    worse: {
+      criteria: [
+        { weight: 20, points: 0 },
+        { weight: 10, points: 400 },
+      ],
+      caps: [{ letter: "C" }],
+    },
+  },
+  {
+    label: "a B cap is added to an A mean",
+    better: { criteria: [{ weight: 20, points: 400 }], caps: [] },
+    worse: { criteria: [{ weight: 20, points: 400 }], caps: [{ letter: "B" }] },
+  },
+  {
+    label: "a D cap is added to an F mean",
+    better: { criteria: [{ weight: 20, points: 0 }], caps: [] },
+    worse: { criteria: [{ weight: 20, points: 0 }], caps: [{ letter: "D" }] },
+  },
+  {
+    label: "a B cap is added beside a C cap",
+    better: { criteria: [{ weight: 20, points: 400 }], caps: [{ letter: "C" }] },
+    worse: { criteria: [{ weight: 20, points: 400 }], caps: [{ letter: "C" }, { letter: "B" }] },
+  },
+];
+
+for (const row of MONOTONE)
+  test(`combine never falls when one criterion's points rise and never rises when a cap is added: ${row.label}`, () => {
+    const better = combine(row.better.criteria, row.better.caps);
+    const worse = combine(row.worse.criteria, row.worse.caps);
+    assert.ok(
+      RANK[better.letter] <= RANK[worse.letter],
+      `better inputs give ${better.letter}, worse inputs give ${worse.letter}`,
+    );
+    assert.ok(
+      better.points >= worse.points,
+      `better inputs give ${better.points} points, worse inputs give ${worse.points}`,
+    );
+  });
+
+test("a back edge that closes a same-layer component cycle never raises the grade", () => {
+  const base = buildViews(domainModel()).grade;
+  const cyclic = buildViews(
+    domainModel({ imports: [["billing/service", "orders/service"]] }),
+  ).grade;
+  assert.equal(base?.letter, "A");
+  assert.ok(RANK[cyclic?.letter] >= RANK.B, `the cyclic model grades ${cyclic?.letter}`);
+});

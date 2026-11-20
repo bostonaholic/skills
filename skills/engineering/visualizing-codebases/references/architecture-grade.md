@@ -6,6 +6,7 @@ The grade is a heuristic over the structure in the model, not a measure of wheth
 ## Contents
 
 - How the letter is computed
+- Caps
 - When no letter is given
 - What the build prints
 - Measured criteria
@@ -22,6 +23,18 @@ The grade is a heuristic over the structure in the model, not a measure of wheth
 - The scale is A from 350, B from 250, C from 150, D from 50, and F below 50. stdout prints the mean as points of 4, so 317 prints as 3.17.
 - A value equal to a band's upper edge lands in that band. Band checks compare integers, so no rounding moves a value across an edge. Percentages in stdout are for display only.
 
+## Caps
+
+A cap sets the highest letter the grade can get. The final letter is the worse of the mean's letter and the letter of every cap that fired. Each cap fires on a measured cycle fact:
+
+- `container-cycle`, C: a cycle joins containers. Source: the Acyclic Dependencies Principle at container scale, and Newman on distributed monoliths.
+- `component-cycle`, B: a cycle joins components, so a model with any component cycle never gets an A. Source: Martin's Acyclic Dependencies Principle.
+- `tangled-components`, D: one component-level cycle holds more than half of the components. A cycle that holds exactly half does not fire it. Source: Foote and Yoder, "Big Ball of Mud".
+
+The cycle facts are whether a container cycle exists, the count of components in component cycles, the size of the largest component cycle, and the count of code elements in code cycles. Take two models with the same elements and equal values for every criterion that is not about cycles. When each cycle fact of the second is at least the first's, the second never grades higher.
+
+That property does not cover every change. A change can move cycle members from one level to another, split one tangled cycle in two, or add cycle edges that also change `stable-dependencies`. Any of these can raise the letter.
+
 ## When no letter is given
 
 The build checks these reasons in order and prints the first that holds:
@@ -35,7 +48,7 @@ A code element has no relationship when no entry in `relationships` names it as 
 
 ## What the build prints
 
-After the cycle lines, stdout prints the `grade:` line, then one line per criterion. With no letter, it prints `grade: none (<reason>)` and no criterion line. A criterion that does not apply prints `n/a` and the reason in place of a letter and value. The shape, with illustrative values:
+After the cycle lines, stdout prints the `grade:` line, then one line per criterion, then one `cap` line per cap that fired. With no letter, it prints `grade: none (<reason>)` and no criterion line. A criterion that does not apply prints `n/a` and the reason in place of a letter and value. The shape, with illustrative values:
 
 ```text
 grade: B (2.52 of 4)
@@ -47,6 +60,7 @@ grade: B (2.52 of 4)
   core-isolation n/a: every answer is n/a
   responsibilities C: 2 of 4 answers yes
   conventions B: 3 of 4 answers yes
+  cap component-cycle B: a cycle joins components (cycle-1)
 ```
 
 ## Measured criteria
@@ -141,14 +155,15 @@ The example shows part of a section. A real section answers every question above
 
 ## Sources
 
-- Robert C. Martin, _Clean Architecture: A Craftsman's Guide to Software Structure and Design_, Prentice Hall, 2017. The component principles, including the Acyclic Dependencies Principle, the Stable Dependencies Principle, the Common Closure Principle, and the Common Reuse Principle.
+- Robert C. Martin, _Clean Architecture: A Craftsman's Guide to Software Structure and Design_, Prentice Hall, 2017. The component principles, including the Acyclic Dependencies Principle behind the cycle criteria and the cycle caps, the Stable Dependencies Principle, the Common Closure Principle, and the Common Reuse Principle.
 - Robert C. Martin, "The Clean Architecture", 2012, on the Dependency Rule: <https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html>.
 - Alistair Cockburn, "Hexagonal architecture", 2005: <https://alistair.cockburn.us/hexagonal-architecture/>.
 - Jeffrey Palermo, "The Onion Architecture, part 1", 2008: <https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/>.
 - Sas, Avgeriou, and Uyumaz, "On the evolution and impact of architectural smells", Empirical Software Engineering 27(4), 2022: <https://arxiv.org/abs/2203.08702>.
 - David L. Parnas, "On the Criteria To Be Used in Decomposing Systems into Modules", Communications of the ACM 15(12), 1972: <https://dl.acm.org/doi/10.1145/361598.361623>.
 - Simon Brown, "The Missing Chapter" in _Clean Architecture_, and "Modular monolith": <https://simonbrown.je/modular-monolith/>.
-- Sam Newman, _Monolith to Microservices_, O'Reilly, 2019, on shared databases, as summarized by InfoQ: <https://www.infoq.com/news/2020/05/monolith-decomposition-newman/>.
+- Sam Newman, _Monolith to Microservices_, O'Reilly, 2019, on shared databases and on distributed monoliths, services that must deploy together, as summarized by InfoQ: <https://www.infoq.com/news/2020/05/monolith-decomposition-newman/>.
+- Brian Foote and Joseph Yoder, "Big Ball of Mud", PLoP, 1997: <http://www.laputan.org/mud/>.
 - Stevens, Myers, and Constantine, "Structured Design", IBM Systems Journal 13(2), 1974, on cohesion.
 - Michele Lanza and Radu Marinescu, _Object-Oriented Metrics in Practice_, Springer, 2006, on god classes: <https://beckassets.blob.core.windows.net/product/readingsample/187724/9783540244295_excerpt_001.pdf>.
 - John Ousterhout, _A Philosophy of Software Design_, 2nd ed., 2021, on shallow modules and pass-through methods: <https://yingang.github.io/aposd2e-zh/en/summary.html>.

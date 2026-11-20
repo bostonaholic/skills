@@ -176,6 +176,11 @@ const MOSTLY_UNCONNECTED =
 
 const NA = "n/a";
 
+// Letters from best to worst, so a later index is a worse letter.
+const LETTERS = "ABCDF";
+const worse = (first, second) =>
+  LETTERS.indexOf(first) >= LETTERS.indexOf(second) ? first : second;
+
 const filled = (value) => typeof value === "string" && value.trim() !== "";
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 
@@ -269,8 +274,9 @@ export function validateArchitecture(model) {
 const scaleLetter = (points) => SCALE.find((step) => points >= step.min).letter;
 const percent = (part, whole) => ((part * 100) / whole).toFixed(1);
 
-// The weighted mean of the applicable criteria's points, floored to whole points, and its letter.
-export function combine(criteria) {
+// The weighted mean of the applicable criteria's points, floored to whole points, and its letter,
+// which is never better than a fired cap's letter.
+export function combine(criteria, caps = []) {
   const applicable = criteria.filter((criterion) => criterion.points !== null);
   const weight = applicable.reduce((sum, criterion) => sum + criterion.weight, 0);
   const weighted = applicable.reduce(
@@ -278,7 +284,7 @@ export function combine(criteria) {
     0,
   );
   const points = Math.floor(weighted / weight);
-  return { letter: scaleLetter(points), points };
+  return { letter: caps.map((cap) => cap.letter).reduce(worse, scaleLetter(points)), points };
 }
 
 const coreIds = (level) => level.nodes.filter((node) => node.core).map((node) => node.id);
@@ -389,6 +395,38 @@ function judged(criterion, { answers }) {
   };
 }
 
+const cycleIds = (cycles) => cycles.map((cycle) => cycle.id).join(", ");
+
+// The caps in references/architecture-grade.md "Caps", each with the highest letter it allows.
+// Each fires on a measured cycle fact and returns its reason, or null when it does not fire.
+const CAPS = Object.freeze([
+  {
+    id: "container-cycle",
+    letter: "C",
+    fires: ({ containers }) =>
+      containers.cycles.length ? `a cycle joins containers (${cycleIds(containers.cycles)})` : null,
+  },
+  {
+    id: "component-cycle",
+    letter: "B",
+    fires: ({ components }) =>
+      components.cycles.length ? `a cycle joins components (${cycleIds(components.cycles)})` : null,
+  },
+  {
+    id: "tangled-components",
+    letter: "D",
+    fires: ({ components }) => {
+      const total = coreIds(components).length;
+      const largest = components.cycles.reduce(
+        (found, cycle) => (cycle.nodes.length > (found?.nodes.length ?? 0) ? cycle : found),
+        null,
+      );
+      if (!largest || largest.nodes.length * 2 <= total) return null;
+      return `${largest.id} holds ${largest.nodes.length} of ${total} components`;
+    },
+  },
+]);
+
 function withholdReason(model) {
   if (model.architecture === undefined) return NO_SECTION;
   if ((model.components ?? []).length < MIN_COMPONENTS) return FEW_COMPONENTS;
@@ -401,19 +439,31 @@ function withholdReason(model) {
 }
 
 // Grades a valid model. `levels` is the object buildViews builds: nodes, edges, and cycles per
-// level. A withheld grade has a reason and no letter, points, convention, or criteria.
+// level. A withheld grade has a reason and no letter, points, convention, criteria, or caps.
 export function gradeArchitecture(model, levels) {
   const reason = withholdReason(model);
-  if (reason) return { letter: null, reason, points: null, convention: null, criteria: [] };
+  if (reason)
+    return { letter: null, reason, points: null, convention: null, criteria: [], caps: [] };
   const facts = { model, levels, answers: model.architecture.answers };
   const criteria = CRITERIA.map((criterion) =>
     criterion.kind === "measured" ? measured(criterion, facts) : judged(criterion, facts),
+  );
+  const caps = CAPS.map(({ id, letter, fires }) => ({ id, letter, reason: fires(levels) })).filter(
+    (cap) => cap.reason !== null,
   );
   const { letter, points } = combine(
     criteria.map((criterion, index) => ({
       weight: CRITERIA[index].weight,
       points: criterion.points,
     })),
+    caps,
   );
-  return { letter, reason: null, points, convention: model.architecture.convention, criteria };
+  return {
+    letter,
+    reason: null,
+    points,
+    convention: model.architecture.convention,
+    criteria,
+    caps,
+  };
 }
