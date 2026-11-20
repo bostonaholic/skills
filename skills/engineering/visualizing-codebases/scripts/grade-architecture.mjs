@@ -178,7 +178,8 @@ const SCALE = Object.freeze([
 ]);
 
 // The sizes below which references/architecture-grade.md "When no letter is given" withholds the
-// grade: component metrics break down under about 4 components.
+// grade: component metrics break down under about 4 components, and under 10 code elements one
+// file moves a code-level share by more than 10%, wider than the A and B bands of acyclic-code.
 const MIN_COMPONENTS = 4;
 const MIN_CODE = 10;
 
