@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.111.1] - 2026-11-20
+
 ### Changed
 
 - `watching-authored-prs` names `gh stack push` instead of `gt submit` as its example of a repository-specific push command. [#227](https://github.com/bostonaholic/skills/pull/227)
@@ -1337,5 +1339,7 @@
 
 [0.110.0]: https://github.com/bostonaholic/skills/compare/v0.109.0...v0.110.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.111.0...HEAD
 [0.111.0]: https://github.com/bostonaholic/skills/compare/v0.110.0...v0.111.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.111.1...HEAD
+[0.111.1]: https://github.com/bostonaholic/skills/compare/v0.111.0...v0.111.1
