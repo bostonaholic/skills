@@ -964,6 +964,8 @@ const UNCOVERED = Object.freeze({
     "a helper module the skill's CLI scripts import; it has no command line of its own",
   "skills/engineering/merging-dependabot-prs/scripts/lib.mjs":
     "a helper module the skill's CLI scripts import; it has no command line of its own",
+  "skills/engineering/visualizing-codebases/scripts/grade-architecture.mjs":
+    "a helper module the skill's CLI scripts import; it has no command line of its own",
 });
 
 test("every tracked skill script has a ROWS entry or an UNCOVERED reason", () => {

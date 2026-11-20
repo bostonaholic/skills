@@ -29,16 +29,26 @@ levels.
    build script rolls every relationship up to each coarser level, so never
    add the rolled-up copies yourself.
 6. Write `visualized/c4-model.json` as the
-   [C4 model schema](references/c4-model-schema.md) describes.
+   [C4 model schema](references/c4-model-schema.md) describes. Add the
+   `architecture` section that
+   [the architecture grade](references/architecture-grade.md) describes,
+   unless the user declines the grade.
 
 ## Build
 
 Run `node <skill-dir>/scripts/build-c4-site.mjs visualized/c4-model.json visualized`.
 stdout names `index.html`, then lists each cycle at the container, component,
-and code levels as a path of element ids.
+and code levels as a path of element ids. Then it prints the grade lines in
+the shapes that the architecture grade reference gives.
 
 ## Report
 
 - Counts per level: people, external systems, containers, components, code
   elements, and relationships.
 - The cycles stdout listed, per level, as paths of element names.
+- The grade lines stdout printed, copied as printed, or the reason it gave
+  no letter.
+- Each question answered no, with its evidence.
+- A note that the grade is a heuristic.
+- When the user declined the grade, write "The architecture grade was skipped
+  because you asked for no grade." in place of the grade lines.

@@ -4,9 +4,11 @@
 // Usage: build-c4-site.mjs <c4-model.json> <out>
 //   exit 0  wrote index.html, context.html, containers.html, components.html, code.html,
 //           styles.css, app.js, and data.js into <out>; printed the index.html path, then per
-//           level the cycle count and one line per cycle: its id, size, and one closed path of ids
+//           level the cycle count and one line per cycle: its id, size, and one closed path of ids;
+//           then `grade: <letter> (<points> of 4)` and one `  <criterion> <letter or n/a>: <value>`
+//           line per criterion, or `grade: none (<reason>)` when no letter is given
 //   exit 1  wrote nothing; stderr names an unreadable or non-JSON model, every validation
-//           error, or an <out> that is not a directory
+//           error (including the architecture section's), or an <out> that is not a directory
 //   exit 2  not exactly two arguments; stderr prints the usage line
 // Other files in <out> are left alone, so the model can live beside the site it builds.
 import {
@@ -19,6 +21,8 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { gradeArchitecture, validateArchitecture } from "./grade-architecture.mjs";
 
 // The skill file that explains each exit code.
 const DOC_PATH = fileURLToPath(new URL("../SKILL.md", import.meta.url));
@@ -138,6 +142,7 @@ export function validateModel(model) {
       for (const field of ["label", "technology"])
         if (!optionalString(relationship[field])) errors.push(`${where}.${field}: not a string`);
     });
+  errors.push(...validateArchitecture(model));
   return errors;
 }
 
@@ -373,7 +378,20 @@ export function buildViews(model) {
     },
     elements: index,
     levels,
+    grade: gradeArchitecture(model, levels),
   };
+}
+
+// Points are integer hundredths, so the whole part and the remainder print without float rounding.
+const fourPointScale = (points) =>
+  `${Math.floor(points / 100)}.${String(points % 100).padStart(2, "0")}`;
+
+function gradeLines(grade) {
+  if (grade.letter === null) return [`grade: none (${grade.reason})`];
+  return [
+    `grade: ${grade.letter} (${fourPointScale(grade.points)} of 4)`,
+    ...grade.criteria.map(({ id, letter, value }) => `  ${id} ${letter ?? "n/a"}: ${value}`),
+  ];
 }
 
 function fail(lines) {
@@ -451,6 +469,7 @@ function main(argv) {
     for (const cycle of cycles)
       console.log(`  ${cycle.id} (${cycle.nodes.length} elements): ${cycle.path.join(" -> ")}`);
   }
+  for (const line of gradeLines(views.grade)) console.log(line);
 }
 
 // Node realpaths import.meta.url but not argv[1], so a symlinked path needs realpathSync.

@@ -22,7 +22,8 @@ and reports every error by its JSON path, such as `code[12].component`.
     { "id": "", "name": "", "container": "", "technology": "", "description": "", "path": "" }
   ],
   "code": [{ "id": "", "name": "", "component": "", "kind": "", "path": "" }],
-  "relationships": [{ "from": "", "to": "", "label": "", "technology": "" }]
+  "relationships": [{ "from": "", "to": "", "label": "", "technology": "" }],
+  "architecture": { "convention": "", "answers": { "<question id>": { "answer": "yes", "evidence": [""] } } }
 }
 ```
 
@@ -42,6 +43,8 @@ and reports every error by its JSON path, such as `code[12].component`.
   such as "Reads orders from"; leave it out for a plain import. `technology`
   names the protocol, such as `HTTPS` or `SQL`.
 - Every collection except `system` may be empty or left out.
+- `architecture`: optional. It holds `convention` and `answers`, as
+  [the architecture grade](references/architecture-grade.md) describes.
 
 ## How relationships roll up
 
