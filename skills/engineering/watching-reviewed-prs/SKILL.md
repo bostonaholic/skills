@@ -9,7 +9,8 @@ argument-hint: "[<pr-number-or-url>] [and approve]"
 
 - A **PR-level** item is a review summary or conversation comment, with no
   resolved bit.
-- Read [arm](references/arm.md) to arm, [re-review](references/re-review.md) to
+- Read [arm](references/arm.md) before cycle 0, even when saved output is
+  given, and print its arm report. Read [re-review](references/re-review.md) to
   judge each settlement and check each result, and
   [approve](references/approve.md) when the approval condition holds.
 - The [watch loop](shared/watch-loop.md) owns pacing, the 3-cycle soft cap, and

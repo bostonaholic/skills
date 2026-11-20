@@ -15,8 +15,8 @@ The user's other words set the [mode](#mode).
   with no local checkout has no repository: ask for the URL.
 - **Exit 1:** the read failed; report stderr. **Exit 127:** `gh` is missing.
 
-Print `Armed at head <pr.head>, auto-merge <on|off>, mode <mode>` in the arm
-report.
+The arm report opens with the line `Armed at head <pr.head>, auto-merge
+<on|off>, mode <mode>`. Print it before any poll cycle's output.
 
 ## Mode
 

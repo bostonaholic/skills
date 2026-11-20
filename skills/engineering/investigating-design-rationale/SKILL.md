@@ -61,7 +61,8 @@ question or narrate the search.
 - **Competing Hypotheses**: `[Speculative]` stories with evidence for and
   against; never force a winner. Omit when one answer is clear.
 - **What We Don't Know**: unanswered questions and empty searches.
-- **Sources Consulted**: one line per category, every category included, as
+- **Sources Consulted**: one line per category, every category included and
+  none sharing a line, even when several were skipped for the same reason, as
   `- <Category> (<tool>): <what was searched>. <found / no relevant results / skipped: reason>.`
 
 When the question precedes a code change, close with a **Preserve / Change /

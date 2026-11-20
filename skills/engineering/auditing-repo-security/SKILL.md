@@ -85,4 +85,7 @@ finding citing every location.
   `safeToRun` into the report.
 - Exit 1 names each malformed finding: fix the list and rerun. Exit 2 is a
   usage error.
-- Write the report with the report format's template.
+- Reply with the report itself, never a summary of it, written with the
+  [report template](references/report-format.md#report-template): every
+  section in order, the `**Grade:**` and `**Safe to run?**` line included,
+  even when there are no findings.

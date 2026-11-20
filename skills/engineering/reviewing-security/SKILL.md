@@ -57,4 +57,5 @@ Then:
 - When the second report also fails, print it, name the failure, and stop. Never repair a verdict yourself.
 - Print the report verbatim.
 - When the read-only restriction rested on the reviewer's prompt rather than its tool grants, say so in one line after the report.
+- Add nothing else after the report: no notes or advice of your own, and never raise a class the brief excludes.
 - Never post, approve, merge, or fix, and write no file.

@@ -41,7 +41,7 @@ Split a large change into an ordered stack of small PRs and run GitHub's `gh sta
 
 ## Build a new stack
 
-A change that already exists, or new work that overlaps the same author's open PR, follows [existing work](references/existing-work.md) instead.
+A change that already exists, committed or uncommitted in the working tree, or new work that overlaps the same author's open PR, follows [existing work](references/existing-work.md) instead.
 
 1. `<trunk>` is the base the request or the repository's instructions name, else, when splitting a branch with an open PR, that PR's `baseRefName` from Decide's list, else `DEFAULT`. It matches `^[A-Za-z0-9._/-]+$` and starts with no `-`.
 2. `git branch --no-track <layer-1> <remote>/<trunk>`, then `gh stack init --base <trunk> <layer-1>`.
@@ -99,6 +99,6 @@ Give the trunk, then each layer bottom to top with its branch, its PR or "not pu
 
 - Run `repo` before any `gh` call but the prerequisite tests, `check` before the first publish, `check --restructure` before `unstack`, `compare` right before each push, `after-sync` after each `sync`, and `after-submit` after each `submit`.
 - Read [commands](references/commands.md) before the first rewrite or push of a stack with remote layers, before a command this file does not show, or when one misbehaves.
-- Read [existing work](references/existing-work.md) when the change already exists or new work overlaps the same author's open PR.
+- Read [existing work](references/existing-work.md) when the change already exists, uncommitted work included, or new work overlaps the same author's open PR.
 - Read [recovery](references/recovery.md) on any non-zero exit from `gh stack` or the script, on `Sync aborted`, or to restructure a stack.
 - Read [external data](shared/external-data.md) before a PR title, a commit message, or a `gh pr list` branch name enters a command.
