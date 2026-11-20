@@ -251,6 +251,50 @@ function domainModel({ imports = [], answers = allYes() } = {}) {
   });
 }
 
+// `count` code ids under one component, zero-padded so their code-unit order is their number.
+const files = (component, count) =>
+  Array.from({ length: count }, (_, index) => `${component}/${String(index + 1).padStart(2, "0")}`);
+// The first code id of a component imports every other one.
+const star = (ids) => ids.slice(1).map((id) => [ids[0], id]);
+
+// 50 code elements in 6 components, where every measured criterion is graded. The web component
+// holds 15 and the rest 7 each. Layers: web; orders and billing (domain); store, db, and audit
+// (data). It holds one code cycle (web/01, web/02), one component cycle (orders, billing), one
+// outward edge (audit to orders), and one edge to a less stable component (orders to billing).
+function everyMeasure() {
+  const code = {
+    web: files("web", 15),
+    orders: files("orders", 7),
+    billing: files("billing", 7),
+    store: files("store", 7),
+    db: files("db", 7),
+    audit: files("audit", 7),
+  };
+  return layered({
+    layers: ["web", "domain", "data"],
+    components: {
+      web: { layer: "web", code: code.web },
+      orders: { layer: "domain", code: code.orders },
+      billing: { layer: "domain", code: code.billing },
+      store: { layer: "data", code: code.store },
+      db: { layer: "data", code: code.db },
+      audit: { layer: "data", code: code.audit },
+    },
+    imports: [
+      ...Object.values(code).flatMap(star),
+      ["web/02", "web/01"],
+      ["web/01", "orders/01"],
+      ["web/01", "billing/01"],
+      ["orders/02", "billing/02"],
+      ["billing/03", "orders/03"],
+      ["orders/01", "store/01"],
+      ["billing/01", "store/01"],
+      ["store/01", "db/01"],
+      ["audit/01", "orders/01"],
+    ],
+  });
+}
+
 // Writes the model, builds it, and returns stdout. A graded or withheld build both exit 0.
 function stdoutOf(t, model) {
   const dir = scratch(t);
@@ -259,6 +303,18 @@ function stdoutOf(t, model) {
   const result = run(modelPath, join(dir, "site"));
   assert.equal(result.status, 0, result.stderr);
   return result.stdout;
+}
+
+// Writes the model, builds it, and returns the views that data.js carries.
+function builtData(t, model) {
+  const dir = scratch(t);
+  const modelPath = join(dir, "c4-model.json");
+  writeFileSync(modelPath, JSON.stringify(model));
+  const out = join(dir, "site");
+  const result = run(modelPath, out);
+  assert.equal(result.status, 0, result.stderr);
+  const data = readFileSync(join(out, "data.js"), "utf8");
+  return JSON.parse(data.replace(/^window\.C4 = /, "").replace(/;\n$/, ""));
 }
 
 function assertHasLine(stdout, line) {
@@ -1311,4 +1367,216 @@ test("the CLI prints the full grade block for a graded model", (t) => {
       "",
     ].join("\n"),
   );
+});
+
+// The grade in data.js, which the overview page reads.
+
+// Every value below is worked out by hand from everyMeasure().
+const CRITERION_DATA = [
+  {
+    id: "acyclic-components",
+    name: "Acyclic components",
+    cited: ["A"],
+    evidence: ["billing (cycle-1)", "orders (cycle-1)"],
+  },
+  {
+    id: "acyclic-code",
+    name: "Acyclic code",
+    cited: [],
+    evidence: ["web/01 (cycle-1)", "web/02 (cycle-1)"],
+  },
+  {
+    id: "dependency-direction",
+    name: "Dependency direction",
+    cited: ["A"],
+    evidence: ["audit (data) -> orders (domain): 1"],
+  },
+  {
+    id: "stable-dependencies",
+    name: "Stable dependencies",
+    cited: [],
+    evidence: ["orders -> billing: instability 0.40 to 0.50"],
+  },
+  {
+    id: "propagation-cost",
+    name: "Propagation cost",
+    cited: [],
+    evidence: [
+      "225 of 2500 ordered pairs of code elements are reachable, each element counted as reaching itself",
+    ],
+  },
+  {
+    id: "component-balance",
+    name: "Component balance",
+    cited: [],
+    evidence: ["web: 15 of 50 code elements"],
+  },
+  { id: "boundaries", name: "Boundaries", cited: [], evidence: [] },
+  { id: "core-isolation", name: "Core isolation", cited: [], evidence: [] },
+  { id: "responsibilities", name: "Responsibilities", cited: [], evidence: [] },
+  { id: "conventions", name: "Conventions", cited: [], evidence: [] },
+];
+
+for (const row of CRITERION_DATA)
+  test(`data.js carries each criterion's name, cited band edges, and evidence: ${row.id}`, (t) => {
+    const views = builtData(t, everyMeasure());
+    const criterion = views.grade?.criteria.find((entry) => entry.id === row.id);
+    assert.ok(criterion, `data.js has no grade criterion ${row.id}`);
+    const bands = criterion.bands ?? [];
+    assert.deepEqual(
+      {
+        name: criterion.name,
+        cited: bands.filter((band) => band.citation !== null).map((band) => band.letter),
+        citationsAreNamesOrNull: bands.every(
+          (band) =>
+            band.citation === null || (typeof band.citation === "string" && band.citation !== ""),
+        ),
+        evidence: criterion.evidence,
+      },
+      { name: row.name, cited: row.cited, citationsAreNamesOrNull: true, evidence: row.evidence },
+    );
+  });
+
+// 25 evidence items in reverse order. Code-unit order puts the capitalized names first, and
+// locale order would put them last.
+const UNSORTED_EVIDENCE = Object.freeze([
+  "f23",
+  "f22",
+  "f21",
+  "f20",
+  "f19",
+  "f18",
+  "f17",
+  "f16",
+  "f15",
+  "f14",
+  "f13",
+  "f12",
+  "f11",
+  "f10",
+  "f09",
+  "f08",
+  "f07",
+  "f06",
+  "f05",
+  "f04",
+  "f03",
+  "f02",
+  "f01",
+  "README.md",
+  "Gemfile",
+]);
+
+test("an evidence list over 20 items keeps the first 20 in code-unit order and counts the rest: an answer with 25 evidence items", (t) => {
+  const views = builtData(
+    t,
+    gradedModel({
+      ...allYes(),
+      "rules-checked": { answer: "yes", evidence: [...UNSORTED_EVIDENCE] },
+    }),
+  );
+  const answer = views.grade?.criteria
+    .find((entry) => entry.id === "conventions")
+    ?.answers.find((entry) => entry.id === "rules-checked");
+  assert.deepEqual(
+    { evidence: answer?.evidence, more: answer?.more },
+    {
+      evidence: [
+        "Gemfile",
+        "README.md",
+        "f01",
+        "f02",
+        "f03",
+        "f04",
+        "f05",
+        "f06",
+        "f07",
+        "f08",
+        "f09",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14",
+        "f15",
+        "f16",
+        "f17",
+        "f18",
+      ],
+      more: 5,
+    },
+  );
+});
+
+test("an evidence list over 20 items keeps the first 20 in code-unit order and counts the rest: a measured criterion with 25 items", (t) => {
+  // f1 through f25 form one code-level cycle; f26 through f30 sit outside it.
+  const views = builtData(t, layout({ components: 4, code: 30, imports: [["f25", "f1"]] }));
+  const criterion = views.grade?.criteria.find((entry) => entry.id === "acyclic-code");
+  assert.deepEqual(
+    { evidence: criterion?.evidence, more: criterion?.more },
+    {
+      evidence: [
+        "f1 (cycle-1)",
+        "f10 (cycle-1)",
+        "f11 (cycle-1)",
+        "f12 (cycle-1)",
+        "f13 (cycle-1)",
+        "f14 (cycle-1)",
+        "f15 (cycle-1)",
+        "f16 (cycle-1)",
+        "f17 (cycle-1)",
+        "f18 (cycle-1)",
+        "f19 (cycle-1)",
+        "f2 (cycle-1)",
+        "f20 (cycle-1)",
+        "f21 (cycle-1)",
+        "f22 (cycle-1)",
+        "f23 (cycle-1)",
+        "f24 (cycle-1)",
+        "f25 (cycle-1)",
+        "f3 (cycle-1)",
+        "f4 (cycle-1)",
+      ],
+      more: 5,
+    },
+  );
+});
+
+// The same answers with the keys and every evidence list in reverse order.
+function reordered(answers) {
+  return Object.fromEntries(
+    Object.entries(answers)
+      .reverse()
+      .map(([id, { answer, evidence }]) => [id, { answer, evidence: [...evidence].reverse() }]),
+  );
+}
+
+test("two builds of one model write byte-identical stdout and data.js whatever the order of answers and evidence", (t) => {
+  const answers = {
+    ...allYes(),
+    "public-entry": {
+      answer: "yes",
+      evidence: ["src/orders/index.js", "README.md", "src/billing/index.js"],
+    },
+    "single-purpose": {
+      answer: "no",
+      evidence: ["src/store/repo.js runs SQL and renders HTML", "src/billing/tax.js"],
+    },
+    "docs-match": { answer: "n/a", evidence: ["no docs/ directory", "README.md names no parts"] },
+  };
+  const dir = scratch(t);
+  const out = join(dir, "site");
+  const firstPath = join(dir, "first.json");
+  const secondPath = join(dir, "second.json");
+  writeFileSync(firstPath, JSON.stringify(gradedModel(answers)));
+  writeFileSync(secondPath, JSON.stringify(gradedModel(reordered(answers))));
+  const first = run(firstPath, out);
+  const firstData = readFileSync(join(out, "data.js"), "utf8");
+  const second = run(secondPath, out);
+  const secondData = readFileSync(join(out, "data.js"), "utf8");
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(second.status, 0, second.stderr);
+  assert.match(first.stdout, /\ngrade: [A-F] \(/, "the fixture must be graded");
+  assert.equal(second.stdout, first.stdout);
+  assert.equal(secondData, firstData);
 });

@@ -48,7 +48,7 @@ A code element has no relationship when no entry in `relationships` names it as 
 
 ## What the build prints
 
-After the cycle lines, stdout prints the `grade:` line, then one line per criterion, then one `cap` line per cap that fired. With no letter, it prints `grade: none (<reason>)` and no criterion line. A criterion that does not apply prints `n/a` and the reason in place of a letter and value. The shape, with illustrative values:
+After the cycle lines, stdout prints the `grade:` line, then one line per criterion, then one `cap` line per cap that fired. With no letter, it prints `grade: none (<reason>)` and no criterion line. A criterion that does not apply prints `n/a` and the reason in place of a letter and value. The overview page shows the same grade with the scale, each criterion's bands, and its evidence, each list cut to its first 20 items. The shape of stdout, with illustrative values:
 
 ```text
 grade: B (2.59 of 4)

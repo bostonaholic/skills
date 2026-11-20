@@ -487,6 +487,90 @@ kbd {
   color: var(--faint);
 }
 
+.grade-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.grade-letter {
+  min-width: 72px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 44px;
+  font-weight: 750;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.grade-letter.none {
+  color: var(--faint);
+  font-size: 22px;
+}
+
+.grade-facts p,
+.grade-summary > p {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+
+.grade-caps {
+  margin: 0 0 6px;
+  padding-left: 18px;
+  color: var(--cycle);
+}
+
+.grade-table td {
+  vertical-align: top;
+  white-space: normal;
+}
+
+.grade-table .grade-cell {
+  font-weight: 700;
+}
+
+.grade-value {
+  margin: 0;
+}
+
+.grade-evidence,
+.grade-answers,
+.grade-bands {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.grade-evidence {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.grade-evidence .more {
+  font-family: var(--font);
+  list-style: none;
+}
+
+.answer {
+  display: inline-block;
+  min-width: 2.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 650;
+  text-align: center;
+}
+
+.answer-no {
+  background: var(--cycle-soft);
+  color: var(--cycle);
+}
+
 .footer {
   padding: 28px 24px 40px;
   color: var(--faint);

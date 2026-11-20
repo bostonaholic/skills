@@ -191,6 +191,10 @@ const PROPAGATION_MIN_CODE = 50;
 const PROPAGATION_MAX_CODE = 5000;
 const BALANCE_MIN_COMPONENTS = 5;
 
+// Each evidence list in the grade keeps this many items, so data.js stays bounded however large the
+// model is; `more` counts the rest, and the model keeps every item.
+const MAX_EVIDENCE = 20;
+
 const NO_SECTION = "the model has no architecture section";
 const FEW_COMPONENTS = `fewer than ${MIN_COMPONENTS} components`;
 const FEW_CODE = `fewer than ${MIN_CODE} code elements`;
@@ -312,6 +316,17 @@ export function combine(criteria, caps = []) {
 
 const coreIds = (level) => level.nodes.filter((node) => node.core).map((node) => node.id);
 const cycleMembers = (level) => level.cycles.reduce((sum, cycle) => sum + cycle.nodes.length, 0);
+const cycleEvidence = (level) =>
+  level.cycles.flatMap((cycle) => cycle.nodes.map((id) => `${id} (${cycle.id})`));
+
+// The first MAX_EVIDENCE items in code-unit order, so the list never depends on the model's order
+// or on the machine's locale, and the count left out.
+function capped(items) {
+  return {
+    evidence: [...items].sort().slice(0, MAX_EVIDENCE),
+    more: Math.max(0, items.length - MAX_EVIDENCE),
+  };
+}
 
 // Rolled-up component edges whose two ends are components, one per ordered pair.
 function componentEdges(levels) {
@@ -321,7 +336,7 @@ function componentEdges(levels) {
   );
 }
 
-const notApplicable = (value) => ({ part: null, whole: null, value });
+const notApplicable = (value) => ({ part: null, whole: null, value, evidence: [] });
 
 // The count of ordered pairs (a, b) of code elements where b is reachable from a, each element
 // reaching itself. Integer indexes, one reused visited-stamp array, and one reused queue keep the
@@ -352,8 +367,9 @@ function reachablePairs(level) {
   return pairs;
 }
 
-// Each measure returns the share it bands, as `part` of `whole`, and the text stdout prints. A
-// measure that does not apply returns null shares and the reason as its text.
+// Each measure returns the share it bands, as `part` of `whole`, the text stdout prints, and the
+// evidence the site lists. A measure that does not apply returns null shares, the reason as its
+// text, and no evidence.
 const MEASURES = Object.freeze({
   "acyclic-components": ({ levels }) => {
     const part = cycleMembers(levels.components);
@@ -362,6 +378,7 @@ const MEASURES = Object.freeze({
       part,
       whole,
       value: `${part} of ${whole} components in a cycle (${percent(part, whole)}%)`,
+      evidence: cycleEvidence(levels.components),
     };
   },
   "acyclic-code": ({ levels }) => {
@@ -371,6 +388,7 @@ const MEASURES = Object.freeze({
       part,
       whole,
       value: `${part} of ${whole} code elements in a cycle (${percent(part, whole)}%)`,
+      evidence: cycleEvidence(levels.code),
     };
   },
   // Merged counts, because this measures how many imports break the layer order.
@@ -378,21 +396,25 @@ const MEASURES = Object.freeze({
     const { layers } = model.architecture;
     if (layers === undefined) return notApplicable("the model sets no layers");
     const depth = new Map(layers.map((name, index) => [name, index]));
-    const layerDepth = new Map(model.components.map((c) => [c.id, depth.get(c.layer)]));
+    const layerOf = new Map(model.components.map((component) => [component.id, component.layer]));
     let part = 0;
     let whole = 0;
+    const evidence = [];
     for (const edge of componentEdges(levels)) {
-      const from = layerDepth.get(edge.source);
-      const to = layerDepth.get(edge.target);
+      const from = layerOf.get(edge.source);
+      const to = layerOf.get(edge.target);
       if (from === to) continue;
       whole += edge.count;
-      if (to < from) part += edge.count;
+      if (depth.get(to) >= depth.get(from)) continue;
+      part += edge.count;
+      evidence.push(`${edge.source} (${from}) -> ${edge.target} (${to}): ${edge.count}`);
     }
     if (whole === 0) return notApplicable("no relationship crosses layers");
     return {
       part,
       whole,
       value: `${part} of ${whole} cross-layer relationships point outward (${percent(part, whole)}%)`,
+      evidence,
     };
   },
   // Ca and Ce count distinct neighbor components, one per rolled-up edge whatever its merged
@@ -408,15 +430,21 @@ const MEASURES = Object.freeze({
     }
     const ce = (id) => efferent.get(id) ?? 0;
     const coupling = (id) => (afferent.get(id) ?? 0) + ce(id);
+    const instability = (id) => (ce(id) / coupling(id)).toFixed(2);
     // I = Ce / (Ca + Ce); I(target) > I(source), cross-multiplied so integers decide a tie.
-    const part = edges.filter(
+    const violations = edges.filter(
       ({ source, target }) => ce(target) * coupling(source) > ce(source) * coupling(target),
-    ).length;
+    );
+    const part = violations.length;
     const whole = edges.length;
     return {
       part,
       whole,
       value: `${part} of ${whole} component dependencies point to a less stable component (${percent(part, whole)}%)`,
+      evidence: violations.map(
+        ({ source, target }) =>
+          `${source} -> ${target}: instability ${instability(source)} to ${instability(target)}`,
+      ),
     };
   },
   "propagation-cost": ({ levels }) => {
@@ -431,6 +459,9 @@ const MEASURES = Object.freeze({
       part,
       whole,
       value: `a code element reaches ${percent(part, whole)}% of the code elements on average`,
+      evidence: [
+        `${part} of ${whole} ordered pairs of code elements are reachable, each element counted as reaching itself`,
+      ],
     };
   },
   "component-balance": ({ model }) => {
@@ -448,33 +479,51 @@ const MEASURES = Object.freeze({
       part,
       whole,
       value: `the largest component holds ${part} of ${whole} code elements (${percent(part, whole)}%)`,
+      evidence: [...sizes]
+        .filter(([, size]) => size === part)
+        .map(([component]) => `${component}: ${part} of ${whole} code elements`),
     };
   },
 });
 
+const describe = ({ id, name, kind, weight }) => ({ id, name, kind, weight });
+
 function measured(criterion, facts) {
-  const { part, whole, value } = MEASURES[criterion.id](facts);
-  if (part === null) return { id: criterion.id, letter: null, points: null, value };
-  const { letter } = criterion.bands.find(
-    (band) => band.max === null || part * 100 <= band.max * whole,
-  );
-  return { id: criterion.id, letter, points: LETTER_POINTS[letter], value };
+  const { part, whole, value, evidence } = MEASURES[criterion.id](facts);
+  const letter =
+    part === null
+      ? null
+      : criterion.bands.find((band) => band.max === null || part * 100 <= band.max * whole).letter;
+  return {
+    ...describe(criterion),
+    letter,
+    points: letter === null ? null : LETTER_POINTS[letter],
+    value,
+    bands: criterion.bands,
+    ...capped(evidence),
+  };
 }
 
 function judged(criterion, { answers }) {
-  const given = QUESTIONS.filter((question) => question.criterion === criterion.id).map(
-    (question) => answers[question.id].answer,
+  const asked = QUESTIONS.filter((question) => question.criterion === criterion.id).map(
+    ({ id, question }) => ({
+      id,
+      question,
+      answer: answers[id].answer,
+      ...capped(answers[id].evidence),
+    }),
   );
-  const yes = given.filter((answer) => answer === "yes").length;
-  const decided = given.filter((answer) => answer !== NA).length;
-  if (decided === 0)
-    return { id: criterion.id, letter: null, points: null, value: "every answer is n/a" };
-  const points = Math.floor((FULL_POINTS * yes) / decided);
+  const yes = asked.filter(({ answer }) => answer === "yes").length;
+  const decided = asked.filter(({ answer }) => answer !== NA).length;
+  const points = decided === 0 ? null : Math.floor((FULL_POINTS * yes) / decided);
   return {
-    id: criterion.id,
-    letter: scaleLetter(points),
+    ...describe(criterion),
+    letter: points === null ? null : scaleLetter(points),
     points,
-    value: `${yes} of ${decided} answers yes`,
+    value: decided === 0 ? "every answer is n/a" : `${yes} of ${decided} answers yes`,
+    evidence: [],
+    more: 0,
+    answers: asked,
   };
 }
 
@@ -522,11 +571,20 @@ function withholdReason(model) {
 }
 
 // Grades a valid model. `levels` is the object buildViews builds: nodes, edges, and cycles per
-// level. A withheld grade has a reason and no letter, points, convention, criteria, or caps.
+// level. A withheld grade has a reason, the scale, and no letter, points, convention, criteria, or
+// caps, so the site reads one shape in both states.
 export function gradeArchitecture(model, levels) {
   const reason = withholdReason(model);
   if (reason)
-    return { letter: null, reason, points: null, convention: null, criteria: [], caps: [] };
+    return {
+      letter: null,
+      reason,
+      points: null,
+      convention: null,
+      scale: SCALE,
+      criteria: [],
+      caps: [],
+    };
   const facts = { model, levels, answers: model.architecture.answers };
   const criteria = CRITERIA.map((criterion) =>
     criterion.kind === "measured" ? measured(criterion, facts) : judged(criterion, facts),
@@ -534,18 +592,13 @@ export function gradeArchitecture(model, levels) {
   const caps = CAPS.map(({ id, letter, fires }) => ({ id, letter, reason: fires(levels) })).filter(
     (cap) => cap.reason !== null,
   );
-  const { letter, points } = combine(
-    criteria.map((criterion, index) => ({
-      weight: CRITERIA[index].weight,
-      points: criterion.points,
-    })),
-    caps,
-  );
+  const { letter, points } = combine(criteria, caps);
   return {
     letter,
     reason: null,
     points,
     convention: model.architecture.convention,
+    scale: SCALE,
     criteria,
     caps,
   };

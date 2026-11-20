@@ -37,6 +37,8 @@
   const color = (type) => `var(--${type})`;
   const plural = (n, one, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
   const truncate = (text, max) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+  // Grade points are integer hundredths of 4.
+  const ofFour = (points) => (points / 100).toFixed(2);
 
   initTheme();
   markNav();
@@ -108,6 +110,7 @@
   // ---------------------------------------------------------------- overview
 
   function renderOverview() {
+    renderGrade(DATA.grade);
     const counts = {};
     for (const e of Object.values(DATA.elements)) counts[e.type] = (counts[e.type] ?? 0) + 1;
     const stats = $("#hero-stats");
@@ -190,6 +193,137 @@
         ),
       );
     }
+  }
+
+  function renderGrade(grade) {
+    const root = $("#grade");
+    if (grade.letter === null) {
+      root.append(
+        h(
+          "div",
+          { class: "grade-summary" },
+          h("span", { class: "grade-letter none" }, "Not graded"),
+          h("p", {}, grade.reason),
+        ),
+      );
+      return;
+    }
+    root.append(
+      h(
+        "div",
+        { class: "grade-summary" },
+        h("span", { class: "grade-letter" }, grade.letter),
+        h(
+          "div",
+          { class: "grade-facts" },
+          h("p", {}, h("strong", {}, `${ofFour(grade.points)} of 4`), ", the weighted mean"),
+          h("p", {}, "Convention: ", grade.convention),
+          grade.caps.length
+            ? h(
+                "ul",
+                { class: "grade-caps" },
+                grade.caps.map((cap) => h("li", {}, `Capped at ${cap.letter}: ${cap.reason}`)),
+              )
+            : null,
+          h(
+            "p",
+            { class: "grade-scale" },
+            "Scale: ",
+            grade.scale
+              .map((step, index) =>
+                step.min
+                  ? `${step.letter} from ${ofFour(step.min)}`
+                  : `${step.letter} below ${ofFour(grade.scale[index - 1].min)}`,
+              )
+              .join(", "),
+          ),
+        ),
+      ),
+      h(
+        "div",
+        { class: "table-wrap" },
+        h(
+          "table",
+          { class: "cycle-table grade-table" },
+          h(
+            "thead",
+            {},
+            h(
+              "tr",
+              {},
+              ["Criterion", "Kind", "Weight", "Value and evidence", "Letter", "Bands"].map(
+                (label) => h("th", { scope: "col" }, label),
+              ),
+            ),
+          ),
+          h("tbody", {}, grade.criteria.map(criterionRow)),
+        ),
+      ),
+    );
+  }
+
+  function criterionRow(criterion) {
+    return h(
+      "tr",
+      {},
+      h("td", {}, h("strong", {}, criterion.name)),
+      h("td", {}, criterion.kind),
+      h("td", {}, criterion.weight),
+      h(
+        "td",
+        {},
+        h("p", { class: "grade-value" }, criterion.value),
+        evidenceList(criterion.evidence, criterion.more),
+        criterion.answers
+          ? h(
+              "ul",
+              { class: "grade-answers" },
+              criterion.answers.map((entry) =>
+                h(
+                  "li",
+                  {},
+                  h(
+                    "span",
+                    { class: `answer answer-${entry.answer.replace("/", "")}` },
+                    entry.answer,
+                  ),
+                  " ",
+                  entry.question,
+                  evidenceList(entry.evidence, entry.more),
+                ),
+              ),
+            )
+          : null,
+      ),
+      h("td", { class: criterion.letter ? "grade-cell" : "none" }, criterion.letter ?? "n/a"),
+      h("td", {}, criterion.bands ? bandList(criterion.bands) : "the letter scale"),
+    );
+  }
+
+  function evidenceList(items, more) {
+    if (!items.length) return null;
+    return h(
+      "ul",
+      { class: "grade-evidence" },
+      items.map((item) => h("li", {}, item)),
+      more > 0 ? h("li", { class: "more" }, `and ${more} more`) : null,
+    );
+  }
+
+  function bandList(bands) {
+    return h(
+      "ul",
+      { class: "grade-bands" },
+      bands.map((band, index) =>
+        h(
+          "li",
+          {},
+          band.max === null
+            ? `${band.letter} above ${bands[index - 1].max}%`
+            : `${band.letter} up to ${band.max}%, ${band.citation ? `cited: ${band.citation}` : "proposal"}`,
+        ),
+      ),
+    );
   }
 
   function drawPreview(svg, view) {
