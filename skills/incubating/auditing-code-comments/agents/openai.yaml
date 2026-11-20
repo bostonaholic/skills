@@ -1,0 +1,6 @@
+interface:
+  display_name: "Auditing Code Comments"
+  short_description: "Categorise and purge code comments, then ratchet a ban"
+  default_prompt: "Use $auditing-code-comments to audit the comments in this codebase."
+policy:
+  allow_implicit_invocation: false
