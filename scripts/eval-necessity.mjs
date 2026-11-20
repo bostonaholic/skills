@@ -4,7 +4,8 @@
 //   node scripts/eval-necessity.mjs <aggregate-result.json>...
 // Each file's model is its suite.modelOverride. Files of one model pool their runs per case and
 // arm, so a rerun adds observations. A case's skill is the <skill> segment of its dir,
-// evals/<category>/<skill>/<case>. Runs count as in scripts/eval-verdict.mjs: a run with
+// evals/<category>/<skill>/<case>. Calibration cases (*-calibrate-good, *-calibrate-bad) check a
+// rubric, not the skill, and are skipped. Runs count as in scripts/eval-verdict.mjs: a run with
 // skippedPaidGraders true or an error or grader explanation naming a limit is excluded, and a counted
 // run passes when it ended without an error and every grader passed or was unscored.
 // Case rule, with w/n with-arm and o/m without-arm passing runs:
@@ -48,6 +49,8 @@ const PARITY_MIN_RUNS = 9;
 const PARITY_MARGIN = 0.15;
 const BROKEN_BELOW = 2 / 3;
 const CASE_DIR = /^evals\/[^/]+\/([^/]+)\/[^/]+$/;
+// Calibration cases check an llm rubric, not the skill (docs/skill-authoring.md#layout).
+const CALIBRATION_CASE = /-calibrate-(good|bad)$/;
 
 function choose(n, k) {
   if (k < 0 || k > n) return 0;
@@ -125,7 +128,7 @@ export function readDocument(document, path) {
       without: armRuns(evalCase, "without", where),
     };
   });
-  return { model, cases };
+  return { model, cases: cases.filter((evalCase) => !CALIBRATION_CASE.test(evalCase.name)) };
 }
 
 // Pools documents into Map<model, Map<case name, { skill, with, without }>>, models in first-seen order.

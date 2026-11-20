@@ -196,6 +196,21 @@ test("with two models, NO-GAIN on the last is OBSOLETE when another model needed
   assert.match(stdout, /^iota opus UNPROVEN$/m);
 });
 
+test("calibration cases count toward no skill", (t) => {
+  const file = writeResult(
+    scratch(t),
+    aggregate("sonnet", [
+      evalCase("kappa", "core", runs(9, 9), runs(9, 9)),
+      evalCase("kappa", "guard-calibrate-good", runs(0, 3), runs(0, 3)),
+      evalCase("kappa", "guard-calibrate-bad", runs(3, 3), runs(0, 3)),
+    ]),
+  );
+  assert.match(
+    lineFor(necessity(file).stdout, "kappa"),
+    /^kappa sonnet NO-GAIN with 9\/9 without 9\/9 /,
+  );
+});
+
 for (const [label, document] of [
   ["a schemaVersion other than 1", { schemaVersion: 2 }],
   [

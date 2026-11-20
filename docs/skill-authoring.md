@@ -451,8 +451,9 @@ node scripts/eval-necessity.mjs evals/results/*/aggregate-result.json
 
 It pools the runs of every file of one model, so a rerun adds observations.
 Pool only files run from one commit: a file from before a skill edit and one
-from after it measure different skills. The script's header states the rules
-and output format. In short:
+from after it measure different skills. It skips calibration cases, which
+check a rubric, not the skill. The script's header states the rules and
+output format. In short:
 
 - `NEEDED`: some case passes more often with the skill than without it, by a
   one-sided Fisher exact test at p <= 0.05. At `--runs 3` only 3/3 against 0/3
