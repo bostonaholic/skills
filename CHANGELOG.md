@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.112.0] - 2026-11-20
+
 ### Changed
 
 - `being-extremely-fucking-brief` loads alongside any other skill that fits a request instead of taking its place. [#223](https://github.com/bostonaholic/skills/pull/223)
@@ -1363,5 +1365,7 @@
 
 [0.111.0]: https://github.com/bostonaholic/skills/compare/v0.110.0...v0.111.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.111.1...HEAD
 [0.111.1]: https://github.com/bostonaholic/skills/compare/v0.111.0...v0.111.1
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.112.0...HEAD
+[0.112.0]: https://github.com/bostonaholic/skills/compare/v0.111.1...v0.112.0
