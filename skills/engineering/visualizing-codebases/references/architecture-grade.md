@@ -38,9 +38,11 @@ A code element has no relationship when no entry in `relationships` names it as 
 After the cycle lines, stdout prints the `grade:` line, then one line per criterion. With no letter, it prints `grade: none (<reason>)` and no criterion line. A criterion that does not apply prints `n/a` and the reason in place of a letter and value. The shape, with illustrative values:
 
 ```text
-grade: B (2.57 of 4)
+grade: B (2.52 of 4)
   acyclic-components C: 2 of 12 components in a cycle (16.7%)
   acyclic-code A: 2 of 140 code elements in a cycle (1.4%)
+  dependency-direction C: 3 of 96 cross-layer relationships point outward (3.1%)
+  stable-dependencies B: 4 of 31 component dependencies point to a less stable component (12.9%)
   boundaries B: 2 of 3 answers yes
   core-isolation n/a: every answer is n/a
   responsibilities C: 2 of 4 answers yes
@@ -59,6 +61,14 @@ The build measures these from the rolled-up levels. Each band edge is an inclusi
   - Measure: the share of code elements inside a code-level cycle.
   - Bands: A 2%, B 10%, C 30%, D 60% (all proposal), F above 60%.
   - Source: the Acyclic Dependencies Principle at file scale. Sas, Avgeriou, and Uyumaz report that most cycles in the industrial systems they studied sit among files, not components.
+- `dependency-direction`, weight 15, applies when `architecture.layers` is set and one or more relationships cross layers.
+  - Measure: the share of cross-layer relationships that point outward, to a layer earlier in `layers`. It counts merged relationships, so a component edge that merges 5 imports counts 5, because it measures how many imports break the layer order.
+  - Bands: A 0% (cited: Martin, the Dependency Rule), B 1% (proposal), C 5% (proposal), D 20% (proposal), F above 20%.
+  - Source: Martin's Dependency Rule says source code dependencies point only inward. Cockburn's hexagonal architecture and Palermo's onion architecture state the same constraint with other ring names.
+- `stable-dependencies`, weight 10, applies when one or more dependencies join two components.
+  - Measure: the share of component dependencies from A to B where B is less stable than A, that is, I(B) > I(A). Instability is I = Ce / (Ca + Ce). Ca counts the other components that depend on a component, and Ce counts the other components it depends on. Each counts distinct neighbors: a component edge adds 1 whatever its merged count. Equal instability is not a violation.
+  - Bands: A 5%, B 15%, C 30%, D 50% (all proposal), F above 50%.
+  - Source: Martin's Stable Dependencies Principle. dependency-cruiser and NDepend define instability by the same formula.
 
 ## Questions
 
@@ -113,6 +123,11 @@ The example shows part of a section. A real section answers every question above
 - Take `convention` from the repository's declared architecture first: docs, ADRs, and rule configs for import-linter, ArchUnit, dependency-cruiser, Nx tags, or Packwerk. Otherwise use the framework's or the language's convention. Say where it came from, such as "Rails MVC, from the Gemfile and the app/ layout".
 - When neither exists, write in `convention` that no convention applies and why, such as "none: no architecture docs or rule configs, and plain Node scripts have no standard layout". Then answer `follows-convention` n/a, with evidence that names what you checked.
 - Libraries are not in the model, so an import of a framework is never an edge. `framework-free-core` exempts what the convention puts in the core.
+- Set `architecture.layers` when the convention or the docs give one layer order. List the layers outermost first. A dependency from one layer to the same layer or a later one is allowed.
+- The composition root, such as `main` or dependency-injection modules, sits in the outermost layer, so wiring every layer is not an outward edge. A shared utility component sits in the innermost layer.
+- Once `layers` is set, every component names its `layer`.
+- Leave `layers` out when one order does not fit the system, such as services with different layer orders.
+- When the user declines the grade, leave out `layers` and every component `layer` too, with the rest of the section.
 
 ## Ecosystem notes
 
@@ -121,11 +136,13 @@ The example shows part of a section. A real section answers every question above
 - Go: an `internal/` directory is a compiler-checked boundary, so it counts for `public-entry` and `rules-checked`. Go declares interfaces on the consumer side, so for `core-owns-ports` look for interfaces in the package that calls them.
 - TypeScript: a package's barrel file, such as `index.ts`, is its public entry for `public-entry`. A deep import past the barrel is a no.
 - Nx: tags count for `rules-checked` only when `depConstraints` in the lint config name real tags. A workspace with every project tagged `*`, or no `depConstraints`, has no checked rule.
+- Dependency injection: modules that bind implementations, such as Spring configuration, Guice modules, or Dagger components, are the composition root. Put them in the outermost layer.
+- Misk: `main` passes Guice modules to `MiskApplication`, so those modules are the composition root, in the outermost layer. Web actions, classes that extend `WebAction`, are the endpoints, also in the outermost layer.
 
 ## Sources
 
-- Robert C. Martin, _Clean Architecture: A Craftsman's Guide to Software Structure and Design_, Prentice Hall, 2017. The component principles, including the Acyclic Dependencies Principle, the Common Closure Principle, and the Common Reuse Principle.
-- Robert C. Martin, "The Clean Architecture", 2012: <https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html>.
+- Robert C. Martin, _Clean Architecture: A Craftsman's Guide to Software Structure and Design_, Prentice Hall, 2017. The component principles, including the Acyclic Dependencies Principle, the Stable Dependencies Principle, the Common Closure Principle, and the Common Reuse Principle.
+- Robert C. Martin, "The Clean Architecture", 2012, on the Dependency Rule: <https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html>.
 - Alistair Cockburn, "Hexagonal architecture", 2005: <https://alistair.cockburn.us/hexagonal-architecture/>.
 - Jeffrey Palermo, "The Onion Architecture, part 1", 2008: <https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/>.
 - Sas, Avgeriou, and Uyumaz, "On the evolution and impact of architectural smells", Empirical Software Engineering 27(4), 2022: <https://arxiv.org/abs/2203.08702>.
@@ -138,4 +155,6 @@ The example shows part of a section. A real section answers every question above
 - Martin Fowler, _Refactoring_, 2nd ed., Addison-Wesley, 2018.
 - Carola Lilienthal, _Sustainable Software Architecture_, dpunkt, 2019, on pattern consistency: <https://kmaxat.com/blog/modularity-maturity-index.html>.
 - Neal Ford, Rebecca Parsons, and Patrick Kua, _Building Evolutionary Architectures_, on fitness functions: <https://nealford.com/books/buildingevolutionaryarchitectures.html>.
+- Instability, I = Ce / (Ca + Ce): the dependency-cruiser rules reference <https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md> and the NDepend code metrics <https://www.ndepend.com/docs/code-metrics>.
+- Misk, "Getting started", on Guice modules and web actions: <https://github.com/cashapp/misk/blob/master/docs/getting-started.md>.
 - Rule tools: ArchUnit <https://www.archunit.org/userguide/html/000_Index.html>, dependency-cruiser <https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md>, import-linter <https://import-linter.readthedocs.io/en/stable/contract_types/>, Nx <https://nx.dev/features/enforce-module-boundaries>, Packwerk <https://github.com/Shopify/packwerk/blob/main/USAGE.md>, and Go internal packages <https://go.dev/doc/go1.4#internalpackages>.

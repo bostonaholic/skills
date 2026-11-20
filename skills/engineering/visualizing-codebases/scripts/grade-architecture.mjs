@@ -131,6 +131,20 @@ const CRITERIA = Object.freeze([
     weight: 10,
     bands: bands([2], [10], [30], [60]),
   },
+  {
+    id: "dependency-direction",
+    name: "Dependency direction",
+    kind: "measured",
+    weight: 15,
+    bands: bands([0, "Martin, the Dependency Rule"], [1], [5], [20]),
+  },
+  {
+    id: "stable-dependencies",
+    name: "Stable dependencies",
+    kind: "measured",
+    weight: 10,
+    bands: bands([5], [15], [30], [50]),
+  },
   { id: "boundaries", name: "Boundaries", kind: "judged", weight: 10 },
   { id: "core-isolation", name: "Core isolation", kind: "judged", weight: 5 },
   { id: "responsibilities", name: "Responsibilities", kind: "judged", weight: 10 },
@@ -198,14 +212,55 @@ function answerErrors(answers) {
   return errors;
 }
 
-// Returns every error in the model's `architecture` section, as one sentence each, JSON path first.
+function layerListErrors(layers) {
+  if (!Array.isArray(layers)) return ["architecture.layers: not an array"];
+  if (layers.length < 2) return ["architecture.layers: fewer than two names"];
+  const errors = [];
+  const seen = new Set();
+  layers.forEach((name, index) => {
+    const where = `architecture.layers[${index}]`;
+    if (!filled(name)) errors.push(`${where}: empty, or not a string`);
+    else if (seen.has(name)) errors.push(`${where}: "${name}" is listed twice`);
+    else seen.add(name);
+  });
+  return errors;
+}
+
+// validateModel reports a components list that is not an array, or an entry that is not an
+// object, so those are skipped here. Membership is checked only against a valid layers list.
+function componentLayerErrors(components, layers, layersValid) {
+  if (!Array.isArray(components)) return [];
+  const errors = [];
+  components.forEach((component, index) => {
+    if (!isObject(component)) return;
+    const where = `components[${index}].layer`;
+    const { layer } = component;
+    if (layers === undefined) {
+      if (layer !== undefined)
+        errors.push(`${where}: set, but the model has no architecture.layers`);
+    } else if (layer === undefined) errors.push(`${where}: missing; architecture.layers is set`);
+    else if (typeof layer !== "string") errors.push(`${where}: not a string`);
+    else if (layersValid && !layers.includes(layer))
+      errors.push(`${where}: "${layer}" is not in architecture.layers`);
+  });
+  return errors;
+}
+
+// Returns every error in the model's `architecture` section and in its components' `layer`
+// fields, as one sentence each, JSON path first.
 export function validateArchitecture(model) {
   const section = model.architecture;
-  if (section === undefined) return [];
-  if (!isObject(section)) return ["architecture: not an object"];
+  if (section !== undefined && !isObject(section)) return ["architecture: not an object"];
   const errors = [];
-  if (!filled(section.convention))
+  if (section !== undefined && !filled(section.convention))
     errors.push("architecture.convention: missing; name the convention the grade judges against");
+  const layers = section?.layers;
+  const listErrors = layers === undefined ? [] : layerListErrors(layers);
+  errors.push(
+    ...listErrors,
+    ...componentLayerErrors(model.components, layers, listErrors.length === 0),
+  );
+  if (section === undefined) return errors;
   if (!isObject(section.answers)) errors.push("architecture.answers: missing, or not an object");
   else errors.push(...answerErrors(section.answers));
   return errors;
@@ -229,7 +284,18 @@ export function combine(criteria) {
 const coreIds = (level) => level.nodes.filter((node) => node.core).map((node) => node.id);
 const cycleMembers = (level) => level.cycles.reduce((sum, cycle) => sum + cycle.nodes.length, 0);
 
-// Each measure returns the share it bands, as `part` of `whole`, and the text stdout prints.
+// Rolled-up component edges whose two ends are components, one per ordered pair.
+function componentEdges(levels) {
+  const components = new Set(coreIds(levels.components));
+  return levels.components.edges.filter(
+    (edge) => components.has(edge.source) && components.has(edge.target),
+  );
+}
+
+const notApplicable = (value) => ({ part: null, whole: null, value });
+
+// Each measure returns the share it bands, as `part` of `whole`, and the text stdout prints. A
+// measure that does not apply returns null shares and the reason as its text.
 const MEASURES = Object.freeze({
   "acyclic-components": ({ levels }) => {
     const part = cycleMembers(levels.components);
@@ -249,10 +315,57 @@ const MEASURES = Object.freeze({
       value: `${part} of ${whole} code elements in a cycle (${percent(part, whole)}%)`,
     };
   },
+  // Merged counts, because this measures how many imports break the layer order.
+  "dependency-direction": ({ model, levels }) => {
+    const { layers } = model.architecture;
+    if (layers === undefined) return notApplicable("the model sets no layers");
+    const depth = new Map(layers.map((name, index) => [name, index]));
+    const layerDepth = new Map(model.components.map((c) => [c.id, depth.get(c.layer)]));
+    let part = 0;
+    let whole = 0;
+    for (const edge of componentEdges(levels)) {
+      const from = layerDepth.get(edge.source);
+      const to = layerDepth.get(edge.target);
+      if (from === to) continue;
+      whole += edge.count;
+      if (to < from) part += edge.count;
+    }
+    if (whole === 0) return notApplicable("no relationship crosses layers");
+    return {
+      part,
+      whole,
+      value: `${part} of ${whole} cross-layer relationships point outward (${percent(part, whole)}%)`,
+    };
+  },
+  // Ca and Ce count distinct neighbor components, one per rolled-up edge whatever its merged
+  // count, as Martin's and dependency-cruiser's definitions count neighbors, not imports.
+  "stable-dependencies": ({ levels }) => {
+    const edges = componentEdges(levels);
+    if (edges.length === 0) return notApplicable("no dependency joins two components");
+    const afferent = new Map();
+    const efferent = new Map();
+    for (const { source, target } of edges) {
+      efferent.set(source, (efferent.get(source) ?? 0) + 1);
+      afferent.set(target, (afferent.get(target) ?? 0) + 1);
+    }
+    const ce = (id) => efferent.get(id) ?? 0;
+    const coupling = (id) => (afferent.get(id) ?? 0) + ce(id);
+    // I = Ce / (Ca + Ce); I(target) > I(source), cross-multiplied so integers decide a tie.
+    const part = edges.filter(
+      ({ source, target }) => ce(target) * coupling(source) > ce(source) * coupling(target),
+    ).length;
+    const whole = edges.length;
+    return {
+      part,
+      whole,
+      value: `${part} of ${whole} component dependencies point to a less stable component (${percent(part, whole)}%)`,
+    };
+  },
 });
 
 function measured(criterion, facts) {
   const { part, whole, value } = MEASURES[criterion.id](facts);
+  if (part === null) return { id: criterion.id, letter: null, points: null, value };
   const { letter } = criterion.bands.find(
     (band) => band.max === null || part * 100 <= band.max * whole,
   );
@@ -292,7 +405,7 @@ function withholdReason(model) {
 export function gradeArchitecture(model, levels) {
   const reason = withholdReason(model);
   if (reason) return { letter: null, reason, points: null, convention: null, criteria: [] };
-  const facts = { levels, answers: model.architecture.answers };
+  const facts = { model, levels, answers: model.architecture.answers };
   const criteria = CRITERIA.map((criterion) =>
     criterion.kind === "measured" ? measured(criterion, facts) : judged(criterion, facts),
   );

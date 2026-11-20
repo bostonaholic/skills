@@ -160,6 +160,67 @@ function layout({ components, code, unconnected = 0, imports = [] }) {
   return service({ components: blocks, imports: [...chain, ...imports] });
 }
 
+// A service whose components each name a layer. `components` maps each component id to its
+// `layer` and its `code` ids; `layers` lists the layers outermost first.
+function layered({ layers, components, imports, answers = allYes() }) {
+  const model = service({
+    components: Object.fromEntries(Object.entries(components).map(([id, { code }]) => [id, code])),
+    imports,
+    answers,
+  });
+  model.architecture.layers = layers;
+  for (const component of model.components) component.layer = components[component.id].layer;
+  return model;
+}
+
+// gradedModel with layers web, domain, and data, outermost first.
+function layeredModel() {
+  return layered({
+    layers: ["web", "domain", "data"],
+    components: {
+      http: { layer: "web", code: ["http/server", "http/routes"] },
+      orders: { layer: "domain", code: ["orders/service", "orders/rules", "orders/total"] },
+      billing: { layer: "domain", code: ["billing/invoice", "billing/tax"] },
+      store: { layer: "data", code: ["store/repo", "store/pool", "store/migrate"] },
+    },
+    imports: [
+      ["http/server", "http/routes"],
+      ["http/routes", "orders/service"],
+      ["orders/service", "orders/rules"],
+      ["orders/service", "orders/total"],
+      ["orders/service", "billing/invoice"],
+      ["billing/invoice", "billing/tax"],
+      ["billing/invoice", "store/repo"],
+      ["store/repo", "store/pool"],
+      ["store/migrate", "store/pool"],
+    ],
+  });
+}
+
+// Layers web (w1, w2) and domain (d1, d2), outermost first. Every code element already has a
+// relationship inside its layer; `crossing` lists the [from, to] pairs between the layers.
+function twoLayers(crossing) {
+  return layered({
+    layers: ["web", "domain"],
+    components: {
+      w1: { layer: "web", code: ["w1/a", "w1/b"] },
+      w2: { layer: "web", code: ["w2/a", "w2/b"] },
+      d1: { layer: "domain", code: ["d1/a", "d1/b", "d1/c"] },
+      d2: { layer: "domain", code: ["d2/a", "d2/b", "d2/c"] },
+    },
+    imports: [
+      ["w1/a", "w1/b"],
+      ["w1/b", "w2/a"],
+      ["w2/a", "w2/b"],
+      ["d1/a", "d1/b"],
+      ["d1/a", "d1/c"],
+      ["d2/a", "d2/b"],
+      ["d2/a", "d2/c"],
+      ...crossing,
+    ],
+  });
+}
+
 // Writes the model, builds it, and returns stdout. A graded or withheld build both exit 0.
 function stdoutOf(t, model) {
   const dir = scratch(t);
@@ -719,4 +780,192 @@ const LETTER_SCALE = [
 for (const row of LETTER_SCALE)
   test(`combine maps weighted criterion points to the letter scale: ${row.label}`, () => {
     assert.deepEqual(combine(row.criteria), row.result);
+  });
+
+// Layers: the Dependency Rule and stable dependencies.
+
+const LAYER_ERRORS = [
+  {
+    label: "layers is not an array",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = "web, domain, data";
+    },
+    errors: ["architecture.layers: not an array"],
+  },
+  {
+    label: "layers has fewer than two names",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web"];
+    },
+    errors: ["architecture.layers: fewer than two names"],
+  },
+  {
+    label: "layers repeats a name",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web", "domain", "data", "web"];
+    },
+    errors: ['architecture.layers[3]: "web" is listed twice'],
+  },
+  {
+    label: "layers holds a non-string name",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web", 7, "domain", "data"];
+    },
+    errors: ["architecture.layers[1]: empty, or not a string"],
+  },
+  {
+    label: "layers holds an empty name",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web", "", "domain", "data"];
+    },
+    errors: ["architecture.layers[1]: empty, or not a string"],
+  },
+  {
+    label: "a component layer is not a string",
+    base: layeredModel,
+    change: (model) => {
+      model.components[2].layer = 3;
+    },
+    errors: ["components[2].layer: not a string"],
+  },
+  {
+    label: "a component layer is not in layers",
+    base: layeredModel,
+    change: (model) => {
+      model.components[3].layer = "infra";
+    },
+    errors: ['components[3].layer: "infra" is not in architecture.layers'],
+  },
+  {
+    label: "a component layer is missing when layers is set",
+    base: layeredModel,
+    change: (model) => {
+      delete model.components[1].layer;
+    },
+    errors: ["components[1].layer: missing; architecture.layers is set"],
+  },
+  {
+    label: "a component layer is set when layers is absent",
+    base: gradedModel,
+    change: (model) => {
+      model.components[2].layer = "domain";
+    },
+    errors: ["components[2].layer: set, but the model has no architecture.layers"],
+  },
+  {
+    label: "a component layer is set in a model with no architecture section",
+    base: model,
+    change: (model) => {
+      model.components[0].layer = "web";
+    },
+    errors: ["components[0].layer: set, but the model has no architecture.layers"],
+  },
+];
+
+for (const row of LAYER_ERRORS)
+  test(`validateModel names each layer error in one sentence with its JSON path: ${row.label}`, () => {
+    const broken = row.base();
+    row.change(broken);
+    assert.deepEqual(validateModel(broken), row.errors);
+  });
+
+const LAYER_LINES = [
+  {
+    label: "merged counts weight the outward share",
+    model: () =>
+      twoLayers([
+        ["w1/a", "d1/a"],
+        ["w1/b", "d1/a"],
+        ["w1/b", "d1/b"],
+        ["d2/b", "w2/b"],
+      ]),
+    line: "  dependency-direction F: 1 of 4 cross-layer relationships point outward (25.0%)",
+  },
+  {
+    label: "0% outward is an A",
+    model: () =>
+      twoLayers([
+        ["w1/a", "d1/a"],
+        ["w1/b", "d1/a"],
+        ["w1/b", "d1/b"],
+        ["w2/b", "d2/b"],
+      ]),
+    line: "  dependency-direction A: 0 of 4 cross-layer relationships point outward (0.0%)",
+  },
+  {
+    label: "1 of 20 outward sits on the C edge",
+    model: () => twoLayers([...Array(19).fill(["w1/a", "d1/a"]), ["d2/b", "w2/b"]]),
+    line: "  dependency-direction C: 1 of 20 cross-layer relationships point outward (5.0%)",
+  },
+  {
+    label: "no layers",
+    model: () => gradedModel(),
+    line: "  dependency-direction n/a: the model sets no layers",
+  },
+  {
+    label: "layers with no relationship between them",
+    model: () => twoLayers([]),
+    line: "  dependency-direction n/a: no relationship crosses layers",
+  },
+  {
+    label: "an edge between two components of equal instability is not a violation",
+    model: () => layout({ components: 4, code: 10 }),
+    line: "  stable-dependencies A: 0 of 3 component dependencies point to a less stable component (0.0%)",
+  },
+  {
+    label: "a merged count of 5 counts one neighbor, as a count of 1 does",
+    model: () =>
+      service({
+        components: {
+          v: ["v/a", "v/b"],
+          w: ["w/a", "w/b"],
+          x: ["x/a", "x/b"],
+          y: ["y/a", "y/b"],
+          z: ["z/a", "z/b"],
+        },
+        imports: [
+          ["v/a", "v/b"],
+          ["v/b", "x/a"],
+          ["x/a", "x/b"],
+          ["x/b", "y/a"],
+          ["w/a", "w/b"],
+          ["w/b", "y/a"],
+          ["y/a", "y/b"],
+          ...Array(5).fill(["y/b", "z/a"]),
+          ["z/a", "z/b"],
+        ],
+      }),
+    line: "  stable-dependencies A: 0 of 4 component dependencies point to a less stable component (0.0%)",
+  },
+  {
+    label: "no dependency between two components",
+    model: () =>
+      service({
+        components: {
+          c1: ["c1/a", "c1/b", "c1/c"],
+          c2: ["c2/a", "c2/b", "c2/c"],
+          c3: ["c3/a", "c3/b"],
+          c4: ["c4/a", "c4/b"],
+        },
+        imports: [
+          ["c1/a", "c1/b"],
+          ["c1/a", "c1/c"],
+          ["c2/a", "c2/b"],
+          ["c2/a", "c2/c"],
+          ["c3/a", "c3/b"],
+          ["c4/a", "c4/b"],
+        ],
+      }),
+    line: "  stable-dependencies n/a: no dependency joins two components",
+  },
+];
+
+for (const row of LAYER_LINES)
+  test(`the build prints dependency-direction and stable-dependencies lines at their boundaries: ${row.label}`, (t) => {
+    assertHasLine(stdoutOf(t, row.model()), row.line);
   });
