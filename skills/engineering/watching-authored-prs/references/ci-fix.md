@@ -56,7 +56,7 @@ end here.
 ## Publish
 
 Push with the command the user or the repository's agent instructions name for
-PR branches (for example `gt submit`), else plain `git push`, which the binding
+PR branches (for example `gh stack push`), else plain `git push`, which the binding
 covers. Any other command must have its remote and destination branch named by
 its arguments, its configuration, or those instructions; otherwise the binding
 fails as `publish target unknown`. Never add a force flag. A failure stops as
