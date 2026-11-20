@@ -1,6 +1,6 @@
 ---
 name: visualizing-codebases
-description: Builds an interactive static D3 site that visualizes a codebase, starting with a C4 view of system context, containers, components, and code, with dependency cycles between modules and classes. Use when the user says "visualize this codebase", or asks for C4 diagrams or a map of a codebase's structure and dependency cycles. Not for prose walkthroughs; use explaining-architecture.
+description: Builds an interactive static D3 site that visualizes a codebase, starting with a C4 view of system context, containers, components, and code, with dependency cycles between modules and classes and an A to F architecture grade backed by measured and judged evidence. Use when the user says "visualize this codebase", or asks for C4 diagrams, a map of a codebase's structure and dependency cycles, or a grade of its architecture. Not for prose walkthroughs; use explaining-architecture.
 ---
 
 # Visualizing codebases
