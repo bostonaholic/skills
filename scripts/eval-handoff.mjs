@@ -88,7 +88,7 @@ const FIXTURE_DIR = "evals/engineering/making-code-agent-friendly/handoff";
 const SKILL_DIR = "skills/engineering/making-code-agent-friendly";
 const RESULTS_ROOT = "evals/results";
 // npm sets npm_lifecycle_event to the script it runs, so only `npm run eval:handoff` passes. npm
-// test, a test's spawn, CI, and a direct `node scripts/eval-handoff.mjs` fail closed before claude
+// test, a test's spawn, and a direct `node scripts/eval-handoff.mjs` fail closed before claude
 // starts. runHandoff stays unguarded: its callers pass the claude path, and tests pass a fake.
 const NPM_SCRIPT = "eval:handoff";
 const RESULTS_FILE = "handoff-result.json";
@@ -984,7 +984,7 @@ async function main(args) {
   }
   if (process.env.npm_lifecycle_event !== NPM_SCRIPT)
     throw new UsageError(
-      `start claude only through npm run ${NPM_SCRIPT}, never from npm test or CI (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
+      `start claude only through npm run ${NPM_SCRIPT}, never from npm test (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
     );
   return runHandoff({
     options,

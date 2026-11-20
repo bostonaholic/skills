@@ -1,0 +1,126 @@
+# Evals: agent-behavior cases in evals/, run through `npm run eval` so the eval entry points'
+# npm-only guard and AGENTS.md rule 11 hold.
+#
+# - pull_request: the cases scripts/select-evals.mjs picks from the changed paths, at --runs 1.
+#   Non-blocking until pass rates are known.
+# - schedule (weekly) and workflow_dispatch: every case, then eval-compare against the last
+#   successful scheduled run's results.
+#
+# Each run costs money. Runs authenticate with workload identity federation (the
+# github-*-evals rule in the Claude Console), so a run with no GitHub OIDC token
+# (fork PRs) skips.
+name: Evals
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evals:
+    name: Run evals
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      ANTHROPIC_FEDERATION_RULE_ID: fdrl_01Dybxk74YeprbUkmHMHJPcE
+      ANTHROPIC_ORGANIZATION_ID: df6ac3ed-0e28-4d37-b001-a1c8581dd554
+      ANTHROPIC_SERVICE_ACCOUNT_ID: svac_01RweNbeWfVdKbRTYXefXekm
+      ANTHROPIC_WORKSPACE_ID: wrkspc_01FThJqiTnohwy8ucKb5TAgn
+      ANTHROPIC_IDENTITY_TOKEN_FILE: /tmp/anthropic-oidc-token
+    steps:
+      - name: Skip without a GitHub OIDC token
+        run: |
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "OIDC=1" >> "$GITHUB_ENV"
+          else
+            echo "::notice::No GitHub OIDC token (fork PR); evals skipped."
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.OIDC == '1'
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: env.OIDC == '1'
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Install Claude Code
+        if: env.OIDC == '1'
+        run: npm install --global @anthropic-ai/claude-code@2.1.325
+      - name: Keep a GitHub OIDC token for Anthropic
+        if: env.OIDC == '1'
+        run: |
+          fetch() {
+            curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" |
+              jq -r .value > "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp"
+            mv "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" "$ANTHROPIC_IDENTITY_TOKEN_FILE"
+          }
+          fetch
+          # A GitHub token expires within minutes and Anthropic exchanges each one
+          # once, so keep a fresh one in the file for the rest of the job.
+          export -f fetch
+          nohup bash -c 'while sleep 60; do fetch || echo "OIDC token refresh failed" >&2; done' >/dev/null 2>&1 &
+      - name: Select cases
+        if: env.OIDC == '1' && github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          cases="$(git diff --name-only "$BASE_SHA...HEAD" | node scripts/select-evals.mjs)"
+          echo "Selected cases:"
+          echo "${cases:-(none)}"
+          echo "CASES=$(xargs <<< "$cases")" >> "$GITHUB_ENV"
+      - name: Run selected cases
+        if: env.OIDC == '1' && github.event_name == 'pull_request' && env.CASES != ''
+        run: |
+          status=0
+          for name in $CASES; do
+            echo "::group::$name"
+            npm run eval -- "$name" --runs 1 -- --ablation none --trust-plugin || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+      - name: Run every case
+        if: env.OIDC == '1' && github.event_name != 'pull_request'
+        run: npm run eval -- -- --ablation none --trust-plugin
+      - name: Compare with the last scheduled run
+        if: always() && env.OIDC == '1' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow evals.yml --event schedule \
+            --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -z "$previous" ]; then
+            echo "::notice::No earlier scheduled run to compare with."
+            exit 0
+          fi
+          gh run download "$previous" --repo "$GITHUB_REPOSITORY" --name eval-results --dir "$RUNNER_TEMP/previous"
+          for tag in readonly bash; do
+            before="$(find "$RUNNER_TEMP/previous" -path "*-$tag/aggregate-result.json" | sort | tail -1)"
+            after="$(find evals/results -path "*-$tag/aggregate-result.json" | sort | tail -1)"
+            if [ -n "$before" ] && [ -n "$after" ]; then
+              echo "== $tag: last scheduled run -> this run"
+              node scripts/eval-compare.mjs "$before" "$after"
+            fi
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && env.OIDC == '1'
+        with:
+          name: eval-results
+          path: evals/results/
+          if-no-files-found: ignore
