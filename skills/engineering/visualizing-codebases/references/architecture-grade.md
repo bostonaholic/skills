@@ -51,11 +51,13 @@ A code element has no relationship when no entry in `relationships` names it as 
 After the cycle lines, stdout prints the `grade:` line, then one line per criterion, then one `cap` line per cap that fired. With no letter, it prints `grade: none (<reason>)` and no criterion line. A criterion that does not apply prints `n/a` and the reason in place of a letter and value. The shape, with illustrative values:
 
 ```text
-grade: B (2.52 of 4)
+grade: B (2.59 of 4)
   acyclic-components C: 2 of 12 components in a cycle (16.7%)
   acyclic-code A: 2 of 140 code elements in a cycle (1.4%)
   dependency-direction C: 3 of 96 cross-layer relationships point outward (3.1%)
   stable-dependencies B: 4 of 31 component dependencies point to a less stable component (12.9%)
+  propagation-cost B: a code element reaches 14.6% of the code elements on average
+  component-balance B: the largest component holds 38 of 140 code elements (27.1%)
   boundaries B: 2 of 3 answers yes
   core-isolation n/a: every answer is n/a
   responsibilities C: 2 of 4 answers yes
@@ -83,6 +85,14 @@ The build measures these from the rolled-up levels. Each band edge is an inclusi
   - Measure: the share of component dependencies from A to B where B is less stable than A, that is, I(B) > I(A). Instability is I = Ce / (Ca + Ce). Ca counts the other components that depend on a component, and Ce counts the other components it depends on. Each counts distinct neighbors: a component edge adds 1 whatever its merged count. Equal instability is not a violation.
   - Bands: A 5%, B 15%, C 30%, D 50% (all proposal), F above 50%.
   - Source: Martin's Stable Dependencies Principle. dependency-cruiser and NDepend define instability by the same formula.
+- `propagation-cost`, weight 10, applies from 50 through 5000 code elements.
+  - Measure: the mean share of code elements that each code element reaches through relationships, itself included. Under 50 code elements, the element reaching itself already weighs more than 2%. Above 5000, one search per code element makes the build slow, so the criterion is n/a.
+  - Bands: A 10%, B 20%, C 35%, D 50% (all proposal), F above 50%.
+  - Source: MacCormack, Rusnak, and Baldwin define propagation cost and report 5.8% for a Linux release and 17.35% for Mozilla before its redesign, 2.78% after.
+- `component-balance`, weight 5, applies from 5 components.
+  - Measure: the share of code elements in the largest component. Under 5 components, the largest holds more than 20% by arithmetic alone.
+  - Bands: A 20%, B 30%, C 40%, D 60% (all proposal), F above 60%.
+  - Source: Lippert and Roock name a component much larger than the others as an architecture smell.
 
 ## Questions
 
@@ -163,6 +173,8 @@ The example shows part of a section. A real section answers every question above
 - David L. Parnas, "On the Criteria To Be Used in Decomposing Systems into Modules", Communications of the ACM 15(12), 1972: <https://dl.acm.org/doi/10.1145/361598.361623>.
 - Simon Brown, "The Missing Chapter" in _Clean Architecture_, and "Modular monolith": <https://simonbrown.je/modular-monolith/>.
 - Sam Newman, _Monolith to Microservices_, O'Reilly, 2019, on shared databases and on distributed monoliths, services that must deploy together, as summarized by InfoQ: <https://www.infoq.com/news/2020/05/monolith-decomposition-newman/>.
+- Alan MacCormack, John Rusnak, and Carliss Baldwin, "Exploring the Structure of Complex Software Designs", Management Science 52(7), 2006: <https://www.hbs.edu/ris/Publication%20Files/05-016.pdf>.
+- Martin Lippert and Stefan Roock, _Refactoring in Large Software Projects_, Wiley, 2006, on architecture smells.
 - Brian Foote and Joseph Yoder, "Big Ball of Mud", PLoP, 1997: <http://www.laputan.org/mud/>.
 - Stevens, Myers, and Constantine, "Structured Design", IBM Systems Journal 13(2), 1974, on cohesion.
 - Michele Lanza and Radu Marinescu, _Object-Oriented Metrics in Practice_, Springer, 2006, on god classes: <https://beckassets.blob.core.windows.net/product/readingsample/187724/9783540244295_excerpt_001.pdf>.

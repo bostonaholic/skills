@@ -1200,3 +1200,115 @@ test("a back edge that closes a same-layer component cycle never raises the grad
   assert.equal(base?.letter, "A");
   assert.ok(RANK[cyclic?.letter] >= RANK.B, `the cyclic model grades ${cyclic?.letter}`);
 });
+
+// Propagation cost and component balance.
+
+const REACH_LINES = [
+  {
+    label: "a chain of 50 code elements reaches (n + 1) / 2n on average",
+    model: () => layout({ components: 4, code: 50 }),
+    line: "  propagation-cost F: a code element reaches 51.0% of the code elements on average",
+  },
+  {
+    label: "49 code elements are below the range",
+    model: () => layout({ components: 4, code: 49 }),
+    line: "  propagation-cost n/a: applies from 50 through 5000 code elements, and the model has 49",
+  },
+  {
+    label: "a chain of 5000 code elements is graded",
+    model: () => layout({ components: 4, code: 5000 }),
+    line: "  propagation-cost F: a code element reaches 50.0% of the code elements on average",
+  },
+  {
+    label: "5001 code elements are above the range",
+    model: () => layout({ components: 4, code: 5001 }),
+    line: "  propagation-cost n/a: applies from 50 through 5000 code elements, and the model has 5001",
+  },
+  {
+    label: "4 components are below the balance minimum",
+    model: () => layout({ components: 4, code: 10 }),
+    line: "  component-balance n/a: applies from 5 components, and the model has 4",
+  },
+  {
+    label: "5 components with the largest at 20% is an A",
+    model: () => layout({ components: 5, code: 10 }),
+    line: "  component-balance A: the largest component holds 2 of 10 code elements (20.0%)",
+  },
+  {
+    label: "the largest component at 30% sits on the B edge",
+    model: () =>
+      service({
+        components: {
+          c1: ["f1", "f2", "f3"],
+          c2: ["f4", "f5"],
+          c3: ["f6", "f7"],
+          c4: ["f8", "f9"],
+          c5: ["f10"],
+        },
+        imports: [
+          ["f1", "f2"],
+          ["f2", "f3"],
+          ["f3", "f4"],
+          ["f4", "f5"],
+          ["f5", "f6"],
+          ["f6", "f7"],
+          ["f7", "f8"],
+          ["f8", "f9"],
+          ["f9", "f10"],
+        ],
+      }),
+    line: "  component-balance B: the largest component holds 3 of 10 code elements (30.0%)",
+  },
+];
+
+for (const row of REACH_LINES)
+  test(`the build prints propagation-cost and component-balance lines at their boundaries: ${row.label}`, (t) => {
+    assertHasLine(stdoutOf(t, row.model()), row.line);
+  });
+
+test("the CLI prints the full grade block for a graded model", (t) => {
+  const dir = scratch(t);
+  const modelPath = join(dir, "c4-model.json");
+  writeFileSync(
+    modelPath,
+    JSON.stringify(
+      domainModel({
+        imports: [["billing/service", "orders/service"]],
+        answers: {
+          ...allYes(),
+          "explicit-contracts": { answer: "n/a", evidence: ["one container"] },
+          "framework-free-core": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+          "core-owns-ports": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+          "rules-in-core": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+          "single-purpose": { answer: "no", evidence: ["billing also renders invoices as HTML"] },
+        },
+      }),
+    ),
+  );
+  const out = join(dir, "site");
+  const result = run(modelPath, out);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    result.stdout,
+    [
+      join(out, "index.html"),
+      "containers: 0 cycle(s)",
+      "components: 1 cycle(s)",
+      "  cycle-1 (2 elements): billing -> orders -> billing",
+      "code: 0 cycle(s)",
+      "grade: B (3.17 of 4)",
+      "  acyclic-components D: 2 of 5 components in a cycle (40.0%)",
+      "  acyclic-code A: 0 of 10 code elements in a cycle (0.0%)",
+      "  dependency-direction A: 0 of 4 cross-layer relationships point outward (0.0%)",
+      "  stable-dependencies A: 0 of 7 component dependencies point to a less stable component (0.0%)",
+      "  propagation-cost n/a: applies from 50 through 5000 code elements, and the model has 10",
+      "  component-balance A: the largest component holds 2 of 10 code elements (20.0%)",
+      "  boundaries A: 2 of 2 answers yes",
+      "  core-isolation n/a: every answer is n/a",
+      "  responsibilities B: 3 of 4 answers yes",
+      "  conventions A: 4 of 4 answers yes",
+      "  cap component-cycle B: a cycle joins components (cycle-1)",
+      "",
+    ].join("\n"),
+  );
+});

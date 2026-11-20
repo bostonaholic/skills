@@ -145,6 +145,20 @@ const CRITERIA = Object.freeze([
     weight: 10,
     bands: bands([5], [15], [30], [50]),
   },
+  {
+    id: "propagation-cost",
+    name: "Propagation cost",
+    kind: "measured",
+    weight: 10,
+    bands: bands([10], [20], [35], [50]),
+  },
+  {
+    id: "component-balance",
+    name: "Component balance",
+    kind: "measured",
+    weight: 5,
+    bands: bands([20], [30], [40], [60]),
+  },
   { id: "boundaries", name: "Boundaries", kind: "judged", weight: 10 },
   { id: "core-isolation", name: "Core isolation", kind: "judged", weight: 5 },
   { id: "responsibilities", name: "Responsibilities", kind: "judged", weight: 10 },
@@ -167,6 +181,15 @@ const SCALE = Object.freeze([
 // grade: component metrics break down under about 4 components.
 const MIN_COMPONENTS = 4;
 const MIN_CODE = 10;
+
+// When propagation-cost and component-balance apply, as references/architecture-grade.md
+// "Measured criteria" gives. Each code element counts as reaching itself, so the reach share never
+// falls below 1 / n; from 50 elements that floor is at most 2%, under the A edge of 10%. One
+// breadth-first search per code element costs O(n x (n + e)), and 5000 keeps one build to seconds.
+// Under 5 components the largest holds more than 20%, past the A edge, by arithmetic alone.
+const PROPAGATION_MIN_CODE = 50;
+const PROPAGATION_MAX_CODE = 5000;
+const BALANCE_MIN_COMPONENTS = 5;
 
 const NO_SECTION = "the model has no architecture section";
 const FEW_COMPONENTS = `fewer than ${MIN_COMPONENTS} components`;
@@ -300,6 +323,35 @@ function componentEdges(levels) {
 
 const notApplicable = (value) => ({ part: null, whole: null, value });
 
+// The count of ordered pairs (a, b) of code elements where b is reachable from a, each element
+// reaching itself. Integer indexes, one reused visited-stamp array, and one reused queue keep the
+// per-element searches cheap.
+function reachablePairs(level) {
+  const ids = coreIds(level);
+  const position = new Map(ids.map((id, index) => [id, index]));
+  const adjacent = ids.map(() => []);
+  for (const { source, target } of level.edges)
+    adjacent[position.get(source)].push(position.get(target));
+  const visited = new Uint32Array(ids.length);
+  const queue = new Uint32Array(ids.length);
+  let pairs = 0;
+  for (let start = 0; start < ids.length; start++) {
+    const stamp = start + 1;
+    visited[start] = stamp;
+    queue[0] = start;
+    let head = 0;
+    let tail = 1;
+    while (head < tail)
+      for (const next of adjacent[queue[head++]])
+        if (visited[next] !== stamp) {
+          visited[next] = stamp;
+          queue[tail++] = next;
+        }
+    pairs += tail;
+  }
+  return pairs;
+}
+
 // Each measure returns the share it bands, as `part` of `whole`, and the text stdout prints. A
 // measure that does not apply returns null shares and the reason as its text.
 const MEASURES = Object.freeze({
@@ -365,6 +417,37 @@ const MEASURES = Object.freeze({
       part,
       whole,
       value: `${part} of ${whole} component dependencies point to a less stable component (${percent(part, whole)}%)`,
+    };
+  },
+  "propagation-cost": ({ levels }) => {
+    const count = coreIds(levels.code).length;
+    if (count < PROPAGATION_MIN_CODE || count > PROPAGATION_MAX_CODE)
+      return notApplicable(
+        `applies from ${PROPAGATION_MIN_CODE} through ${PROPAGATION_MAX_CODE} code elements, and the model has ${count}`,
+      );
+    const part = reachablePairs(levels.code);
+    const whole = count * count;
+    return {
+      part,
+      whole,
+      value: `a code element reaches ${percent(part, whole)}% of the code elements on average`,
+    };
+  },
+  "component-balance": ({ model }) => {
+    const count = model.components.length;
+    if (count < BALANCE_MIN_COMPONENTS)
+      return notApplicable(
+        `applies from ${BALANCE_MIN_COMPONENTS} components, and the model has ${count}`,
+      );
+    const sizes = new Map();
+    for (const element of model.code)
+      sizes.set(element.component, (sizes.get(element.component) ?? 0) + 1);
+    const part = Math.max(...sizes.values());
+    const whole = model.code.length;
+    return {
+      part,
+      whole,
+      value: `the largest component holds ${part} of ${whole} code elements (${percent(part, whole)}%)`,
     };
   },
 });
