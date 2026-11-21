@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `conducting-deep-research` stops before any lane when no web search or fetch tool exists, and gives no citation, DOI, URL, amount, or finding from memory. [#231](https://github.com/bostonaholic/skills/pull/231)
+- `untangling-codebases` waits for the user's approval before a fix that would change behavior, such as raising an exception the code now swallows, and names it with the reason. [#231](https://github.com/bostonaholic/skills/pull/231)
+
 ## [0.113.0] - 2026-11-21
 
 ### Added
