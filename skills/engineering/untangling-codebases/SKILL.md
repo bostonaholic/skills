@@ -7,7 +7,9 @@ argument-hint: "[<area or concern to focus on>]"
 # Untangle a Codebase
 
 Refactor the whole codebase, or the area the user names, and finish. Treat
-it as a goal, not a list of suggestions. Behavior stays the same.
+it as a goal, not a list of suggestions. Behavior stays the same: a fix
+that would change it, such as raising an exception the code now swallows,
+waits for the user's approval, and the reply names it with the reason.
 
 The aim is code where an agent reads little per change, a change lands in
 one place, and a break shows up instead of hiding.
