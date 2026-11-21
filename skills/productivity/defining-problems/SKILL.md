@@ -22,8 +22,9 @@ interview ends in a problem statement the user confirms, never a solution.
   control or scope.
 - Finding facts is your job; deciding is the user's. Look up anything the
   repository, tools, or docs can answer instead of asking. For a wide
-  search, start a read-only subagent with fresh context, never a fork of
-  the parent conversation, so only its findings return.
+  search, start a read-only subagent where available, otherwise search
+  inline. Give it fresh context, never a fork of the parent conversation,
+  so only its findings return.
 - Push for evidence over belief: a measurement, an incident, a user quote,
   or a count. Mark a claim with no evidence as an assumption.
 - Never fill a gap silently. Every unknown becomes a question or an entry

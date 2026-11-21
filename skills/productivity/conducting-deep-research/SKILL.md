@@ -46,6 +46,9 @@ verifier, never a fork of this conversation, that has not seen the drafting reas
 independent: it returns supported, contradicted, or not found, with the quoted
 passage.
 
+Without a verifier, compare each claim with its source yourself and say the
+comparison was not independent.
+
 ## Report
 
 Default to adapt:

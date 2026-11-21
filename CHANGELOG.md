@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.114.0] - 2026-11-21
+
+### Fixed
+
+- `untangling-codebases`, `writing-playbooks`, `conducting-deep-research`, `defining-problems`, `investigating-design-rationale`, and `reflecting` state what to do when no subagent can start: run the work yourself and say it was not independent. [#230](https://github.com/bostonaholic/skills/pull/230)
+
 ## [0.113.0] - 2026-11-21
 
 ### Added
@@ -1375,5 +1381,7 @@
 
 [0.112.0]: https://github.com/bostonaholic/skills/compare/v0.111.1...v0.112.0
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.113.0...HEAD
 [0.113.0]: https://github.com/bostonaholic/skills/compare/v0.112.0...v0.113.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.114.0...HEAD
+[0.114.0]: https://github.com/bostonaholic/skills/compare/v0.113.0...v0.114.0
