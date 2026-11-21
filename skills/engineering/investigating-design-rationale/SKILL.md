@@ -32,7 +32,7 @@ Search every category: **source control**, **issue/ticket tracker**, **long-form
 
 A fresh-context subagent searching a category, never a fork of this conversation, gets the user's question verbatim, never your
 hypothesis or the user's guess. Spot-check its citations before asserting
-them.
+them. Without subagents, search each category yourself and say so in the report.
 
 ## Rating claims
 

@@ -47,7 +47,8 @@ together but need not change together are a needless link.
 5. **Check and repeat.** Start subagents with fresh context, never a fork of
    this conversation, each looking for one kind of problem from step 2 in the
    changed code. Fix what they find and check again. Stop when a new pass
-   finds nothing worth fixing.
+   finds nothing worth fixing. Without subagents, run each pass yourself and
+   say it was not independent.
 
 Done when few special cases remain, a typical change touches one place,
 imports point from volatile code to stable code, and the full test suite
@@ -56,7 +57,7 @@ passes with behavior unchanged.
 ## Tips
 
 - Map before reading: script a dependency graph from imports, and have
-  fresh-context subagents summarize large areas.
+  fresh-context subagents summarize large areas where available.
 - Start where one fix removes the most problems.
 - Read a skeleton first: signatures and types without bodies show the
   shape faster than the full code.
