@@ -3,6 +3,11 @@
 // and no self-loops; cycles are the strongly connected sets of two or more core nodes, each
 // with a closed path through its members; and the CLI writes the site with exit 0, refuses an
 // invalid model with exit 1 and nothing written, and prints usage with exit 2.
+// Also fails when the architecture grade breaks its contract: validation names every error in the
+// `architecture` section and in component layers; stdout prints the grade line, one line per
+// criterion, and one line per cap, or the reason no letter was given; combine maps weighted points
+// to the letter scale and never rewards a lower criterion or an added cap; and data.js carries
+// each criterion's name, band citations, and evidence, capped at 20 items in code-unit order.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -16,6 +21,7 @@ import {
   stronglyConnected,
   validateModel,
 } from "../skills/engineering/visualizing-codebases/scripts/build-c4-site.mjs";
+import { combine } from "../skills/engineering/visualizing-codebases/scripts/grade-architecture.mjs";
 
 const SCRIPT = resolve("skills/engineering/visualizing-codebases/scripts/build-c4-site.mjs");
 const SITE_FILES = [
@@ -76,6 +82,252 @@ function model() {
 }
 
 const pairs = (edges) => edges.map((e) => `${e.source}>${e.target}`).sort();
+
+// Every grading question answered yes. The ids are spelled out, so a renamed id turns red here.
+function allYes() {
+  return {
+    "public-entry": { answer: "yes", evidence: ["src/orders/index.js"] },
+    "one-writer-per-store": { answer: "yes", evidence: ["src/store/repo.js"] },
+    "explicit-contracts": { answer: "yes", evidence: ["src/http/routes.js"] },
+    "framework-free-core": { answer: "yes", evidence: ["src/orders/rules.js"] },
+    "core-owns-ports": { answer: "yes", evidence: ["src/orders/ports.js"] },
+    "rules-in-core": { answer: "yes", evidence: ["src/orders/rules.js"] },
+    "single-purpose": { answer: "yes", evidence: ["README.md"] },
+    "no-catch-all": { answer: "yes", evidence: ["src/"] },
+    "no-god-modules": { answer: "yes", evidence: ["src/billing/invoice.js"] },
+    "no-hollow-layers": { answer: "yes", evidence: ["src/store/repo.js"] },
+    "follows-convention": { answer: "yes", evidence: ["README.md"] },
+    "one-mechanism-per-concern": { answer: "yes", evidence: ["src/http/client.js"] },
+    "rules-checked": { answer: "yes", evidence: [".dependency-cruiser.cjs"] },
+    "docs-match": { answer: "yes", evidence: ["docs/architecture.md"] },
+  };
+}
+
+// A one-container service with an architecture section. `components` maps each component id to
+// its code ids, and `imports` lists [from, to] pairs of code ids.
+function service({ components, imports, answers = allYes() }) {
+  return {
+    system: { id: "svc", name: "Service" },
+    containers: [{ id: "app", name: "App" }],
+    components: Object.keys(components).map((id) => ({ id, name: id, container: "app" })),
+    code: Object.entries(components).flatMap(([component, ids]) =>
+      ids.map((id) => ({ id, name: id, component })),
+    ),
+    relationships: imports.map(([from, to]) => ({ from, to })),
+    architecture: {
+      convention: "Node service, one folder per component, from the README",
+      answers,
+    },
+  };
+}
+
+// 4 components and 10 code elements, each code element in a relationship, and no cycle.
+function gradedModel(answers = allYes()) {
+  return service({
+    components: {
+      http: ["http/server", "http/routes"],
+      orders: ["orders/service", "orders/rules", "orders/total"],
+      billing: ["billing/invoice", "billing/tax"],
+      store: ["store/repo", "store/pool", "store/migrate"],
+    },
+    imports: [
+      ["http/server", "http/routes"],
+      ["http/routes", "orders/service"],
+      ["orders/service", "orders/rules"],
+      ["orders/service", "orders/total"],
+      ["orders/service", "billing/invoice"],
+      ["billing/invoice", "billing/tax"],
+      ["billing/invoice", "store/repo"],
+      ["store/repo", "store/pool"],
+      ["store/migrate", "store/pool"],
+    ],
+    answers,
+  });
+}
+
+// Components c1, c2, ... hold code elements f1, f2, ... in consecutive blocks of near-equal size.
+// The first `code - unconnected` code elements import one another in one chain, so the component
+// graph is a chain with no cycle, and the last `unconnected` have no relationship. `imports` adds
+// [from, to] pairs, such as a back edge that closes a cycle.
+function layout({ components, code, unconnected = 0, imports = [] }) {
+  const ids = Array.from({ length: code }, (_, index) => `f${index + 1}`);
+  const blocks = Object.fromEntries(
+    Array.from({ length: components }, (_, index) => [`c${index + 1}`, []]),
+  );
+  ids.forEach((id, index) => blocks[`c${Math.floor((index * components) / code) + 1}`].push(id));
+  const linked = ids.slice(0, code - unconnected);
+  const chain = linked.slice(1).map((id, index) => [linked[index], id]);
+  return service({ components: blocks, imports: [...chain, ...imports] });
+}
+
+// A service whose components each name a layer. `components` maps each component id to its
+// `layer` and its `code` ids; `layers` lists the layers outermost first.
+function layered({ layers, components, imports, answers = allYes() }) {
+  const model = service({
+    components: Object.fromEntries(Object.entries(components).map(([id, { code }]) => [id, code])),
+    imports,
+    answers,
+  });
+  model.architecture.layers = layers;
+  for (const component of model.components) component.layer = components[component.id].layer;
+  return model;
+}
+
+// gradedModel with layers web, domain, and data, outermost first.
+function layeredModel() {
+  return layered({
+    layers: ["web", "domain", "data"],
+    components: {
+      http: { layer: "web", code: ["http/server", "http/routes"] },
+      orders: { layer: "domain", code: ["orders/service", "orders/rules", "orders/total"] },
+      billing: { layer: "domain", code: ["billing/invoice", "billing/tax"] },
+      store: { layer: "data", code: ["store/repo", "store/pool", "store/migrate"] },
+    },
+    imports: [
+      ["http/server", "http/routes"],
+      ["http/routes", "orders/service"],
+      ["orders/service", "orders/rules"],
+      ["orders/service", "orders/total"],
+      ["orders/service", "billing/invoice"],
+      ["billing/invoice", "billing/tax"],
+      ["billing/invoice", "store/repo"],
+      ["store/repo", "store/pool"],
+      ["store/migrate", "store/pool"],
+    ],
+  });
+}
+
+// Layers web (w1, w2) and domain (d1, d2), outermost first. Every code element already has a
+// relationship inside its layer; `crossing` lists the [from, to] pairs between the layers.
+function twoLayers(crossing) {
+  return layered({
+    layers: ["web", "domain"],
+    components: {
+      w1: { layer: "web", code: ["w1/a", "w1/b"] },
+      w2: { layer: "web", code: ["w2/a", "w2/b"] },
+      d1: { layer: "domain", code: ["d1/a", "d1/b", "d1/c"] },
+      d2: { layer: "domain", code: ["d2/a", "d2/b", "d2/c"] },
+    },
+    imports: [
+      ["w1/a", "w1/b"],
+      ["w1/b", "w2/a"],
+      ["w2/a", "w2/b"],
+      ["d1/a", "d1/b"],
+      ["d1/a", "d1/c"],
+      ["d2/a", "d2/b"],
+      ["d2/a", "d2/c"],
+      ...crossing,
+    ],
+  });
+}
+
+// Five components of 2 code elements each, in layers web, domain, and data. Every cross-layer
+// relationship points inward, and no instability rises along an edge. `imports` adds pairs.
+function domainModel({ imports = [], answers = allYes() } = {}) {
+  return layered({
+    layers: ["web", "domain", "data"],
+    components: {
+      web: { layer: "web", code: ["web/page", "web/form"] },
+      orders: { layer: "domain", code: ["orders/service", "orders/rules"] },
+      billing: { layer: "domain", code: ["billing/service", "billing/rules"] },
+      store: { layer: "data", code: ["store/repo", "store/query"] },
+      db: { layer: "data", code: ["db/pool", "db/migrate"] },
+    },
+    imports: [
+      ["web/page", "web/form"],
+      ["web/form", "orders/service"],
+      ["web/page", "billing/service"],
+      ["orders/service", "orders/rules"],
+      ["orders/rules", "billing/rules"],
+      ["orders/service", "store/repo"],
+      ["billing/service", "billing/rules"],
+      ["billing/rules", "store/query"],
+      ["store/repo", "store/query"],
+      ["store/query", "db/pool"],
+      ["db/pool", "db/migrate"],
+      ...imports,
+    ],
+    answers,
+  });
+}
+
+// `count` code ids under one component, zero-padded so their code-unit order is their number.
+const files = (component, count) =>
+  Array.from({ length: count }, (_, index) => `${component}/${String(index + 1).padStart(2, "0")}`);
+// The first code id of a component imports every other one.
+const star = (ids) => ids.slice(1).map((id) => [ids[0], id]);
+
+// 50 code elements in 6 components, where every measured criterion is graded. The web component
+// holds 15 and the rest 7 each. Layers: web; orders and billing (domain); store, db, and audit
+// (data). It holds one code cycle (web/01, web/02), one component cycle (orders, billing), one
+// outward edge (audit to orders), and one edge to a less stable component (orders to billing).
+function everyMeasure() {
+  const code = {
+    web: files("web", 15),
+    orders: files("orders", 7),
+    billing: files("billing", 7),
+    store: files("store", 7),
+    db: files("db", 7),
+    audit: files("audit", 7),
+  };
+  return layered({
+    layers: ["web", "domain", "data"],
+    components: {
+      web: { layer: "web", code: code.web },
+      orders: { layer: "domain", code: code.orders },
+      billing: { layer: "domain", code: code.billing },
+      store: { layer: "data", code: code.store },
+      db: { layer: "data", code: code.db },
+      audit: { layer: "data", code: code.audit },
+    },
+    imports: [
+      ...Object.values(code).flatMap(star),
+      ["web/02", "web/01"],
+      ["web/01", "orders/01"],
+      ["web/01", "billing/01"],
+      ["orders/02", "billing/02"],
+      ["billing/03", "orders/03"],
+      ["orders/01", "store/01"],
+      ["billing/01", "store/01"],
+      ["store/01", "db/01"],
+      ["audit/01", "orders/01"],
+    ],
+  });
+}
+
+// Writes the model, builds it, and returns stdout. A graded or withheld build both exit 0.
+function stdoutOf(t, model) {
+  const dir = scratch(t);
+  const modelPath = join(dir, "c4-model.json");
+  writeFileSync(modelPath, JSON.stringify(model));
+  const result = run(modelPath, join(dir, "site"));
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout;
+}
+
+// Writes the model, builds it, and returns the views that data.js carries.
+function builtData(t, model) {
+  const dir = scratch(t);
+  const modelPath = join(dir, "c4-model.json");
+  writeFileSync(modelPath, JSON.stringify(model));
+  const out = join(dir, "site");
+  const result = run(modelPath, out);
+  assert.equal(result.status, 0, result.stderr);
+  const data = readFileSync(join(out, "data.js"), "utf8");
+  return JSON.parse(data.replace(/^window\.C4 = /, "").replace(/;\n$/, ""));
+}
+
+function assertHasLine(stdout, line) {
+  assert.ok(
+    stdout.split("\n").includes(line),
+    `stdout has no line ${JSON.stringify(line)}:\n${stdout}`,
+  );
+}
+
+const capLines = (stdout) => stdout.split("\n").filter((line) => line.startsWith("  cap "));
+
+// Lower is better, so a comparison reads as "no worse than".
+const RANK = Object.freeze({ A: 0, B: 1, C: 2, D: 3, F: 4 });
 
 test("a well-formed model has no validation errors", () => {
   assert.deepEqual(validateModel(model()), []);
@@ -235,6 +487,7 @@ test("the CLI writes every site file and embeds the views in data.js", (t) => {
       "  cycle-1 (2 elements): api.billing -> api.orders -> api.billing",
       "code: 1 cycle(s)",
       "  cycle-1 (2 elements): billing/Invoice -> orders/OrderService -> billing/Invoice",
+      "grade: none (the model has no architecture section)",
       "",
     ].join("\n"),
   );
@@ -292,4 +545,1038 @@ test("the CLI prints usage with exit 2 for the wrong number of arguments", () =>
     result.stderr,
     /^usage: build-c4-site\.mjs <c4-model\.json> <out>\nsee \/.+\/SKILL\.md\n$/,
   );
+});
+
+// Architecture section and grade lines.
+
+const SECTION_ERRORS = [
+  {
+    label: "architecture is not an object",
+    change: (model) => {
+      model.architecture = [];
+    },
+    errors: ["architecture: not an object"],
+  },
+  {
+    label: "convention is missing",
+    change: (model) => {
+      delete model.architecture.convention;
+    },
+    errors: ["architecture.convention: missing; name the convention the grade judges against"],
+  },
+  {
+    label: "convention is empty",
+    change: (model) => {
+      model.architecture.convention = "";
+    },
+    errors: ["architecture.convention: missing; name the convention the grade judges against"],
+  },
+  {
+    label: "convention is not a string",
+    change: (model) => {
+      model.architecture.convention = 42;
+    },
+    errors: ["architecture.convention: missing; name the convention the grade judges against"],
+  },
+  {
+    label: "answers is missing",
+    change: (model) => {
+      delete model.architecture.answers;
+    },
+    errors: ["architecture.answers: missing, or not an object"],
+  },
+  {
+    label: "answers is not an object",
+    change: (model) => {
+      model.architecture.answers = [];
+    },
+    errors: ["architecture.answers: missing, or not an object"],
+  },
+  {
+    label: "a question that forbids n/a has no answer",
+    change: (model) => {
+      delete model.architecture.answers["rules-checked"];
+    },
+    errors: ["architecture.answers.rules-checked: missing; answer yes or no with evidence"],
+  },
+  {
+    label: "a question that allows n/a has no answer",
+    change: (model) => {
+      delete model.architecture.answers["docs-match"];
+    },
+    errors: ["architecture.answers.docs-match: missing; answer yes, no, or n/a with evidence"],
+  },
+  {
+    label: "an unknown question id",
+    change: (model) => {
+      model.architecture.answers.layering = { answer: "yes", evidence: ["README.md"] };
+    },
+    errors: ["architecture.answers.layering: not a grading question id"],
+  },
+  {
+    label: "a __proto__ question id",
+    change: (model) => {
+      model.architecture.answers = {
+        ...allYes(),
+        ...JSON.parse('{"__proto__": {"answer": "yes", "evidence": ["README.md"]}}'),
+      };
+    },
+    errors: ["architecture.answers.__proto__: not a grading question id"],
+  },
+  {
+    label: "an answer outside yes, no, and n/a",
+    change: (model) => {
+      model.architecture.answers["public-entry"].answer = "maybe";
+    },
+    errors: [
+      'architecture.answers.public-entry.answer: "maybe" is not allowed; answer yes or no with evidence',
+    ],
+  },
+  {
+    label: "n/a on a question that forbids it",
+    change: (model) => {
+      model.architecture.answers["single-purpose"].answer = "n/a";
+    },
+    errors: [
+      'architecture.answers.single-purpose.answer: "n/a" is not allowed; answer yes or no with evidence',
+    ],
+  },
+  {
+    label: "evidence is missing",
+    change: (model) => {
+      delete model.architecture.answers["public-entry"].evidence;
+    },
+    errors: [
+      "architecture.answers.public-entry.evidence: missing, or not a list of one or more files or facts",
+    ],
+  },
+  {
+    label: "evidence is an empty list",
+    change: (model) => {
+      model.architecture.answers["public-entry"].evidence = [];
+    },
+    errors: [
+      "architecture.answers.public-entry.evidence: missing, or not a list of one or more files or facts",
+    ],
+  },
+  {
+    label: "evidence holds a non-string",
+    change: (model) => {
+      model.architecture.answers["public-entry"].evidence = [42];
+    },
+    errors: ["architecture.answers.public-entry.evidence[0]: empty, or not a string"],
+  },
+  {
+    label: "evidence holds an empty string",
+    change: (model) => {
+      model.architecture.answers["public-entry"].evidence = ["src/orders/index.js", ""];
+    },
+    errors: ["architecture.answers.public-entry.evidence[1]: empty, or not a string"],
+  },
+  {
+    label: "an extra key inside architecture is ignored",
+    change: (model) => {
+      model.architecture.notes = "drawn from the README";
+    },
+    errors: [],
+  },
+  {
+    label: "an extra key inside an answer is ignored",
+    change: (model) => {
+      model.architecture.answers["public-entry"].confidence = "high";
+    },
+    errors: [],
+  },
+];
+
+for (const row of SECTION_ERRORS)
+  test(`validateModel names each architecture section error in one sentence with its JSON path: ${row.label}`, () => {
+    const broken = gradedModel();
+    row.change(broken);
+    assert.deepEqual(validateModel(broken), row.errors);
+  });
+
+const GRADE_LINES = [
+  {
+    label: "3 components give no letter",
+    model: () => layout({ components: 3, code: 12 }),
+    line: "grade: none (fewer than 4 components)",
+  },
+  {
+    label: "4 components are graded",
+    model: () => layout({ components: 4, code: 12 }),
+    line: "  acyclic-components A: 0 of 4 components in a cycle (0.0%)",
+  },
+  {
+    label: "9 code elements give no letter",
+    model: () => layout({ components: 5, code: 9 }),
+    line: "grade: none (fewer than 10 code elements)",
+  },
+  {
+    label: "10 code elements are graded",
+    model: () => layout({ components: 5, code: 10 }),
+    line: "  acyclic-code A: 0 of 10 code elements in a cycle (0.0%)",
+  },
+  {
+    label: "exactly half of the code elements unconnected is graded",
+    model: () => layout({ components: 4, code: 10, unconnected: 5 }),
+    line: "  acyclic-code A: 0 of 10 code elements in a cycle (0.0%)",
+  },
+  {
+    label: "one more than half of the code elements unconnected gives no letter",
+    model: () => layout({ components: 4, code: 10, unconnected: 6 }),
+    line: "grade: none (more than half of the code elements have no relationship, so the imports look incomplete)",
+  },
+  {
+    label: "0% of components in a cycle is an A",
+    model: () => layout({ components: 8, code: 16 }),
+    line: "  acyclic-components A: 0 of 8 components in a cycle (0.0%)",
+  },
+  {
+    label: "2 of 8 components in a cycle sit on the C edge",
+    model: () => layout({ components: 8, code: 16, imports: [["f3", "f1"]] }),
+    line: "  acyclic-components C: 2 of 8 components in a cycle (25.0%)",
+  },
+  {
+    label: "3 of 30 code elements in a cycle sit on the B edge",
+    model: () => layout({ components: 4, code: 30, imports: [["f3", "f1"]] }),
+    line: "  acyclic-code B: 3 of 30 code elements in a cycle (10.0%)",
+  },
+  {
+    label: "2 of 3 boundaries answers yes is a B",
+    model: () =>
+      gradedModel({
+        ...allYes(),
+        "explicit-contracts": {
+          answer: "no",
+          evidence: ["src/http/routes.js reads billing tables"],
+        },
+      }),
+    line: "  boundaries B: 2 of 3 answers yes",
+  },
+  {
+    label: "an n/a answer leaves the share",
+    model: () =>
+      gradedModel({
+        ...allYes(),
+        "one-writer-per-store": { answer: "n/a", evidence: ["the service owns no datastore"] },
+        "explicit-contracts": {
+          answer: "no",
+          evidence: ["src/http/routes.js reads billing tables"],
+        },
+      }),
+    line: "  boundaries C: 1 of 2 answers yes",
+  },
+  {
+    label: "a judged criterion with every answer n/a",
+    model: () =>
+      gradedModel({
+        ...allYes(),
+        "framework-free-core": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+        "core-owns-ports": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+        "rules-in-core": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+      }),
+    line: "  core-isolation n/a: every answer is n/a",
+  },
+];
+
+for (const row of GRADE_LINES)
+  test(`the build prints each criterion line and each withhold reason at its boundary: ${row.label}`, (t) => {
+    assertHasLine(stdoutOf(t, row.model()), row.line);
+  });
+
+const LETTER_SCALE = [
+  {
+    label: "a mean of 350 is an A",
+    criteria: [
+      { weight: 20, points: 400 },
+      { weight: 10, points: 250 },
+    ],
+    result: { letter: "A", points: 350 },
+  },
+  {
+    label: "a mean of 349 is a B",
+    criteria: [
+      { weight: 20, points: 400 },
+      { weight: 10, points: 247 },
+    ],
+    result: { letter: "B", points: 349 },
+  },
+  {
+    label: "a mean of 250 is a B",
+    criteria: [
+      { weight: 10, points: 300 },
+      { weight: 10, points: 200 },
+    ],
+    result: { letter: "B", points: 250 },
+  },
+  {
+    label: "a mean of 249 is a C",
+    criteria: [
+      { weight: 10, points: 300 },
+      { weight: 10, points: 198 },
+    ],
+    result: { letter: "C", points: 249 },
+  },
+  {
+    label: "a mean of 150 is a C",
+    criteria: [
+      { weight: 10, points: 200 },
+      { weight: 10, points: 100 },
+    ],
+    result: { letter: "C", points: 150 },
+  },
+  {
+    label: "a mean of 149 is a D",
+    criteria: [
+      { weight: 10, points: 200 },
+      { weight: 10, points: 98 },
+    ],
+    result: { letter: "D", points: 149 },
+  },
+  {
+    label: "a mean of 50 is a D",
+    criteria: [
+      { weight: 10, points: 100 },
+      { weight: 10, points: 0 },
+    ],
+    result: { letter: "D", points: 50 },
+  },
+  {
+    label: "a mean of 49 is an F",
+    criteria: [
+      { weight: 10, points: 98 },
+      { weight: 10, points: 0 },
+    ],
+    result: { letter: "F", points: 49 },
+  },
+  {
+    label: "a weighted mean of 349.67 floors to 349, a B",
+    criteria: [
+      { weight: 1, points: 349 },
+      { weight: 2, points: 350 },
+    ],
+    result: { letter: "B", points: 349 },
+  },
+  {
+    label: "a criterion with null points leaves the mean",
+    criteria: [
+      { weight: 20, points: 400 },
+      { weight: 10, points: null },
+    ],
+    result: { letter: "A", points: 400 },
+  },
+];
+
+for (const row of LETTER_SCALE)
+  test(`combine maps weighted criterion points to the letter scale: ${row.label}`, () => {
+    assert.deepEqual(combine(row.criteria), row.result);
+  });
+
+// Layers: the Dependency Rule and stable dependencies.
+
+const LAYER_ERRORS = [
+  {
+    label: "layers is not an array",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = "web, domain, data";
+    },
+    errors: ["architecture.layers: not an array"],
+  },
+  {
+    label: "layers has fewer than two names",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web"];
+    },
+    errors: ["architecture.layers: fewer than two names"],
+  },
+  {
+    label: "layers repeats a name",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web", "domain", "data", "web"];
+    },
+    errors: ['architecture.layers[3]: "web" is listed twice'],
+  },
+  {
+    label: "layers holds a non-string name",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web", 7, "domain", "data"];
+    },
+    errors: ["architecture.layers[1]: empty, or not a string"],
+  },
+  {
+    label: "layers holds an empty name",
+    base: layeredModel,
+    change: (model) => {
+      model.architecture.layers = ["web", "", "domain", "data"];
+    },
+    errors: ["architecture.layers[1]: empty, or not a string"],
+  },
+  {
+    label: "a component layer is not a string",
+    base: layeredModel,
+    change: (model) => {
+      model.components[2].layer = 3;
+    },
+    errors: ["components[2].layer: not a string"],
+  },
+  {
+    label: "a component layer is not in layers",
+    base: layeredModel,
+    change: (model) => {
+      model.components[3].layer = "infra";
+    },
+    errors: ['components[3].layer: "infra" is not in architecture.layers'],
+  },
+  {
+    label: "a component layer is missing when layers is set",
+    base: layeredModel,
+    change: (model) => {
+      delete model.components[1].layer;
+    },
+    errors: ["components[1].layer: missing; architecture.layers is set"],
+  },
+  {
+    label: "a component layer is set when layers is absent",
+    base: gradedModel,
+    change: (model) => {
+      model.components[2].layer = "domain";
+    },
+    errors: ["components[2].layer: set, but the model has no architecture.layers"],
+  },
+  {
+    label: "a component layer is set in a model with no architecture section",
+    base: model,
+    change: (model) => {
+      model.components[0].layer = "web";
+    },
+    errors: ["components[0].layer: set, but the model has no architecture.layers"],
+  },
+];
+
+for (const row of LAYER_ERRORS)
+  test(`validateModel names each layer error in one sentence with its JSON path: ${row.label}`, () => {
+    const broken = row.base();
+    row.change(broken);
+    assert.deepEqual(validateModel(broken), row.errors);
+  });
+
+const LAYER_LINES = [
+  {
+    label: "merged counts weight the outward share",
+    model: () =>
+      twoLayers([
+        ["w1/a", "d1/a"],
+        ["w1/b", "d1/a"],
+        ["w1/b", "d1/b"],
+        ["d2/b", "w2/b"],
+      ]),
+    line: "  dependency-direction F: 1 of 4 cross-layer relationships point outward (25.0%)",
+  },
+  {
+    label: "0% outward is an A",
+    model: () =>
+      twoLayers([
+        ["w1/a", "d1/a"],
+        ["w1/b", "d1/a"],
+        ["w1/b", "d1/b"],
+        ["w2/b", "d2/b"],
+      ]),
+    line: "  dependency-direction A: 0 of 4 cross-layer relationships point outward (0.0%)",
+  },
+  {
+    label: "1 of 20 outward sits on the C edge",
+    model: () => twoLayers([...Array(19).fill(["w1/a", "d1/a"]), ["d2/b", "w2/b"]]),
+    line: "  dependency-direction C: 1 of 20 cross-layer relationships point outward (5.0%)",
+  },
+  {
+    label: "no layers",
+    model: () => gradedModel(),
+    line: "  dependency-direction n/a: the model sets no layers",
+  },
+  {
+    label: "layers with no relationship between them",
+    model: () => twoLayers([]),
+    line: "  dependency-direction n/a: no relationship crosses layers",
+  },
+  {
+    label: "an edge between two components of equal instability is not a violation",
+    model: () => layout({ components: 4, code: 10 }),
+    line: "  stable-dependencies A: 0 of 3 component dependencies point to a less stable component (0.0%)",
+  },
+  {
+    label: "a merged count of 5 counts one neighbor, as a count of 1 does",
+    model: () =>
+      service({
+        components: {
+          v: ["v/a", "v/b"],
+          w: ["w/a", "w/b"],
+          x: ["x/a", "x/b"],
+          y: ["y/a", "y/b"],
+          z: ["z/a", "z/b"],
+        },
+        imports: [
+          ["v/a", "v/b"],
+          ["v/b", "x/a"],
+          ["x/a", "x/b"],
+          ["x/b", "y/a"],
+          ["w/a", "w/b"],
+          ["w/b", "y/a"],
+          ["y/a", "y/b"],
+          ...Array(5).fill(["y/b", "z/a"]),
+          ["z/a", "z/b"],
+        ],
+      }),
+    line: "  stable-dependencies A: 0 of 4 component dependencies point to a less stable component (0.0%)",
+  },
+  {
+    label: "no dependency between two components",
+    model: () =>
+      service({
+        components: {
+          c1: ["c1/a", "c1/b", "c1/c"],
+          c2: ["c2/a", "c2/b", "c2/c"],
+          c3: ["c3/a", "c3/b"],
+          c4: ["c4/a", "c4/b"],
+        },
+        imports: [
+          ["c1/a", "c1/b"],
+          ["c1/a", "c1/c"],
+          ["c2/a", "c2/b"],
+          ["c2/a", "c2/c"],
+          ["c3/a", "c3/b"],
+          ["c4/a", "c4/b"],
+        ],
+      }),
+    line: "  stable-dependencies n/a: no dependency joins two components",
+  },
+];
+
+for (const row of LAYER_LINES)
+  test(`the build prints dependency-direction and stable-dependencies lines at their boundaries: ${row.label}`, (t) => {
+    assertHasLine(stdoutOf(t, row.model()), row.line);
+  });
+
+// Cycle caps.
+
+// Two containers whose code calls each other through different components, so the containers
+// form a cycle and the components do not.
+function containerCycle() {
+  return {
+    system: { id: "shop", name: "Shop" },
+    containers: [
+      { id: "web", name: "Web" },
+      { id: "api", name: "API" },
+    ],
+    components: [
+      { id: "web.pages", name: "Pages", container: "web" },
+      { id: "web.client", name: "Client", container: "web" },
+      { id: "api.orders", name: "Orders", container: "api" },
+      { id: "api.events", name: "Events", container: "api" },
+    ],
+    code: [
+      { id: "pages/home", name: "home", component: "web.pages" },
+      { id: "pages/cart", name: "cart", component: "web.pages" },
+      { id: "pages/checkout", name: "checkout", component: "web.pages" },
+      { id: "client/http", name: "http", component: "web.client" },
+      { id: "client/socket", name: "socket", component: "web.client" },
+      { id: "orders/routes", name: "routes", component: "api.orders" },
+      { id: "orders/service", name: "service", component: "api.orders" },
+      { id: "orders/repo", name: "repo", component: "api.orders" },
+      { id: "events/publisher", name: "publisher", component: "api.events" },
+      { id: "events/hub", name: "hub", component: "api.events" },
+    ],
+    relationships: [
+      { from: "pages/home", to: "pages/cart" },
+      { from: "pages/cart", to: "pages/checkout" },
+      { from: "pages/checkout", to: "orders/routes" },
+      { from: "orders/routes", to: "orders/service" },
+      { from: "orders/service", to: "orders/repo" },
+      { from: "events/publisher", to: "events/hub" },
+      { from: "events/hub", to: "client/socket" },
+      { from: "client/socket", to: "client/http" },
+    ],
+    architecture: { convention: "React web app and Node API, from the README", answers: allYes() },
+  };
+}
+
+const CAP_LINES = [
+  {
+    label: "a container cycle caps the letter at C",
+    model: containerCycle,
+    caps: ["  cap container-cycle C: a cycle joins containers (cycle-1)"],
+  },
+  {
+    label: "component cycles cap the letter at B",
+    model: () =>
+      layout({
+        components: 6,
+        code: 12,
+        imports: [
+          ["f3", "f1"],
+          ["f9", "f7"],
+        ],
+      }),
+    caps: ["  cap component-cycle B: a cycle joins components (cycle-1, cycle-2)"],
+  },
+  {
+    label: "one cycle that holds exactly half of the components is not tangled",
+    model: () => layout({ components: 6, code: 12, imports: [["f5", "f1"]] }),
+    caps: ["  cap component-cycle B: a cycle joins components (cycle-1)"],
+  },
+  {
+    label: "one cycle that holds one more than half of the components is tangled",
+    model: () => layout({ components: 6, code: 12, imports: [["f7", "f1"]] }),
+    caps: [
+      "  cap component-cycle B: a cycle joins components (cycle-1)",
+      "  cap tangled-components D: cycle-1 holds 4 of 6 components",
+    ],
+  },
+];
+
+for (const row of CAP_LINES)
+  test(`the build prints a cap line for each cycle cap that fires: ${row.label}`, (t) => {
+    assert.deepEqual(capLines(stdoutOf(t, row.model())), row.caps);
+  });
+
+// In each row, `better` has one criterion with more points, or one cap fewer, than `worse`.
+const MONOTONE = [
+  {
+    label: "a measured criterion rises from D to B",
+    better: {
+      criteria: [
+        { weight: 20, points: 300 },
+        { weight: 10, points: 400 },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+    worse: {
+      criteria: [
+        { weight: 20, points: 100 },
+        { weight: 10, points: 400 },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+  },
+  {
+    label: "a judged criterion rises past a letter edge",
+    better: {
+      criteria: [
+        { weight: 10, points: 400 },
+        { weight: 20, points: 300 },
+      ],
+      caps: [],
+    },
+    worse: {
+      criteria: [
+        { weight: 10, points: 266 },
+        { weight: 20, points: 300 },
+      ],
+      caps: [],
+    },
+  },
+  {
+    label: "a criterion rises beside an n/a criterion",
+    better: {
+      criteria: [
+        { weight: 20, points: 400 },
+        { weight: 5, points: null },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+    worse: {
+      criteria: [
+        { weight: 20, points: 300 },
+        { weight: 5, points: null },
+        { weight: 10, points: 200 },
+      ],
+      caps: [],
+    },
+  },
+  {
+    label: "a criterion rises under a C cap",
+    better: {
+      criteria: [
+        { weight: 20, points: 400 },
+        { weight: 10, points: 400 },
+      ],
+      caps: [{ letter: "C" }],
+    },
+    worse: {
+      criteria: [
+        { weight: 20, points: 0 },
+        { weight: 10, points: 400 },
+      ],
+      caps: [{ letter: "C" }],
+    },
+  },
+  {
+    label: "a B cap is added to an A mean",
+    better: { criteria: [{ weight: 20, points: 400 }], caps: [] },
+    worse: { criteria: [{ weight: 20, points: 400 }], caps: [{ letter: "B" }] },
+  },
+  {
+    label: "a D cap is added to an F mean",
+    better: { criteria: [{ weight: 20, points: 0 }], caps: [] },
+    worse: { criteria: [{ weight: 20, points: 0 }], caps: [{ letter: "D" }] },
+  },
+  {
+    label: "a B cap is added beside a C cap",
+    better: { criteria: [{ weight: 20, points: 400 }], caps: [{ letter: "C" }] },
+    worse: { criteria: [{ weight: 20, points: 400 }], caps: [{ letter: "C" }, { letter: "B" }] },
+  },
+];
+
+for (const row of MONOTONE)
+  test(`combine never falls when one criterion's points rise and never rises when a cap is added: ${row.label}`, () => {
+    const better = combine(row.better.criteria, row.better.caps);
+    const worse = combine(row.worse.criteria, row.worse.caps);
+    assert.ok(
+      RANK[better.letter] <= RANK[worse.letter],
+      `better inputs give ${better.letter}, worse inputs give ${worse.letter}`,
+    );
+    assert.ok(
+      better.points >= worse.points,
+      `better inputs give ${better.points} points, worse inputs give ${worse.points}`,
+    );
+  });
+
+test("a back edge that closes a same-layer component cycle never raises the grade", () => {
+  const base = buildViews(domainModel()).grade;
+  const cyclic = buildViews(
+    domainModel({ imports: [["billing/service", "orders/service"]] }),
+  ).grade;
+  assert.equal(base?.letter, "A");
+  assert.ok(RANK[cyclic?.letter] >= RANK.B, `the cyclic model grades ${cyclic?.letter}`);
+});
+
+// Propagation cost and component balance.
+
+const REACH_LINES = [
+  {
+    label: "a chain of 50 code elements reaches (n + 1) / 2n on average",
+    model: () => layout({ components: 4, code: 50 }),
+    line: "  propagation-cost F: a code element reaches 51.0% of the code elements on average",
+  },
+  {
+    label: "49 code elements are below the range",
+    model: () => layout({ components: 4, code: 49 }),
+    line: "  propagation-cost n/a: applies from 50 through 5000 code elements, and the model has 49",
+  },
+  {
+    label: "a chain of 5000 code elements is graded",
+    model: () => layout({ components: 4, code: 5000 }),
+    line: "  propagation-cost F: a code element reaches 50.0% of the code elements on average",
+  },
+  {
+    label: "5001 code elements are above the range",
+    model: () => layout({ components: 4, code: 5001 }),
+    line: "  propagation-cost n/a: applies from 50 through 5000 code elements, and the model has 5001",
+  },
+  {
+    label: "4 components are below the balance minimum",
+    model: () => layout({ components: 4, code: 10 }),
+    line: "  component-balance n/a: applies from 5 components, and the model has 4",
+  },
+  {
+    label: "5 components with the largest at 20% is an A",
+    model: () => layout({ components: 5, code: 10 }),
+    line: "  component-balance A: the largest component holds 2 of 10 code elements (20.0%)",
+  },
+  {
+    label: "the largest component at 30% sits on the B edge",
+    model: () =>
+      service({
+        components: {
+          c1: ["f1", "f2", "f3"],
+          c2: ["f4", "f5"],
+          c3: ["f6", "f7"],
+          c4: ["f8", "f9"],
+          c5: ["f10"],
+        },
+        imports: [
+          ["f1", "f2"],
+          ["f2", "f3"],
+          ["f3", "f4"],
+          ["f4", "f5"],
+          ["f5", "f6"],
+          ["f6", "f7"],
+          ["f7", "f8"],
+          ["f8", "f9"],
+          ["f9", "f10"],
+        ],
+      }),
+    line: "  component-balance B: the largest component holds 3 of 10 code elements (30.0%)",
+  },
+];
+
+for (const row of REACH_LINES)
+  test(`the build prints propagation-cost and component-balance lines at their boundaries: ${row.label}`, (t) => {
+    assertHasLine(stdoutOf(t, row.model()), row.line);
+  });
+
+test("the CLI prints the full grade block for a graded model", (t) => {
+  const dir = scratch(t);
+  const modelPath = join(dir, "c4-model.json");
+  writeFileSync(
+    modelPath,
+    JSON.stringify(
+      domainModel({
+        imports: [["billing/service", "orders/service"]],
+        answers: {
+          ...allYes(),
+          "explicit-contracts": { answer: "n/a", evidence: ["one container"] },
+          "framework-free-core": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+          "core-owns-ports": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+          "rules-in-core": { answer: "n/a", evidence: ["no business core: a CRUD proxy"] },
+          "single-purpose": { answer: "no", evidence: ["billing also renders invoices as HTML"] },
+        },
+      }),
+    ),
+  );
+  const out = join(dir, "site");
+  const result = run(modelPath, out);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    result.stdout,
+    [
+      join(out, "index.html"),
+      "containers: 0 cycle(s)",
+      "components: 1 cycle(s)",
+      "  cycle-1 (2 elements): billing -> orders -> billing",
+      "code: 0 cycle(s)",
+      "grade: B (3.17 of 4)",
+      "  acyclic-components D: 2 of 5 components in a cycle (40.0%)",
+      "  acyclic-code A: 0 of 10 code elements in a cycle (0.0%)",
+      "  dependency-direction A: 0 of 4 cross-layer relationships point outward (0.0%)",
+      "  stable-dependencies A: 0 of 7 component dependencies point to a less stable component (0.0%)",
+      "  propagation-cost n/a: applies from 50 through 5000 code elements, and the model has 10",
+      "  component-balance A: the largest component holds 2 of 10 code elements (20.0%)",
+      "  boundaries A: 2 of 2 answers yes",
+      "  core-isolation n/a: every answer is n/a",
+      "  responsibilities B: 3 of 4 answers yes",
+      "  conventions A: 4 of 4 answers yes",
+      "  cap component-cycle B: a cycle joins components (cycle-1)",
+      "",
+    ].join("\n"),
+  );
+});
+
+// The grade in data.js, which the overview page reads.
+
+// Every value below is worked out by hand from everyMeasure().
+const CRITERION_DATA = [
+  {
+    id: "acyclic-components",
+    name: "Acyclic components",
+    cited: ["A"],
+    evidence: ["billing (cycle-1)", "orders (cycle-1)"],
+  },
+  {
+    id: "acyclic-code",
+    name: "Acyclic code",
+    cited: [],
+    evidence: ["web/01 (cycle-1)", "web/02 (cycle-1)"],
+  },
+  {
+    id: "dependency-direction",
+    name: "Dependency direction",
+    cited: ["A"],
+    evidence: ["audit (data) -> orders (domain): 1"],
+  },
+  {
+    id: "stable-dependencies",
+    name: "Stable dependencies",
+    cited: [],
+    evidence: ["orders -> billing: instability 0.40 to 0.50"],
+  },
+  {
+    id: "propagation-cost",
+    name: "Propagation cost",
+    cited: [],
+    evidence: [
+      "225 of 2500 ordered pairs of code elements are reachable, each element counted as reaching itself",
+    ],
+  },
+  {
+    id: "component-balance",
+    name: "Component balance",
+    cited: [],
+    evidence: ["web: 15 of 50 code elements"],
+  },
+  { id: "boundaries", name: "Boundaries", cited: [], evidence: [] },
+  { id: "core-isolation", name: "Core isolation", cited: [], evidence: [] },
+  { id: "responsibilities", name: "Responsibilities", cited: [], evidence: [] },
+  { id: "conventions", name: "Conventions", cited: [], evidence: [] },
+];
+
+for (const row of CRITERION_DATA)
+  test(`data.js carries each criterion's name, cited band edges, and evidence: ${row.id}`, (t) => {
+    const views = builtData(t, everyMeasure());
+    const criterion = views.grade?.criteria.find((entry) => entry.id === row.id);
+    assert.ok(criterion, `data.js has no grade criterion ${row.id}`);
+    const bands = criterion.bands ?? [];
+    assert.deepEqual(
+      {
+        name: criterion.name,
+        cited: bands.filter((band) => band.citation !== null).map((band) => band.letter),
+        citationsAreNamesOrNull: bands.every(
+          (band) =>
+            band.citation === null || (typeof band.citation === "string" && band.citation !== ""),
+        ),
+        evidence: criterion.evidence,
+      },
+      { name: row.name, cited: row.cited, citationsAreNamesOrNull: true, evidence: row.evidence },
+    );
+  });
+
+// 25 evidence items in reverse order. Code-unit order puts the capitalized names first, and
+// locale order would put them last.
+const UNSORTED_EVIDENCE = Object.freeze([
+  "f23",
+  "f22",
+  "f21",
+  "f20",
+  "f19",
+  "f18",
+  "f17",
+  "f16",
+  "f15",
+  "f14",
+  "f13",
+  "f12",
+  "f11",
+  "f10",
+  "f09",
+  "f08",
+  "f07",
+  "f06",
+  "f05",
+  "f04",
+  "f03",
+  "f02",
+  "f01",
+  "README.md",
+  "Gemfile",
+]);
+
+test("an evidence list over 20 items keeps the first 20 in code-unit order and counts the rest: an answer with 25 evidence items", (t) => {
+  const views = builtData(
+    t,
+    gradedModel({
+      ...allYes(),
+      "rules-checked": { answer: "yes", evidence: [...UNSORTED_EVIDENCE] },
+    }),
+  );
+  const answer = views.grade?.criteria
+    .find((entry) => entry.id === "conventions")
+    ?.answers.find((entry) => entry.id === "rules-checked");
+  assert.deepEqual(
+    { evidence: answer?.evidence, more: answer?.more },
+    {
+      evidence: [
+        "Gemfile",
+        "README.md",
+        "f01",
+        "f02",
+        "f03",
+        "f04",
+        "f05",
+        "f06",
+        "f07",
+        "f08",
+        "f09",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14",
+        "f15",
+        "f16",
+        "f17",
+        "f18",
+      ],
+      more: 5,
+    },
+  );
+});
+
+test("an evidence list over 20 items keeps the first 20 in code-unit order and counts the rest: a measured criterion with 25 items", (t) => {
+  // f1 through f25 form one code-level cycle; f26 through f30 sit outside it.
+  const views = builtData(t, layout({ components: 4, code: 30, imports: [["f25", "f1"]] }));
+  const criterion = views.grade?.criteria.find((entry) => entry.id === "acyclic-code");
+  assert.deepEqual(
+    { evidence: criterion?.evidence, more: criterion?.more },
+    {
+      evidence: [
+        "f1 (cycle-1)",
+        "f10 (cycle-1)",
+        "f11 (cycle-1)",
+        "f12 (cycle-1)",
+        "f13 (cycle-1)",
+        "f14 (cycle-1)",
+        "f15 (cycle-1)",
+        "f16 (cycle-1)",
+        "f17 (cycle-1)",
+        "f18 (cycle-1)",
+        "f19 (cycle-1)",
+        "f2 (cycle-1)",
+        "f20 (cycle-1)",
+        "f21 (cycle-1)",
+        "f22 (cycle-1)",
+        "f23 (cycle-1)",
+        "f24 (cycle-1)",
+        "f25 (cycle-1)",
+        "f3 (cycle-1)",
+        "f4 (cycle-1)",
+      ],
+      more: 5,
+    },
+  );
+});
+
+// The same answers with the keys and every evidence list in reverse order.
+function reordered(answers) {
+  return Object.fromEntries(
+    Object.entries(answers)
+      .reverse()
+      .map(([id, { answer, evidence }]) => [id, { answer, evidence: [...evidence].reverse() }]),
+  );
+}
+
+test("two builds of one model write byte-identical stdout and data.js whatever the order of answers and evidence", (t) => {
+  const answers = {
+    ...allYes(),
+    "public-entry": {
+      answer: "yes",
+      evidence: ["src/orders/index.js", "README.md", "src/billing/index.js"],
+    },
+    "single-purpose": {
+      answer: "no",
+      evidence: ["src/store/repo.js runs SQL and renders HTML", "src/billing/tax.js"],
+    },
+    "docs-match": { answer: "n/a", evidence: ["no docs/ directory", "README.md names no parts"] },
+  };
+  const dir = scratch(t);
+  const out = join(dir, "site");
+  const firstPath = join(dir, "first.json");
+  const secondPath = join(dir, "second.json");
+  writeFileSync(firstPath, JSON.stringify(gradedModel(answers)));
+  writeFileSync(secondPath, JSON.stringify(gradedModel(reordered(answers))));
+  const first = run(firstPath, out);
+  const firstData = readFileSync(join(out, "data.js"), "utf8");
+  const second = run(secondPath, out);
+  const secondData = readFileSync(join(out, "data.js"), "utf8");
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(second.status, 0, second.stderr);
+  assert.match(first.stdout, /\ngrade: [A-F] \(/, "the fixture must be graded");
+  assert.equal(second.stdout, first.stdout);
+  assert.equal(secondData, firstData);
 });

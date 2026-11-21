@@ -19,10 +19,15 @@ and reports every error by its JSON path, such as `code[12].component`.
   "externalSystems": [{ "id": "", "name": "", "technology": "", "description": "" }],
   "containers": [{ "id": "", "name": "", "technology": "", "description": "", "path": "" }],
   "components": [
-    { "id": "", "name": "", "container": "", "technology": "", "description": "", "path": "" }
+    { "id": "", "name": "", "container": "", "technology": "", "description": "", "path": "", "layer": "" }
   ],
   "code": [{ "id": "", "name": "", "component": "", "kind": "", "path": "" }],
-  "relationships": [{ "from": "", "to": "", "label": "", "technology": "" }]
+  "relationships": [{ "from": "", "to": "", "label": "", "technology": "" }],
+  "architecture": {
+    "convention": "",
+    "layers": ["", ""],
+    "answers": { "<question id>": { "answer": "yes", "evidence": [""] } }
+  }
 }
 ```
 
@@ -42,6 +47,11 @@ and reports every error by its JSON path, such as `code[12].component`.
   such as "Reads orders from"; leave it out for a plain import. `technology`
   names the protocol, such as `HTTPS` or `SQL`.
 - Every collection except `system` may be empty or left out.
+- `architecture`: optional. It holds `convention`, `layers`, and `answers`, as
+  [the architecture grade](references/architecture-grade.md) describes.
+  `layers` is optional: two or more distinct names, outermost first.
+- `layer` on a component names one of `architecture.layers`. It is required
+  on every component when `layers` is set, and an error when it is not.
 
 ## How relationships roll up
 
