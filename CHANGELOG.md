@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.113.0] - 2026-11-21
+
 ### Added
 
 - `visualizing-codebases` grades the architecture A to F from evidence in the model (layer rules, dependency cycles, reach, and size), shows the grade and each criterion's evidence on the site, and answers grade requests; say "no grade" to skip it. [#228](https://github.com/bostonaholic/skills/pull/228)
@@ -1371,5 +1373,7 @@
 
 [0.111.1]: https://github.com/bostonaholic/skills/compare/v0.111.0...v0.111.1
 
-[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.112.0...HEAD
 [0.112.0]: https://github.com/bostonaholic/skills/compare/v0.111.1...v0.112.0
+
+[Unreleased]: https://github.com/bostonaholic/skills/compare/v0.113.0...HEAD
+[0.113.0]: https://github.com/bostonaholic/skills/compare/v0.112.0...v0.113.0
