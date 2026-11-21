@@ -41,7 +41,8 @@ to find skills the current models no longer need.
    - `hillclimbing`: 18/18 with, 18/18 without. Rests on the `trigger` and
      `guard` cases only; its `core` case is `bash` and was not run.
    - `testing-behavior-not-implementation`: 9/9 with, 9/9 without. Rests on
-     the `core` case only; `trigger` and `guard` are `bash`.
+     the `guard` case only, a near miss that shows nothing about need;
+     `core` and `trigger` are `bash` and were not run.
 2. Fewer passes with the skill than without it on Fable, both `FIX-CASE`:
    `simplifying-ruby-code` 5/9 against 6/9, and `writing-commit-messages`
    3/6 against 5/6.
