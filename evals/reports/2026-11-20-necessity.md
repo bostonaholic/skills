@@ -5,7 +5,8 @@ to find skills the current models no longer need.
 
 ## Setup
 
-- Eval cases from commit `1e9d6ea`; scripts from `3dffac9`.
+- Eval cases from commit `1e9d6ea`. Scored with the report script as of this
+  record, which ignores the `fired` grader when deciding a run passed.
 - Claude Code 2.1.325, judge `haiku`, `--runs 3` per invocation.
 - Reference model `sonnet`; target model `claude-fable-5-2`.
 - Fable hit the account's weekly limit twice (2026-11-17). Runs cut off by
@@ -28,8 +29,8 @@ to find skills the current models no longer need.
 
 | Model            | NEEDED | FIX-CASE | NO-GAIN | UNCLEAR |
 | ---------------- | ------ | -------- | ------- | ------- |
-| sonnet           | 33     | 21       | 0       | 6       |
-| claude-fable-5-2 | 45     | 12       | 2       | 1       |
+| sonnet           | 32     | 21       | 0       | 7       |
+| claude-fable-5-2 | 44     | 12       | 2       | 2       |
 
 `sonnet` has no `NO-GAIN` because each of its cases has 3 runs per arm, and
 `NO-GAIN` needs 9.
@@ -47,7 +48,10 @@ to find skills the current models no longer need.
 3. `scripting-the-work` is `NEEDED` on Fable (22/27 against 9/27) while its
    `fired` grader passed 0/18. The without-arm removes the whole plugin, so
    the gain may come from another skill.
-4. `merging-dependabot-prs` stays `UNCLEAR` on Fable at 26/27 against 24/27.
+4. `UNCLEAR` on Fable: `merging-dependabot-prs` (26/27 against 24/27) and
+   `writing-prose` (9/9 against 8/9). `writing-prose` read as `NEEDED` until
+   the report stopped counting `fired` graders scored in both arms, which no
+   without-arm run can pass.
 5. `FIX-CASE` on Fable, the with-arm failing its own case:
    `conducting-deep-research`, `cutting-skills`, `diagnosing-react-code`,
    `explaining-architecture`, `improving-codebases`, `opening-prs`,
@@ -75,15 +79,15 @@ auditing-tests claude-fable-5-2 NEEDED with 9/9 without 3/9 fired 6/6 cost $1.28
 being-extremely-fucking-brief sonnet NEEDED with 8/9 without 3/9 fired 5/6 cost $0.0807 $0.0542 +49%
 being-extremely-fucking-brief claude-fable-5-2 NEEDED with 9/9 without 3/9 fired 6/6 cost $0.3419 $0.2261 +51.2%
 capturing-screenshots sonnet NEEDED with 9/9 without 3/9 fired 6/6 cost $0.0848 $0.0514 +64.9%
-capturing-screenshots claude-fable-5-2 NEEDED with 9/9 without 3/9 fired 6/6 cost $1.0376 $0.6572 +57.9%
+capturing-screenshots claude-fable-5-2 NEEDED with 9/9 without 4/9 fired 6/6 cost $1.0376 $0.6572 +57.9%
 choosing-determinism sonnet FIX-CASE with 5/9 without 4/9 fired 3/6 cost $0.0676 $0.0324 +108.4%
 choosing-determinism claude-fable-5-2 NEEDED with 8/9 without 4/9 fired 6/6 cost $0.3599 $0.1579 +127.9%
 composing-agent-prompts sonnet NEEDED with 8/9 without 3/9 fired 6/6 cost $0.0873 $0.0530 +64.6%
 composing-agent-prompts claude-fable-5-2 NEEDED with 7/9 without 3/9 fired 6/6 cost $0.5779 $0.5188 +11.4%
-conducting-deep-research sonnet NEEDED with 6/9 without 3/9 fired 6/6 cost $0.1960 $0.0395 +396.3%
+conducting-deep-research sonnet FIX-CASE with 6/9 without 6/9 fired 6/6 cost $0.1960 $0.0395 +396.3%
 conducting-deep-research claude-fable-5-2 FIX-CASE with 3/6 without 3/8 fired 3/3 cost $4.2886 $0.3583 +1096.9%
-configuring-zsh sonnet NEEDED with 9/9 without 0/9 fired 6/6 cost $0.0779 $0.0381 +104.7%
-configuring-zsh claude-fable-5-2 NEEDED with 9/9 without 0/9 fired 6/6 cost $0.4665 $0.2657 +75.6%
+configuring-zsh sonnet NEEDED with 9/9 without 3/9 fired 6/6 cost $0.0779 $0.0381 +104.7%
+configuring-zsh claude-fable-5-2 NEEDED with 9/9 without 3/9 fired 6/6 cost $0.4665 $0.2657 +75.6%
 cutting-skills sonnet FIX-CASE with 3/6 without 3/6 fired 0/3 cost $0.0650 $0.0324 +100.6%
 cutting-skills claude-fable-5-2 FIX-CASE with 4/6 without 3/6 fired 3/3 cost $0.3118 $0.1536 +103%
 defining-problems sonnet UNCLEAR with 8/9 without 4/9 fired 6/6 cost $0.0714 $0.0307 +132.4%
@@ -94,8 +98,8 @@ drawing-mermaid-diagrams sonnet FIX-CASE with 6/9 without 6/9 fired 3/6 cost $0.
 drawing-mermaid-diagrams claude-fable-5-2 NEEDED with 9/9 without 6/9 fired 6/6 cost $0.2839 $0.1251 +126.9%
 explaining-architecture sonnet FIX-CASE with 3/9 without 3/9 fired 0/6 cost $0.0816 $0.0472 +72.9%
 explaining-architecture claude-fable-5-2 FIX-CASE with 5/9 without 3/9 fired 6/6 cost $0.3935 $0.2239 +75.8%
-explaining-code sonnet FIX-CASE with 4/9 without 3/9 fired 6/6 cost $0.0688 $0.0348 +97.6%
-explaining-code claude-fable-5-2 NEEDED with 6/9 without 3/9 fired 6/6 cost $0.2945 $0.1864 +57.9%
+explaining-code sonnet FIX-CASE with 4/9 without 4/9 fired 6/6 cost $0.0688 $0.0348 +97.6%
+explaining-code claude-fable-5-2 NEEDED with 6/9 without 5/9 fired 6/6 cost $0.2945 $0.1864 +57.9%
 freeing-disk-space sonnet NEEDED with 5/9 without 1/9 fired 6/6 cost $0.0990 $0.0545 +81.8%
 freeing-disk-space claude-fable-5-2 NEEDED with 9/9 without 0/9 fired 6/6 cost $0.4523 $0.2809 +61%
 grooming-backlogs sonnet NEEDED with 6/9 without 1/9 fired 6/6 cost $0.1444 $0.0467 +209%
@@ -140,14 +144,14 @@ reviewing-security sonnet FIX-CASE with 6/12 without 3/12 fired 9/9 cost $0.1566
 reviewing-security claude-fable-5-2 NEEDED with 9/12 without 3/12 fired 9/9 cost $0.5463 $0.1833 +198.1%
 scripting-the-work sonnet NEEDED with 8/9 without 3/9 fired 0/6 cost $0.0679 $0.0330 +105.6%
 scripting-the-work claude-fable-5-2 NEEDED with 22/27 without 9/27 fired 0/18 cost $0.4030 $0.2173 +85.5%
-simplifying-ruby-code sonnet UNCLEAR with 8/9 without 6/9 fired 3/6 cost $0.0793 $0.0375 +111.4%
-simplifying-ruby-code claude-fable-5-2 FIX-CASE with 5/9 without 6/9 fired 6/6 cost $0.8451 $0.3205 +163.6%
+simplifying-ruby-code sonnet UNCLEAR with 8/9 without 8/9 fired 3/6 cost $0.0793 $0.0375 +111.4%
+simplifying-ruby-code claude-fable-5-2 FIX-CASE with 5/9 without 9/9 fired 6/6 cost $0.8451 $0.3205 +163.6%
 stacking-prs sonnet FIX-CASE with 0/9 without 1/9 fired 6/6 cost $0.0851 $0.0371 +129.2%
 stacking-prs claude-fable-5-2 FIX-CASE with 0/9 without 0/9 fired 6/6 cost $0.4981 $0.2416 +106.2%
 summarizing-friction-logs sonnet NEEDED with 9/9 without 3/9 fired 6/6 cost $0.0897 $0.0446 +101.1%
 summarizing-friction-logs claude-fable-5-2 NEEDED with 9/9 without 4/9 fired 6/6 cost $0.3668 $0.2286 +60.4%
-summarizing-shipped-work sonnet NEEDED with 6/9 without 0/9 fired 6/6 cost $0.0898 $0.0465 +93%
-summarizing-shipped-work claude-fable-5-2 NEEDED with 8/9 without 0/9 fired 6/6 cost $0.3982 $0.2579 +54.4%
+summarizing-shipped-work sonnet NEEDED with 6/9 without 2/9 fired 6/6 cost $0.0898 $0.0465 +93%
+summarizing-shipped-work claude-fable-5-2 NEEDED with 8/9 without 1/9 fired 6/6 cost $0.3982 $0.2579 +54.4%
 testing-behavior-not-implementation sonnet UNCLEAR with 3/3 without 3/3 fired - cost $0.0611 $0.0274 +122.9%
 testing-behavior-not-implementation claude-fable-5-2 NO-GAIN with 9/9 without 9/9 fired - cost $0.2648 $0.1286 +105.9%
 testing-the-premise sonnet NEEDED with 6/9 without 3/9 fired 0/6 cost $0.0648 $0.0319 +103.4%
@@ -172,8 +176,8 @@ writing-no-comments sonnet UNCLEAR with 5/6 without 5/6 fired 2/3 cost $0.0692 $
 writing-no-comments claude-fable-5-2 NEEDED with 6/6 without 3/6 fired 3/3 cost $0.8750 $0.4691 +86.5%
 writing-playbooks sonnet NEEDED with 7/9 without 2/9 fired 3/3 cost $0.1497 $0.0699 +114.3%
 writing-playbooks claude-fable-5-2 FIX-CASE with 6/9 without 3/9 fired 3/3 cost $0.7699 $0.6439 +19.6%
-writing-prose sonnet FIX-CASE with 7/9 without 6/9 fired 4/6 cost $0.0696 $0.0305 +128.4%
-writing-prose claude-fable-5-2 NEEDED with 9/9 without 6/9 fired 6/6 cost $0.3136 $0.1536 +104.1%
+writing-prose sonnet UNCLEAR with 8/9 without 9/9 fired 4/6 cost $0.0696 $0.0305 +128.4%
+writing-prose claude-fable-5-2 UNCLEAR with 9/9 without 8/9 fired 6/6 cost $0.3136 $0.1536 +104.1%
 writing-system-prompts sonnet NEEDED with 8/9 without 3/9 fired 6/6 cost $0.0841 $0.0393 +114.2%
 writing-system-prompts claude-fable-5-2 NEEDED with 9/9 without 3/9 fired 6/6 cost $0.4152 $0.2246 +84.8%
 writing-technical-design-docs sonnet NEEDED with 8/9 without 3/9 fired 6/6 cost $0.3022 $0.0590 +411.9%

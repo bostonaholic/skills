@@ -196,6 +196,34 @@ test("with two models, NO-GAIN on the last is OBSOLETE when another model needed
   assert.match(stdout, /^iota opus UNPROVEN$/m);
 });
 
+test("a fired grader scored in both arms decides no run", (t) => {
+  // arm: both scores fired in the without-arm too, where no plugin can fire.
+  const scoredFired = (firedPassed) => ({
+    passed: true,
+    costUsd: 0.02,
+    error: null,
+    graders: [
+      { name: "core-rule", passed: true, scored: true, withOnly: false },
+      { name: "fired", passed: firedPassed, scored: true, withOnly: false },
+    ],
+  });
+  const file = writeResult(
+    scratch(t),
+    aggregate("sonnet", [
+      evalCase(
+        "lambda",
+        "trigger",
+        Array.from({ length: 9 }, () => scoredFired(true)),
+        Array.from({ length: 9 }, () => scoredFired(false)),
+      ),
+    ]),
+  );
+  assert.match(
+    lineFor(necessity(file).stdout, "lambda"),
+    /^lambda sonnet NO-GAIN with 9\/9 without 9\/9 fired 9\/9 /,
+  );
+});
+
 test("calibration cases count toward no skill", (t) => {
   const file = writeResult(
     scratch(t),

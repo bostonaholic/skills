@@ -7,7 +7,8 @@
 // evals/<category>/<skill>/<case>. Calibration cases (*-calibrate-good, *-calibrate-bad) check a
 // rubric, not the skill, and are skipped. Runs count as in scripts/eval-verdict.mjs: a run with
 // skippedPaidGraders true or an error or grader explanation naming a limit is excluded, and a counted
-// run passes when it ended without an error and every grader passed or was unscored.
+// run passes when it ended without an error and every grader other than `fired` passed or was
+// unscored. `fired` checks that the skill loaded, which no without-arm run can do.
 // Case rule, with w/n with-arm and o/m without-arm passing runs:
 // - gain: a one-sided Fisher exact test of with over without gives p <= 0.05. At 3 runs per arm
 //   only 3/3 against 0/3 qualifies.
@@ -39,7 +40,6 @@ import {
   isExcluded,
   isObject,
   readResult,
-  runPasses,
 } from "./eval-verdict.mjs";
 
 const USAGE = "usage: node scripts/eval-necessity.mjs <aggregate-result.json>...";
@@ -147,6 +147,17 @@ export function pool(documents) {
   return models;
 }
 
+// A run passes as in eval-verdict.mjs runPasses, except that the `fired` grader decides nothing:
+// scored in both arms (arm: both), it fails every without-arm run, where no plugin is loaded.
+function passesIgnoringFired(run) {
+  return (
+    endedClean(run) &&
+    run.graders
+      .filter((grader) => grader.name !== "fired")
+      .every((grader) => grader.scored === false || grader.passed === true)
+  );
+}
+
 function firedPassed(run) {
   return run.graders?.find((grader) => grader.name === "fired")?.passed === true;
 }
@@ -182,9 +193,9 @@ export function judgeModel(model, byCase) {
     const cases = bySkill.get(skill);
     const classes = cases.map((c) =>
       classifyCase({
-        w: c.with.filter(runPasses).length,
+        w: c.with.filter(passesIgnoringFired).length,
         n: c.with.length,
-        o: c.without.filter(runPasses).length,
+        o: c.without.filter(passesIgnoringFired).length,
         m: c.without.length,
       }),
     );
@@ -203,8 +214,8 @@ export function judgeModel(model, byCase) {
       skill,
       model,
       verdict,
-      `with ${withRuns.filter(runPasses).length}/${withRuns.length}`,
-      `without ${withoutRuns.filter(runPasses).length}/${withoutRuns.length}`,
+      `with ${withRuns.filter(passesIgnoringFired).length}/${withRuns.length}`,
+      `without ${withoutRuns.filter(passesIgnoringFired).length}/${withoutRuns.length}`,
       `fired ${fired}`,
       `cost ${money(withCost)} ${money(withoutCost)} ${costDelta(withCost, withoutCost)}`,
     ].join(" ");
