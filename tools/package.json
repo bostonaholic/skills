@@ -2,8 +2,8 @@
   "name": "bostonaholic-skills-tools",
   "private": true,
   "devDependencies": {
-    "markdownlint-cli2": "0.24.1",
-    "oxfmt": "0.78.0",
-    "oxlint": "1.93.0"
+    "markdownlint-cli2": "0.24.2",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0"
   }
 }
