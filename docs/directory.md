@@ -125,9 +125,10 @@ Validate reports these results, and none stops submission.
   Warning does not stop submission or hold a version for a reviewer.
 
 Keep the symlink. Do not replace it with a regular file to clear the Warning. A
-regular root `CLAUDE.md` fails both strict validate commands, which `AGENTS.md`
-rule 2 requires. With a regular `CLAUDE.md` that holds `@AGENTS.md`, each strict
-validate command prints these lines, with README advice before the last line:
+regular root `CLAUDE.md` fails both strict validate commands, which the `plugin`
+job in `.github/workflows/lint.yml` runs. With a regular `CLAUDE.md` that holds
+`@AGENTS.md`, each strict validate command prints these lines, with README
+advice before the last line:
 
 ```text
 ⚠ Found 1 warning:
@@ -211,4 +212,4 @@ For a Blocking finding in a file the plugin loads:
 The security scan reads the README section "What the skills run and send". A PR
 that changes a shipped skill's commands, network destinations, uploads, or
 writes outside the working repository updates that section before it merges
-(`AGENTS.md` rule 13).
+(`AGENTS.md` rule 9).

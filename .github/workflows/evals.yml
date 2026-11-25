@@ -1,5 +1,5 @@
 # Evals: agent-behavior cases in evals/, run through `npm run eval` so the eval entry points'
-# npm-only guard and AGENTS.md rule 11 hold.
+# npm-only guard holds.
 #
 # - pull_request: the cases scripts/select-evals.mjs picks from the changed paths, at --runs 1.
 #   Non-blocking until pass rates are known.
