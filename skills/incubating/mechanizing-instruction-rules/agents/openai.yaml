@@ -1,6 +1,0 @@
-interface:
-  display_name: "Mechanizing Instruction Rules"
-  short_description: "Move checkable instruction-file rules into hooks, lint, and tests"
-  default_prompt: "Use $mechanizing-instruction-rules to move the checkable rules in AGENTS.md into checks."
-policy:
-  allow_implicit_invocation: false
