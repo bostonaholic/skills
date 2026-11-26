@@ -17,7 +17,7 @@ Read this when `update.mjs` exits 1 or 4, or prints a `Blocked` or `left:` line.
 | 0    | Plan printed, or every step ran                 | Verify with a second plan                             |
 | 1    | A step failed, or the release could not be read | Report the tool's stderr; fix the cause, then re-plan |
 | 2    | Usage: bad arguments or a malformed plan id     | Pass `plan`, or `apply` with the 40-hex `Plan id`     |
-| 3    | The plan changed since it was confirmed         | Run the plan again and confirm again                  |
+| 3    | The plan changed since it was printed           | Run the plan again and apply its new id               |
 | 4    | The plan is blocked                             | Resolve each `Blocked` line, then re-plan             |
 
 ## Blockers
@@ -48,7 +48,7 @@ Nothing runs while any blocker stands, in any harness.
 
 A step that fails stops the run. The script prints the tool's stderr, then the
 failed step and each step not run. Earlier steps stay applied. Fix the cause,
-run the plan again, and confirm the new plan id; a completed step no longer
+run the plan again, and apply the new plan id; a completed step no longer
 appears in it.
 
 ## Left lines
