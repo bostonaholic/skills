@@ -91,6 +91,15 @@ const ROWS = [
     exit: 2,
     target: "skills/engineering/landing-prs/SKILL.md",
   },
+  // mining-ideas
+  {
+    label: "gather.sh",
+    script: "skills/incubating/mining-ideas/scripts/gather.sh",
+    interpreter: "bash",
+    args: none,
+    exit: 64,
+    target: "skills/incubating/mining-ideas/SKILL.md",
+  },
   // opening-prs
   {
     label: "opening-prs preflight.mjs usage",

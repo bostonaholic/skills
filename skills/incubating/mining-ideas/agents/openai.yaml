@@ -1,0 +1,6 @@
+interface:
+  display_name: "Mining Ideas"
+  short_description: "Mine a week of activity into a ranked ledger of things to build"
+  default_prompt: "Use $mining-ideas to update the idea ledger from this week's notes, memory, prompts, and commits."
+policy:
+  allow_implicit_invocation: false
