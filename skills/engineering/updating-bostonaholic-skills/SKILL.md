@@ -6,8 +6,7 @@ disable-model-invocation: true
 
 # Updating bostonaholic skills
 
-Brings each existing install up to the latest release. Invoking the skill is
-the user's approval: never ask before applying the plan.
+Brings each existing install up to the latest release.
 It never installs into a harness that lacks the collection, and never adds a
 skill to a copy directory that did not hold it.
 
@@ -16,7 +15,7 @@ skill to a copy directory that did not hold it.
 
 ## Rules
 
-- **Apply only the planned id.** A changed plan exits 3 and runs nothing.
+- **Never ask.** Invoking the skill is the approval.
 - **Stop at blockers.** Exit 4 means a harness needs the user's action first.
 - **Never delete a skill without a backup.** A retired copy moves to the
   backup directory; an unrecognized copy is only reported.
@@ -41,10 +40,7 @@ skill to a copy directory that did not hold it.
   - Exit 4: report each `Blocked` line, say what
     [blockers and failures](references/blockers-and-failures.md) advises, stop.
   - `Nothing to do.`: report the `left:` lines and stop.
-- Run `node "<skill-dir>/scripts/update.mjs" apply <plan-id>` with that plan's
-  `Plan id` at once. Run `apply` with `DRY_RUN=true` first only when the user
-  asked for a dry run.
-  - Exit 3: the machine changed; run the plan again and apply its new id.
+- Run `node "<skill-dir>/scripts/update.mjs" apply <plan-id>` with its `Plan id`.
   - Exit 1: it names the failed step and the steps not run; report the stderr
     and what the reference advises, and do not retry blindly.
 - Run the plan again and expect `Nothing to do.`. A Claude Code or Codex step
