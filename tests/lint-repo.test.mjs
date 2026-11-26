@@ -1,7 +1,7 @@
 // Exercises scripts/lint-repo.mjs against temporary fixture repositories. Fails when a compliant
-// repository gets a report, when a changelog bullet without a matching PR link (rule 7), an em
-// dash in repo-level prose (rule 10), or a package script or workflow line that runs the eval
-// suite outside the eval and eval:handoff npm scripts (rule 11) goes unreported, or when an
+// repository gets a report, when a changelog bullet without a matching PR link, or a package
+// script or workflow line that runs the eval suite outside the eval and eval:handoff npm scripts,
+// goes unreported, or when an
 // argument or a missing package.json does not exit non-zero.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -68,8 +68,8 @@ test("lint-repo passes a compliant repository with no output", (t) => {
   assert.deepEqual(run, { status: 0, output: "" });
 });
 
-test("lint-repo reports each violation as path: rule N line L", async (t) => {
-  const summary = '1 problem(s). See AGENTS.md "Rules for changes".\n';
+test("lint-repo reports each violation as path: line L", async (t) => {
+  const summary = "1 problem(s).\n";
 
   await t.test("a #NNN bullet", (t) => {
     const run = runLintRepo(
@@ -81,7 +81,7 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     assert.equal(run.status, 1, run.output);
     assert.equal(
       run.output,
-      `CHANGELOG.md: rule 7 line 5: end the bullet with [#NNN](https://github.com/bostonaholic/skills/pull/NNN), the PR number in both places\n${summary}`,
+      `CHANGELOG.md: line 5: end the bullet with [#NNN](https://github.com/bostonaholic/skills/pull/NNN), the PR number in both places\n${summary}`,
     );
   });
 
@@ -95,7 +95,7 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     assert.equal(run.status, 1, run.output);
     assert.equal(
       run.output,
-      `CHANGELOG.md: rule 7 line 5: end the bullet with [#NNN](https://github.com/bostonaholic/skills/pull/NNN), the PR number in both places\n${summary}`,
+      `CHANGELOG.md: line 5: end the bullet with [#NNN](https://github.com/bostonaholic/skills/pull/NNN), the PR number in both places\n${summary}`,
     );
   });
 
@@ -104,7 +104,7 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     delete files["CHANGELOG.md"];
     const run = runLintRepo(t, files);
     assert.equal(run.status, 1, run.output);
-    assert.equal(run.output, `CHANGELOG.md: rule 7: not tracked\n${summary}`);
+    assert.equal(run.output, `CHANGELOG.md: not tracked\n${summary}`);
   });
 
   // packageJson puts the first script key on line 5.
@@ -118,7 +118,7 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     assert.equal(run.status, 1, run.output);
     assert.equal(
       run.output,
-      `package.json: rule 11 line 5: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
+      `package.json: line 5: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
     );
   });
 
@@ -132,7 +132,7 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     assert.equal(run.status, 1, run.output);
     assert.equal(
       run.output,
-      `package.json: rule 11 line 5: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
+      `package.json: line 5: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
     );
   });
 
@@ -147,7 +147,7 @@ test("lint-repo reports each violation as path: rule N line L", async (t) => {
     assert.equal(run.status, 1, run.output);
     assert.equal(
       run.output,
-      `.github/workflows/nightly.yaml: rule 11 line 7: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
+      `.github/workflows/nightly.yaml: line 7: only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)\n${summary}`,
     );
   });
   await t.test("a workflow line that runs npm run eval passes", (t) => {

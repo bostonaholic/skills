@@ -44,9 +44,9 @@ function runCheck(t, { template = TEMPLATE, body, args = [] }) {
 test("check-pr-body judges a body against a synthetic template", async (t) => {
   const pass = { status: 0, stdout: "", stderr: "" };
   const noHeading =
-    'PR body: rule 13 has no "## Pre-merge" heading\nCopy the section from .github/pull_request_template.md.\n';
+    'PR body: the body has no "## Pre-merge" heading\nCopy the section from .github/pull_request_template.md.\n';
   const noItem =
-    'PR body: rule 13 "## Pre-merge" has no "- [ ] Widget docs match" item\nCopy the section from .github/pull_request_template.md.\n';
+    'PR body: "## Pre-merge" has no "- [ ] Widget docs match" item\nCopy the section from .github/pull_request_template.md.\n';
 
   await t.test("the template text itself passes", (t) => {
     assert.deepEqual(runCheck(t, { body: TEMPLATE }), pass);
@@ -126,13 +126,13 @@ test("check-pr-body exits 1 on a template it cannot use or an argument", async (
     const template = "## Pre-merge\n\nNo checklist yet.\n\n## Notes\n\n- [ ] Widget docs match\n";
     const run = runCheck(t, { template, body });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^PR body: rule 13 [^\n]*\.github\/pull_request_template\.md/);
+    assert.match(run.stderr, /^PR body: [^\n]*\.github\/pull_request_template\.md/);
   });
 
   await t.test("a missing template", (t) => {
     const run = runCheck(t, { template: null, body });
     assert.equal(run.status, 1, run.stderr);
-    assert.match(run.stderr, /^PR body: rule 13 cannot read \.github\/pull_request_template\.md$/m);
+    assert.match(run.stderr, /^PR body: cannot read \.github\/pull_request_template\.md$/m);
   });
 
   await t.test("an argument", (t) => {

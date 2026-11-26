@@ -1,7 +1,7 @@
 // Exercises scripts/sync-shared.mjs against the repository and temporary fixtures.
 // Checks synchronization, missing inputs, drift detection, and stale-copy removal. Also fails when
 // a root shared/ file has exactly one active-skill reader and SINGLE_READER does not name it, or
-// when a SINGLE_READER entry no longer has exactly one reader (AGENTS.md rule 6).
+// when a SINGLE_READER entry no longer has exactly one reader.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -113,13 +113,13 @@ test("every root shared/ file has more than one reader unless SINGLE_READER name
     .filter((path) => readerNames(path).length === 1 && !(path in SINGLE_READER))
     .map(
       (path) =>
-        `AGENTS.md rule 6: ${path} has one reader (${readerNames(path)[0]}). Move it to that skill's references/, or add it to SINGLE_READER with a reason`,
+        `${path} has one reader (${readerNames(path)[0]}). Move it to that skill's references/, or add it to SINGLE_READER with a reason`,
     );
   const stale = Object.keys(SINGLE_READER)
     .filter((path) => readerNames(path).length !== 1)
     .map(
       (path) =>
-        `AGENTS.md rule 6: SINGLE_READER names ${path}, which has ${readerNames(path).length} readers. Delete its entry.`,
+        `SINGLE_READER names ${path}, which has ${readerNames(path).length} readers. Delete its entry.`,
     );
   assert.deepEqual([...singles, ...stale], []);
 });

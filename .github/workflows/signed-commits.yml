@@ -1,0 +1,33 @@
+name: Signed commits
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: signed-commits-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  signed:
+    name: Every commit is signed and verified
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: List unverified commits
+        run: |
+          set -euo pipefail
+          unverified=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/commits" \
+            --jq '.[] | select(.commit.verification.verified | not) | "\(.sha[0:12]) \(.commit.verification.reason)"')
+          if [ -n "$unverified" ]; then
+            printf 'Unverified commits (sign them; see docs/versioning.md#signing):\n%s\n' "$unverified"
+            exit 1
+          fi

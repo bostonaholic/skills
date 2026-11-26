@@ -19,4 +19,5 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - run: npm test
+      # npm test stays under 90 s in CI; a new test that breaks the budget replaces an old one.
+      - run: timeout 90 npm test

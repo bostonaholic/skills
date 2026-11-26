@@ -183,7 +183,11 @@ test("catalog rejects ambiguous command names across categories", (t) => {
 test("the committed README generated block equals renderReadme(loadCatalog())", async () => {
   const { loadCatalog, renderReadme } = await catalogModule();
   const readme = readFileSync(join(REPO, "README.md"), "utf8");
-  assert.equal(generatedBlock(readme), renderReadme(await loadCatalog()));
+  assert.equal(
+    generatedBlock(readme),
+    renderReadme(await loadCatalog()),
+    "README.md: the generated block is stale. Run npm run readme.",
+  );
 });
 
 // ---------------------------------------------------------------------------------------------

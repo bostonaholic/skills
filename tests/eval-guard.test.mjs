@@ -1,5 +1,5 @@
 // Fails when an eval entry point starts claude outside its own npm script, so npm test or CI
-// would spend money (AGENTS.md rule 11). A claude stub first on PATH logs each call; a guard that
+// would spend money. A claude stub first on PATH logs each call; a guard that
 // lets a run through reaches the stub, never the real claude.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
