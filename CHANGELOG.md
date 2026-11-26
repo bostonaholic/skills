@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `updating-bostonaholic-skills` applies its plan without asking first; invoking the skill is the approval. [#236](https://github.com/bostonaholic/skills/pull/236)
+
 ## [0.114.0] - 2026-11-21
 
 ### Fixed
