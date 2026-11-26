@@ -984,7 +984,7 @@ async function main(args) {
   }
   if (process.env.npm_lifecycle_event !== NPM_SCRIPT)
     throw new UsageError(
-      `start claude only through npm run ${NPM_SCRIPT}, never from npm test (AGENTS.md rule 11). --dry-run and --help run anywhere.`,
+      `start claude only through npm run ${NPM_SCRIPT}, never from npm test. --dry-run and --help run anywhere.`,
     );
   return runHandoff({
     options,

@@ -83,7 +83,7 @@ const XML_TAG = /<\/?[A-Za-z][^>]*>/;
 const BUNDLED_MARKDOWN = /^(?:references\/.+|shared\/[^/]+)\.md$/;
 // The fallback for harnesses with no Skill tool, which every skill that calls another links.
 const SKILL_CALL_RULES = "shared/skill-calls.md";
-// Subagents pin a tier alias, so a model update reaches them without an edit (rule 12).
+// Subagents pin a tier alias, so a model update reaches them without an edit.
 const MODEL_ALIASES = new Set(["opus", "sonnet", "haiku"]);
 // Claude Code tools that change files. Cursor ignores `tools`, so a subagent with none of these
 // must also set readonly: true; S2's message lists them so a new write tool is easy to spot.

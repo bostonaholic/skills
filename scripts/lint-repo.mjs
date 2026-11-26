@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// Checks the repository-level rules in AGENTS.md "Rules for changes" that a script can read, and
-// prints one `path: rule N line L: message` line per violation.
+// Checks the repository-level rules a script can read, and prints one `path: line L: message` line
+// per violation.
 //   node scripts/lint-repo.mjs  exit 1 when any rule breaks, 0 when all pass
-// Rules: 7 every CHANGELOG.md bullet ends with a PR link whose label and URL carry the same
-// number; 11 only the EVAL_SCRIPTS npm scripts run the eval suite, in package.json scripts, and a
-// .github/workflows/*.yml or *.yaml line starts evals only through those npm scripts. Acts on the git repository at the working directory;
-// files come from `git ls-files`. A missing or invalid package.json throws.
+// Rules: every CHANGELOG.md bullet ends with a PR link whose label and URL carry the same number;
+// only the EVAL_SCRIPTS npm scripts run the eval suite, in package.json scripts, and a
+// .github/workflows/*.yml or *.yaml line starts evals only through those npm scripts. Acts on the
+// git repository at the working directory; files come from `git ls-files`. A missing or invalid
+// package.json throws.
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename } from "node:path";
@@ -35,9 +36,9 @@ function lsFiles(...pathspecs) {
     .filter(Boolean);
 }
 
-// Rule 7. A bullet runs from its `- ` line through the indented lines that continue it.
+// A bullet runs from its `- ` line through the indented lines that continue it.
 function checkChangelog(tracked, report) {
-  if (!tracked.includes("CHANGELOG.md")) return report("CHANGELOG.md: rule 7: not tracked");
+  if (!tracked.includes("CHANGELOG.md")) return report("CHANGELOG.md: not tracked");
   const lines = readFileSync("CHANGELOG.md", "utf8").split(/\r?\n/);
   lines.forEach((line, index) => {
     if (!BULLET.test(line)) return;
@@ -49,12 +50,12 @@ function checkChangelog(tracked, report) {
     }
     if (!PR_LINK_END.test(parts.join(" ")))
       report(
-        `CHANGELOG.md: rule 7 line ${index + 1}: end the bullet with [#NNN](${REPO_URL}/pull/NNN), the PR number in both places`,
+        `CHANGELOG.md: line ${index + 1}: end the bullet with [#NNN](${REPO_URL}/pull/NNN), the PR number in both places`,
       );
   });
 }
 
-// Rule 11. A paid eval run may start only through the npm eval scripts.
+// A paid eval run may start only through the npm eval scripts.
 function checkEvalRuns(tracked, report) {
   const message =
     "only the eval and eval:handoff npm scripts may run the eval suite (EVAL_SCRIPTS)";
@@ -68,18 +69,18 @@ function checkEvalRuns(tracked, report) {
     const index = lines.findIndex(
       (line, at) => at > scriptsLine && line.trimStart().startsWith(key),
     );
-    report(`package.json: rule 11 line ${index + 1}: ${message}`);
+    report(`package.json: line ${index + 1}: ${message}`);
   }
   for (const path of tracked.filter((file) => WORKFLOW.test(file))) {
     readFileSync(path, "utf8")
       .split(/\r?\n/)
       .forEach((line, index) => {
-        if (DIRECT_EVAL_START.test(line)) report(`${path}: rule 11 line ${index + 1}: ${message}`);
+        if (DIRECT_EVAL_START.test(line)) report(`${path}: line ${index + 1}: ${message}`);
       });
   }
 }
 
-// Returns every violation as "path: rule N line L: message".
+// Returns every violation as "path: line L: message".
 export function lintRepo() {
   const problems = [];
   const report = (line) => problems.push(line);
@@ -97,9 +98,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
   }
   const problems = lintRepo();
   if (problems.length) {
-    console.error(
-      `${problems.join("\n")}\n${problems.length} problem(s). See AGENTS.md "Rules for changes".`,
-    );
+    console.error(`${problems.join("\n")}\n${problems.length} problem(s).`);
     process.exit(1);
   }
 }
