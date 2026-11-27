@@ -143,12 +143,18 @@ while IFS=$'\x1f' read -r path head branch locked prunable; do
     read -r merged unpushed < <(judge "$head" --search "$head")
   fi
   action=delete
-  if [[ $path == "$here" ]]; then action="keep (current)"
-  elif [[ -n $locked ]]; then action="keep (locked)"
-  elif [[ -n $(git -C "$path" --no-optional-locks status --porcelain 2>/dev/null) ]]; then action="keep (uncommitted)"
-  elif [[ $unpushed == yes ]]; then action="keep (unpushed)"
-  elif [[ $merged == no ]]; then action="keep (unmerged)"
-  elif ((age <= worktree_days)); then action="keep (changed in the last $worktree_days days)"
+  if [[ $path == "$here" ]]; then
+    action="keep (current)"
+  elif [[ -n $locked ]]; then
+    action="keep (locked)"
+  elif [[ -n $(git -C "$path" --no-optional-locks status --porcelain 2>/dev/null) ]]; then
+    action="keep (uncommitted)"
+  elif [[ $unpushed == yes ]]; then
+    action="keep (unpushed)"
+  elif [[ $merged == no ]]; then
+    action="keep (unmerged)"
+  elif ((age <= worktree_days)); then
+    action="keep (changed in the last $worktree_days days)"
   fi
   if [[ $action == delete ]]; then deleted_trees+="$path"$'\n'; else cmd=-; fi
   row worktree "$path" "$age" "$merged" "$action" "$cmd"
@@ -168,7 +174,8 @@ while IFS=$'\x1f' read -r branch tip track ct; do
   read -r merged unpushed < <(judge "$tip" --head "$branch")
   action="keep (unmerged)"
   cmd=-
-  if [[ $unpushed == yes ]]; then action="keep (unpushed)"
+  if [[ $unpushed == yes ]]; then
+    action="keep (unpushed)"
   elif [[ $merged == yes || $track == "[gone]" ]]; then
     action=delete
     cmd="git -C $(q "$repo") branch -D $(q "$branch")"
