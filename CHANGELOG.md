@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `cleaning-up-sessions` lists the worktrees, merged or gone local branches, session scratch trees, and dev servers a repository's agent sessions left behind, and removes the ones you approve; `freeing-disk-space` sends worktree space to it. [#TBD](https://github.com/bostonaholic/skills/pull/TBD)
+
 ## [0.114.0] - 2026-11-21
 
 ### Fixed

@@ -35,6 +35,7 @@ Say a quoted phrase, or ask in your own words, and the matching skill loads. A s
 | [`auditing-tests`](./skills/engineering/auditing-tests/SKILL.md)                                           | "audit the tests"                    | user, model        | Audit a test suite for low-value tests.                                                   |
 | [`capturing-screenshots`](./skills/engineering/capturing-screenshots/SKILL.md)                             | "take screenshots"                   | user, model        | Capture verified screenshots of an app.                                                   |
 | [`choosing-determinism`](./skills/engineering/choosing-determinism/SKILL.md)                               | "script the deterministic steps"     | user, model        | Move a skill's deterministic steps into scripts it runs.                                  |
+| [`cleaning-up-sessions`](./skills/engineering/cleaning-up-sessions/SKILL.md)                               | "clean up"                           | user, model, skill | List and remove merged worktrees, branches, and scratch trees.                            |
 | [`configuring-zsh`](./skills/engineering/configuring-zsh/SKILL.md)                                         | "update the zsh config"              | user, model        | Place zsh config in the right startup file.                                               |
 | [`cr`](./skills/engineering/cr/SKILL.md)                                                                   | `/cr`                                | user               | Start a reviewing-code review with a short name.                                          |
 | [`diagnosing-react-code`](./skills/engineering/diagnosing-react-code/SKILL.md)                             | "health-check the React code"        | user, model        | Scan a React package and fix its errors.                                                  |
@@ -120,11 +121,12 @@ The plugin has no hooks, MCP servers, LSP servers, or telemetry of its own. A sk
 
 ### Local files outside the working repository
 
-- Reads: Claude Code and Codex session logs (`auditing-agent-token-usage`, `reflecting`, `writing-playbooks`), frog friction logs across a workspace (`summarizing-friction-logs`), global instruction files (`learning-from-mistakes`), and cache sizes (`freeing-disk-space`).
+- Reads: Claude Code and Codex session logs (`auditing-agent-token-usage`, `reflecting`, `writing-playbooks`), frog friction logs across a workspace (`summarizing-friction-logs`), global instruction files (`learning-from-mistakes`), cache sizes (`freeing-disk-space`), and session scratch trees under `/private/tmp/claude-*` (`cleaning-up-sessions`).
 - `updating-bostonaholic-skills` updates the plugin installs and skill copies of each harness after you confirm its plan, and removes skills the collection retired, including global `skills` CLI installs and their lock entries. It backs up each old copy under `${XDG_DATA_HOME:-~/.local/share}/updating-bostonaholic-skills/backups/`.
 - `configuring-zsh` edits zsh startup files and the dotfiles repository behind them.
 - `learning-from-mistakes` adds a rule to a project or global `CLAUDE.md` or `AGENTS.md` after you approve it.
 - `freeing-disk-space` deletes caches and build outputs, one approved deletion at a time.
+- `cleaning-up-sessions` removes merged worktrees, local branches, and session scratch trees, and stops dev servers, after you approve each row.
 - `capturing-screenshots` installs Playwright into `${XDG_CACHE_HOME:-~/.cache}/paparazzi` and Chromium into the Playwright browser cache.
 - `stacking-prs` and `opening-prs` run `gh stack`, which records its release checks in `gh-stack/state.yml` under GitHub CLI's state directory.
 - `summarizing-shipped-work` adds highlights to your brag document when you accept its offer.

@@ -24,6 +24,7 @@
     "./skills/engineering/auditing-tests",
     "./skills/engineering/capturing-screenshots",
     "./skills/engineering/choosing-determinism",
+    "./skills/engineering/cleaning-up-sessions",
     "./skills/engineering/configuring-zsh",
     "./skills/engineering/cr",
     "./skills/engineering/diagnosing-react-code",

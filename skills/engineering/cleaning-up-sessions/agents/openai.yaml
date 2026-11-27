@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cleaning Up Sessions"
+  short_description: "List and remove merged worktrees, branches, and scratch trees"
+  default_prompt: "Use $cleaning-up-sessions to list the merged worktrees, branches, scratch trees, and dev servers this repository's sessions left behind and remove the ones I approve."

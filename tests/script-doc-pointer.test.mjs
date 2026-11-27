@@ -601,7 +601,7 @@ const ROWS = [
     exit: 2,
     target: "skills/engineering/verifying-production-changes/SKILL.md",
   },
-  // auditing-agent-token-usage, freeing-disk-space
+  // auditing-agent-token-usage, cleaning-up-sessions, freeing-disk-space
   {
     label: "audit-token-usage.sh",
     script: "skills/engineering/auditing-agent-token-usage/scripts/audit-token-usage.sh",
@@ -617,6 +617,14 @@ const ROWS = [
     args: () => ["unexpected"],
     exit: 64,
     target: "skills/engineering/freeing-disk-space/SKILL.md",
+  },
+  {
+    label: "list.sh",
+    script: "skills/engineering/cleaning-up-sessions/scripts/list.sh",
+    interpreter: "bash",
+    args: () => ["a", "b"],
+    exit: 64,
+    target: "skills/engineering/cleaning-up-sessions/SKILL.md",
   },
   {
     label: "list-pinned-versions.sh",
