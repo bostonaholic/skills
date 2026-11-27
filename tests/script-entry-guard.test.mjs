@@ -59,6 +59,8 @@ const SCRIPTS = [
   [`${E}/watching-reviewed-prs/scripts`, "poll.mjs", ["a", "b", "c", "d"], 2],
   [`${E}/watching-reviewed-prs/scripts`, "render-approval.mjs", ["a", "b", "c", "d"], 2],
   [`${E}/watching-reviewed-prs/scripts`, "verify-approval.mjs", ["a", "b", "c", "d"], 2],
+  ["skills/incubating/mechanizing-instruction-rules/scripts", "list-rules.mjs", [], 2],
+  ["skills/incubating/mechanizing-instruction-rules/scripts", "mark-enforced.mjs", [], 2],
 ];
 
 function scratchDir(t) {
