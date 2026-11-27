@@ -1,6 +1,6 @@
 ---
 name: freeing-disk-space
-description: Finds what fills a developer machine's disk and frees space by clearing caches, build outputs, and other regenerable files, running each deletion only after approval and never emptying the Trash. Use when the user says "free up disk space", or when a disk is full or nearly full, the user is running out of disk space, builds or containers fail for lack of space, or the user asks for a disk cleanup plan, to free a target amount of space, or to clean up, reclaim space, or delete caches, build outputs, or the Trash to make room.
+description: Finds what fills a developer machine's disk and frees space by clearing caches, build outputs, and other regenerable files, running each deletion only after approval and never emptying the Trash. Use when the user says "free up disk space", or when a disk is full or nearly full, the user is running out of disk space, builds or containers fail for lack of space, or the user asks for a disk cleanup plan, to free a target amount of space, or to clean up, reclaim space, or delete caches, build outputs, or the Trash to make room. Not for the worktrees, branches, and scratch trees agent sessions leave in a repository; use cleaning-up-sessions.
 ---
 
 # Freeing disk space
@@ -39,6 +39,12 @@ Then descend with `du -x` from the home directory into trees the script did
 not list, and check [cache locations](references/cache-locations.md) for each
 toolchain present. Classify those yourself: a path does not say whether it
 holds user data.
+
+When git worktrees hold much of the space, such as trees under a
+repository's `.claude/worktrees/`, call the Skill tool with
+`cleaning-up-sessions` on that repository (see
+[skill calls](shared/skill-calls.md)) instead of proposing them here. If it is
+not installed, report them as keep rows.
 
 Compare what you found with the used space. When much is unexplained, size
 the volume root, `/private/var` (or `/var`), other users' homes, and local
