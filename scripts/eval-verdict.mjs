@@ -3,8 +3,8 @@
 //   node scripts/eval-verdict.mjs --runs <1|3> <aggregate-result.json>
 // --runs repeats the eval command's --runs value. Only cases[].arms.with[] is read; a missing or
 // null arms or arms.with is zero runs.
-// Run rule: a run is excluded when skippedPaidGraders is true or its error names a usage or rate
-// limit. A counted run passes when its error is null or absent and every graders[] entry has
+// Run rule: a run is excluded when skippedPaidGraders is true, or its error or a grader's
+// explanation names a usage, rate, or weekly limit (a judge call that hit a limit). A counted run passes when its error is null or absent and every graders[] entry has
 // scored false or passed true, so a timeout or scaffold failure fails its run.
 // Calibration rule: a case named *-calibrate-bad replays a known-bad reply, so its counted run
 // passes when its error is null or absent, at least one grader scored, and every scored grader has
@@ -33,7 +33,7 @@ const PASSING_RUNS_NEEDED = new Map([
   ["1", 1],
   ["3", 2],
 ]);
-const LIMIT_ERROR = /(usage|rate)[ -]limit/i;
+const LIMIT_ERROR = /(usage|rate|weekly)[ -]limit/i;
 
 // Input the script cannot judge. The CLI reports its message and exits 2.
 export class VerdictError extends Error {}
@@ -97,7 +97,12 @@ function withArmRuns(evalCase, index) {
 }
 
 export function isExcluded(run) {
-  return run.skippedPaidGraders === true || LIMIT_ERROR.test(run.error ?? "");
+  return (
+    run.skippedPaidGraders === true ||
+    LIMIT_ERROR.test(run.error ?? "") ||
+    (Array.isArray(run.graders) &&
+      run.graders.some((grader) => LIMIT_ERROR.test(grader?.explanation ?? "")))
+  );
 }
 
 export function endedClean(run) {

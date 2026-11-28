@@ -288,6 +288,42 @@ test("eval-verdict applies the run and case rules", async (t) => {
     assert.equal(result.stdout, "a 0/0 excluded 1 incomplete\n");
   });
 
+  await t.test("--runs 1 excludes a weekly-limit run", (st) => {
+    const weeklyLimit = run({
+      error: "exit 1: You've hit your weekly limit · resets Nov 20 at 3pm (America/Denver)",
+      passed: false,
+      score: 0,
+      graders: [scoredFail()],
+    });
+    const file = writeResult(
+      st,
+      aggregate([evalCase("a", 1, { with: [weeklyLimit], without: [failingRun()] })]),
+    );
+    const result = verdict("--runs", "1", file);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "a 0/0 excluded 1 incomplete\n");
+  });
+
+  await t.test("--runs 1 excludes a run whose judge call hit a limit", (st) => {
+    const judgeLimit = run({
+      passed: false,
+      score: 0,
+      graders: [
+        {
+          ...scoredFail(),
+          explanation: "grader threw: judge call failed: You've hit your weekly limit",
+        },
+      ],
+    });
+    const file = writeResult(
+      st,
+      aggregate([evalCase("a", 1, { with: [judgeLimit], without: [failingRun()] })]),
+    );
+    const result = verdict("--runs", "1", file);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "a 0/0 excluded 1 incomplete\n");
+  });
+
   await t.test("--runs 1 excludes a run with skipped paid graders and no grader list", (st) => {
     const skipped = run({ skippedPaidGraders: true, passed: false, score: 0, graders: undefined });
     const file = writeResult(
